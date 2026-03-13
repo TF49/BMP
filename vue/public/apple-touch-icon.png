@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <linearGradient id="grad180" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="40" fill="url(#grad180)"/>
+  <ellipse cx="90" cy="50" rx="22" ry="11" fill="#fff" opacity="0.95"/>
+  <path d="M72 50 Q81 92 81 122" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.9"/>
+  <path d="M82 50 Q87 82 87 112" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.75"/>
+  <path d="M90 50 Q90 76 90 106" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.85"/>
+  <path d="M98 50 Q93 82 93 112" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.75"/>
+  <path d="M108 50 Q99 92 99 122" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="90" cy="130" r="8" fill="#fff" opacity="0.95"/>
+  <text x="90" y="162" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#fff" opacity="0.9">BMP</text>
+</svg>

@@ -1,0 +1,54 @@
+/**
+ * Element Plus 样式覆写（全局）
+ * 说明：Tooltip/Popper 等浮层通常挂到 body，不受组件 scoped 影响
+ */
+ 
+/* Tooltip（ElPopper / ElTooltip）视觉统一 */
+.el-popper.is-dark,
+.el-popper.is-light,
+.el-tooltip__popper.is-dark,
+.el-tooltip__popper.is-light {
+  border-radius: 8px !important;
+  border: 1px solid var(--color-border, #E2E8F0) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+/* 亮色 Tooltip */
+.el-popper.is-light,
+.el-tooltip__popper.is-light {
+  background: linear-gradient(
+    135deg,
+    var(--color-card-bg, #FFFFFF) 0%,
+    var(--color-card-bg-hover, #FAFBFC) 100%
+  ) !important;
+  color: var(--color-text-primary, #1E293B) !important;
+  backdrop-filter: blur(10px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+}
+
+/* 暗色 Tooltip */
+.el-popper.is-dark,
+.el-tooltip__popper.is-dark {
+  background: rgba(15, 23, 42, 0.92) !important;
+  color: var(--color-card-bg, #FFFFFF) !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  backdrop-filter: blur(10px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+}
+
+/* Tooltip 箭头 */
+.el-popper.is-light .el-popper__arrow::before,
+.el-tooltip__popper.is-light .el-tooltip__arrow::before {
+  background: var(--color-card-bg, #FFFFFF) !important;
+  border: 1px solid var(--color-border, #E2E8F0) !important;
+}
+
+.el-popper.is-dark .el-popper__arrow::before,
+.el-tooltip__popper.is-dark .el-tooltip__arrow::before {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+}
+

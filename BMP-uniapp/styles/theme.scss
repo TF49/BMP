@@ -1,0 +1,134 @@
+/* 主题颜色变量 - 基于 Pixso 设计 */
+/* 这些变量会在运行时通过JavaScript动态设置 */
+
+/* #ifdef H5 */
+:root {
+  --color-primary: #3cc51f; /* 主色 - 品牌绿 */
+  --color-primary-light: #4ade80;
+  --color-primary-dark: #2ea816;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #6366f1;
+  --color-background: #F8FAFC; /* slate-50, ui-ux-pro-max */
+  --color-surface: #ffffff;
+  --color-text: #1E293B; /* slate-800, ≥4.5:1 对比度 */
+  --color-text-secondary: #475569; /* slate-600, 次要文案 */
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #475569;
+  --color-border: #E2E8F0; /* slate-200, 可见边框 */
+  --color-error: #ef4444;
+  --color-destructive: #ef4444;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-info: #64748b;
+  
+  /* Galaxy主题特殊颜色 */
+  --galaxy-bg-start: #0a0e27;
+  --galaxy-bg-end: #1a1a2e;
+  --galaxy-star-color: #ffffff;
+  --galaxy-glow-color: rgba(60, 197, 31, 0.3);
+  
+  /* 玻璃态效果 - 浅色模式提高不透明度，保证可读性 */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(226, 232, 240, 0.9);
+  --glass-shadow: rgba(0, 0, 0, 0.06);
+}
+
+/* 暗色主题 */
+[data-theme="dark"] {
+  --color-primary: #4ade80;
+  --color-primary-light: #6ee7b7;
+  --color-primary-dark: #22c55e;
+  --color-secondary: #818cf8;
+  --color-background: #0f172a;
+  --color-surface: #1e293b;
+  --color-text: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-border: #334155;
+  --color-error: #f87171;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-info: #94a3b8;
+  
+  --galaxy-bg-start: #0a0e27;
+  --galaxy-bg-end: #1a1a2e;
+  --galaxy-star-color: #ffffff;
+  --galaxy-glow-color: rgba(74, 222, 128, 0.3);
+  
+  --glass-bg: rgba(30, 41, 59, 0.3);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+}
+/* #endif */
+
+/* Galaxy渐变背景 */
+.galaxy-bg {
+  background: linear-gradient(
+    135deg,
+    var(--galaxy-bg-start, #0a0e27) 0%,
+    var(--galaxy-bg-end, #1a1a2e) 100%
+  );
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 50%, var(--galaxy-glow-color, rgba(60, 197, 31, 0.3)) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, var(--galaxy-glow-color, rgba(60, 197, 31, 0.3)) 0%, transparent 50%);
+    animation: galaxy-shift 20s ease-in-out infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes galaxy-shift {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+/* 玻璃态卡片 */
+.glass-card {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border: 1rpx solid var(--glass-border, rgba(226, 232, 240, 0.9));
+  box-shadow: 0 8rpx 32rpx var(--glass-shadow, rgba(0, 0, 0, 0.06));
+  border-radius: 24rpx;
+}
+
+/* 发光效果 */
+.glow-effect {
+  box-shadow: 
+    0 0 20rpx var(--color-primary, #3cc51f),
+    0 0 40rpx var(--color-primary, #3cc51f),
+    0 0 60rpx var(--color-primary, #3cc51f);
+}
+
+.glow-text {
+  text-shadow: 
+    0 0 10rpx var(--color-primary, #3cc51f),
+    0 0 20rpx var(--color-primary, #3cc51f),
+    0 0 30rpx var(--color-primary, #3cc51f);
+}
+
+/* 渐变文字 */
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary, #3cc51f) 0%,
+    var(--color-secondary, #6366f1) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

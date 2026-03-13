@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="ogBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="50%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="ogFeather" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1200" height="630" fill="url(#ogBg)"/>
+
+  <!-- 装饰性网格 -->
+  <g opacity="0.1" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="157.5" x2="1200" y2="157.5"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="472.5" x2="1200" y2="472.5"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+  </g>
+
+  <!-- 左侧羽毛球图标 -->
+  <g transform="translate(200, 200)">
+    <circle cx="0" cy="0" r="120" fill="rgba(255,255,255,0.15)"/>
+    <ellipse cx="0" cy="-50" rx="35" ry="17" fill="url(#ogFeather)" opacity="0.95"/>
+    <path d="M-30 -50 Q-15 10 -15 60" stroke="#ffffff" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.9"/>
+    <path d="M-15 -50 Q-7 0 -7 50" stroke="#ffffff" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.75"/>
+    <path d="M0 -50 Q0 -10 0 40" stroke="#ffffff" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M15 -50 Q7 0 7 50" stroke="#ffffff" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.75"/>
+    <path d="M30 -50 Q15 10 15 60" stroke="#ffffff" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.9"/>
+    <circle cx="0" cy="75" r="12" fill="#ffffff" opacity="0.95"/>
+  </g>
+
+  <!-- 右侧文字内容 -->
+  <g transform="translate(500, 250)">
+    <!-- 主标题 -->
+    <text x="0" y="0" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="72" font-weight="800" fill="#ffffff" letter-spacing="-2">
+      BMP
+    </text>
+    <text x="0" y="80" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="48" font-weight="700" fill="#ffffff" opacity="0.95">
+      羽毛球管理系统
+    </text>
+
+    <!-- 副标题 -->
+    <text x="0" y="140" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="28" font-weight="500" fill="#ffffff" opacity="0.85">
+      智能预约 · 运营管理 · 数据分析
+    </text>
+  </g>
+
+  <!-- 底部标签 -->
+  <g transform="translate(100, 560)">
+    <rect x="0" y="0" width="180" height="40" rx="20" fill="rgba(255,255,255,0.2)"/>
+    <text x="90" y="27" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#ffffff">
+      场馆运营平台
+    </text>
+  </g>
+</svg>

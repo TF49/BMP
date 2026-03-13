@@ -1,0 +1,57 @@
+/**
+ * Uiverse/Galaxy 样式基础变量
+ * 基于项目现有 CSS 变量扩展，添加 Uiverse 组件专用 token
+ */
+
+:root {
+  /* 动画时长 */
+  --uiv-transition-fast: 0.15s;
+  --uiv-transition-base: 0.3s;
+  --uiv-transition-slow: 0.5s;
+  
+  /* 动画曲线 */
+  --uiv-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --uiv-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --uiv-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --uiv-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* 圆角 */
+  --uiv-radius-sm: 6px;
+  --uiv-radius-base: 8px;
+  --uiv-radius-md: 12px;
+  --uiv-radius-lg: 16px;
+  --uiv-radius-xl: 20px;
+  --uiv-radius-full: 9999px;
+  
+  /* 阴影层级 */
+  --uiv-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --uiv-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --uiv-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --uiv-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12);
+  --uiv-shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.15);
+  
+  /* 光晕效果（用于 focus/hover） */
+  --uiv-glow-sm: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  --uiv-glow-md: 0 0 0 4px rgba(59, 130, 246, 0.15);
+  --uiv-glow-lg: 0 0 0 6px rgba(59, 130, 246, 0.2);
+  
+  /* Z-index 层级 */
+  --uiv-z-base: 1;
+  --uiv-z-dropdown: 1000;
+  --uiv-z-sticky: 1020;
+  --uiv-z-fixed: 1030;
+  --uiv-z-modal-backdrop: 1040;
+  --uiv-z-modal: 1050;
+  --uiv-z-popover: 1060;
+  --uiv-z-tooltip: 1070;
+  
+  /* 按钮尺寸 */
+  --uiv-btn-height-sm: 32px;
+  --uiv-btn-height-base: 40px;
+  --uiv-btn-height-lg: 48px;
+  
+  /* 输入框尺寸 */
+  --uiv-input-height-sm: 32px;
+  --uiv-input-height-base: 40px;
+  --uiv-input-height-lg: 48px;
+}

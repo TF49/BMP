@@ -1,0 +1,262 @@
+/**
+ * Uiverse 卡片样式变体
+ * 基于 Galaxy card 组件，提供多种视觉层级
+ * 命名空间：bmp-uiv-card-*
+ */
+
+/* 基础卡片 */
+.bmp-uiv-card {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--uiv-radius-md);
+  transition: all var(--uiv-transition-base) var(--uiv-ease-in-out);
+  box-shadow: var(--uiv-shadow-xs);
+}
+
+.bmp-uiv-card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--uiv-shadow-sm);
+  transform: translateY(-2px);
+}
+
+/* 渐变边框卡片 */
+.bmp-uiv-card-gradient {
+  background: var(--color-card-bg);
+  border: 2px solid transparent;
+  border-radius: var(--uiv-radius-md);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--uiv-shadow-sm);
+}
+
+.bmp-uiv-card-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-primary-light));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--uiv-transition-base);
+}
+
+.bmp-uiv-card-gradient:hover::before {
+  opacity: 1;
+}
+
+.bmp-uiv-card-gradient > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 发光卡片 */
+.bmp-uiv-card-glow {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--uiv-radius-md);
+  box-shadow: var(--uiv-shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.bmp-uiv-card-glow::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity var(--uiv-transition-base);
+  pointer-events: none;
+}
+
+.bmp-uiv-card-glow:hover::after {
+  opacity: 1;
+}
+
+.bmp-uiv-card-glow:hover {
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2), var(--uiv-shadow-md);
+  border-color: var(--color-primary-light);
+  transform: translateY(-4px);
+}
+
+/* 玻璃态卡片 */
+.bmp-uiv-card-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--uiv-radius-md);
+  box-shadow: var(--uiv-shadow-md);
+}
+
+.bmp-uiv-card-glass:hover {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: var(--uiv-shadow-lg);
+}
+
+/* 统计卡片变体 - 强调型 */
+.bmp-uiv-card-stat {
+  background: var(--color-card-bg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--uiv-radius-lg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--uiv-shadow-sm);
+}
+
+.bmp-uiv-card-stat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-accent));
+  transition: width var(--uiv-transition-base);
+}
+
+.bmp-uiv-card-stat:hover::before {
+  width: 100%;
+  opacity: 0.05;
+}
+
+.bmp-uiv-card-stat:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--uiv-shadow-md);
+  transform: translateY(-3px);
+}
+
+/* 统计卡片变体 - 渐变背景 */
+.bmp-uiv-card-stat-gradient {
+  background: linear-gradient(135deg, var(--color-card-bg) 0%, var(--color-card-bg-hover) 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--uiv-radius-lg);
+  padding: 24px;
+  box-shadow: var(--uiv-shadow-sm);
+  position: relative;
+}
+
+.bmp-uiv-card-stat-gradient::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, var(--color-primary-light) 0%, transparent 70%);
+  opacity: 0.1;
+  transition: opacity var(--uiv-transition-base);
+}
+
+.bmp-uiv-card-stat-gradient:hover::after {
+  opacity: 0.2;
+}
+
+.bmp-uiv-card-stat-gradient:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--uiv-shadow-lg);
+  transform: translateY(-3px) scale(1.02);
+}
+
+/* 微光/角落高光 pattern（用于快捷入口等） */
+.bmp-uiv-card-pattern {
+  position: relative;
+  overflow: hidden;
+}
+
+.bmp-uiv-card-pattern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.bmp-uiv-card-pattern::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle at 0% 100%, rgba(249, 115, 22, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* 空状态卡片 */
+.bmp-uiv-card-empty {
+  background: var(--color-card-bg);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--uiv-radius-md);
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.bmp-uiv-card-empty:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-background);
+}
+
+/* 表格等内联空状态（缩略 padding） */
+.bmp-uiv-card-empty.bmp-uiv-empty-inline {
+  padding: 32px 16px;
+}
+
+.bmp-uiv-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 8px 0;
+}
+
+.bmp-uiv-empty-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* 活动列表项 - 左侧色条强调（Galaxy 风格） */
+.bmp-uiv-activity-item {
+  position: relative;
+  padding-left: 20px;
+  border-left: 3px solid transparent;
+  transition: all var(--uiv-transition-base);
+}
+
+.bmp-uiv-activity-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity var(--uiv-transition-base);
+}
+
+.bmp-uiv-activity-item:hover::before,
+.bmp-uiv-activity-item.bmp-uiv-activity-item--active::before {
+  opacity: 1;
+}
+
+.bmp-uiv-activity-item--member::before { background: #2563eb; }
+.bmp-uiv-activity-item--court::before { background: #ec4899; }
+.bmp-uiv-activity-item--booking::before { background: #06b6d4; }
+.bmp-uiv-activity-item--revenue::before { background: #10b981; }

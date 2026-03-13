@@ -1,0 +1,36 @@
+{
+  "name": "bmp-miniprogram",
+  "version": "1.0.0",
+  "description": "羽毛球管理系统微信小程序",
+  "main": "main.ts",
+  "scripts": {
+    "dev:mp-weixin": "set UNI_INPUT_DIR=.&& uni -p mp-weixin",
+    "build:mp-weixin": "set UNI_INPUT_DIR=.&& uni build -p mp-weixin",
+    "type-check": "vue-tsc --noEmit",
+    "gen-tab-icons": "node scripts/gen-tab-icons.mjs",
+    "test": "vitest --run",
+    "test:ui": "vitest --ui"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.10",
+    "lodash-es": "^4.17.21",
+    "pinia": "^2.1.7"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "^3.0.0",
+    "@dcloudio/uni-app": "3.0.0-4070620250821001",
+    "@dcloudio/uni-cli-shared": "3.0.0-4070620250821001",
+    "@dcloudio/uni-ui": "^1.4.24",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4070620250821001",
+    "@types/node": "^25.0.10",
+    "@vitest/ui": "^4.0.18",
+    "fast-check": "^4.5.3",
+    "sass-embedded": "^1.97.3",
+    "sharp": "^0.34.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.8",
+    "vitest": "^4.0.18",
+    "vue": "^3.3.4",
+    "vue-tsc": "^1.8.22"
+  }
+}

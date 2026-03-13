@@ -1,0 +1,431 @@
+/* BMP 官网 · 现代大气设计系统
+ * 参考：neuroflow.html（渐变文本/玻璃卡片/渐变描边/按钮光扫/背景光斑）
+ * 规范：SVG 图标、稳定 hover、高对比、统一 max-width、prefers-reduced-motion
+ * 主题：桥接全局主题系统（useTheme），支持深色/浅色切换
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  /* 默认深色主题（向后兼容） */
+  --site-bg: #0a0f1a;
+  --site-bg-elevated: #111827;
+  --site-surface: rgba(255, 255, 255, 0.05);
+  --site-surface-hover: rgba(255, 255, 255, 0.08);
+  --site-border: rgba(255, 255, 255, 0.1);
+  --site-border-strong: rgba(255, 255, 255, 0.16);
+
+  --site-text: #f1f5f9;
+  --site-text-secondary: #94a3b8;
+  --site-text-muted: #64748b;
+
+  --site-accent: #0ea5e9;
+  --site-accent-hover: #38bdf8;
+  --site-accent-muted: rgba(14, 165, 233, 0.15);
+  --site-gradient: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #8b5cf6 100%);
+  --site-gradient-soft: linear-gradient(180deg, rgba(14, 165, 233, 0.12) 0%, transparent 60%);
+
+  --site-radius: 16px;
+  --site-radius-lg: 24px;
+  --site-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  --site-shadow-glow: 0 0 60px -12px rgba(14, 165, 233, 0.35);
+
+  --site-nav-height: 72px;
+  --site-container: min(1180px, calc(100vw - 32px));
+  --site-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --site-font-display: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* 主题桥接：浅色主题（非 dark-mode） */
+html:not(.theme-dark-mode) {
+  --site-bg: var(--color-background, #F8FAFC);
+  --site-bg-elevated: var(--color-card-bg, #FFFFFF);
+  --site-surface: var(--color-card-bg, #FFFFFF);
+  --site-surface-hover: var(--color-card-bg-hover, #FAFBFC);
+  --site-border: var(--color-border, #E2E8F0);
+  --site-border-strong: var(--color-border-hover, #CBD5E1);
+
+  --site-text: var(--color-text-primary, #1E293B);
+  --site-text-secondary: var(--color-text-secondary, #64748B);
+  --site-text-muted: var(--color-text-muted, #94A3B8);
+
+  --site-accent: var(--color-primary, #2563EB);
+  --site-accent-hover: var(--color-primary-light, #3B82F6);
+  --site-accent-muted: rgba(37, 99, 235, 0.1);
+  --site-gradient: linear-gradient(135deg, var(--color-primary, #2563EB) 0%, var(--color-primary-light, #3B82F6) 50%, var(--color-accent, #F97316) 100%);
+  --site-gradient-soft: linear-gradient(180deg, rgba(37, 99, 235, 0.08) 0%, transparent 60%);
+
+  --site-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --site-shadow-glow: 0 0 40px -8px rgba(37, 99, 235, 0.25);
+}
+
+/* 主题桥接：深色主题 */
+html.theme-dark-mode {
+  --site-bg: var(--color-background, #0F172A);
+  --site-bg-elevated: var(--color-card-bg, #1E293B);
+  --site-surface: rgba(255, 255, 255, 0.05);
+  --site-surface-hover: rgba(255, 255, 255, 0.08);
+  --site-border: var(--color-border, #334155);
+  --site-border-strong: var(--color-border-hover, #475569);
+
+  --site-text: var(--color-text-primary, #F1F5F9);
+  --site-text-secondary: var(--color-text-secondary, #94A3B8);
+  --site-text-muted: var(--color-text-muted, #64748B);
+
+  --site-accent: var(--color-primary-light, #60A5FA);
+  --site-accent-hover: var(--color-primary, #3B82F6);
+  --site-accent-muted: rgba(96, 165, 250, 0.15);
+  --site-gradient: linear-gradient(135deg, var(--color-primary-light, #60A5FA) 0%, var(--color-primary, #3B82F6) 50%, var(--color-accent, #F97316) 100%);
+  --site-gradient-soft: linear-gradient(180deg, rgba(96, 165, 250, 0.12) 0%, transparent 60%);
+
+  --site-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  --site-shadow-glow: 0 0 60px -12px rgba(96, 165, 250, 0.35);
+}
+
+/* 其他主题（ocean-blue, energetic-orange 等）也使用浅色桥接 */
+html.theme-ocean-blue,
+html.theme-energetic-orange,
+html.theme-sport-green,
+html.theme-elegant-purple,
+html.theme-sunset-pink {
+  --site-bg: var(--color-background);
+  --site-bg-elevated: var(--color-card-bg);
+  --site-surface: var(--color-card-bg);
+  --site-surface-hover: var(--color-card-bg-hover);
+  --site-border: var(--color-border);
+  --site-border-strong: var(--color-border-hover);
+
+  --site-text: var(--color-text-primary);
+  --site-text-secondary: var(--color-text-secondary);
+  --site-text-muted: var(--color-text-muted);
+
+  --site-accent: var(--color-primary);
+  --site-accent-hover: var(--color-primary-light);
+  --site-accent-muted: rgba(var(--color-primary-rgb, 37, 99, 235), 0.1);
+  --site-gradient: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 50%, var(--color-accent) 100%);
+  --site-gradient-soft: linear-gradient(180deg, rgba(var(--color-primary-rgb, 37, 99, 235), 0.08) 0%, transparent 60%);
+
+  --site-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
+  --site-shadow-glow: 0 0 40px -8px rgba(var(--color-primary-rgb, 37, 99, 235), 0.25);
+}
+
+.site-shell {
+  min-height: 100dvh;
+  background: var(--site-bg);
+  color: var(--site-text);
+  font-family: var(--site-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+}
+
+/* 顶部滚动进度条 */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: var(--site-gradient);
+  z-index: 1000;
+  transition: width 0.08s ease;
+}
+
+/* 背景：subtle gradient mesh + 光斑漂浮（使用主题色） */
+.site-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in srgb, var(--site-accent) 15%, transparent), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 50%, color-mix(in srgb, var(--color-accent, var(--site-accent)) 8%, transparent), transparent),
+    radial-gradient(ellipse 50% 30% at 0% 80%, color-mix(in srgb, var(--color-info, var(--site-accent)) 8%, transparent), transparent);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+  animation: backgroundShift 20s ease-in-out infinite;
+}
+
+@keyframes backgroundShift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-2%, 2%) scale(1.02);
+  }
+}
+
+/* 漂浮光斑（额外层，避免内容抢眼） */
+.site-shell::after {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--site-accent) 18%, transparent), transparent 55%),
+    radial-gradient(circle at 80% 40%, color-mix(in srgb, var(--color-info, var(--site-accent)) 14%, transparent), transparent 60%),
+    radial-gradient(circle at 70% 85%, color-mix(in srgb, var(--color-accent, var(--site-accent)) 14%, transparent), transparent 60%);
+  filter: blur(60px);
+  opacity: 0.35;
+  animation: glowFloat 18s ease-in-out infinite;
+}
+
+@keyframes glowFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(2%, -1%) scale(1.05); }
+  66% { transform: translate(-1%, 1%) scale(0.98); }
+}
+
+.site-shell .el-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.site-shell .el-drawer {
+  border-left: 1px solid var(--site-border-strong);
+}
+
+.site-shell :where(a, button, [role="button"], input, textarea, select):focus-visible {
+  outline: 2px solid var(--site-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- NeuroFlow 风格基础组件（适配 BMP 变量） ---------- */
+
+.font-display {
+  font-family: var(--site-font-display);
+}
+
+.gradient-text {
+  background: var(--site-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--site-accent) 35%, transparent);
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.gradient-border {
+  position: relative;
+  border-radius: var(--site-radius-lg);
+  background: color-mix(in srgb, var(--site-surface) 85%, transparent);
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--site-gradient);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--site-radius-lg);
+  border: 1px solid var(--site-border);
+  background: color-mix(in srgb, var(--site-surface) 80%, transparent);
+  backdrop-filter: blur(18px);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.35s ease,
+    background 0.35s ease;
+}
+
+html:not(.theme-dark-mode) .glass-card {
+  /* light mode 下玻璃不要过透明（对比度更好） */
+  background: var(--site-surface);
+  backdrop-filter: none;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--site-accent) 14%, transparent) 0%,
+    color-mix(in srgb, var(--color-info, var(--site-accent)) 12%, transparent) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.glass-card:hover::before {
+  opacity: 1;
+}
+
+.glass-card:hover {
+  background: color-mix(in srgb, var(--site-surface-hover) 85%, transparent);
+  border-color: color-mix(in srgb, var(--site-accent) 30%, var(--site-border));
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: var(--site-shadow), 0 0 30px color-mix(in srgb, var(--site-accent) 22%, transparent);
+}
+
+.glass-card:active {
+  transform: translateY(-4px) scale(1.01);
+}
+
+.card-shine {
+  position: absolute;
+  inset: 0;
+  left: -120%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  transition: left 0.55s ease;
+  pointer-events: none;
+}
+
+.glass-card:hover .card-shine {
+  left: 120%;
+}
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--site-accent) 0%, color-mix(in srgb, var(--site-accent) 70%, #000) 100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transition: left 0.55s ease;
+}
+
+.btn-primary:hover::before {
+  left: 120%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--site-accent) 45%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--site-accent) 20%, transparent),
+    0 0 20px color-mix(in srgb, var(--site-accent) 30%, transparent);
+}
+
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-secondary {
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-weight: 600;
+  color: var(--site-text);
+  background: color-mix(in srgb, var(--site-surface) 75%, transparent);
+  border: 1px solid var(--site-border);
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+html:not(.theme-dark-mode) .btn-secondary {
+  background: var(--site-surface);
+}
+
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--site-surface-hover) 85%, transparent);
+  border-color: color-mix(in srgb, var(--site-accent) 55%, var(--site-border));
+  transform: translateY(-1px);
+}
+
+.nav-blur {
+  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--site-bg) 70%, transparent);
+}
+
+.nav-link {
+  position: relative;
+  padding: 10px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--site-text-secondary);
+  font-weight: 500;
+  font-size: 14px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--site-text);
+  background: color-mix(in srgb, var(--site-surface-hover) 70%, transparent);
+}
+
+.nav-link::before,
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  height: 2px;
+  width: 0;
+  border-radius: 2px;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
+.nav-link::before {
+  left: 14px;
+  background: linear-gradient(90deg, var(--site-accent), var(--color-info, var(--site-accent)));
+}
+
+.nav-link::after {
+  right: 14px;
+  background: linear-gradient(90deg, var(--color-info, var(--site-accent)), var(--color-accent, var(--site-accent)));
+}
+
+.nav-link:hover::before,
+.nav-link:hover::after {
+  width: calc(100% - 28px);
+}
+
+.nav-link--active {
+  color: var(--site-text);
+  background: color-mix(in srgb, var(--site-accent) 12%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-shell *,
+  .site-shell *::before,
+  .site-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .site-shell::before {
+    animation: none !important;
+  }
+
+  .site-shell::after {
+    animation: none !important;
+  }
+
+  .gradient-text {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,121 @@
+import { request } from '../utils/request'
+import { API_PATHS } from '../config/api'
+
+export interface TournamentItem {
+  id: number
+  tournamentName: string
+  tournamentType: string
+  venueId: number
+  venueName: string
+  maxParticipants: number
+  currentParticipants: number
+  registrationStart: string
+  registrationEnd: string
+  tournamentStart: string
+  tournamentEnd: string
+  entryFee: number
+  status: number
+  description: string
+  createTime: string
+}
+
+export interface TournamentRegistrationParams {
+  tournamentId: number
+  memberId: number
+  partnerId?: number
+  entryFee: number
+  paymentMethod: string
+}
+
+export interface TournamentRegistrationItem {
+  id: number
+  registrationNo: string
+  tournamentId: number
+  tournamentName: string
+  memberId: number
+  memberName: string
+  partnerId?: number
+  partnerName?: string
+  entryFee: number
+  paymentMethod: string
+  status: number
+  createTime: string
+}
+
+/**
+ * 获取赛事列表
+ */
+export function getTournamentList(params?: {
+  tournamentName?: string
+  venueId?: number
+  tournamentType?: string
+  status?: number
+  page?: number
+  size?: number
+}) {
+  return request<{
+    data: TournamentItem[]
+    total: number
+    page: number
+    size: number
+    pages: number
+  }>({
+    url: API_PATHS.TOURNAMENT.LIST,
+    method: 'GET',
+    data: params
+  })
+}
+
+/**
+ * 获取赛事详情
+ */
+export function getTournamentDetail(id: number) {
+  return request<TournamentItem>({
+    url: `${API_PATHS.TOURNAMENT.DETAIL}/${id}`,
+    method: 'GET'
+  })
+}
+
+/**
+ * 获取赛事报名列表
+ */
+export function getTournamentRegistrationList(params?: {
+  tournamentId?: number
+  memberId?: number
+  status?: number
+  page?: number
+  size?: number
+}) {
+  return request<{
+    data: TournamentRegistrationItem[]
+    total: number
+    page: number
+    size: number
+    pages: number
+  }>({
+    url: API_PATHS.TOURNAMENT.REGISTRATION.LIST,
+    method: 'GET',
+    data: params
+  })
+}
+
+/**
+ * 创建赛事报名
+ */
+export function createTournamentRegistration(params: TournamentRegistrationParams) {
+  return request<TournamentRegistrationItem>({
+    url: API_PATHS.TOURNAMENT.REGISTRATION.ADD,
+    method: 'POST',
+    data: params
+  })
+}
+
+/**
+ * 获取赛事报名详情
+ */
+export function getTournamentRegistrationDetail(id: number) {
+  return request<TournamentRegistrationItem>({
+    url: `${API_PATHS.TOURNAMENT.REGISTRATION.DETAIL}/${id}`,
+    method: 'GET'
+  })
+}

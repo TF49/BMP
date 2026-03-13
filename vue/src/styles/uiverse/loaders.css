@@ -1,0 +1,104 @@
+/**
+ * Uiverse 加载动画
+ * 基于 Galaxy loader 组件
+ * 命名空间：bmp-uiv-loader-*
+ */
+
+/* 基础加载动画容器 */
+.bmp-uiv-loader {
+  display: inline-block;
+  position: relative;
+}
+
+/* 旋转圆环加载器 */
+.bmp-uiv-loader-ring {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: bmp-uiv-spin 0.8s linear infinite;
+}
+
+@keyframes bmp-uiv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 脉冲加载器 */
+.bmp-uiv-loader-pulse {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: bmp-uiv-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes bmp-uiv-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+/* 多圆点加载器 */
+.bmp-uiv-loader-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.bmp-uiv-loader-dots > span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: bmp-uiv-dots 1.4s ease-in-out infinite both;
+}
+
+.bmp-uiv-loader-dots > span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.bmp-uiv-loader-dots > span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bmp-uiv-dots {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* 骨架屏加载器 */
+.bmp-uiv-loader-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-background) 0%,
+    var(--color-card-bg-hover) 50%,
+    var(--color-background) 100%
+  );
+  background-size: 200% 100%;
+  animation: bmp-uiv-skeleton 1.5s ease-in-out infinite;
+  border-radius: var(--uiv-radius-sm);
+}
+
+@keyframes bmp-uiv-skeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

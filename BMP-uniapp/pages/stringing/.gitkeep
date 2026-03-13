@@ -1,0 +1,6 @@
+# Stringing service pages directory
+# This directory will contain:
+# - list.vue (服务列表页)
+# - detail.vue (服务详情页)
+# - create.vue (新增服务页)
+# - query.vue (服务查询页)

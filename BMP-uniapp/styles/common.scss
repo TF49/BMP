@@ -1,0 +1,221 @@
+/* 全局样式 - 基于 Pixso 设计 */
+
+/* 颜色变量 - ui-ux-pro-max 设计摘要，对比度 ≥4.5:1 */
+$primary-color: #3cc51f;
+$primary-foreground: #ffffff;
+$text-color: #1E293B; /* slate-800 */
+$text-color-secondary: #475569; /* slate-600 */
+$text-color-disabled: #64748b;
+$bg-color: #F8FAFC; /* slate-50 */
+$bg-white: #ffffff;
+$muted-bg: #f1f5f9;
+$muted-foreground: #475569;
+$border-color: #E2E8F0; /* slate-200，可见边框 */
+$error-color: #ef4444;
+$success-color: #22c55e;
+$warning-color: #f59e0b;
+$info-color: #64748b;
+$destructive: #ef4444;
+
+/* 字体大小 */
+$font-size-xs: 20rpx;
+$font-size-sm: 24rpx;
+$font-size-base: 28rpx;
+$font-size-lg: 32rpx;
+$font-size-xl: 36rpx;
+$font-size-xxl: 40rpx;
+
+/* 间距 */
+$spacing-xs: 8rpx;
+$spacing-sm: 12rpx;
+$spacing-base: 16rpx;
+$spacing-lg: 24rpx;
+$spacing-xl: 32rpx;
+$spacing-xxl: 40rpx;
+
+/* 通用类 */
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* 文本样式 */
+.text-primary {
+  color: $primary-color;
+}
+
+.text-secondary {
+  color: $text-color-secondary;
+}
+
+.text-disabled {
+  color: $text-color-disabled;
+}
+
+.text-error {
+  color: $error-color;
+}
+
+.text-success {
+  color: $success-color;
+}
+
+/* 间距工具类 */
+.mt-xs { margin-top: $spacing-xs; }
+.mt-sm { margin-top: $spacing-sm; }
+.mt-base { margin-top: $spacing-base; }
+.mt-lg { margin-top: $spacing-lg; }
+.mt-xl { margin-top: $spacing-xl; }
+.mt-xxl { margin-top: $spacing-xxl; }
+
+.mb-xs { margin-bottom: $spacing-xs; }
+.mb-sm { margin-bottom: $spacing-sm; }
+.mb-base { margin-bottom: $spacing-base; }
+.mb-lg { margin-bottom: $spacing-lg; }
+.mb-xl { margin-bottom: $spacing-xl; }
+.mb-xxl { margin-bottom: $spacing-xxl; }
+
+.ml-xs { margin-left: $spacing-xs; }
+.ml-sm { margin-left: $spacing-sm; }
+.ml-base { margin-left: $spacing-base; }
+.ml-lg { margin-left: $spacing-lg; }
+.ml-xl { margin-left: $spacing-xl; }
+
+.mr-xs { margin-right: $spacing-xs; }
+.mr-sm { margin-right: $spacing-sm; }
+.mr-base { margin-right: $spacing-base; }
+.mr-lg { margin-right: $spacing-lg; }
+.mr-xl { margin-right: $spacing-xl; }
+
+.pt-xs { padding-top: $spacing-xs; }
+.pt-sm { padding-top: $spacing-sm; }
+.pt-base { padding-top: $spacing-base; }
+.pt-lg { padding-top: $spacing-lg; }
+.pt-xl { padding-top: $spacing-xl; }
+
+.pb-xs { padding-bottom: $spacing-xs; }
+.pb-sm { padding-bottom: $spacing-sm; }
+.pb-base { padding-bottom: $spacing-base; }
+.pb-lg { padding-bottom: $spacing-lg; }
+.pb-xl { padding-bottom: $spacing-xl; }
+
+.pl-xs { padding-left: $spacing-xs; }
+.pl-sm { padding-left: $spacing-sm; }
+.pl-base { padding-left: $spacing-base; }
+.pl-lg { padding-left: $spacing-lg; }
+.pl-xl { padding-left: $spacing-xl; }
+
+.pr-xs { padding-right: $spacing-xs; }
+.pr-sm { padding-right: $spacing-sm; }
+.pr-base { padding-right: $spacing-base; }
+.pr-lg { padding-right: $spacing-lg; }
+.pr-xl { padding-right: $spacing-xl; }
+
+/* 卡片样式 - Flat/Minimal，边框可见 */
+.card {
+  background-color: $bg-white;
+  border-radius: 24rpx;
+  padding: $spacing-base;
+  margin-bottom: $spacing-base;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  border: 1rpx solid $border-color;
+}
+
+/* 自定义阴影 - 匹配 Pixso shadow-custom */
+.shadow-custom {
+  box-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-custom-primary {
+  box-shadow: 0px 2px 8px 0px rgba(60, 197, 31, 0.3);
+}
+
+/* 圆角工具类 */
+.rounded-sm { border-radius: 8rpx; }
+.rounded-md { border-radius: 16rpx; }
+.rounded-lg { border-radius: 24rpx; }
+.rounded-xl { border-radius: 32rpx; }
+.rounded-full { border-radius: 9999rpx; }
+
+/* 背景色工具类 */
+.bg-white { background-color: $bg-white; }
+.bg-muted { background-color: $muted-bg; }
+.bg-primary { background-color: $primary-color; }
+.bg-gray-50 { background-color: #F8FAFC; }
+.bg-gray-100 { background-color: #f1f5f9; }
+.bg-gray-200 { background-color: #E2E8F0; }
+
+/* 文本颜色工具类 */
+.text-foreground { color: $text-color; }
+.text-muted-foreground { color: $muted-foreground; }
+.text-primary { color: $primary-color; }
+.text-white { color: #ffffff; }
+.text-red-500 { color: #ef4444; }
+.text-destructive { color: $destructive; }
+
+/* 隐藏滚动条 */
+.no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 按钮样式 */
+.btn {
+  padding: $spacing-sm $spacing-lg;
+  border-radius: 8rpx;
+  font-size: $font-size-base;
+  text-align: center;
+  border: none;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+  &.btn-primary {
+    background-color: $primary-color;
+    color: #fff;
+  }
+
+  &.btn-default {
+    background-color: #fff;
+    color: $text-color;
+    border: 1rpx solid $border-color;
+  }
+}
+
+/* 可点击元素过渡 150-300ms，避免 layout shift */
+.clickable {
+  transition: opacity 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}

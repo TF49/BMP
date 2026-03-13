@@ -1,0 +1,71 @@
+/**
+ * Uiverse 进度条样式
+ * 基于 Galaxy 组件风格
+ * 命名空间：bmp-uiv-progress-*
+ */
+
+.bmp-uiv-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--color-background, #f1f5f9);
+  border-radius: var(--uiv-radius-full);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.bmp-uiv-progress-bar {
+  height: 100%;
+  border-radius: var(--uiv-radius-full);
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 50%, var(--color-accent) 100%);
+  background-size: 200% 100%;
+  transition: width var(--uiv-transition-slow) var(--uiv-ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.bmp-uiv-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  animation: bmp-uiv-progress-shine 2s ease-in-out infinite;
+}
+
+@keyframes bmp-uiv-progress-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.bmp-uiv-progress-sm {
+  height: 6px;
+}
+
+.bmp-uiv-progress-lg {
+  height: 12px;
+}
+
+.bmp-uiv-progress-striped .bmp-uiv-progress-bar {
+  background-image: linear-gradient(
+    -45deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.15) 25%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 50%,
+    transparent 75%,
+    rgba(255, 255, 255, 0.15) 75%
+  );
+  background-size: 12px 12px;
+  animation: bmp-uiv-progress-striped 0.6s linear infinite;
+}
+
+@keyframes bmp-uiv-progress-striped {
+  to { background-position: 12px 0; }
+}

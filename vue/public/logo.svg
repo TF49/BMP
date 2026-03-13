@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- 背景圆形渐变 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="featherGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景圆 -->
+  <circle cx="60" cy="60" r="56" fill="url(#bgGradient)"/>
+
+  <!-- 羽毛球图标 - 羽毛部分 -->
+  <g fill="url(#featherGradient)">
+    <!-- 羽毛顶部椭圆（球头） -->
+    <ellipse cx="60" cy="32" rx="14" ry="7" opacity="0.95"/>
+
+    <!-- 羽毛羽片 -->
+    <path d="M48 32 Q54 58 54 78" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.9"/>
+    <path d="M54 32 Q58 52 58 72" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.75"/>
+    <path d="M60 32 Q60 48 60 68" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M66 32 Q62 52 62 72" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.75"/>
+    <path d="M72 32 Q66 58 66 78" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.9"/>
+
+    <!-- 底部圆点（羽毛球软木部分） -->
+    <circle cx="60" cy="82" r="5" opacity="0.95"/>
+  </g>
+
+  <!-- BMP 文字 -->
+  <text x="60" y="104" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#ffffff" opacity="0.9">BMP</text>
+</svg>

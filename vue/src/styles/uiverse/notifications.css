@@ -1,0 +1,68 @@
+/**
+ * Uiverse 通知/提示条样式
+ * 基于 Galaxy Notifications
+ * 命名空间：bmp-uiv-notice-*
+ */
+
+.bmp-uiv-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--uiv-radius-md);
+  border: 1px solid;
+  transition: all var(--uiv-transition-base) var(--uiv-ease-in-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.bmp-uiv-notice::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+}
+
+.bmp-uiv-notice-info {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #1e40af;
+}
+
+.bmp-uiv-notice-info::before {
+  background: linear-gradient(180deg, var(--color-primary), var(--color-primary-light));
+}
+
+.bmp-uiv-notice-success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #047857;
+}
+
+.bmp-uiv-notice-success::before {
+  background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+.bmp-uiv-notice-warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #b45309;
+}
+
+.bmp-uiv-notice-warning::before {
+  background: linear-gradient(180deg, #f59e0b, #fbbf24);
+}
+
+.bmp-uiv-notice-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.bmp-uiv-notice-body {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+}

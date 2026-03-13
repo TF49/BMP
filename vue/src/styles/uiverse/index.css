@@ -1,0 +1,15 @@
+/**
+ * Uiverse/Galaxy 样式库主入口
+ * 统一引入所有 Uiverse 样式模块
+ */
+
+@import './variables.css';
+@import './buttons.css';
+@import './cards.css';
+@import './inputs.css';
+@import './loaders.css';
+@import './progress.css';
+@import './badges.css';
+@import './tooltips.css';
+@import './notifications.css';
+@import './element-plus-overrides.css';

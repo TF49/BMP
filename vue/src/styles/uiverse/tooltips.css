@@ -1,0 +1,53 @@
+/**
+ * Uiverse 简易 Tooltip 样式
+ * 基于 Galaxy Tooltips，纯 CSS 实现
+ * 命名空间：bmp-uiv-tooltip-*
+ */
+
+.bmp-uiv-tooltip-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.bmp-uiv-tooltip-wrap[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(30, 41, 59, 0.95);
+  border-radius: var(--uiv-radius-base);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--uiv-transition-fast), transform var(--uiv-transition-fast);
+  z-index: var(--uiv-z-tooltip);
+  box-shadow: var(--uiv-shadow-lg);
+}
+
+.bmp-uiv-tooltip-wrap[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-2px);
+  border: 6px solid transparent;
+  border-top-color: rgba(30, 41, 59, 0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--uiv-transition-fast);
+  z-index: var(--uiv-z-tooltip);
+}
+
+.bmp-uiv-tooltip-wrap:hover[data-tooltip]::after,
+.bmp-uiv-tooltip-wrap:hover[data-tooltip]::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.bmp-uiv-tooltip-wrap:hover[data-tooltip]::before {
+  transform: translateX(-50%) translateY(2px);
+}

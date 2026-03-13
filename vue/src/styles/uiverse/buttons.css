@@ -1,0 +1,177 @@
+/**
+ * Uiverse 按钮样式
+ * 基于 Galaxy button 组件，适配项目主题变量
+ * 命名空间：bmp-uiv-btn-*
+ */
+
+/* 基础按钮容器 */
+.bmp-uiv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  border-radius: var(--uiv-radius-base);
+  transition: all var(--uiv-transition-base) var(--uiv-ease-in-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.bmp-uiv-btn:focus {
+  outline: none;
+}
+
+.bmp-uiv-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 主要按钮 - 渐变效果 */
+.bmp-uiv-btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 50%, var(--color-accent) 100%);
+  background-size: 200% 200%;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  animation: gradientShift 5s ease infinite;
+}
+
+.bmp-uiv-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  background-position: 100% 50%;
+}
+
+.bmp-uiv-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* 次要按钮 - 边框高光 */
+.bmp-uiv-btn-secondary {
+  background: var(--color-card-bg);
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-border);
+  box-shadow: var(--uiv-shadow-xs);
+}
+
+.bmp-uiv-btn-secondary:hover:not(:disabled) {
+  background: var(--color-card-bg-hover);
+  border-color: var(--color-primary-light);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--uiv-shadow-sm);
+}
+
+.bmp-uiv-btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 幽灵按钮 - 透明背景 */
+.bmp-uiv-btn-ghost {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid transparent;
+}
+
+.bmp-uiv-btn-ghost:hover:not(:disabled) {
+  background: var(--color-background);
+  border-color: var(--color-border);
+  color: var(--color-primary);
+}
+
+/* 发光按钮效果 */
+.bmp-uiv-btn-glow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.bmp-uiv-btn-glow:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.bmp-uiv-btn-glow > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 按钮尺寸变体 */
+.bmp-uiv-btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  height: var(--uiv-btn-height-sm);
+}
+
+.bmp-uiv-btn-lg {
+  padding: 14px 28px;
+  font-size: 16px;
+  height: var(--uiv-btn-height-lg);
+}
+
+/* 按钮加载状态 */
+.bmp-uiv-btn-loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.bmp-uiv-btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 与 el-button 联用时的覆盖，确保 Uiverse 样式生效 */
+.el-button.bmp-uiv-btn {
+  padding: 10px 20px;
+}
+
+.el-button.bmp-uiv-btn.bmp-uiv-btn-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 50%, var(--color-accent) 100%) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+.el-button.bmp-uiv-btn.bmp-uiv-btn-secondary {
+  background: var(--color-card-bg) !important;
+  color: var(--color-text-primary) !important;
+  border: 2px solid var(--color-border) !important;
+}
