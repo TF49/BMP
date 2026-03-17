@@ -1,142 +1,150 @@
 <template>
   <view class="auth-page">
-    <!-- 顶部渐变头部，风格与首页一致 -->
-    <view class="auth-header">
-      <view class="auth-header-content">
-        <view class="logo-circle">
-          <uni-icons type="medal" size="38" color="#ffffff" class="logo-icon"></uni-icons>
-        </view>
-        <view class="header-texts">
-          <text class="app-name">羽毛球管理系统</text>
-          <text class="app-desc">注册新账号，开始预约与报名</text>
-        </view>
-      </view>
+    <!-- 顶部艺术化背景（与登录页保持一致） -->
+    <view class="auth-visual-bg">
+      <view class="blob-1"></view>
+      <view class="blob-2"></view>
+      <view class="blob-3"></view>
     </view>
 
-    <view class="auth-content">
-      <view class="auth-card">
-        <!-- 头部 -->
-        <view class="card-title-row">
-          <text class="card-title">注册</text>
-          <text class="card-subtitle">创建您的账户</text>
-        </view>
-
-        <!-- 步骤指示器 -->
-        <view class="step-indicator">
-          <view class="step-dot" :class="currentStep === 1 ? 'active' : 'done'">
-            <text v-if="currentStep > 1" class="step-check">✓</text>
-            <text v-else class="step-num">1</text>
+    <!-- 主体内容 -->
+    <view class="auth-container">
+      <view class="auth-header animate-fade-in">
+        <view class="logo-wrapper">
+          <view class="logo-box">
+            <uni-icons type="medal-filled" size="44" color="#ffffff"></uni-icons>
           </view>
-          <view class="step-line"></view>
-          <view class="step-dot" :class="currentStep === 2 ? 'active' : 'inactive'">
-            <text class="step-num">2</text>
+          <view class="logo-ring"></view>
+        </view>
+        <view class="header-content">
+          <text class="app-name">加入羽擎</text>
+          <text class="app-motto">开启您的运动新篇章</text>
+        </view>
+      </view>
+
+      <view class="auth-card animate-slide-up">
+        <!-- 步骤指示器重构 -->
+        <view class="modern-steps">
+          <view class="step-item" :class="{ 'active': currentStep >= 1, 'done': currentStep > 1 }">
+            <view class="step-icon">
+              <text v-if="currentStep > 1">✓</text>
+              <text v-else>1</text>
+            </view>
+            <text class="step-text">账号设置</text>
+          </view>
+          <view class="step-connector" :class="{ 'active': currentStep > 1 }"></view>
+          <view class="step-item" :class="{ 'active': currentStep >= 2, 'done': currentStep > 2 }">
+            <view class="step-icon">
+              <text v-if="currentStep > 2">✓</text>
+              <text v-else>2</text>
+            </view>
+            <text class="step-text">实名认证</text>
           </view>
         </view>
-        <view class="step-labels">
-          <text class="step-label" :class="currentStep >= 1 ? 'active' : ''">账号信息</text>
-          <text class="step-label" :class="currentStep >= 2 ? 'active' : ''">身份信息</text>
-        </view>
 
-        <!-- 表单 -->
-        <view class="form-body">
-          <!-- Step 1 -->
-          <view class="step-panel" v-show="currentStep === 1">
-            <AnimatedInput
-              v-model="form.username"
-              type="text"
-              placeholder="请输入用户名（4-20个字符）"
-              icon-type="person"
-              :error-message="errors.username"
-              :hint="usernameHint"
-              @focus="clearError('username')"
-              @input="validateUsername"
-            />
+        <view class="form-group">
+          <!-- Step 1: 账号信息 -->
+          <view class="step-panel" v-if="currentStep === 1">
+            <view class="input-item">
+              <text class="input-label">用户名</text>
+              <AnimatedInput
+                v-model="form.username"
+                placeholder="4-20位字母/数字/下划线"
+                icon-type="person"
+                :error-message="errors.username"
+                :hint="usernameHint"
+                @focus="clearError('username')"
+                @input="validateUsername"
+              />
+            </view>
 
-            <AnimatedInput
-              v-model="form.password"
-              type="password"
-              placeholder="请输入密码（至少6位）"
-              icon-type="locked"
-              :error-message="errors.password"
-              @focus="clearError('password')"
-              @input="validatePassword"
-            />
+            <view class="input-item">
+              <text class="input-label">登录密码</text>
+              <AnimatedInput
+                v-model="form.password"
+                type="password"
+                placeholder="至少6位安全密码"
+                icon-type="locked"
+                :error-message="errors.password"
+                @focus="clearError('password')"
+                @input="validatePassword"
+              />
+            </view>
 
-            <AnimatedInput
-              v-model="form.confirmPassword"
-              type="password"
-              placeholder="请确认密码"
-              icon-type="locked"
-              :error-message="errors.confirmPassword"
-              @focus="clearError('confirmPassword')"
-              @input="validateConfirmPassword"
-            />
+            <view class="input-item">
+              <text class="input-label">确认密码</text>
+              <AnimatedInput
+                v-model="form.confirmPassword"
+                type="password"
+                placeholder="请再次输入密码"
+                icon-type="locked"
+                :error-message="errors.confirmPassword"
+                @focus="clearError('confirmPassword')"
+                @input="validateConfirmPassword"
+              />
+            </view>
 
-            <!-- 密码强度指示器（4段） -->
-            <view v-if="form.password" class="password-strength">
-              <view class="strength-header">
-                <text class="strength-icon">{{ strengthIcon }}</text>
-                <text class="strength-label" :class="`level-${passwordStrength}`">{{ passwordStrengthText }}</text>
+            <!-- 密码强度指示器 -->
+            <view v-if="form.password" class="strength-meter">
+              <view class="strength-label-row">
+                <text class="label">安全等级：</text>
+                <text class="value" :class="'level-' + passwordStrength">{{ passwordStrengthText }}</text>
               </view>
-              <view class="strength-bar">
-                <view
-                  v-for="(item, index) in strengthBars"
-                  :key="index"
-                  class="bar"
-                  :class="item.class"
-                ></view>
-              </view>
-              <view class="strength-tags">
-                <text class="tag" :class="passwordStrength >= 0 ? `tag-${passwordStrength}` : ''">弱</text>
-                <text class="tag" :class="passwordStrength >= 1 ? `tag-${passwordStrength}` : ''">中</text>
-                <text class="tag" :class="passwordStrength >= 2 ? `tag-${passwordStrength}` : ''">强</text>
-                <text class="tag" :class="passwordStrength >= 3 ? `tag-${passwordStrength}` : ''">极强</text>
+              <view class="strength-bars">
+                <view v-for="i in 4" :key="i" class="bar" :class="{ 'active': i <= passwordStrength + 1, ['level-' + passwordStrength]: i <= passwordStrength + 1 }"></view>
               </view>
             </view>
 
-            <view class="step-next-btn" @click="goToStep2">
-              <text class="step-btn-text">下一步</text>
-              <uni-icons type="right" size="18" color="#ffffff"></uni-icons>
+            <view class="submit-section">
+              <AnimatedButton
+                text="下一步"
+                type="primary"
+                size="large"
+                @click="goToStep2"
+              />
             </view>
           </view>
 
-          <!-- Step 2 -->
-          <view class="step-panel" v-show="currentStep === 2">
-            <AnimatedInput
-              v-model="form.idCard"
-              type="text"
-              placeholder="请输入身份证号"
-              icon-type="contact"
-              :error-message="errors.idCard"
-              :maxlength="18"
-              @focus="clearError('idCard')"
-              @input="validateIdCard"
-            />
+          <!-- Step 2: 身份信息 -->
+          <view class="step-panel" v-if="currentStep === 2">
+            <view class="tips-box">
+              <uni-icons type="info" size="16" color="#3cc51f"></uni-icons>
+              <text class="tips-text">根据相关规定，预订场馆需进行实名认证</text>
+            </view>
 
-            <AnimatedButton
-              :text="loading ? '注册中...' : '完成注册'"
-              type="primary"
-              size="large"
-              :loading="loading"
-              :disabled="!canSubmit"
-              @click="handleRegister"
-            />
+            <view class="input-item">
+              <text class="input-label">身份证号</text>
+              <AnimatedInput
+                v-model="form.idCard"
+                placeholder="请输入18位有效身份证号"
+                icon-type="contact"
+                :error-message="errors.idCard"
+                :maxlength="18"
+                @focus="clearError('idCard')"
+                @input="validateIdCard"
+              />
+            </view>
 
-            <view class="step-back-btn" @click="goToStep1">
-              <uni-icons type="left" size="16" color="#94a3b8"></uni-icons>
-              <text class="back-btn-text">返回上一步</text>
+            <view class="submit-section">
+              <AnimatedButton
+                :text="loading ? '提交中...' : '完成注册并登录'"
+                type="primary"
+                size="large"
+                :loading="loading"
+                :disabled="!canSubmit"
+                @click="handleRegister"
+              />
+              <view class="back-link" @tap="goToStep1">
+                <text>返回修改账号信息</text>
+              </view>
             </view>
           </view>
         </view>
+      </view>
 
-        <!-- 底部 -->
-        <view class="form-footer">
-          <view class="footer-divider"></view>
-          <view class="footer-login">
-            <text class="footer-text">已有账号？</text>
-            <text class="footer-link" @click="navigateToLogin">立即登录</text>
-          </view>
-        </view>
+      <view class="auth-footer animate-fade-in">
+        <text class="footer-tip">已有账号？</text>
+        <text class="footer-link" @tap="navigateToLogin">立即登录</text>
       </view>
     </view>
   </view>
@@ -323,291 +331,330 @@ const navigateToLogin = () => {
 
 .auth-page {
   min-height: 100vh;
-  background-color: $bg-color;
+  background-color: #f8fafc;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 艺术化背景 - 与登录页保持高度一致 */
+.auth-visual-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 600rpx;
+  z-index: 0;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+
+  .blob-1, .blob-2, .blob-3 {
+    position: absolute;
+    filter: blur(80rpx);
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+
+  .blob-1 {
+    width: 400rpx;
+    height: 400rpx;
+    background: rgba(60, 197, 31, 0.15);
+    top: -100rpx;
+    right: -100rpx;
+  }
+
+  .blob-2 {
+    width: 300rpx;
+    height: 300rpx;
+    background: rgba(74, 222, 128, 0.1);
+    top: 200rpx;
+    left: -100rpx;
+  }
+
+  .blob-3 {
+    width: 250rpx;
+    height: 250rpx;
+    background: rgba(99, 102, 241, 0.08);
+    top: 100rpx;
+    left: 40%;
+  }
+}
+
+.auth-container {
+  position: relative;
+  z-index: 1;
+  padding: 0 40rpx;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 }
 
 .auth-header {
-  background: linear-gradient(135deg, #3cc51f 0%, #4ade80 100%);
-  padding: 80rpx 40rpx 60rpx;
-  border-radius: 0 0 40rpx 40rpx;
-  box-shadow: 0 4rpx 12rpx rgba(60, 197, 31, 0.3);
-}
-
-.auth-header-content {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-}
-
-.logo-circle {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.18);
-  border: 2rpx solid rgba(255, 255, 255, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
-}
-
-.logo-icon {
-  flex-shrink: 0;
-}
-
-.header-texts {
-  flex: 1;
-  color: #ffffff;
-}
-
-.app-name {
-  font-size: 30rpx;
-  font-weight: 700;
-  margin-bottom: 8rpx;
-}
-
-.app-desc {
-  font-size: 22rpx;
-  opacity: 0.9;
-}
-
-.auth-content {
-  flex: 1;
-  padding: 32rpx 32rpx 40rpx;
-}
-
-.auth-card {
-  margin-top: -80rpx;
-  background-color: $bg-white;
-  border-radius: 24rpx;
-  padding: 32rpx 28rpx 28rpx;
-  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.12);
-  border: 1rpx solid $border-color;
-}
-
-.card-title-row {
-  margin-bottom: 20rpx;
-}
-
-.card-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: $text-color;
-  display: block;
-  margin-bottom: 4rpx;
-}
-
-.card-subtitle {
-  font-size: 24rpx;
-  color: $text-color-secondary;
-}
-
-/* 步骤指示器 */
-.step-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16rpx 0 0;
-}
-
-.step-dot {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-
-  &.active {
-    background: linear-gradient(135deg, #3cc51f, #4ade80);
-    box-shadow: 0 0 16rpx rgba(60, 197, 31, 0.3);
-  }
-
-  &.done {
-    background: #3cc51f;
-    box-shadow: 0 0 12rpx rgba(60, 197, 31, 0.25);
-  }
-
-  &.inactive {
-    background: #e5e7eb;
-    border: 1rpx solid #d1d5db;
-  }
-}
-
-.step-num {
-  font-size: 20rpx;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.step-check {
-  font-size: 20rpx;
-  color: #ffffff;
-}
-
-.step-line {
-  width: 70rpx;
-  height: 2rpx;
-  background: linear-gradient(90deg, #3cc51f, rgba(148, 163, 184, 0.5));
-  margin: 0 10rpx;
-}
-
-.step-labels {
-  display: flex;
-  justify-content: center;
-  gap: 70rpx;
-  padding-top: 8rpx;
-}
-
-.step-label {
-  font-size: 22rpx;
-  color: $text-color-secondary;
-  transition: color 0.3s ease;
-
-  &.active {
-    color: $text-color;
-  }
-}
-
-/* 表单 */
-.form-body {
-  padding-top: 20rpx;
-}
-
-.step-panel {
-}
-
-/* 密码强度（4段） */
-.password-strength {
-  margin-top: 8rpx;
-  margin-bottom: 24rpx;
-}
-
-.strength-header {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  margin-bottom: 10rpx;
-}
-
-.strength-icon {
-  font-size: 24rpx;
-}
-
-.strength-label {
-  font-size: 22rpx;
-  font-weight: 500;
-
-  &.level-0 { color: #ef4444; }
-  &.level-1 { color: #f97316; }
-  &.level-2 { color: #eab308; }
-  &.level-3 { color: #22c55e; }
-}
-
-.strength-bar {
-  display: flex;
-  gap: 6rpx;
-  margin-bottom: 8rpx;
-}
-
-.bar {
-  flex: 1;
-  height: 6rpx;
-  border-radius: 3rpx;
-  background: #e5e7eb;
-  transition: all 0.3s ease;
-
-  &.active {
-    &.level-0 { background: #fee2e2; }
-    &.level-1 { background: #fed7aa; }
-    &.level-2 { background: #fef08a; }
-    &.level-3 { background: #bbf7d0; }
-  }
-}
-
-.strength-tags {
-  display: flex;
-  gap: 8rpx;
-}
-
-.tag {
-  font-size: 18rpx;
-  color: $text-color-secondary;
-  flex: 1;
-  text-align: center;
-
-  &.tag-0 { color: #ef4444; }
-  &.tag-1 { color: #f97316; }
-  &.tag-2 { color: #eab308; }
-  &.tag-3 { color: #22c55e; }
-}
-
-/* 下一步按钮 */
-.step-next-btn {
-  margin-top: 8rpx;
-  height: 88rpx;
-  border-radius: 44rpx;
-  background: linear-gradient(135deg, #3cc51f, #4ade80);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  box-shadow: 0 8rpx 24rpx rgba(60, 197, 31, 0.3);
-}
-
-.step-btn-text {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-/* 返回按钮 */
-.step-back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6rpx;
-  margin-top: 24rpx;
-  padding: 12rpx;
-}
-
-.back-btn-text {
-  font-size: 24rpx;
-  color: $text-color-secondary;
-}
-
-/* 底部 */
-.form-footer {
-  padding-top: 20rpx;
+  margin-top: calc(80rpx + env(safe-area-inset-top));
+  margin-bottom: 40rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16rpx;
+
+  .logo-wrapper {
+    position: relative;
+    width: 140rpx;
+    height: 140rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24rpx;
+
+    .logo-box {
+      width: 100rpx;
+      height: 100rpx;
+      background: linear-gradient(135deg, #3cc51f, #4ade80);
+      border-radius: 32rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 16rpx 32rpx rgba(60, 197, 31, 0.25);
+      z-index: 2;
+    }
+
+    .logo-ring {
+      position: absolute;
+      width: 140rpx;
+      height: 140rpx;
+      border: 2rpx solid rgba(60, 197, 31, 0.2);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+  }
+
+  .header-content {
+    text-align: center;
+    
+    .app-name {
+      font-size: 40rpx;
+      font-weight: 800;
+      color: #1e293b;
+      letter-spacing: 2rpx;
+      margin-bottom: 4rpx;
+      display: block;
+    }
+
+    .app-motto {
+      font-size: 22rpx;
+      color: #64748b;
+      letter-spacing: 4rpx;
+    }
+  }
 }
 
-.footer-divider {
-  width: 100%;
-  height: 1rpx;
-  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.4), transparent);
+.auth-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-radius: 48rpx;
+  padding: 50rpx 40rpx;
+  box-shadow: 0 40rpx 100rpx rgba(15, 23, 42, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.5);
+  margin-bottom: 40rpx;
 }
 
-.footer-login {
+/* 步骤指示器重构 */
+.modern-steps {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  justify-content: center;
+  margin-bottom: 50rpx;
+  padding: 0 20rpx;
+
+  .step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12rpx;
+    z-index: 2;
+
+    .step-icon {
+      width: 56rpx;
+      height: 56rpx;
+      border-radius: 50%;
+      background: #f1f5f9;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24rpx;
+      font-weight: 700;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 4rpx solid transparent;
+    }
+
+    .step-text {
+      font-size: 22rpx;
+      color: #94a3b8;
+      font-weight: 500;
+      transition: all 0.4s;
+    }
+
+    &.active {
+      .step-icon {
+        background: #ffffff;
+        color: #3cc51f;
+        border-color: #3cc51f;
+        box-shadow: 0 0 20rpx rgba(60, 197, 31, 0.2);
+        transform: scale(1.1);
+      }
+      .step-text {
+        color: #1e293b;
+        font-weight: 600;
+      }
+    }
+
+    &.done {
+      .step-icon {
+        background: #3cc51f;
+        color: #ffffff;
+        border-color: #3cc51f;
+      }
+    }
+  }
+
+  .step-connector {
+    flex: 1;
+    height: 4rpx;
+    background: #f1f5f9;
+    margin: 0 -10rpx 34rpx;
+    position: relative;
+    z-index: 1;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 0;
+      background: #3cc51f;
+      transition: width 0.6s ease;
+    }
+
+    &.active::after {
+      width: 100%;
+    }
+  }
 }
 
-.footer-text {
-  font-size: 24rpx;
-  color: $text-color-secondary;
+.form-group {
+  .input-item {
+    margin-bottom: 24rpx;
+
+    .input-label {
+      font-size: 24rpx;
+      color: #64748b;
+      margin-left: 10rpx;
+      margin-bottom: 10rpx;
+      display: block;
+      font-weight: 500;
+    }
+  }
 }
 
-.footer-link {
+/* 密码强度指示器 */
+.strength-meter {
+  margin: 20rpx 10rpx 40rpx;
+
+  .strength-label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12rpx;
+    
+    .label {
+      font-size: 22rpx;
+      color: #94a3b8;
+    }
+    
+    .value {
+      font-size: 22rpx;
+      font-weight: 600;
+      
+      &.level-0 { color: #ef4444; }
+      &.level-1 { color: #f97316; }
+      &.level-2 { color: #eab308; }
+      &.level-3 { color: #22c55e; }
+    }
+  }
+
+  .strength-bars {
+    display: flex;
+    gap: 8rpx;
+    
+    .bar {
+      flex: 1;
+      height: 6rpx;
+      background: #f1f5f9;
+      border-radius: 3rpx;
+      transition: all 0.4s;
+      
+      &.active {
+        &.level-0 { background: #ef4444; }
+        &.level-1 { background: #f97316; }
+        &.level-2 { background: #eab308; }
+        &.level-3 { background: #22c55e; }
+      }
+    }
+  }
+}
+
+.tips-box {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: rgba(60, 197, 31, 0.05);
+  padding: 24rpx;
+  border-radius: 16rpx;
+  margin-bottom: 40rpx;
+  border: 1rpx solid rgba(60, 197, 31, 0.1);
+
+  .tips-text {
+    font-size: 22rpx;
+    color: #166534;
+    flex: 1;
+  }
+}
+
+.submit-section {
+  margin-top: 40rpx;
+
+  .back-link {
+    text-align: center;
+    margin-top: 30rpx;
+    padding: 10rpx;
+    
+    text {
+      font-size: 24rpx;
+      color: #94a3b8;
+      text-decoration: underline;
+    }
+    
+    &:active text {
+      color: #64748b;
+    }
+  }
+}
+
+.auth-footer {
+  margin-top: auto;
+  padding: 40rpx 0 60rpx;
+  text-align: center;
   font-size: 24rpx;
-  color: #3cc51f;
-  font-weight: 500;
+  color: #94a3b8;
+
+  .footer-link {
+    color: #3cc51f;
+    font-weight: 600;
+    margin-left: 10rpx;
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.2; }
+  100% { transform: scale(1); opacity: 0.5; }
 }
 </style>

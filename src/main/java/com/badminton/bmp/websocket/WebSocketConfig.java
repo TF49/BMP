@@ -41,7 +41,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(allowedOriginPatterns)
-                .withSockJS();
+                .withSockJS()
+                // 让 SockJS 的 /ws/iframe.html 正常可用（部分环境会请求该资源作为 fallback）
+                .setClientLibraryUrl("https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js");
     }
 
     @Override

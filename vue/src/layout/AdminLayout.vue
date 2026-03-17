@@ -133,11 +133,6 @@
                 <span class="todo-label">待办</span>
               </el-badge>
             </router-link>
-            <!-- 大屏看板入口 -->
-            <router-link to="/screen" class="header-screen-link" title="大屏看板">
-              <el-icon :size="20"><Monitor /></el-icon>
-              <span class="screen-text">大屏</span>
-            </router-link>
             <!-- 通知铃铛：点击后打开与参考图一致的通知弹窗 -->
             <NotificationBell
               v-if="siteMessageEnabled"
@@ -258,8 +253,7 @@ import {
   UserFilled,
   OfficeBuilding,
   Grid,
-  Money,
-  Monitor
+  Money
 } from '@element-plus/icons-vue'
 
 interface UserInfo {
@@ -367,8 +361,7 @@ const iconComponents: Record<string, any> = {
   'Document': Document,
   'OfficeBuilding': OfficeBuilding,
   'Grid': Grid,
-  'Money': Money,
-  'Monitor': Monitor
+  'Money': Money
 }
 
 const getIconComponent = (iconName?: string): any => {
@@ -894,24 +887,6 @@ onUnmounted(() => {
   padding: 4px 10px;
   border-radius: 8px;
   background: var(--color-background, #F1F5F9);
-}
-.header-screen-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--color-text-secondary, #64748B);
-  font-size: 13px;
-  transition: background 0.2s, color 0.2s;
-}
-.header-screen-link:hover {
-  background: var(--color-card-bg-hover, #EFF6FF);
-  color: var(--color-primary, #3B82F6);
-}
-.header-screen-link .screen-text {
-  margin-left: 2px;
 }
 
 .user-info {

@@ -28,6 +28,8 @@ public class SecurityConfig {
         http
             // 启用CORS配置
             .cors(cors -> cors.disable())
+            // SockJS 可能会用 iframe transport；DENY 会导致浏览器控制台报错并影响降级策略
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             // 关闭CSRF保护
             .csrf(csrf -> csrf.disable())
             // 不使用Session

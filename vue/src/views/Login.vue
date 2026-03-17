@@ -825,15 +825,6 @@ export default {
                 this.hasLoginError = false
                 // 保存登录信息（包含AccessToken、RefreshToken、用户信息）
                 saveLoginData(response.data)
-                // 用 /api/auth/current 再拉取一次用户信息并写入本地，确保 role 等字段与后端一致（避免无菜单/无数据）
-                try {
-                  const infoRes = await getInfo()
-                  if (infoRes && infoRes.code === 200 && infoRes.data) {
-                    setUserInfo(infoRes.data)
-                  }
-                } catch (e) {
-                  console.warn('登录后拉取用户信息失败，使用登录返回数据:', e)
-                }
                 // 显示成功消息
                 this.$message.success('登录成功，欢迎使用羽毛球管理系统！')
                 // 按角色跳转：USER/MEMBER 去用户端，COACH 去教练端，PRESIDENT/ADMIN/VENUE_MANAGER 去管理端
@@ -850,9 +841,20 @@ export default {
                 if (isUserSide) {
                   try { sessionStorage.removeItem('vipWelcomeShown') } catch (e) {}
                 }
-                setTimeout(() => {
-                  this.$router.push({ path: targetPath }).catch(()=>{})
-                }, 800)
+
+                // 先完成页面跳转，避免被额外接口阻塞；跳转后再异步刷新用户信息
+                this.$router.push({ path: targetPath }).catch(()=>{})
+
+                getInfo()
+                  .then(infoRes => {
+                    if (infoRes && infoRes.code === 200 && infoRes.data) {
+                      setUserInfo(infoRes.data)
+                      window.dispatchEvent(new Event('userInfoUpdated'))
+                    }
+                  })
+                  .catch(e => {
+                    console.warn('登录后拉取用户信息失败，使用登录返回数据:', e)
+                  })
               } else {
                 this.hasLoginError = true
                 this.$message.error(response.message || '登录失败')

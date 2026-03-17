@@ -47,9 +47,19 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
       success: (res) => {
         const { statusCode, data } = res
 
-        // 对于认证接口，直接返回响应，不进行自动跳转处理（参考CMS实现）
+        // 对于认证接口：不进行自动跳转处理，但仍需做统一的业务 code 处理，保证调用方可通过 catch 处理错误
         if (isAuth) {
-          resolve(data as any)
+          if (statusCode === 200) {
+            const result = data as any
+            if (result.code === 200) {
+              resolve(result.data as any)
+            } else {
+              const errorMessage = result.message || result.msg || '请求失败'
+              reject(new Error(errorMessage))
+            }
+          } else {
+            reject(new Error('网络请求失败'))
+          }
           return
         }
 

@@ -12,8 +12,6 @@ const SiteLayout = () => import('@/layout/SiteLayout.vue')
 const SiteHome = () => import('@/views/site/Home.vue')
 // 仪表盘页面
 const Dashboard = () => import('@/views/Dashboard.vue')
-// 大屏看板
-const BigScreen = () => import('@/views/BigScreen.vue')
 
 const routes = [
   // 根路径强制进官网（路由级重定向，优先于守卫）
@@ -97,12 +95,6 @@ const routes = [
         name: 'Dashboard',
         component: Dashboard,
         meta: { title: '系统首页', icon: 'Odometer', roles: ['PRESIDENT', 'VENUE_MANAGER'] }
-      },
-      {
-        path: 'screen',
-        name: 'BigScreen',
-        component: BigScreen,
-        meta: { title: '大屏看板', icon: 'Monitor', roles: ['PRESIDENT', 'VENUE_MANAGER'], hidden: true }
       }
     ]
   },
