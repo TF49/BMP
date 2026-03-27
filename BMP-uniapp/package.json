@@ -14,7 +14,8 @@
   "dependencies": {
     "dayjs": "^1.11.10",
     "lodash-es": "^4.17.21",
-    "pinia": "^2.1.7"
+    "pinia": "^2.1.7",
+    "uview-plus": "^3.7.13"
   },
   "devDependencies": {
     "@dcloudio/types": "^3.0.0",
@@ -30,7 +31,13 @@
     "typescript": "^5.2.2",
     "vite": "^5.2.8",
     "vitest": "^4.0.18",
-    "vue": "^3.3.4",
+    "vue": "^3.5.27",
     "vue-tsc": "^1.8.22"
+  },
+  "overrides": {
+    "@vue/shared": "3.5.27",
+    "@vue/runtime-core": "3.5.27",
+    "@vue/runtime-dom": "3.5.27",
+    "@vue/server-renderer": "3.5.27"
   }
 }

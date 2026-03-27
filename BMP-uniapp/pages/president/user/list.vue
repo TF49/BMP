@@ -1,7 +1,7 @@
 <template>
   <PresidentLayout :showTabBar="true">
     <view class="user-list-page">
-      <PresidentNavBar title="用户管理" :showBack="false" />
+      <PresidentNavBar title="用户管理" />
       <view class="list-content">
         <!-- 搜索栏 -->
         <view class="search-bar glass-card">
@@ -52,9 +52,7 @@
               <text class="item-name">{{ item.username }}</text>
               <text class="item-role" :class="item.role">{{ roleLabel(item.role) }}</text>
             </view>
-            <view class="item-row">
-              <text class="item-meta">状态: {{ item.status === 1 ? '启用' : '禁用' }}</text>
-            </view>
+            <view class="item-meta">状态: {{ item.status === 1 ? '启用' : '禁用' }}</view>
           </view>
           <view v-if="hasMore && list.length > 0" class="load-more">加载更多...</view>
         </scroll-view>
@@ -151,7 +149,7 @@ onMounted(() => {
 }
 .list-content {
   padding: 24rpx;
-  padding-top: 120rpx;
+  padding-top: calc(120rpx + env(safe-area-inset-top));
 }
 .search-bar {
   padding: 24rpx;
@@ -204,7 +202,7 @@ onMounted(() => {
 .list-item {
   padding: 28rpx;
   margin-bottom: 20rpx;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
 }
 .item-row {
   display: flex;
@@ -212,10 +210,10 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 8rpx;
 }
-.item-name { font-size: 32rpx; font-weight: 600; color: var(--color-text, #1E293B); }
-.item-role { font-size: 24rpx; color: var(--color-text-secondary, #475569); }
+.item-name { font-size: 32rpx; font-weight: 600; color: #1E293B; }
+.item-role { font-size: 24rpx; color: #475569; }
 .item-role.PRESIDENT { color: #3cc51f; }
-.item-meta { font-size: 24rpx; color: var(--color-text-secondary, #475569); }
+.item-meta { font-size: 24rpx; color: #475569; line-height: 1.5; }
 .loading-wrap, .empty {
   padding: 80rpx;
   text-align: center;

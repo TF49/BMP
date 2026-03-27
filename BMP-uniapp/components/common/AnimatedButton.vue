@@ -12,7 +12,8 @@
     </view>
     <view v-else class="button-content">
       <text v-if="icon" class="button-icon">{{ icon }}</text>
-      <text class="button-text">{{ text }}</text>
+      <!-- 使用独立类名，避免与「text 类型」的 .button-text 样式冲突 -->
+      <text class="animated-button__label">{{ text }}</text>
     </view>
     <view v-if="showRipple" class="ripple" :style="rippleStyle"></view>
   </button>
@@ -105,13 +106,14 @@ const handleTouchEnd = () => {
 <style lang="scss">
 @import '@/styles/theme.scss';
 @import '@/styles/animations.scss';
+@import '@/uni.scss';
 
 .animated-button {
   position: relative;
   height: 96rpx;
-  border-radius: 16rpx;
+  border-radius: $bmp-radius-md;
   font-size: 32rpx;
-  font-weight: 500;
+  font-weight: $bmp-font-weight-regular;
   border: none;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -119,6 +121,11 @@ const handleTouchEnd = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  /* 小程序 button 默认样式兜底 */
+  line-height: 1.2;
+  padding: 0;
+  margin: 0;
   
   &::after {
     border: none;
@@ -140,48 +147,70 @@ const handleTouchEnd = () => {
   }
 }
 
-/* 按钮类型 */
+/* 按钮类型（变量在 H5 的 :root 中定义，小程序端需 fallback） */
 .button-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: #fff;
-  box-shadow: 0 8rpx 24rpx rgba(60, 197, 31, 0.3);
+  background: linear-gradient(135deg, $bmp-brand-primary 0%, $bmp-brand-primary-dark 100%);
+  color: $bmp-text-inverse;
+  box-shadow: $bmp-shadow-button;
+  border-radius: $bmp-radius-md;
+  font-weight: $bmp-font-weight-medium;
+
+  .animated-button__label {
+    color: $bmp-text-inverse;
+    font-weight: $bmp-font-weight-medium;
+    font-size: inherit;
+  }
   
   &:hover {
-    box-shadow: 0 12rpx 32rpx rgba(60, 197, 31, 0.4);
+    box-shadow: 0 12rpx 28rpx rgba(36, 161, 72, 0.34);
     transform: translateY(-2rpx);
   }
   
   &:active {
-    box-shadow: 0 4rpx 16rpx rgba(60, 197, 31, 0.3);
+    box-shadow: 0 5rpx 14rpx rgba(36, 161, 72, 0.28);
+    filter: brightness(0.96);
   }
 }
 
 .button-secondary {
-  background: var(--color-secondary);
-  color: #fff;
+  background: #6366f1;
+  color: $bmp-text-inverse;
   box-shadow: 0 8rpx 24rpx rgba(99, 102, 241, 0.3);
   
   &:hover {
     box-shadow: 0 12rpx 32rpx rgba(99, 102, 241, 0.4);
   }
+
+  .animated-button__label {
+    color: #ffffff;
+  }
 }
 
 .button-outline {
   background: transparent;
-  color: var(--color-primary);
-  border: 2rpx solid var(--color-primary);
+  color: $bmp-brand-primary;
+  border: 2rpx solid $bmp-brand-primary;
   
   &:hover {
-    background: rgba(60, 197, 31, 0.1);
+    background: rgba(52, 201, 36, 0.08);
+  }
+
+  .animated-button__label {
+    color: $bmp-brand-primary;
   }
 }
 
+/* 纯文字按钮类型（勿与 .animated-button__label 混用类名） */
 .button-text {
   background: transparent;
-  color: var(--color-primary);
+  color: $bmp-brand-primary;
   
   &:hover {
-    background: rgba(60, 197, 31, 0.1);
+    background: rgba(52, 201, 36, 0.1);
+  }
+
+  .animated-button__label {
+    color: $bmp-brand-primary;
   }
 }
 
@@ -216,8 +245,10 @@ const handleTouchEnd = () => {
   font-size: 36rpx;
 }
 
-.button-text {
-  line-height: 1;
+.animated-button__label {
+  line-height: 1.25;
+  position: relative;
+  z-index: 2;
 }
 
 .loading-spinner {

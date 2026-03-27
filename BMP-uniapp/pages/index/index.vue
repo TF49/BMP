@@ -1,24 +1,48 @@
 <template>
   <MobileLayout>
-    <!-- Header -->
+    <view class="home-page">
+    <!-- Header：与登录页同系的浅绿渐变 + uView 搜索 / 徽标 -->
     <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="header-top">
-        <view class="location-info" @click="handleLocationClick">
-          <uni-icons type="location" size="18" color="#3cc51f"></uni-icons>
-          <text class="location-text">杭州市体育中心</text>
-          <uni-icons type="arrowdown" size="14" color="#475569"></uni-icons>
+        <view class="greet-block">
+          <text class="greet-hi">你好，{{ displayName }}</text>
+          <view class="location-info" @click="handleLocationClick">
+            <uni-icons type="location" size="18" color="#3cc51f"></uni-icons>
+            <text class="location-text">杭州市体育中心</text>
+            <uni-icons type="arrowdown" size="14" color="#64748b"></uni-icons>
+          </view>
         </view>
         <view class="header-actions">
           <view class="action-icon" @click="handleMessageClick">
             <uni-icons type="chatbubble" size="20" color="#475569"></uni-icons>
-            <view class="badge" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</view>
+            <u-badge
+              v-if="unreadCount > 0"
+              :value="unreadCount"
+              :max="99"
+              number-type="overflow"
+              type="error"
+              :absolute="true"
+              :offset="[2, 2]"
+            />
           </view>
         </view>
       </view>
-      <view class="search-box" @click="handleSearchClick">
-        <uni-icons type="search" size="18" color="#475569"></uni-icons>
-        <text class="search-placeholder">搜索场馆、教练或赛事</text>
-      </view>
+      <u-search
+        v-model="searchKeyword"
+        placeholder="搜索场馆、教练或赛事"
+        shape="round"
+        :show-action="false"
+        :disabled="true"
+        :clearabled="false"
+        bg-color="#f1f5f9"
+        border-color="transparent"
+        :height="36"
+        search-icon-color="#64748b"
+        color="#334155"
+        placeholder-color="#94a3b8"
+        margin="0"
+        @click="handleSearchClick"
+      />
     </view>
 
     <view class="content">
@@ -32,7 +56,14 @@
           </view>
           <text class="banner-title">{{ bannerData?.title || '羽毛球场馆与赛事服务平台' }}</text>
           <text class="banner-desc">{{ bannerData?.desc || '赛事报名 · 场地预订 · 课程与会员服务一站式办理' }}</text>
-          <button class="banner-btn">立即进入</button>
+          <u-button
+            text="立即进入"
+            size="small"
+            plain
+            color="#22c55e"
+            :custom-style="bannerBtnStyle"
+            @click.stop="handleBannerClick"
+          />
         </view>
       </view>
 
@@ -78,7 +109,7 @@
       <view class="section" v-if="upcomingTournaments.length > 0">
         <view class="section-header">
           <text class="section-title">赛事</text>
-          <view class="section-more" @click="() => uni.switchTab({ url: '/pages/tournament/list' })">
+          <view class="section-more" @click="goTournamentListTab">
             <text>更多</text>
             <text class="chevron">›</text>
           </view>
@@ -130,14 +161,14 @@
                 <text>{{ venue.location }}</text>
               </view>
               <view class="venue-tags">
-                <text 
-                  v-for="(tag, tagIndex) in venue.tags" 
+                <u-tag
+                  v-for="(tag, tagIndex) in venue.tags"
                   :key="tagIndex"
-                  class="venue-tag"
-                  :class="tag.class"
-                >
-                  {{ tag.text }}
-                </text>
+                  :text="tag.text"
+                  plain
+                  size="mini"
+                  :type="tag.uType || 'info'"
+                />
               </view>
             </view>
           </view>
@@ -153,7 +184,7 @@
       <view class="section" v-if="hotCourses.length > 0">
         <view class="section-header">
           <text class="section-title">热门课程</text>
-          <view class="section-more" @click="() => uni.switchTab({ url: '/pages/course/list' })">
+          <view class="section-more" @click="goCourseListTab">
             <text>全部</text>
             <text class="chevron">›</text>
           </view>
@@ -193,11 +224,14 @@
               </view>
             </view>
             <view class="course-progress">
-              <view class="progress-bar">
-                <view
-                  class="progress-fill"
-                  :style="{ width: (course.students / course.maxStudents * 100) + '%' }"
-                ></view>
+              <view class="progress-track-wrap">
+                <u-line-progress
+                  :percentage="courseProgressPercent(course)"
+                  :show-text="false"
+                  height="6"
+                  active-color="#f59e0b"
+                  inactive-color="#f1f5f9"
+                />
               </view>
               <text class="progress-text">剩余{{ course.maxStudents - course.students }}个名额</text>
             </view>
@@ -205,11 +239,12 @@
         </view>
       </view>
     </view>
+    </view>
   </MobileLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
@@ -221,6 +256,25 @@ import { safeReLaunch } from '@/utils/safeRoute'
 
 const searchKeyword = ref('')
 const userStore = useUserStore()
+
+const displayName = computed(() => {
+  const u = userStore.userInfo as Record<string, string | undefined> | null
+  if (!u) return '运动达人'
+  return (u.nickname || u.username || '运动达人') as string
+})
+
+const bannerBtnStyle = {
+  marginTop: '12rpx',
+  backgroundColor: '#ffffff',
+  borderColor: '#ffffff',
+  fontWeight: '700'
+}
+
+const courseProgressPercent = (course: { students: number; maxStudents: number }) => {
+  const max = Number(course.maxStudents) || 1
+  const cur = Math.min(Number(course.students) || 0, max)
+  return Math.min(100, Math.round((cur / max) * 100))
+}
 const statusBarHeight = ref(0)
 const unreadCount = ref(0)
 
@@ -309,8 +363,8 @@ const loadRecommendedVenues = async () => {
             price: 50,
             imageUrl,
             tags: [
-              { text: '空调', class: 'tag-green' },
-              { text: '停车', class: 'tag-orange' }
+              { text: '空调', uType: 'success' },
+              { text: '停车', uType: 'warning' }
             ]
           }
         })
@@ -419,14 +473,6 @@ const handleTournamentClick = (item: any) => {
 }
 
 // 处理搜索
-const handleSearch = () => {
-  if (searchKeyword.value.trim()) {
-    uni.navigateTo({
-      url: `/pages/search/result?keyword=${encodeURIComponent(searchKeyword.value)}`
-    })
-  }
-}
-
 // 点击搜索框
 const handleSearchClick = () => {
   uni.navigateTo({
@@ -498,6 +544,14 @@ const handleViewAll = () => {
   })
 }
 
+const goTournamentListTab = () => {
+  uni.switchTab({ url: '/pages/tournament/list' })
+}
+
+const goCourseListTab = () => {
+  uni.switchTab({ url: '/pages/course/list' })
+}
+
 const handleVenueClick = (venue: any) => {
   uni.navigateTo({
     url: `/pages/venue/detail?id=${venue.id}`
@@ -551,35 +605,60 @@ onPullDownRefresh(() => {
 <style lang="scss" scoped>
 @import '@/styles/common.scss';
 
-/* Header样式优化 */
+.home-page {
+  min-height: 100vh;
+  background: linear-gradient(165deg, #eefbf2 0%, #f7fafc 42%, #f8fafc 100%);
+}
+
+/* Header：与登录页一致的轻量品牌氛围 */
 .header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx 16rpx;
+  padding: 20rpx 28rpx 18rpx;
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1rpx solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 8rpx 32rpx rgba(15, 23, 42, 0.04);
+  /* #ifdef H5 */
+  backdrop-filter: blur(12px);
+  /* #endif */
 }
 
 .header-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 16rpx;
+}
+
+.greet-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.greet-hi {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8rpx;
+  letter-spacing: 0.5rpx;
 }
 
 .location-info {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  flex: 1;
 }
 
 .location-text {
-  font-size: 28rpx;
+  font-size: 24rpx;
   font-weight: 600;
-  color: $text-color;
-  flex: 1;
+  color: $text-color-secondary;
+  max-width: 340rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-actions {
@@ -596,54 +675,18 @@ onPullDownRefresh(() => {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background-color: $muted-bg;
+  background-color: rgba(241, 245, 249, 0.95);
+  border: 1rpx solid rgba(226, 232, 240, 0.9);
   transition: background-color 0.2s ease, opacity 0.2s ease;
 }
 .action-icon:active {
   opacity: 0.85;
 }
 
-.badge {
-  position: absolute;
-  top: -4rpx;
-  right: -4rpx;
-  min-width: 32rpx;
-  height: 32rpx;
-  padding: 0 8rpx;
-  background-color: #ff4444;
-  color: #ffffff;
-  font-size: 20rpx;
-  border-radius: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2rpx solid #ffffff;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  background-color: $muted-bg;
-  border-radius: 48rpx;
-  padding: 20rpx 24rpx;
-  transition: background-color 0.2s ease;
-}
-
-.search-box:active {
-  background-color: #E2E8F0;
-}
-
-.search-placeholder {
-  flex: 1;
-  font-size: 26rpx;
-  color: $text-color-secondary;
-}
-
 .content {
   padding: 24rpx 28rpx;
   padding-bottom: 200rpx;
-  background-color: $bg-color;
+  background-color: transparent;
   min-height: calc(100vh - 200rpx);
 }
 
@@ -697,24 +740,6 @@ onPullDownRefresh(() => {
   display: block;
   margin-bottom: 20rpx;
   font-weight: 500;
-}
-
-.banner-btn {
-  background-color: #ffffff;
-  color: #3cc51f;
-  font-size: 22rpx;
-  font-weight: 700;
-  padding: 14rpx 32rpx;
-  border-radius: 9999rpx;
-  border: none;
-  align-self: flex-start;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-}
-
-.banner-btn:active {
-  transform: scale(0.98);
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
 .section {
@@ -972,29 +997,10 @@ onPullDownRefresh(() => {
 
 .venue-tags {
   display: flex;
-  gap: 12rpx;
+  flex-wrap: wrap;
+  gap: 10rpx;
   margin-bottom: 4rpx;
-}
-
-.venue-tag {
-  font-size: 18rpx;
-  padding: 6rpx 16rpx;
-  border-radius: 6rpx;
-  
-  &.tag-green {
-    background-color: #e8f5e9;
-    color: #3cc51f;
-  }
-  
-  &.tag-orange {
-    background-color: #fff3e0;
-    color: #ff9800;
-  }
-  
-  &.tag-blue {
-    background-color: #e3f2fd;
-    color: #2196f3;
-  }
+  align-items: center;
 }
 
 // 热门课程样式
@@ -1065,19 +1071,9 @@ onPullDownRefresh(() => {
   gap: 12rpx;
 }
 
-.progress-bar {
+.progress-track-wrap {
   flex: 1;
-  height: 8rpx;
-  background-color: $muted-bg;
-  border-radius: 4rpx;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ff9800 0%, #ffc107 100%);
-  border-radius: 4rpx;
-  transition: width 0.3s;
+  min-width: 0;
 }
 
 .progress-text {

@@ -44,7 +44,7 @@ async function runRecon() {
 </script>
 
 <style lang="scss" scoped>
-.recon-content { padding: 24rpx; padding-top: 120rpx; }
+.recon-content { padding: 24rpx; padding-top: calc(120rpx + env(safe-area-inset-top)); }
 .tip { padding: 24rpx; margin-bottom: 32rpx; border-radius: 20rpx; font-size: 28rpx; color: #475569; }
 .btn-wrap { margin-bottom: 32rpx; }
 .btn-run {

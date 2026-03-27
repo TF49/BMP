@@ -114,8 +114,8 @@
         <text class="total-label">合计</text>
         <text class="total-amount">¥{{ totalPrice }}</text>
       </view>
-      <button class="submit-btn" :disabled="!canSubmit" @click="handleSubmit">
-        确认预约
+      <button class="submit-btn" :disabled="!canSubmit || isSubmitting" @click="handleSubmit">
+        {{ isSubmitting ? '提交中...' : '确认预约' }}
       </button>
     </view>
   </MobileLayout>
@@ -147,6 +147,7 @@ const selectedStartTime = ref<string>('')
 const selectedEndTime = ref<string>('')
 const timeSlots = ref<string[]>([])
 const endTimeSlots = ref<string[]>([])
+const isSubmitting = ref(false)
 const userStore = useUserStore()
 
 // 计算属性
@@ -169,6 +170,22 @@ const canSubmit = computed(() => {
          selectedEndTime.value && 
          duration.value > 0
 })
+
+const getBookingErrorMessage = (error: any): string => {
+  const rawMsg = String(error?.message || error?.errMsg || '')
+  const msg = rawMsg.toLowerCase()
+
+  if (msg.includes('conflict') || rawMsg.includes('冲突') || rawMsg.includes('时间段')) {
+    return '该时段已被占用，请更换时间或场地'
+  }
+  if (msg.includes('duplicate') || rawMsg.includes('重复') || rawMsg.includes('已预约')) {
+    return '请勿重复提交预约'
+  }
+  if (msg.includes('full') || rawMsg.includes('满') || rawMsg.includes('不可用')) {
+    return '当前场地不可预约，请选择其他场地'
+  }
+  return rawMsg || '预约失败，请重试'
+}
 
 // 页面加载
 onLoad((options) => {
@@ -322,6 +339,8 @@ const loadCourtList = async () => {
 
 // 提交预约
 const handleSubmit = async () => {
+  if (isSubmitting.value) return
+
   if (!canSubmit.value) {
     uni.showToast({
       title: '请完善预约信息',
@@ -331,6 +350,7 @@ const handleSubmit = async () => {
   }
 
   try {
+    isSubmitting.value = true
     uni.showLoading({
       title: '提交中...'
     })
@@ -364,9 +384,11 @@ const handleSubmit = async () => {
     console.error('创建预约失败:', error)
     uni.hideLoading()
     uni.showToast({
-      title: '预约失败，请重试',
+      title: getBookingErrorMessage(error),
       icon: 'none'
     })
+  } finally {
+    isSubmitting.value = false
   }
 }
 

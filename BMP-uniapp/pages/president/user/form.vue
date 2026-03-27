@@ -204,7 +204,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .form-content {
   padding: 24rpx;
-  padding-top: 120rpx;
+  padding-top: calc(120rpx + env(safe-area-inset-top));
 }
 .form-card {
   padding: 32rpx;

@@ -68,14 +68,12 @@ const hasError = computed(() => !!props.errorMessage)
 
 const iconColor = computed(() => {
   if (props.errorMessage) return '#ef4444'
-  if (isFocused.value) return '#3cc51f'
-  return '#64748b'
+  if (isFocused.value) return '#34c924'
+  return '#6b7280'
 })
 
-// 小程序端更可靠：用 placeholder-style 控制占位文字颜色
 const placeholderStyle = computed(() => {
-  // 与全局主题色保持一致（slate-600 近似）
-  return 'color: rgba(71, 85, 105, 0.65);'
+  return 'color: #b0b7c3;'
 })
 
 const handleInput = (e: any) => {
@@ -102,6 +100,7 @@ const handleClear = () => {
 <style lang="scss">
 @import '@/styles/theme.scss';
 @import '@/styles/animations.scss';
+@import '@/uni.scss';
 
 .animated-input-wrapper {
   margin-bottom: 32rpx;
@@ -109,17 +108,18 @@ const handleClear = () => {
   
   &.has-error {
     .input-container {
-      border-color: var(--color-error, #ef4444);
+      border-color: $bmp-border-error;
       animation: errorShake 0.5s ease-in-out;
+      background: #fff5f5;
     }
   }
   
   &.is-focused {
     .input-container {
-      border-color: var(--color-primary, #3cc51f);
-      box-shadow: 0 0 0 4rpx rgba(60, 197, 31, 0.15);
+      border-color: $bmp-border-focus;
+      box-shadow: 0 0 0 4rpx rgba(90, 203, 74, 0.12);
       animation: inputFocus 0.2s ease-out;
-      background: rgba(248, 250, 252, 0.98);
+      background: $bmp-surface-input;
     }
     
     .input-icon {
@@ -132,17 +132,16 @@ const handleClear = () => {
   position: relative;
   display: flex;
   align-items: center;
-  background: rgba(248, 250, 252, 0.98);
-  border: 2rpx solid var(--color-border, #E2E8F0);
-  border-radius: 20rpx;
+  background: $bmp-surface-input;
+  border: 2rpx solid $bmp-border-input;
+  border-radius: $bmp-radius-md;
   padding: 0 28rpx;
   height: 100rpx;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: 0 6rpx 18rpx rgba(15, 23, 42, 0.06);
+  box-shadow: $bmp-shadow-soft;
   
   &:hover {
-    border-color: rgba(60, 197, 31, 0.4);
-    box-shadow: 0 4rpx 20rpx rgba(60, 197, 31, 0.1);
+    border-color: rgba(90, 203, 74, 0.4);
   }
 }
 
@@ -156,12 +155,12 @@ const handleClear = () => {
   flex: 1;
   height: 100%;
   font-size: 30rpx;
-  color: var(--color-text, #1E293B);
+  color: $bmp-text-secondary;
   background: transparent;
   border: none;
   
   &::placeholder {
-    color: rgba(71, 85, 105, 0.65);
+    color: $bmp-text-placeholder;
   }
   
   &.has-icon {
@@ -182,7 +181,7 @@ const handleClear = () => {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(71, 85, 105, 0.08);
+  background: rgba(107, 114, 128, 0.08);
   opacity: 1;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -201,7 +200,7 @@ const handleClear = () => {
 .error-message {
   margin-top: 12rpx;
   font-size: 24rpx;
-  color: #ff6b6b;
+  color: $bmp-error;
   padding-left: 8rpx;
   animation: slideDown 0.3s ease-out;
   text-shadow: 0 0 10rpx rgba(255, 107, 107, 0.3);
@@ -210,7 +209,7 @@ const handleClear = () => {
 .hint-message {
   margin-top: 12rpx;
   font-size: 24rpx;
-  color: rgba(71, 85, 105, 0.65);
+  color: $bmp-text-disabled;
   padding-left: 8rpx;
   animation: slideDown 0.3s ease-out;
 }

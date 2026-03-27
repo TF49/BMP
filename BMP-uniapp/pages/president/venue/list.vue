@@ -1,7 +1,7 @@
 <template>
   <PresidentLayout :showTabBar="true">
     <view class="venue-list-page">
-      <PresidentNavBar title="场馆管理" :showBack="false" />
+      <PresidentNavBar title="场馆管理" />
       <view class="list-content">
         <view class="action-bar">
           <view class="btn-add glass-card" @click="goAdd">添加场馆</view>
@@ -23,9 +23,11 @@
             class="list-item glass-card"
             @click="goDetail(item.id)"
           >
-            <text class="item-name">{{ item.venueName }}</text>
-            <text class="item-meta">{{ item.address || '—' }}</text>
-            <text class="item-status" :class="{ on: item.status === 1 }">{{ item.status === 1 ? '营业中' : '关闭' }}</text>
+            <view class="item-row">
+              <text class="item-name">{{ item.venueName }}</text>
+              <text class="item-status" :class="{ on: item.status === 1 }">{{ item.status === 1 ? '营业中' : '已关闭' }}</text>
+            </view>
+            <view class="item-meta">{{ item.address || '—' }}</view>
           </view>
           <view v-if="hasMore && list.length > 0" class="load-more">加载更多...</view>
         </scroll-view>
@@ -84,7 +86,7 @@ onMounted(() => loadList())
 
 <style lang="scss" scoped>
 .venue-list-page { min-height: 100vh; }
-.list-content { padding: 24rpx; padding-top: 120rpx; }
+.list-content { padding: 24rpx; padding-top: calc(120rpx + env(safe-area-inset-top)); }
 .action-bar { margin-bottom: 24rpx; }
 .btn-add {
   display: inline-block;
@@ -94,14 +96,15 @@ onMounted(() => loadList())
   color: var(--color-primary, #3cc51f);
   font-size: 28rpx;
 }
-.list-scroll { height: calc(100vh - 200rpx); }
+.list-scroll { height: calc(100vh - 220rpx); }
 .list-item {
   padding: 28rpx;
   margin-bottom: 20rpx;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
 }
-.item-name { font-size: 32rpx; font-weight: 600; display: block; margin-bottom: 8rpx; }
-.item-meta { font-size: 24rpx; color: var(--color-text-secondary); display: block; }
+.item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8rpx; }
+.item-name { font-size: 32rpx; font-weight: 600; color: #1E293B; }
+.item-meta { font-size: 24rpx; color: #475569; display: block; line-height: 1.5; }
 .item-status { font-size: 24rpx; color: #94a3b8; }
 .item-status.on { color: #22c55e; }
 .loading-wrap, .empty { padding: 80rpx; text-align: center; color: #475569; }

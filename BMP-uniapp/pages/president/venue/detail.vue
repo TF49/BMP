@@ -73,7 +73,7 @@ onMounted(() => load())
 </script>
 
 <style lang="scss" scoped>
-.detail-content { padding: 24rpx; padding-top: 120rpx; }
+.detail-content { padding: 24rpx; padding-top: calc(120rpx + env(safe-area-inset-top)); }
 .detail-card { padding: 32rpx; border-radius: 24rpx; }
 .detail-row {
   display: flex; justify-content: space-between; padding: 24rpx 0;

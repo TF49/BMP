@@ -1,7 +1,7 @@
 <template>
   <PresidentLayout :showTabBar="true">
     <view class="finance-list-page">
-      <PresidentNavBar title="财务管理" :showBack="false" />
+      <PresidentNavBar title="财务管理" />
       <view class="list-content">
         <view class="action-row">
           <view class="btn-recon glass-card" @click="goRecon">全面对账</view>
@@ -66,7 +66,7 @@ onMounted(() => loadList())
 
 <style lang="scss" scoped>
 .finance-list-page { min-height: 100vh; }
-.list-content { padding: 24rpx; padding-top: 120rpx; }
+.list-content { padding: 24rpx; padding-top: calc(120rpx + env(safe-area-inset-top)); }
 .action-row { margin-bottom: 24rpx; }
 .btn-recon { display: inline-block; padding: 20rpx 36rpx; border-radius: 16rpx; color: #3cc51f; font-size: 28rpx; }
 .list-scroll { height: calc(100vh - 220rpx); }

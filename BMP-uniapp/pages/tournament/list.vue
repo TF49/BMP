@@ -49,7 +49,7 @@
         <view 
           v-for="(tournament, index) in tournamentList" 
           :key="index"
-          class="tournament-item"
+          class="tournament-item glass-card"
           @click="handleTournamentClick(tournament)"
         >
           <view class="tournament-image">
@@ -390,7 +390,7 @@ onPullDownRefresh(() => {
 .content {
   flex: 1;
   height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
+  background-color: transparent;
   padding: 24rpx 28rpx;
 }
 
@@ -413,10 +413,8 @@ onPullDownRefresh(() => {
 }
 
 .tournament-item {
-  background-color: #ffffff;
-  border-radius: 18rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+  border-radius: 24rpx;
+  padding: 28rpx;
   display: flex;
   gap: 20rpx;
 }

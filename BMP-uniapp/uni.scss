@@ -1,0 +1,76 @@
+$u-primary: #3cc51f;
+$u-success: #16a34a;
+$u-warning: #f59e0b;
+$u-error: #ef4444;
+$u-info: #64748b;
+
+$u-border-radius-sm: 8rpx;
+$u-border-radius: 12rpx;
+$u-border-radius-lg: 20rpx;
+
+/* BMP 高级版 UI tokens */
+$bmp-brand-primary: #34c924;
+$bmp-brand-primary-dark: #24a148;
+$bmp-brand-primary-soft: #eaf9ec;
+
+$bmp-success: #22c55e;
+$bmp-warning: #f59e0b;
+$bmp-warning-strong: #f97316;
+$bmp-error: #ef4444;
+$bmp-info: #64748b;
+
+$bmp-bg-page-start: #eaf7ee;
+$bmp-bg-page-end: #f8fcf9;
+$bmp-surface-card: #ffffff;
+$bmp-surface-input: #f8fafc;
+$bmp-surface-muted: #f3f4f6;
+
+$bmp-text-primary: #111827;
+$bmp-text-secondary: #1f2937;
+$bmp-text-tertiary: #6b7280;
+$bmp-text-placeholder: #b0b7c3;
+$bmp-text-disabled: #9ca3af;
+$bmp-text-inverse: #ffffff;
+
+$bmp-border-default: #e5e7eb;
+$bmp-border-soft: #e6ece8;
+$bmp-border-input: #dce3e8;
+$bmp-border-focus: #5acb4a;
+$bmp-border-error: #fecaca;
+$bmp-border-success: #bbf7d0;
+
+$bmp-font-size-xxl: 36rpx;
+$bmp-font-size-xl: 34rpx;
+$bmp-font-size-lg: 20rpx;
+$bmp-font-size-md: 14rpx;
+$bmp-font-size-sm: 13rpx;
+$bmp-font-size-xs: 12rpx;
+$bmp-font-size-2xs: 11rpx;
+
+$bmp-font-weight-bold: 800;
+$bmp-font-weight-semibold: 700;
+$bmp-font-weight-medium: 600;
+$bmp-font-weight-regular: 500;
+
+$bmp-space-1: 4rpx;
+$bmp-space-2: 8rpx;
+$bmp-space-3: 12rpx;
+$bmp-space-4: 16rpx;
+$bmp-space-5: 20rpx;
+$bmp-space-6: 24rpx;
+$bmp-space-7: 28rpx;
+$bmp-space-8: 32rpx;
+
+$bmp-radius-xs: 4rpx;
+$bmp-radius-sm: 10rpx;
+$bmp-radius-md: 12rpx;
+$bmp-radius-lg: 18rpx;
+$bmp-radius-xl: 22rpx;
+$bmp-radius-pill: 999rpx;
+
+$bmp-shadow-card: 0 10rpx 30rpx rgba(15, 23, 42, 0.08);
+$bmp-shadow-button: 0 8rpx 22rpx rgba(36, 180, 63, 0.3);
+$bmp-shadow-logo: 0 8rpx 18rpx rgba(25, 165, 61, 0.2);
+$bmp-shadow-soft: 0 4rpx 10rpx rgba(15, 23, 42, 0.07);
+
+@import "uview-plus/theme.scss";

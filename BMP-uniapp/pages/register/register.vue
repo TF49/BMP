@@ -1,321 +1,228 @@
 <template>
   <view class="auth-page">
-    <!-- 顶部艺术化背景（与登录页保持一致） -->
-    <view class="auth-visual-bg">
-      <view class="blob-1"></view>
-      <view class="blob-2"></view>
-      <view class="blob-3"></view>
-    </view>
+    <!-- WebSocket/App Safe Area -->
+    <view class="safe-area-capsule"></view>
 
-    <!-- 主体内容 -->
-    <view class="auth-container">
-      <view class="auth-header animate-fade-in">
-        <view class="logo-wrapper">
-          <view class="logo-box">
-            <uni-icons type="medal-filled" size="44" color="#ffffff"></uni-icons>
-          </view>
-          <view class="logo-ring"></view>
-        </view>
-        <view class="header-content">
-          <text class="app-name">加入羽擎</text>
-          <text class="app-motto">开启您的运动新篇章</text>
-        </view>
-      </view>
-
-      <view class="auth-card animate-slide-up">
-        <!-- 步骤指示器重构 -->
-        <view class="modern-steps">
-          <view class="step-item" :class="{ 'active': currentStep >= 1, 'done': currentStep > 1 }">
-            <view class="step-icon">
-              <text v-if="currentStep > 1">✓</text>
-              <text v-else>1</text>
-            </view>
-            <text class="step-text">账号设置</text>
-          </view>
-          <view class="step-connector" :class="{ 'active': currentStep > 1 }"></view>
-          <view class="step-item" :class="{ 'active': currentStep >= 2, 'done': currentStep > 2 }">
-            <view class="step-icon">
-              <text v-if="currentStep > 2">✓</text>
-              <text v-else>2</text>
-            </view>
-            <text class="step-text">实名认证</text>
-          </view>
-        </view>
-
-        <view class="form-group">
-          <!-- Step 1: 账号信息 -->
-          <view class="step-panel" v-if="currentStep === 1">
-            <view class="input-item">
-              <text class="input-label">用户名</text>
-              <AnimatedInput
-                v-model="form.username"
-                placeholder="4-20位字母/数字/下划线"
-                icon-type="person"
-                :error-message="errors.username"
-                :hint="usernameHint"
-                @focus="clearError('username')"
-                @input="validateUsername"
-              />
-            </view>
-
-            <view class="input-item">
-              <text class="input-label">登录密码</text>
-              <AnimatedInput
-                v-model="form.password"
-                type="password"
-                placeholder="至少6位安全密码"
-                icon-type="locked"
-                :error-message="errors.password"
-                @focus="clearError('password')"
-                @input="validatePassword"
-              />
-            </view>
-
-            <view class="input-item">
-              <text class="input-label">确认密码</text>
-              <AnimatedInput
-                v-model="form.confirmPassword"
-                type="password"
-                placeholder="请再次输入密码"
-                icon-type="locked"
-                :error-message="errors.confirmPassword"
-                @focus="clearError('confirmPassword')"
-                @input="validateConfirmPassword"
-              />
-            </view>
-
-            <!-- 密码强度指示器 -->
-            <view v-if="form.password" class="strength-meter">
-              <view class="strength-label-row">
-                <text class="label">安全等级：</text>
-                <text class="value" :class="'level-' + passwordStrength">{{ passwordStrengthText }}</text>
-              </view>
-              <view class="strength-bars">
-                <view v-for="i in 4" :key="i" class="bar" :class="{ 'active': i <= passwordStrength + 1, ['level-' + passwordStrength]: i <= passwordStrength + 1 }"></view>
-              </view>
-            </view>
-
-            <view class="submit-section">
-              <AnimatedButton
-                text="下一步"
-                type="primary"
-                size="large"
-                @click="goToStep2"
-              />
-            </view>
-          </view>
-
-          <!-- Step 2: 身份信息 -->
-          <view class="step-panel" v-if="currentStep === 2">
-            <view class="tips-box">
-              <uni-icons type="info" size="16" color="#3cc51f"></uni-icons>
-              <text class="tips-text">根据相关规定，预订场馆需进行实名认证</text>
-            </view>
-
-            <view class="input-item">
-              <text class="input-label">身份证号</text>
-              <AnimatedInput
-                v-model="form.idCard"
-                placeholder="请输入18位有效身份证号"
-                icon-type="contact"
-                :error-message="errors.idCard"
-                :maxlength="18"
-                @focus="clearError('idCard')"
-                @input="validateIdCard"
-              />
-            </view>
-
-            <view class="submit-section">
-              <AnimatedButton
-                :text="loading ? '提交中...' : '完成注册并登录'"
-                type="primary"
-                size="large"
-                :loading="loading"
-                :disabled="!canSubmit"
-                @click="handleRegister"
-              />
-              <view class="back-link" @tap="goToStep1">
-                <text>返回修改账号信息</text>
-              </view>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view class="auth-footer animate-fade-in">
-        <text class="footer-tip">已有账号？</text>
-        <text class="footer-link" @tap="navigateToLogin">立即登录</text>
+    <!-- Top AppBar -->
+    <view class="top-bar">
+      <view class="brand-logo" @tap="navigateToLogin">
+        <text class="icon-bolt">⚡</text>
+        <text class="brand-text">Kinetic Logic</text>
       </view>
     </view>
+
+    <!-- Main Content -->
+    <view class="main-content">
+      <!-- Hero Branding -->
+      <view class="hero-section">
+        <text class="main-title">羽   擎</text>
+        <text class="sub-title">BMP PERFORMANCE GATEWAY</text>
+      </view>
+
+      <!-- Registration Form -->
+      <view class="registration-form">
+        <!-- Phone Number -->
+        <view class="field-group">
+          <text class="field-label">手机号码 MOBILE NUMBER</text>
+          <view class="input-wrapper">
+            <view class="input-container">
+              <text class="input-icon">📱</text>
+              <input 
+                class="input-field" 
+                v-model="formData.phone" 
+                placeholder="请输入手机号" 
+                placeholder-class="input-placeholder"
+                type="number"
+                maxlength="11"
+                @focus="focusPhone = true"
+                @blur="focusPhone = false"
+              />
+            </view>
+            <view class="input-underline" :class="{ 'active': focusPhone }"></view>
+          </view>
+        </view>
+
+        <!-- ID Card Number -->
+        <view class="field-group">
+          <text class="field-label">身份证号 ID CARD NUMBER</text>
+          <view class="input-wrapper">
+            <view class="input-container">
+              <text class="input-icon">🪪</text>
+              <input 
+                class="input-field" 
+                v-model="formData.idCard" 
+                placeholder="请输入身份证号码" 
+                placeholder-class="input-placeholder"
+                type="idcard"
+                maxlength="18"
+                @focus="focusIdCard = true"
+                @blur="focusIdCard = false"
+              />
+            </view>
+            <view class="input-underline" :class="{ 'active': focusIdCard }"></view>
+          </view>
+        </view>
+
+        <!-- Set Password -->
+        <view class="field-group">
+          <text class="field-label">设置密码 SET PASSWORD</text>
+          <view class="input-wrapper">
+            <view class="input-container">
+              <text class="input-icon">🔒</text>
+              <input 
+                class="input-field" 
+                v-model="formData.password" 
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="请输入密码" 
+                placeholder-class="input-placeholder"
+                @focus="focusPassword = true"
+                @blur="focusPassword = false"
+              />
+              <text class="toggle-icon" @tap="showPassword = !showPassword">
+                {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+              </text>
+            </view>
+            <view class="input-underline" :class="{ 'active': focusPassword }"></view>
+          </view>
+        </view>
+
+        <!-- Confirm Password -->
+        <view class="field-group">
+          <text class="field-label">确认密码 CONFIRM PASSWORD</text>
+          <view class="input-wrapper">
+            <view class="input-container">
+              <text class="input-icon">🛡️</text>
+              <input 
+                class="input-field" 
+                v-model="formData.confirmPassword" 
+                type="password"
+                placeholder="请再次输入密码" 
+                placeholder-class="input-placeholder"
+                @focus="focusConfirm = true"
+                @blur="focusConfirm = false"
+              />
+            </view>
+            <view class="input-underline" :class="{ 'active': focusConfirm }"></view>
+          </view>
+        </view>
+
+        <!-- Terms & Conditions -->
+        <view class="terms-container">
+          <checkbox-group @change="handleTermsChange">
+            <label class="terms-label">
+              <checkbox class="terms-checkbox" :value="'true'" :checked="formData.agreed" color="#FF6600" />
+              <text class="terms-text">我已阅读并同意《会员服务协议》与《隐私政策》</text>
+            </label>
+          </checkbox-group>
+        </view>
+
+        <!-- Primary Action -->
+        <view class="action-primary">
+          <button 
+            class="btn-register" 
+            :loading="loading" 
+            :disabled="loading" 
+            @tap="handleRegister"
+          >
+            <text v-if="!loading" class="btn-text">完成注册</text>
+            <text v-if="!loading" class="btn-icon">→</text>
+            <text v-else>注册中...</text>
+          </button>
+        </view>
+
+        <!-- Secondary Action -->
+        <view class="action-secondary">
+          <text class="login-prompt">已有账号？</text>
+          <text class="login-link" @tap="navigateToLogin">立即登录</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- Footer Decoration -->
+    <view class="footer-decoration">
+      <view class="footer-content">
+        <text class="footer-title">羽擎管理系统</text>
+        <text class="footer-subtitle">动力精密架构</text>
+      </view>
+    </view>
+
+    <!-- Abstract Shape Decoration -->
+    <view class="abstract-shape"></view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { register } from '@/api/auth'
-import { validateIdCard as validateIdCardRule } from '@/utils/validate'
 import { safeNavigateBack } from '@/utils/navigation'
-import AnimatedInput from '@/components/common/AnimatedInput.vue'
-import AnimatedButton from '@/components/common/AnimatedButton.vue'
-
-const currentStep = ref(1)
-
-const form = ref({
-  username: '',
-  password: '',
-  confirmPassword: '',
-  idCard: '',
-  role: 'USER'
-})
-
-const errors = ref({
-  username: '',
-  password: '',
-  confirmPassword: '',
-  idCard: ''
-})
 
 const loading = ref(false)
-const passwordStrength = ref(0) // 0-弱, 1-中, 2-强, 3-极强
+const showPassword = ref(false)
+const focusPhone = ref(false)
+const focusIdCard = ref(false)
+const focusPassword = ref(false)
+const focusConfirm = ref(false)
 
-const usernameHint = computed(() => {
-  if (!form.value.username) return ''
-  const len = form.value.username.length
-  if (len < 4) return `还需${4 - len}个字符`
-  if (len > 20) return '用户名过长'
-  return '✓'
+const formData = ref({
+  phone: '',
+  idCard: '',
+  password: '',
+  confirmPassword: '',
+  agreed: false
 })
 
-const passwordStrengthText = computed(() => {
-  const texts = ['弱', '中', '强', '极强']
-  return texts[passwordStrength.value]
-})
-
-const strengthIcon = computed(() => {
-  return passwordStrength.value >= 2 ? '🔒' : '🔓'
-})
-
-const strengthBars = computed(() => {
-  const bars = []
-  for (let i = 0; i < 4; i++) {
-    bars.push({
-      class: i <= passwordStrength.value ? `active level-${passwordStrength.value}` : ''
-    })
-  }
-  return bars
-})
-
-const canSubmit = computed(() => {
-  return (
-    form.value.idCard.trim() &&
-    !errors.value.idCard &&
-    !loading.value
-  )
-})
-
-const clearError = (field: keyof typeof errors.value) => {
-  errors.value[field] = ''
-}
-
-const validateUsername = () => {
-  const username = form.value.username.trim()
-  if (!username) { errors.value.username = ''; return }
-  if (username.length < 4) {
-    errors.value.username = '用户名至少4个字符'
-  } else if (username.length > 20) {
-    errors.value.username = '用户名不能超过20个字符'
-  } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    errors.value.username = '用户名只能包含字母、数字和下划线'
-  } else {
-    errors.value.username = ''
-  }
-}
-
-const validatePassword = () => {
-  const password = form.value.password
-  if (!password) { passwordStrength.value = 0; errors.value.password = ''; return }
-  if (password.length < 6) {
-    errors.value.password = '密码至少6位'
-    passwordStrength.value = 0
-    return
-  }
-  errors.value.password = ''
-  let score = 0
-  if (password.length >= 8) score++
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++
-  if (/\d/.test(password)) score++
-  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++
-  passwordStrength.value = Math.min(3, score)
-  if (form.value.confirmPassword) validateConfirmPassword()
-}
-
-const validateConfirmPassword = () => {
-  if (!form.value.confirmPassword) { errors.value.confirmPassword = ''; return }
-  errors.value.confirmPassword = form.value.password !== form.value.confirmPassword
-    ? '两次输入的密码不一致' : ''
-}
-
-const validateIdCard = () => {
-  const idCard = form.value.idCard.trim()
-  if (!idCard) { errors.value.idCard = ''; return }
-  errors.value.idCard = !validateIdCardRule(idCard) ? '请输入正确的身份证号' : ''
-}
-
-const validateStep1 = (): boolean => {
-  validateUsername()
-  validatePassword()
-  validateConfirmPassword()
-  return !errors.value.username && !errors.value.password && !errors.value.confirmPassword
-    && !!form.value.username.trim() && !!form.value.password && !!form.value.confirmPassword
-}
-
-const goToStep2 = () => {
-  if (!validateStep1()) {
-    const firstError = errors.value.username || errors.value.password || errors.value.confirmPassword
-      || (!form.value.username.trim() ? '请输入用户名' : '')
-      || (!form.value.password ? '请输入密码' : '')
-      || (!form.value.confirmPassword ? '请确认密码' : '')
-    uni.showToast({ title: firstError || '请完善账号信息', icon: 'none', duration: 2000 })
-    return
-  }
-  currentStep.value = 2
-}
-
-const goToStep1 = () => {
-  currentStep.value = 1
+const handleTermsChange = (e: any) => {
+  formData.value.agreed = e.detail.value.length > 0
 }
 
 const handleRegister = async () => {
-  validateIdCard()
-  if (errors.value.idCard || !form.value.idCard.trim()) {
-    uni.showToast({ title: errors.value.idCard || '请输入身份证号', icon: 'none', duration: 2000 })
+  // #region agent log
+  fetch('http://127.0.0.1:7694/ingest/0cb5edb8-daea-4bfb-a66c-44141cbed0e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'47f8e5'},body:JSON.stringify({sessionId:'47f8e5',runId:'pre-fix',hypothesisId:'H1',location:'pages/register/register.vue:179',message:'handleRegister entry',data:{hasPhone:!!formData.value.phone,hasIdCard:!!formData.value.idCard,hasPassword:!!formData.value.password,hasConfirmPassword:!!formData.value.confirmPassword,agreed:formData.value.agreed},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+  if (!formData.value.phone || !formData.value.idCard || !formData.value.password) {
+    uni.showToast({ title: '请填写完整信息', icon: 'none' })
+    return
+  }
+
+  if (formData.value.password !== formData.value.confirmPassword) {
+    uni.showToast({ title: '两次输入的密码不一致', icon: 'none' })
+    return
+  }
+
+  if (!formData.value.agreed) {
+    uni.showToast({ title: '请阅读并同意服务协议', icon: 'none' })
     return
   }
 
   loading.value = true
+
   try {
+    // 映射到 API 所需的字段
+    // #region agent log
+    fetch('http://127.0.0.1:7694/ingest/0cb5edb8-daea-4bfb-a66c-44141cbed0e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'47f8e5'},body:JSON.stringify({sessionId:'47f8e5',runId:'pre-fix',hypothesisId:'H2',location:'pages/register/register.vue:202',message:'register payload snapshot',data:{username:formData.value.phone,idCardLength:formData.value.idCard?.length||0,passwordLength:formData.value.password?.length||0,confirmPasswordLength:formData.value.confirmPassword?.length||0,role:'USER'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     await register({
-      username: form.value.username.trim(),
-      password: form.value.password,
-      confirmPassword: form.value.confirmPassword,
-      idCard: form.value.idCard.trim(),
-      role: form.value.role
+      username: formData.value.phone, // 使用手机号作为用户名或按后端要求
+      password: formData.value.password,
+      confirmPassword: formData.value.confirmPassword,
+      idCard: formData.value.idCard,
+      role: 'USER'
     })
-    uni.showToast({ title: '注册成功', icon: 'success', duration: 1500 })
-    setTimeout(() => { safeNavigateBack() }, 1500)
-  } catch (error: any) {
-    const msg = error.message || '注册失败，请稍后重试'
-    if (msg.includes('用户名') || msg.includes('已存在')) {
-      errors.value.username = msg
-      currentStep.value = 1
-    } else if (msg.includes('密码')) {
-      errors.value.password = msg
-      currentStep.value = 1
-    } else if (msg.includes('身份证')) {
-      errors.value.idCard = msg
-    } else {
-      uni.showToast({ title: msg, icon: 'none', duration: 2000 })
-    }
+
+    uni.showToast({
+      title: '注册成功',
+      icon: 'success',
+      duration: 1500
+    })
+
+    setTimeout(() => {
+      safeNavigateBack()
+    }, 1500)
+  } catch (err: any) {
+    uni.showToast({
+      title: err.message || '注册失败',
+      icon: 'none'
+    })
   } finally {
     loading.value = false
   }
@@ -329,332 +236,328 @@ const navigateToLogin = () => {
 <style lang="scss" scoped>
 @import '@/styles/common.scss';
 
+view, text, scroll-view, input, button, textarea {
+  box-sizing: border-box;
+}
+
 .auth-page {
+  width: 100vw;
   min-height: 100vh;
-  background-color: #f8fafc;
   position: relative;
-  overflow: hidden;
-}
-
-/* 艺术化背景 - 与登录页保持高度一致 */
-.auth-visual-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 600rpx;
-  z-index: 0;
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-
-  .blob-1, .blob-2, .blob-3 {
+  overflow-x: hidden;
+  background: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  
+  &::before {
+    content: '';
     position: absolute;
-    filter: blur(80rpx);
-    border-radius: 50%;
-    opacity: 0.6;
-  }
-
-  .blob-1 {
-    width: 400rpx;
-    height: 400rpx;
-    background: rgba(60, 197, 31, 0.15);
-    top: -100rpx;
-    right: -100rpx;
-  }
-
-  .blob-2 {
-    width: 300rpx;
-    height: 300rpx;
-    background: rgba(74, 222, 128, 0.1);
-    top: 200rpx;
-    left: -100rpx;
-  }
-
-  .blob-3 {
-    width: 250rpx;
-    height: 250rpx;
-    background: rgba(99, 102, 241, 0.08);
-    top: 100rpx;
-    left: 40%;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 100% 0%, rgba(255, 102, 0, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 0% 100%, rgba(255, 102, 0, 0.03) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
   }
 }
 
-.auth-container {
+.safe-area-capsule {
+  height: 120rpx;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.top-bar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 0 48rpx;
+  height: 120rpx;
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+
+    .icon-bolt {
+      font-size: 48rpx;
+      color: #FF6600;
+      line-height: 1;
+    }
+
+    .brand-text {
+      font-size: 48rpx;
+      font-weight: bold;
+      font-style: italic;
+      letter-spacing: -2rpx;
+      color: #FF6600;
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1;
+    }
+  }
+}
+
+.main-content {
   position: relative;
   z-index: 1;
-  padding: 0 40rpx;
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  padding: 40rpx 48rpx 200rpx;
+  max-width: 100vw;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.auth-header {
-  margin-top: calc(80rpx + env(safe-area-inset-top));
-  margin-bottom: 40rpx;
+.hero-section {
+  margin-bottom: 60rpx;
+
+  .main-title {
+    display: block;
+    font-size: 88rpx;
+    font-weight: bold;
+    color: #1a1c1c;
+    margin-bottom: 16rpx;
+    letter-spacing: 16rpx;
+    line-height: 1.2;
+    white-space: nowrap;
+    width: 100%;
+    text-align: left;
+  }
+
+  .sub-title {
+    display: block;
+    font-size: 26rpx;
+    color: #FF6600;
+    letter-spacing: 8rpx;
+    opacity: 0.8;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+}
+
+.registration-form {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 40rpx;
+}
 
-  .logo-wrapper {
+.field-group {
+  position: relative;
+
+  .field-label {
+    display: block;
+    font-size: 20rpx;
+    font-weight: bold;
+    letter-spacing: 1rpx;
+    text-transform: uppercase;
+    color: #5f5e5e;
+    margin-bottom: 16rpx;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .input-wrapper {
     position: relative;
-    width: 140rpx;
-    height: 140rpx;
+
+    .input-container {
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      border-radius: 16rpx;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      padding: 0 32rpx;
+      height: 112rpx;
+      box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.03);
+
+      .input-icon {
+        font-size: 40rpx;
+        color: #8e7164;
+        margin-right: 32rpx;
+        flex-shrink: 0;
+      }
+
+      .input-field {
+        flex: 1;
+        width: 100%;
+        background: transparent;
+        border: none;
+        font-size: 32rpx;
+        color: #1a1c1c;
+        height: 100%;
+      }
+
+      .input-placeholder {
+        color: #e3bfb1;
+      }
+
+      .toggle-icon {
+        font-size: 40rpx;
+        color: #8e7164;
+        margin-left: 32rpx;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+    }
+
+    .input-underline {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 4rpx;
+      background: #FF6600;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 2rpx;
+
+      &.active {
+        width: 100%;
+      }
+    }
+  }
+}
+
+.terms-container {
+  padding: 10rpx 0;
+  
+  .terms-label {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+  }
+
+  .terms-checkbox {
+    transform: scale(0.8);
+  }
+
+  .terms-text {
+    font-size: 20rpx;
+    color: #5f5e5e;
+    font-weight: bold;
+    letter-spacing: 1rpx;
+    text-transform: uppercase;
+  }
+}
+
+.action-primary {
+  padding-top: 20rpx;
+
+  .btn-register {
+    width: 100%;
+    height: 128rpx;
+    background: linear-gradient(45deg, #a33e00 0%, #ff6600 100%);
+    border-radius: 16rpx;
+    color: #ffffff;
+    font-weight: bold;
+    border: none;
+    box-shadow: 0 16rpx 32rpx rgba(163, 62, 0, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 24rpx;
+    gap: 24rpx;
+    transition: transform 0.3s ease;
 
-    .logo-box {
-      width: 100rpx;
-      height: 100rpx;
-      background: linear-gradient(135deg, #3cc51f, #4ade80);
-      border-radius: 32rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 16rpx 32rpx rgba(60, 197, 31, 0.25);
-      z-index: 2;
+    .btn-text {
+      font-size: 32rpx;
+      letter-spacing: 10rpx;
+      font-weight: bold;
     }
 
-    .logo-ring {
-      position: absolute;
-      width: 140rpx;
-      height: 140rpx;
-      border: 2rpx solid rgba(60, 197, 31, 0.2);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
+    .btn-icon {
+      font-size: 48rpx;
+      line-height: 1;
     }
-  }
 
-  .header-content {
-    text-align: center;
+    &:active {
+      transform: scale(0.98);
+    }
     
-    .app-name {
-      font-size: 40rpx;
-      font-weight: 800;
-      color: #1e293b;
-      letter-spacing: 2rpx;
-      margin-bottom: 4rpx;
-      display: block;
-    }
-
-    .app-motto {
-      font-size: 22rpx;
-      color: #64748b;
-      letter-spacing: 4rpx;
+    &::after {
+      border: none;
     }
   }
 }
 
-.auth-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  border-radius: 48rpx;
-  padding: 50rpx 40rpx;
-  box-shadow: 0 40rpx 100rpx rgba(15, 23, 42, 0.08);
-  border: 1rpx solid rgba(255, 255, 255, 0.5);
-  margin-bottom: 40rpx;
+.action-secondary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12rpx;
+  padding-top: 30rpx;
+
+  .login-prompt {
+    font-size: 28rpx;
+    color: #5f5e5e;
+  }
+
+  .login-link {
+    font-size: 28rpx;
+    color: #FF6600;
+    font-weight: bold;
+    text-decoration: none;
+    
+    &:active {
+      opacity: 0.7;
+    }
+  }
 }
 
-/* 步骤指示器重构 */
-.modern-steps {
+.footer-decoration {
+  position: fixed;
+  bottom: 60rpx;
+  left: 0;
+  width: 100%;
+  padding: 48rpx;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-bottom: 50rpx;
-  padding: 0 20rpx;
+  pointer-events: none;
+  z-index: 1;
 
-  .step-item {
+  .footer-content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12rpx;
-    z-index: 2;
+    justify-content: center;
+    opacity: 0.4;
 
-    .step-icon {
-      width: 56rpx;
-      height: 56rpx;
-      border-radius: 50%;
-      background: #f1f5f9;
-      color: #94a3b8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24rpx;
-      font-weight: 700;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 4rpx solid transparent;
-    }
-
-    .step-text {
+    .footer-title {
       font-size: 22rpx;
-      color: #94a3b8;
-      font-weight: 500;
-      transition: all 0.4s;
-    }
-
-    &.active {
-      .step-icon {
-        background: #ffffff;
-        color: #3cc51f;
-        border-color: #3cc51f;
-        box-shadow: 0 0 20rpx rgba(60, 197, 31, 0.2);
-        transform: scale(1.1);
-      }
-      .step-text {
-        color: #1e293b;
-        font-weight: 600;
-      }
-    }
-
-    &.done {
-      .step-icon {
-        background: #3cc51f;
-        color: #ffffff;
-        border-color: #3cc51f;
-      }
-    }
-  }
-
-  .step-connector {
-    flex: 1;
-    height: 4rpx;
-    background: #f1f5f9;
-    margin: 0 -10rpx 34rpx;
-    position: relative;
-    z-index: 1;
-
-    &::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      height: 100%;
-      width: 0;
-      background: #3cc51f;
-      transition: width 0.6s ease;
-    }
-
-    &.active::after {
-      width: 100%;
-    }
-  }
-}
-
-.form-group {
-  .input-item {
-    margin-bottom: 24rpx;
-
-    .input-label {
-      font-size: 24rpx;
-      color: #64748b;
-      margin-left: 10rpx;
+      font-weight: bold;
+      letter-spacing: 14rpx;
+      text-transform: uppercase;
       margin-bottom: 10rpx;
-      display: block;
-      font-weight: 500;
+      color: #1a1c1c;
+    }
+
+    .footer-subtitle {
+      font-size: 18rpx;
+      letter-spacing: 5rpx;
+      color: #1a1c1c;
     }
   }
 }
 
-/* 密码强度指示器 */
-.strength-meter {
-  margin: 20rpx 10rpx 40rpx;
-
-  .strength-label-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12rpx;
-    
-    .label {
-      font-size: 22rpx;
-      color: #94a3b8;
-    }
-    
-    .value {
-      font-size: 22rpx;
-      font-weight: 600;
-      
-      &.level-0 { color: #ef4444; }
-      &.level-1 { color: #f97316; }
-      &.level-2 { color: #eab308; }
-      &.level-3 { color: #22c55e; }
-    }
-  }
-
-  .strength-bars {
-    display: flex;
-    gap: 8rpx;
-    
-    .bar {
-      flex: 1;
-      height: 6rpx;
-      background: #f1f5f9;
-      border-radius: 3rpx;
-      transition: all 0.4s;
-      
-      &.active {
-        &.level-0 { background: #ef4444; }
-        &.level-1 { background: #f97316; }
-        &.level-2 { background: #eab308; }
-        &.level-3 { background: #22c55e; }
-      }
-    }
-  }
-}
-
-.tips-box {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  background: rgba(60, 197, 31, 0.05);
-  padding: 24rpx;
-  border-radius: 16rpx;
-  margin-bottom: 40rpx;
-  border: 1rpx solid rgba(60, 197, 31, 0.1);
-
-  .tips-text {
-    font-size: 22rpx;
-    color: #166534;
-    flex: 1;
-  }
-}
-
-.submit-section {
-  margin-top: 40rpx;
-
-  .back-link {
-    text-align: center;
-    margin-top: 30rpx;
-    padding: 10rpx;
-    
-    text {
-      font-size: 24rpx;
-      color: #94a3b8;
-      text-decoration: underline;
-    }
-    
-    &:active text {
-      color: #64748b;
-    }
-  }
-}
-
-.auth-footer {
-  margin-top: auto;
-  padding: 40rpx 0 60rpx;
-  text-align: center;
-  font-size: 24rpx;
-  color: #94a3b8;
-
-  .footer-link {
-    color: #3cc51f;
-    font-weight: 600;
-    margin-left: 10rpx;
-  }
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.1); opacity: 0.2; }
-  100% { transform: scale(1); opacity: 0.5; }
+.abstract-shape {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400rpx;
+  height: 400rpx;
+  opacity: 0.05;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23a33e00' d='M44.7,-76.4C58.8,-69.2,71.8,-59.1,79.6,-46.2C87.4,-33.3,90.1,-17.7,89.5,-1.9C88.8,13.8,84.9,29.8,76.4,43.2C67.9,56.7,54.9,67.7,40.5,74.5C26.1,81.3,10.2,83.9,-4.9,81.9C-20,79.9,-34.3,73.4,-47.5,65.8C-60.7,58.2,-72.8,49.5,-79.8,38.1C-86.8,26.7,-88.7,12.6,-87.3,-1.2C-85.8,-15,-81,-28.4,-73.1,-39.9C-65.1,-51.4,-54,-61,-41.2,-68.8C-28.4,-76.6,-14.2,-82.6,0.5,-83.4C15.2,-84.3,30.5,-80,44.7,-76.4Z' transform='translate(100 100)'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 </style>

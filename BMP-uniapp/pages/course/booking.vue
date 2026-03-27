@@ -87,8 +87,8 @@
         <text class="total-label">应付</text>
         <text class="total-amount">¥{{ totalPrice }}</text>
       </view>
-      <button class="submit-btn" :disabled="!canSubmit" @click="handleSubmit">
-        确认预约
+      <button class="submit-btn" :disabled="!canSubmit || isSubmitting" @click="handleSubmit">
+        {{ isSubmitting ? '预约中...' : '确认预约' }}
       </button>
     </view>
   </MobileLayout>
@@ -120,6 +120,7 @@ const course = ref<any>({
 const quantity = ref<number>(1)
 const selectedPaymentMethod = ref<number>(0)
 const paymentMethods = ref(['余额支付', '微信支付', '支付宝'])
+const isSubmitting = ref(false)
 
 const userStore = useUserStore()
 
@@ -133,6 +134,22 @@ const canSubmit = computed(() => {
          course.value.id > 0 && 
          course.value.currentStudents + quantity.value <= course.value.maxStudents
 })
+
+const getCourseBookingErrorMessage = (error: any): string => {
+  const rawMsg = String(error?.message || error?.errMsg || '')
+  const msg = rawMsg.toLowerCase()
+
+  if (msg.includes('full') || rawMsg.includes('满员') || rawMsg.includes('名额')) {
+    return '课程名额不足，请调整预约数量'
+  }
+  if (msg.includes('duplicate') || rawMsg.includes('重复') || rawMsg.includes('已预约')) {
+    return '您已预约该课程，请勿重复提交'
+  }
+  if (msg.includes('expired') || rawMsg.includes('截止') || rawMsg.includes('结束')) {
+    return '课程预约已截止'
+  }
+  return rawMsg || '预约失败，请重试'
+}
 
 // 页面加载
 onLoad((options) => {
@@ -187,6 +204,8 @@ const onPaymentMethodChange = (e: any) => {
 
 // 提交预约
 const handleSubmit = async () => {
+  if (isSubmitting.value) return
+
   if (!canSubmit.value) {
     uni.showToast({
       title: '请检查预约信息',
@@ -196,6 +215,7 @@ const handleSubmit = async () => {
   }
 
   try {
+    isSubmitting.value = true
     uni.showLoading({
       title: '预约中...'
     })
@@ -227,9 +247,11 @@ const handleSubmit = async () => {
     console.error('预约课程失败:', error)
     uni.hideLoading()
     uni.showToast({
-      title: '预约失败，请重试',
+      title: getCourseBookingErrorMessage(error),
       icon: 'none'
     })
+  } finally {
+    isSubmitting.value = false
   }
 }
 

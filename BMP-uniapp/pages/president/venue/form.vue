@@ -104,7 +104,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.form-content { padding: 24rpx; padding-top: 120rpx; }
+.form-content { padding: 24rpx; padding-top: calc(120rpx + env(safe-area-inset-top)); }
 .form-card { padding: 32rpx; border-radius: 24rpx; }
 .form-item { margin-bottom: 32rpx; }
 .form-label { display: block; font-size: 28rpx; color: #475569; margin-bottom: 12rpx; }

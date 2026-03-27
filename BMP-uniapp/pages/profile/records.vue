@@ -32,7 +32,7 @@
         <view 
           v-for="(record, index) in records" 
           :key="index"
-          class="record-item"
+          class="record-item glass-card"
         >
           <view class="record-header">
             <text class="record-type">{{ record.typeText }}</text>
@@ -291,7 +291,7 @@ onPullDownRefresh(() => {
 .content {
   flex: 1;
   height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
+  background-color: transparent;
   padding: 24rpx 28rpx;
 }
 
@@ -310,14 +310,12 @@ onPullDownRefresh(() => {
 .records-list {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
+  gap: 20rpx;
 }
 
 .record-item {
-  background-color: #ffffff;
-  border-radius: 18rpx;
-  padding: 24rpx 28rpx;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+  border-radius: 24rpx;
+  padding: 28rpx;
 }
 
 .record-header {
@@ -328,14 +326,14 @@ onPullDownRefresh(() => {
 }
 
 .record-type {
-  font-size: 24rpx;
-  font-weight: bold;
-  color: #333333;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1E293B;
 }
 
 .record-amount {
-  font-size: 24rpx;
-  font-weight: bold;
+  font-size: 32rpx;
+  font-weight: 600;
 
   &.income {
     color: #3cc51f;
@@ -354,14 +352,14 @@ onPullDownRefresh(() => {
 }
 
 .record-description {
-  font-size: 22rpx;
-  color: #666666;
+  font-size: 24rpx;
+  color: #475569;
   flex: 1;
 }
 
 .record-time {
-  font-size: 20rpx;
-  color: #999999;
+  font-size: 24rpx;
+  color: #475569;
   white-space: nowrap;
   margin-left: 12rpx;
 }
@@ -373,15 +371,15 @@ onPullDownRefresh(() => {
 }
 
 .status-text {
-  font-size: 20rpx;
+  font-size: 24rpx;
   padding: 4rpx 12rpx;
   border-radius: 6rpx;
-  background-color: #f5f5f5;
-  color: #999999;
+  background-color: rgba(241, 245, 249, 0.6);
+  color: #475569;
 }
 
 .record-id {
-  font-size: 18rpx;
-  color: #999999;
+  font-size: 24rpx;
+  color: #475569;
 }
 </style>

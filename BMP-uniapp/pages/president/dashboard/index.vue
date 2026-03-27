@@ -168,7 +168,8 @@ onPullDownRefresh(() => {
 <style lang="scss" scoped>
 .dashboard-page {
   padding: 24rpx;
-  padding-top: 0;
+  /* 让首屏整体离顶部导航栏更有呼吸感 */
+  padding-top: 70px;
 }
 
 .welcome-section {
@@ -209,7 +210,8 @@ onPullDownRefresh(() => {
   border-radius: 24rpx;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
 }
 .kpi-icon-wrap {
   width: 72rpx;
@@ -233,6 +235,7 @@ onPullDownRefresh(() => {
   font-size: 24rpx;
   color: var(--color-text-secondary, #475569);
   margin-top: 4rpx;
+  text-align: center;
 }
 
 .shortcut-section {

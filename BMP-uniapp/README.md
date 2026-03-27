@@ -9,7 +9,7 @@
 - **框架**: UniApp
 - **开发语言**: Vue 3 + TypeScript
 - **状态管理**: Pinia
-- **UI组件**: uni-ui
+- **UI组件**: uni-ui + uview-plus（uView 2.x Vue3 兼容方案）
 - **构建工具**: Vite
 
 ## 项目结构
@@ -51,6 +51,34 @@ npm run dev:mp-weixin
 # 微信小程序
 npm run build:mp-weixin
 ```
+
+## uView 2.x（Vue3 兼容）接入说明
+
+本项目已按 `uview-plus` 方案接入 uView 生态组件（`u-` 前缀）。
+
+### 已完成配置
+
+1. 安装依赖：`uview-plus`
+2. 入口注册（`main.ts`）：
+   - `import uviewPlus from 'uview-plus'`
+   - `import 'uview-plus/index.scss'`
+   - `app.use(uviewPlus)`
+3. easycom 自动按需引入（`pages.json` 与 `src/pages.json`）：
+   - `"^u-(.*)": "uview-plus/components/u-$1/u-$1.vue"`
+4. 主题变量入口：新增 `uni.scss` 并引入 `uview-plus/theme.scss`
+
+### 使用方式
+
+配置完成后可直接在页面使用，无需手动导入组件：
+
+```vue
+<u-button type="primary">按钮</u-button>
+```
+
+### 当前已知问题
+
+- `npm run build:mp-weixin` 目前受 `@dcloudio/uni-app` 与 `vue` 依赖矩阵影响，存在版本冲突（非 uView 组件语法问题）。
+- 需要统一 `@dcloudio/*` 与 `vue/@vue/*` 版本后再进行最终构建验证。
 
 ## 开发规范
 

@@ -1,6 +1,8 @@
 import { createSSRApp } from 'vue'
 import App from './App.vue'
 import { createPinia } from 'pinia'
+import uviewPlus from 'uview-plus'
+import 'uview-plus/index.scss'
 import './utils/request'
 
 // ========== 微信小程序 closeSocket code 兜底 ==========
@@ -116,6 +118,7 @@ export function createApp() {
   const app = createSSRApp(App)
   const pinia = createPinia()
   app.use(pinia)
+  app.use(uviewPlus)
   
   // 在应用初始化后再次尝试禁用日志（双保险）
   app.config.globalProperties.$disableLogging = true

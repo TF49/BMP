@@ -158,8 +158,8 @@
         <text class="total-label">应付</text>
         <text class="total-amount">¥{{ tournament.fee }}</text>
       </view>
-      <button class="submit-btn" :disabled="!canSubmit" @click="handleSubmit">
-        确认报名
+      <button class="submit-btn" :disabled="!canSubmit || isSubmitting" @click="handleSubmit">
+        {{ isSubmitting ? '报名中...' : '确认报名' }}
       </button>
     </view>
   </MobileLayout>
@@ -196,6 +196,7 @@ const registrationInfo = ref({
 
 const agreementChecked = ref(false)
 const selectedPaymentMethod = ref(0)
+const isSubmitting = ref(false)
 const genders = ['女', '男']
 const skillLevels = ['初学者', '中级', '高级', '专业']
 const paymentMethods = [
@@ -215,6 +216,22 @@ const canSubmit = computed(() => {
          agreementChecked.value &&
          tournament.value.id > 0
 })
+
+const getTournamentErrorMessage = (error: any): string => {
+  const rawMsg = String(error?.message || error?.errMsg || '')
+  const msg = rawMsg.toLowerCase()
+
+  if (msg.includes('full') || rawMsg.includes('满员') || rawMsg.includes('名额')) {
+    return '赛事名额已满，请关注后续场次'
+  }
+  if (msg.includes('duplicate') || rawMsg.includes('重复') || rawMsg.includes('已报名')) {
+    return '您已报名该赛事，请勿重复提交'
+  }
+  if (msg.includes('expired') || rawMsg.includes('截止') || rawMsg.includes('结束')) {
+    return '赛事报名已截止'
+  }
+  return rawMsg || '报名失败，请重试'
+}
 
 // 页面加载
 onLoad((options) => {
@@ -266,6 +283,8 @@ const selectPaymentMethod = (index: number) => {
 
 // 提交报名
 const handleSubmit = async () => {
+  if (isSubmitting.value) return
+
   if (!canSubmit.value) {
     uni.showToast({
       title: '请完善报名信息',
@@ -275,6 +294,7 @@ const handleSubmit = async () => {
   }
 
   try {
+    isSubmitting.value = true
     uni.showLoading({
       title: '报名中...'
     })
@@ -312,9 +332,11 @@ const handleSubmit = async () => {
     console.error('赛事报名失败:', error)
     uni.hideLoading()
     uni.showToast({
-      title: '报名失败，请重试',
+      title: getTournamentErrorMessage(error),
       icon: 'none'
     })
+  } finally {
+    isSubmitting.value = false
   }
 }
 

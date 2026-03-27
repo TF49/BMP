@@ -4,14 +4,17 @@
     <view class="list-content">
       <view v-if="loading" class="loading-wrap"><uni-icons type="spinner-cycle" size="32" color="#3cc51f" class="spin"></uni-icons></view>
       <view v-else-if="list.length === 0" class="empty">暂无会员数据</view>
-      <scroll-view v-else class="list-scroll" scroll-y :lower-threshold="80" @scrolltolower="loadMore">
-        <view v-for="item in list" :key="item.id" class="list-item glass-card">
-          <text class="item-name">{{ item.memberName || ('会员#' + item.id) }}</text>
-          <text class="item-meta" v-if="item.phone">电话 {{ item.phone }}</text>
-          <text class="item-meta">余额 ¥{{ formatNum(item.balance) }} · {{ memberTypeLabel(item.memberType) }}</text>
-        </view>
-        <view v-if="hasMore && list.length > 0" class="load-more">加载更多...</view>
-      </scroll-view>
+        <scroll-view v-else class="list-scroll" scroll-y :lower-threshold="80" @scrolltolower="loadMore">
+          <view v-for="item in list" :key="item.id" class="list-item glass-card">
+            <view class="item-row">
+              <text class="item-name">{{ item.memberName || ('会员#' + item.id) }}</text>
+              <text class="item-amount">¥{{ formatNum(item.balance) }}</text>
+            </view>
+            <view class="item-meta" v-if="item.phone">电话 {{ item.phone }}</view>
+            <view class="item-meta">{{ memberTypeLabel(item.memberType) }}会员</view>
+          </view>
+          <view v-if="hasMore && list.length > 0" class="load-more">加载更多...</view>
+        </scroll-view>
     </view>
   </PresidentLayout>
 </template>
@@ -59,11 +62,13 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
-.list-content { padding: 24rpx; padding-top: 120rpx; }
-.list-scroll { height: calc(100vh - 180rpx); }
-.list-item { padding: 28rpx; margin-bottom: 20rpx; border-radius: 20rpx; }
-.item-name { font-size: 30rpx; font-weight: 600; display: block; margin-bottom: 8rpx; }
-.item-meta { font-size: 24rpx; color: #475569; }
+.list-content { padding: 24rpx; padding-top: calc(120rpx + env(safe-area-inset-top)); }
+.list-scroll { height: calc(100vh - 220rpx); }
+.list-item { padding: 28rpx; margin-bottom: 20rpx; border-radius: 24rpx; }
+.item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8rpx; }
+.item-name { font-size: 32rpx; font-weight: 600; color: #1E293B; }
+.item-amount { font-size: 32rpx; font-weight: 600; color: #1E293B; }
+.item-meta { font-size: 24rpx; color: #475569; line-height: 1.5; }
 .loading-wrap, .empty { padding: 80rpx; text-align: center; color: #475569; }
 .load-more { padding: 24rpx; text-align: center; font-size: 24rpx; color: #475569; }
 .spin { animation: spin 1s linear infinite; }

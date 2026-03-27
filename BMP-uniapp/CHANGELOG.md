@@ -1,5 +1,33 @@
 # BMP UniApp 项目更新日志
 
+## 2026-03 uView 2.x（Vue3 兼容）接入
+
+### 已完成
+
+1. **新增 UI 依赖** (`package.json`)
+   - ✅ 安装 `uview-plus@^3.7.13`
+
+2. **入口接入** (`main.ts`)
+   - ✅ 引入 `uview-plus` 与 `uview-plus/index.scss`
+   - ✅ 在 `createApp()` 中注册 `app.use(uviewPlus)`
+
+3. **easycom 配置** (`pages.json`, `src/pages.json`)
+   - ✅ 新增 `^u-(.*)` 自动按需映射
+
+4. **主题变量入口** (`uni.scss`)
+   - ✅ 新增全局主题变量文件
+   - ✅ 引入 `uview-plus/theme.scss`
+
+5. **冒烟验证**
+   - ✅ 首页新增 `u-input` + `u-button` 验证组件
+
+### 已知问题
+
+1. **微信小程序构建报错（版本矩阵冲突）**
+   - 当前 `npm run build:mp-weixin` 报错：`isInSSRComponentSetup is not exported by vue.runtime.esm-bundler.js`
+   - 原因：`@dcloudio/uni-app` 与 `vue/@vue/*` 版本未完全对齐
+   - 处理建议：统一依赖矩阵后重新安装并构建验证
+
 ## 参考CMS小程序的最佳实践
 
 ### 已完成的改进

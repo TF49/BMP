@@ -48,7 +48,7 @@
           <view 
             v-for="(item, index) in serviceList" 
             :key="index"
-            class="service-card"
+            class="service-card glass-card"
             @click="handleServiceClick(item)"
           >
             <!-- Card Header -->
@@ -251,12 +251,12 @@ const handleSearch = () => {
 
 // Get status text
 const getStatusText = (status: number) => {
-  return STRINGING_STATUS_TEXT[status] || '未知'
+  return (STRINGING_STATUS_TEXT as unknown as Record<number, string>)[status] || '未知'
 }
 
 // Get status color
 const getStatusColor = (status: number) => {
-  return STRINGING_STATUS_COLOR[status] || '#999999'
+  return (STRINGING_STATUS_COLOR as unknown as Record<number, string>)[status] || '#999999'
 }
 
 // Get status background color (lighter version)
@@ -326,7 +326,7 @@ onReachBottom(() => {
 
 .stringing-list {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: transparent;
 }
 
 .header {
@@ -429,14 +429,12 @@ onReachBottom(() => {
 .service-items {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
+  gap: 20rpx;
 }
 
 .service-card {
-  background-color: #ffffff;
-  border-radius: 18rpx;
-  padding: 24rpx 28rpx;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+  border-radius: 24rpx;
+  padding: 28rpx;
 }
 
 .service-header {

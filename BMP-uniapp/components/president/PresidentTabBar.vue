@@ -13,7 +13,15 @@
           :src="isActive(item.pagePath) ? item.selectedIconPath : item.iconPath"
           mode="aspectFit"
         />
-        <text class="tab-text">{{ item.text }}</text>
+        <view class="tab-text-row">
+          <uni-icons
+            v-if="item.extraIconType"
+            :type="item.extraIconType"
+            size="16"
+            :color="isActive(item.pagePath) ? '#3cc51f' : '#475569'"
+          ></uni-icons>
+          <text class="tab-text">{{ item.text }}</text>
+        </view>
       </view>
     </view>
   </view>
@@ -102,9 +110,19 @@ function switchTab(pagePath: string) {
   padding: 8rpx 0;
 
   .tab-icon {
+    /* tabbar 原点来自这里的 PNG（tab-*-active.png 等），去掉以保持更简洁的视觉 */
+    display: none;
     width: 44rpx;
     height: 44rpx;
     margin-bottom: 4rpx;
+  }
+
+  .tab-text-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4rpx;
   }
 
   .tab-text {
