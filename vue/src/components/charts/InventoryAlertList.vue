@@ -39,6 +39,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getEquipmentLowStock } from '@/api/equipment'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const items = ref([])
 const loading = ref(false)
@@ -75,6 +76,8 @@ const fetchLowStockItems = async () => {
 onMounted(() => {
   fetchLowStockItems()
 })
+
+useDashboardChartRefresh(() => fetchLowStockItems())
 </script>
 
 <style scoped>

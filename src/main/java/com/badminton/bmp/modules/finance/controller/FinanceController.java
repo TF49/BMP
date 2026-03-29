@@ -39,14 +39,14 @@ public class FinanceController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
     public Result<Object> getFinanceList(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) String businessType,
-            @RequestParam(required = false) Integer incomeExpenseType,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "businessType", required = false) String businessType,
+            @RequestParam(value = "incomeExpenseType", required = false) Integer incomeExpenseType,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;
@@ -74,7 +74,7 @@ public class FinanceController extends BaseController {
     @Operation(summary = "财务记录详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Finance> getFinanceInfo(@PathVariable Long id) {
+    public Result<Finance> getFinanceInfo(@PathVariable("id") Long id) {
         try {
             Finance finance = financeService.findById(id);
             return finance != null ? success(finance) : error("财务记录不存在");
@@ -135,7 +135,7 @@ public class FinanceController extends BaseController {
     @Operation(summary = "删除财务记录", description = "仅会长可操作")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('PRESIDENT')")
-    public Result<Object> deleteFinance(@PathVariable Long id) {
+    public Result<Object> deleteFinance(@PathVariable("id") Long id) {
         try {
             int result = financeService.deleteById(id);
             if (result > 0) {
@@ -156,9 +156,9 @@ public class FinanceController extends BaseController {
     @GetMapping("/statistics")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
     public Result<Object> getStatistics(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
         try {
             Map<String, Object> stats = financeService.getStatistics(venueId, startDate, endDate);
             return success(stats);
@@ -173,9 +173,9 @@ public class FinanceController extends BaseController {
     @GetMapping("/trend")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
     public Result<Object> getTrendData(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
         try {
             Map<String, Object> data = financeService.getTrendData(venueId, startDate, endDate);
             return success(data);
@@ -308,9 +308,9 @@ public class FinanceController extends BaseController {
     @GetMapping("/ratio")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
     public Result<Object> getBusinessTypeRatio(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
         try {
             List<Map<String, Object>> data = financeService.getBusinessTypeRatio(venueId, startDate, endDate);
             return success(data);

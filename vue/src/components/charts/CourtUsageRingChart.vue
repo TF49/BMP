@@ -68,6 +68,7 @@ import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { Check, Close, Grid, Warning } from '@element-plus/icons-vue'
 import { getCourtList, getTodayBookingCounts, getCourtStatistics } from '@/api/court'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const router = useRouter()
 const loading = ref(false)
@@ -339,6 +340,8 @@ onMounted(() => {
   fetchCourtData()
   window.addEventListener('resize', handleResize)
 })
+
+useDashboardChartRefresh(() => fetchCourtData())
 
 onUnmounted(() => {
   Object.values(chartInstances.value).forEach(instance => {

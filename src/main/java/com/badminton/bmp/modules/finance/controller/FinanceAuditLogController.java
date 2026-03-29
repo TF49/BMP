@@ -43,14 +43,14 @@ public class FinanceAuditLogController {
     @GetMapping("/page")
     @PreAuthorize("hasAnyRole('PRESIDENT', 'VENUE_MANAGER')")
     public Result<Page<FinanceAuditLog>> page(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) Long financeId,
-            @RequestParam(required = false) String financeNo,
-            @RequestParam(required = false) String operationType,
-            @RequestParam(required = false) String operator,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "financeId", required = false) Long financeId,
+            @RequestParam(value = "financeNo", required = false) String financeNo,
+            @RequestParam(value = "operationType", required = false) String operationType,
+            @RequestParam(value = "operator", required = false) String operator,
+            @RequestParam(value = "startTime", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
+            @RequestParam(value = "endTime", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime
     ) {
         Page<FinanceAuditLog> page = financeAuditLogService.pageQuery(
                 pageNum, pageSize, financeId, financeNo, operationType, operator, startTime, endTime
@@ -62,9 +62,9 @@ public class FinanceAuditLogController {
     @GetMapping("/finance/{financeId}")
     @PreAuthorize("hasAnyRole('PRESIDENT', 'VENUE_MANAGER')")
     public Result<Page<FinanceAuditLog>> getByFinanceId(
-            @PathVariable Long financeId,
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize
+            @PathVariable("financeId") Long financeId,
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize
     ) {
         Page<FinanceAuditLog> page = financeAuditLogService.pageQuery(
                 pageNum, pageSize, financeId, null, null, null, null, null
@@ -76,9 +76,9 @@ public class FinanceAuditLogController {
     @GetMapping("/operator/{operator}")
     @PreAuthorize("hasAnyRole('PRESIDENT', 'VENUE_MANAGER')")
     public Result<Page<FinanceAuditLog>> getByOperator(
-            @PathVariable String operator,
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize
+            @PathVariable("operator") String operator,
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize
     ) {
         Page<FinanceAuditLog> page = financeAuditLogService.pageQuery(
                 pageNum, pageSize, null, null, null, operator, null, null
@@ -90,9 +90,9 @@ public class FinanceAuditLogController {
     @GetMapping("/type/{operationType}")
     @PreAuthorize("hasAnyRole('PRESIDENT', 'VENUE_MANAGER')")
     public Result<Page<FinanceAuditLog>> getByOperationType(
-            @PathVariable String operationType,
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize
+            @PathVariable("operationType") String operationType,
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize
     ) {
         Page<FinanceAuditLog> page = financeAuditLogService.pageQuery(
                 pageNum, pageSize, null, null, operationType, null, null, null
@@ -103,7 +103,7 @@ public class FinanceAuditLogController {
     @Operation(summary = "审计日志详情")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT', 'VENUE_MANAGER')")
-    public Result<FinanceAuditLog> getById(@PathVariable Long id) {
+    public Result<FinanceAuditLog> getById(@PathVariable("id") Long id) {
         FinanceAuditLog log = financeAuditLogService.getById(id);
         if (log == null) {
             return Result.error("审计日志不存在");
@@ -115,12 +115,12 @@ public class FinanceAuditLogController {
     @PostMapping("/export/create")
     @PreAuthorize("hasAnyRole('PRESIDENT', 'VENUE_MANAGER')")
     public Result<Map<String, String>> createExportTask(
-            @RequestParam(required = false) Long financeId,
-            @RequestParam(required = false) String financeNo,
-            @RequestParam(required = false) String operationType,
-            @RequestParam(required = false) String operator,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime
+            @RequestParam(value = "financeId", required = false) Long financeId,
+            @RequestParam(value = "financeNo", required = false) String financeNo,
+            @RequestParam(value = "operationType", required = false) String operationType,
+            @RequestParam(value = "operator", required = false) String operator,
+            @RequestParam(value = "startTime", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
+            @RequestParam(value = "endTime", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime
     ) {
         String taskId = exportTaskService.createTask();
         exportTaskService.updateTaskStatus(taskId, ExportTaskService.TaskStatus.PROCESSING);
@@ -135,7 +135,7 @@ public class FinanceAuditLogController {
     @Operation(summary = "查询导出任务状态")
     @GetMapping("/export/status/{taskId}")
     @PreAuthorize("hasAnyRole('PRESIDENT', 'VENUE_MANAGER')")
-    public Result<Map<String, Object>> getExportTaskStatus(@PathVariable String taskId) {
+    public Result<Map<String, Object>> getExportTaskStatus(@PathVariable("taskId") String taskId) {
         ExportTaskService.TaskInfo taskInfo = exportTaskService.getTask(taskId);
         if (taskInfo == null) {
             return Result.error("任务不存在");
@@ -153,7 +153,7 @@ public class FinanceAuditLogController {
     @Operation(summary = "下载导出文件")
     @GetMapping("/export/download/{taskId}")
     @PreAuthorize("hasAnyRole('PRESIDENT', 'VENUE_MANAGER')")
-    public void downloadExportFile(@PathVariable String taskId, HttpServletResponse response) throws IOException {
+    public void downloadExportFile(@PathVariable("taskId") String taskId, HttpServletResponse response) throws IOException {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
         ExportTaskService.TaskInfo taskInfo = exportTaskService.getTask(taskId);

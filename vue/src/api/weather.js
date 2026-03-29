@@ -8,11 +8,11 @@ import request from '@/utils/request'
 
 // 和风天气API配置
 // 请替换为您自己的API Key
-const QWEATHER_API_KEY = 'YOUR_API_KEY_HERE'
-const QWEATHER_API_BASE = 'https://devapi.qweather.com/v7'
+const QWEATHER_API_KEY = ''
+const QWEATHER_API_BASE = ''
 
 // 默认城市（可根据需求修改或通过IP定位获取）
-const DEFAULT_CITY = '101010100' // 北京
+const DEFAULT_CITY = ''
 
 /**
  * 天气图标映射（和风天气图标码 -> 描述）
@@ -105,37 +105,13 @@ function getWeatherIconType(iconCode) {
  * @param {string} cityId - 城市ID（和风天气城市ID）
  * @returns {Promise<Object>} 天气数据
  */
-export async function getWeatherByQWeather(cityId = DEFAULT_CITY) {
+export async function getWeatherByQWeather(city = '北京') {
   try {
-    const response = await fetch(
-      `${QWEATHER_API_BASE}/weather/now?location=${cityId}&key=${QWEATHER_API_KEY}`
-    )
-    const data = await response.json()
-
-    if (data.code === '200' && data.now) {
-      const weather = data.now
-      const iconInfo = WEATHER_ICONS[weather.icon] || WEATHER_ICONS['999']
-
-      return {
-        success: true,
-        data: {
-          temp: weather.temp,
-          feelsLike: weather.feelsLike,
-          text: weather.text,
-          icon: getWeatherIconType(weather.icon),
-          humidity: weather.humidity,
-          windDir: weather.windDir,
-          windScale: weather.windScale,
-          advice: getSportAdvice(weather.temp, weather.text),
-          updateTime: weather.obsTime
-        }
-      }
-    }
-
-    throw new Error(data.code || '获取天气失败')
+    // 目前 QWeather Host 授权不稳定（Invalid Host），前端不再依赖该链路
+    void city
+    return { success: false, error: '天气服务暂时不可用' }
   } catch (error) {
-    console.error('和风天气API调用失败:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: '天气服务暂时不可用' }
   }
 }
 
@@ -248,7 +224,7 @@ export async function getWeatherByIP() {
       }
     }
 
-    // 然后获取该城市的天气
+    // 然后获取该城市的天气（使用后端 wttr 代理）
     return await getWeatherByWttr(city)
   } catch (error) {
     // 静默处理错误，直接使用默认城市
@@ -272,17 +248,14 @@ export async function getWeather(city) {
       }
     }
 
-    // 使用指定城市或默认城市
-    const result = await getWeatherByWttr(city || '北京')
-    if (result.success) {
-      return result
-    }
+    // 仅使用后端 wttr 代理（不展示任何虚拟数据）
+    const wRes = await getWeatherByWttr(city || '北京')
+    if (wRes.success) return wRes
 
-    // 如果API调用失败，返回模拟数据（静默降级）
-    return getFallbackWeather()
+    return { success: false, error: '天气服务暂时不可用' }
   } catch (error) {
-    // 静默处理错误，直接返回备用数据
-    return getFallbackWeather()
+    // 静默处理错误，返回失败结果，由调用方决定如何展示空态
+    return { success: false, error: '天气服务暂时不可用' }
   }
 }
 
@@ -290,25 +263,9 @@ export async function getWeather(city) {
  * 获取备用天气数据（当API不可用时）
  */
 function getFallbackWeather() {
-  const hour = new Date().getHours()
-  const baseTemp = 20 + Math.floor(Math.random() * 8)
-  const temp = hour >= 12 && hour <= 16 ? baseTemp + 4 : baseTemp
-
   return {
-    success: true,
-    data: {
-      temp: temp.toString(),
-      feelsLike: (temp - 2).toString(),
-      text: '晴',
-      icon: 'sunny',
-      humidity: '45',
-      windDir: '东南风',
-      windSpeed: '12',
-      advice: getSportAdvice(temp.toString(), '晴'),
-      city: '本地',
-      updateTime: new Date().toLocaleTimeString(),
-      isFallback: true // 标记为备用数据
-    }
+    success: false,
+    error: '天气服务暂时不可用'
   }
 }
 

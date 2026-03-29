@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 // 穿线服务列表
 export function getStringingList(params) {
@@ -62,10 +63,12 @@ export function updateStringingStatus(id, status) {
 
 // 统计信息
 export function getStringingStatistics() {
-  return request({
-    url: '/api/stringing/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/stringing/statistics', () =>
+    request({
+      url: '/api/stringing/statistics',
+      method: 'get'
+    })
+  )
 }
 
 // 获取线材选项（从系统选择）

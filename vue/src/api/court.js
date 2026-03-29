@@ -1,7 +1,14 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
+
+function courtListKey(params) {
+  const p = params || {}
+  const kw = p.keyword != null ? String(p.keyword).trim() : ''
+  return `GET:/api/court/list:${p.page ?? 1}:${p.size ?? 10}:${String(p.status ?? '')}:${String(p.venueId ?? '')}:${kw}`
+}
 
 /**
- * 获取场地列表
+ * 获取场地列表（相同查询参数并发去重）
  * @param {Object} params - 查询参数
  * @param {number} params.venueId - 场馆ID（可选）
  * @param {number} params.status - 状态（0-维护中，1-空闲，2-预约中，3-使用中，可选）
@@ -10,11 +17,13 @@ import request from '@/utils/request'
  * @param {number} params.size - 每页数量（默认10）
  */
 export function getCourtList(params) {
-  return request({
-    url: '/api/court/list',
-    method: 'get',
-    params
-  })
+  return withDedupe(courtListKey(params), () =>
+    request({
+      url: '/api/court/list',
+      method: 'get',
+      params
+    })
+  )
 }
 
 /**
@@ -88,10 +97,12 @@ export function updateCourtStatus(id, status) {
  * @returns {Promise} 返回统计数据（总数、维护中、空闲、预约中、使用中）
  */
 export function getCourtStatistics() {
-  return request({
-    url: '/api/court/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/court/statistics', () =>
+    request({
+      url: '/api/court/statistics',
+      method: 'get'
+    })
+  )
 }
 
 /**
@@ -142,13 +153,17 @@ export function getTodayBookingUsers(courtId, date) {
  * @returns {Promise} 返回场地ID与预约数量的映射 { courtId: count }
  */
 export function getTodayBookingCounts(courtIds, date) {
-  const params = { ids: courtIds.join(',') }
+  const ids = [...(courtIds || [])].sort((a, b) => a - b).join(',')
+  const d = date || ''
+  const params = { ids }
   if (date) params.date = date
-  return request({
-    url: '/api/court/bookings/today/counts',
-    method: 'get',
-    params
-  })
+  return withDedupe(`GET:/api/court/bookings/today/counts:${ids}:${d}`, () =>
+    request({
+      url: '/api/court/bookings/today/counts',
+      method: 'get',
+      params
+    })
+  )
 }
 
 /**
@@ -157,9 +172,12 @@ export function getTodayBookingCounts(courtIds, date) {
  * @returns {Promise} 返回 [{ courtId, courtName, timeSlots: [{ status, duration }] }]
  */
 export function getCourtSchedule(params) {
-  return request({
-    url: '/api/court/timeline/today',
-    method: 'get',
-    params
-  })
+  const p = params || {}
+  return withDedupe(`GET:/api/court/timeline/today:${p.date ?? ''}`, () =>
+    request({
+      url: '/api/court/timeline/today',
+      method: 'get',
+      params
+    })
+  )
 }

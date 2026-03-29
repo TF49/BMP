@@ -56,15 +56,15 @@ public class BookingController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllBookings(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) Long memberId,
-            @RequestParam(required = false) Long courtId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false, name = "memberKeyword") String memberKeyword,
-            @RequestParam(required = false) String startTime,
-            @RequestParam(required = false) String endTime,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "memberId", required = false) Long memberId,
+            @RequestParam(value = "courtId", required = false) Long courtId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "memberKeyword", required = false, name = "memberKeyword") String memberKeyword,
+            @RequestParam(value = "startTime", required = false) String startTime,
+            @RequestParam(value = "endTime", required = false) String endTime,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;
@@ -127,7 +127,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "预约详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Booking> getBookingInfo(@PathVariable Long id) {
+    public Result<Booking> getBookingInfo(@PathVariable("id") Long id) {
         try {
             Booking booking = bookingService.findById(id);
             return booking != null ? success(booking) : error("预约记录不存在");
@@ -209,7 +209,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "删除预约")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> deleteBooking(@PathVariable Long id) {
+    public Result<Object> deleteBooking(@PathVariable("id") Long id) {
         try {
 
             // 删除预约记录
@@ -238,7 +238,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "更新预约状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> updateBookingStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateBookingStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
 
             if (id == null) {
@@ -276,7 +276,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "预约支付")
     @PostMapping("/payment")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processPayment(@RequestParam Long bookingId, @RequestParam String paymentMethod) {
+    public Result<Object> processPayment(@RequestParam("bookingId") Long bookingId, @RequestParam("paymentMethod") String paymentMethod) {
         try {
             // 权限验证：仅管理员可处理支付
             if (!isAdmin()) {
@@ -319,7 +319,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "预约退款")
     @PostMapping("/refund")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processRefund(@RequestParam Long bookingId) {
+    public Result<Object> processRefund(@RequestParam("bookingId") Long bookingId) {
         try {
             // 权限验证：仅管理员可处理退款
             if (!isAdmin()) {
@@ -385,7 +385,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "预约趋势")
     @GetMapping("/trend")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getBookingTrend(@RequestParam(defaultValue = "week") String period) {
+    public Result<Object> getBookingTrend(@RequestParam(value = "period", defaultValue = "week") String period) {
         try {
             LocalDate end = LocalDate.now();
             LocalDate start = "month".equalsIgnoreCase(period) ? end.minusDays(27) : end.minusDays(6);
@@ -447,7 +447,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "预约热力图")
     @GetMapping("/heatmap")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getBookingHeatmap(@RequestParam(defaultValue = "week") String period) {
+    public Result<Object> getBookingHeatmap(@RequestParam(value = "period", defaultValue = "week") String period) {
         try {
             LocalDate end = LocalDate.now();
             LocalDate start = "month".equalsIgnoreCase(period) ? end.minusDays(27) : end.minusDays(6);
@@ -607,7 +607,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "当前占用率")
     @GetMapping("/occupancy/current")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getCurrentOccupancy(@RequestParam Long courtId) {
+    public Result<Object> getCurrentOccupancy(@RequestParam("courtId") Long courtId) {
         try {
             if (courtId == null) {
                 return error("场地ID不能为空");
@@ -630,10 +630,10 @@ public class BookingController extends BaseController {
     @Operation(summary = "时间范围内占用率")
     @GetMapping("/occupancy/range")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getRangeOccupancy(@RequestParam Long courtId,
-                                            @RequestParam String bookingDate,
-                                            @RequestParam String startTime,
-                                            @RequestParam String endTime) {
+    public Result<Object> getRangeOccupancy(@RequestParam("courtId") Long courtId,
+                                            @RequestParam("bookingDate") String bookingDate,
+                                            @RequestParam("startTime") String startTime,
+                                            @RequestParam("endTime") String endTime) {
         try {
             if (courtId == null) {
                 return error("场地ID不能为空");
@@ -674,10 +674,10 @@ public class BookingController extends BaseController {
     @Operation(summary = "预约数量统计")
     @GetMapping("/count")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> countBookingsForTimeRange(@RequestParam Long courtId,
-                                                   @RequestParam String bookingDate,
-                                                   @RequestParam String startTime,
-                                                   @RequestParam String endTime) {
+    public Result<Object> countBookingsForTimeRange(@RequestParam("courtId") Long courtId,
+                                                   @RequestParam("bookingDate") String bookingDate,
+                                                   @RequestParam("startTime") String startTime,
+                                                   @RequestParam("endTime") String endTime) {
         try {
             if (courtId == null) {
                 return error("场地ID不能为空");
@@ -742,7 +742,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "场地下拉列表")
     @GetMapping("/courts")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getCourtList(@RequestParam(required = false) Long venueId) {
+    public Result<Object> getCourtList(@RequestParam(value = "venueId", required = false) Long venueId) {
         try {
             // 返回指定场馆下的所有场地（除逻辑删除外）；维护中场地由后端 add/update 时校验拒绝
             List<Court> courts = courtService.findAll(venueId, null, null, 1, 200);
@@ -770,7 +770,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "会员下拉列表")
     @GetMapping("/members")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getMemberList(@RequestParam(required = false) String keyword) {
+    public Result<Object> getMemberList(@RequestParam(value = "keyword", required = false) String keyword) {
         try {
             String nameOrPhone = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
             // 仅按姓名或手机号模糊匹配，避免姓名和手机号同时匹配导致过于严格

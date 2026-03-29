@@ -145,11 +145,7 @@ onShow(async () => {
   }
 
   setTimeout(() => {
-    if (isPresidentRole(role)) {
-      safeReLaunch(PRESIDENT_PAGES.DASHBOARD, PRESIDENT_PAGES.DASHBOARD)
-    } else {
-      uni.switchTab({ url: '/pages/index/index' })
-    }
+    safeReLaunch('/pages/index/index')
   }, 50)
 })
 
@@ -205,11 +201,7 @@ const handleLogin = async () => {
       })
 
       setTimeout(() => {
-        if (isPresidentRole(role)) {
-          safeReLaunch(PRESIDENT_PAGES.DASHBOARD, PRESIDENT_PAGES.DASHBOARD)
-        } else {
-          uni.switchTab({ url: '/pages/index/index' })
-        }
+        safeReLaunch('/pages/index/index')
       }, 1500)
     })
     .catch((err: any) => {
@@ -231,9 +223,8 @@ const handleRegister = () => {
 }
 
 const handleForgotPassword = () => {
-  uni.showToast({
-    title: '请联系管理员重置密码',
-    icon: 'none'
+  uni.navigateTo({
+    url: '/pages/recover/recover'
   })
 }
 </script>

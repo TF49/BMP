@@ -25,6 +25,8 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
 import { getCourtList, getTodayBookingCounts } from '@/api/court'
+import { formatLocalDate } from '@/utils/localDate'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -90,7 +92,7 @@ const fetchCourtUtilization = async () => {
       return
     }
     const courtIds = list.map(c => c.id)
-    const today = new Date().toISOString().split('T')[0]
+    const today = formatLocalDate()
     let countMap = {}
     try {
       const countRes = await getTodayBookingCounts(courtIds, today)
@@ -231,6 +233,8 @@ onMounted(() => {
   fetchCourtUtilization().then(() => updateChart())
   window.addEventListener('resize', resizeChart)
 })
+
+useDashboardChartRefresh(() => fetchCourtUtilization().then(() => updateChart()))
 
 onUnmounted(() => {
   window.removeEventListener('resize', resizeChart)

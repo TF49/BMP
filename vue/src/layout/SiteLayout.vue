@@ -73,7 +73,7 @@
     <footer class="site-footer">
       <div class="site-footer__inner">
         <div class="site-footer__brand">
-          <span class="site-footer__title">羽毛球管理系统</span>
+          <span class="site-footer__title">羽擎</span>
           <span class="site-footer__tagline">更智能的预约、运营与数据管理</span>
         </div>
         <div class="site-footer__nav">

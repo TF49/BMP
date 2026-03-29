@@ -23,6 +23,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
 import { getCourseBookingStatistics } from '@/api/courseBooking'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -199,6 +200,8 @@ onMounted(() => {
   fetchCapacityData().then(() => updateChart())
   window.addEventListener('resize', resizeChart)
 })
+
+useDashboardChartRefresh(() => fetchCapacityData().then(() => updateChart()))
 
 onUnmounted(() => {
   window.removeEventListener('resize', resizeChart)

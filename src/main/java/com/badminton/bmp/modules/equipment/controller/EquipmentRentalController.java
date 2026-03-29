@@ -51,12 +51,12 @@ public class EquipmentRentalController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllRentals(
-            @RequestParam(required = false) Long memberId,
-            @RequestParam(required = false) Long equipmentId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "memberId", required = false) Long memberId,
+            @RequestParam(value = "equipmentId", required = false) Long equipmentId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // 验证分页参数
             if (page < 1) {
@@ -98,7 +98,7 @@ public class EquipmentRentalController extends BaseController {
     @Operation(summary = "租借详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<EquipmentRental> getRentalInfo(@PathVariable Long id) {
+    public Result<EquipmentRental> getRentalInfo(@PathVariable("id") Long id) {
         try {
             EquipmentRental rental = equipmentRentalService.findById(id);
             if (rental != null) {
@@ -181,7 +181,7 @@ public class EquipmentRentalController extends BaseController {
     @Operation(summary = "删除/取消租借")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteRental(@PathVariable Long id) {
+    public Result<Object> deleteRental(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除租借记录
             if (!isAdmin()) {
@@ -209,7 +209,7 @@ public class EquipmentRentalController extends BaseController {
     @Operation(summary = "更新租借状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateRentalStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateRentalStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
             // 权限验证：仅管理员可更新状态
             if (!isAdmin()) {
@@ -254,7 +254,7 @@ public class EquipmentRentalController extends BaseController {
     @Operation(summary = "租借支付", description = "支付方式：CASH/ALIPAY/WECHAT/BALANCE")
     @PostMapping("/payment")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> processPayment(@RequestParam Long rentalId, @RequestParam String paymentMethod) {
+    public Result<Object> processPayment(@RequestParam("rentalId") Long rentalId, @RequestParam("paymentMethod") String paymentMethod) {
         try {
             if (rentalId == null) {
                 return error("租借ID不能为空");
@@ -292,7 +292,7 @@ public class EquipmentRentalController extends BaseController {
     @Operation(summary = "租借退款")
     @PostMapping("/refund")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processRefund(@RequestParam Long rentalId) {
+    public Result<Object> processRefund(@RequestParam("rentalId") Long rentalId) {
         try {
             // 权限验证：仅管理员可处理退款
             if (!isAdmin()) {
@@ -367,7 +367,7 @@ public class EquipmentRentalController extends BaseController {
     @Operation(summary = "会员下拉列表")
     @GetMapping("/members")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getMemberList(@RequestParam(required = false) String keyword) {
+    public Result<Object> getMemberList(@RequestParam(value = "keyword", required = false) String keyword) {
         try {
             String nameOrPhone = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
             // 按姓名或手机号模糊匹配，分页参数与会员模块保持一致：page=1, size=1000

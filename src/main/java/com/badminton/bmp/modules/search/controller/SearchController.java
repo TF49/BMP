@@ -44,7 +44,7 @@ public class SearchController extends BaseController {
     @Operation(summary = "搜索场馆", description = "按名称或地址关键词搜索，需登录")
     @GetMapping("/venues")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> searchVenues(@RequestParam(required = false) String keyword) {
+    public Result<Object> searchVenues(@RequestParam(value = "keyword", required = false) String keyword) {
         String k = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         List<Venue> list = venueService.findByVenueNameOrAddress(k, k, null, 1, SEARCH_PAGE_SIZE);
         return success(list != null ? list : new ArrayList<>());
@@ -53,7 +53,7 @@ public class SearchController extends BaseController {
     @Operation(summary = "搜索课程", description = "按课程名称关键词搜索，需登录")
     @GetMapping("/courses")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> searchCourses(@RequestParam(required = false) String keyword) {
+    public Result<Object> searchCourses(@RequestParam(value = "keyword", required = false) String keyword) {
         String k = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         List<Course> list = courseService.findAll(null, null, null, k, null, null, 1, SEARCH_PAGE_SIZE);
         return success(list != null ? list : new ArrayList<>());
@@ -62,7 +62,7 @@ public class SearchController extends BaseController {
     @Operation(summary = "搜索赛事", description = "按赛事名称关键词搜索，需登录")
     @GetMapping("/tournaments")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> searchTournaments(@RequestParam(required = false) String keyword) {
+    public Result<Object> searchTournaments(@RequestParam(value = "keyword", required = false) String keyword) {
         String k = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         List<Tournament> list = tournamentService.findAll(null, null, null, k, null, null, 1, SEARCH_PAGE_SIZE);
         return success(list != null ? list : new ArrayList<>());
@@ -71,7 +71,7 @@ public class SearchController extends BaseController {
     @Operation(summary = "搜索器材", description = "按器材名称/类型关键词搜索，需登录")
     @GetMapping("/equipment")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> searchEquipment(@RequestParam(required = false) String keyword) {
+    public Result<Object> searchEquipment(@RequestParam(value = "keyword", required = false) String keyword) {
         String k = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         List<Equipment> list = equipmentService.findAll(null, null, 1, k, 1, SEARCH_PAGE_SIZE);
         return success(list != null ? list : new ArrayList<>());
@@ -80,7 +80,7 @@ public class SearchController extends BaseController {
     @Operation(summary = "综合搜索", description = "同时搜索场馆、课程、赛事、器材，需登录")
     @GetMapping("/all")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> searchAll(@RequestParam(required = false) String keyword) {
+    public Result<Object> searchAll(@RequestParam(value = "keyword", required = false) String keyword) {
         String k = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
         List<Venue> venues = venueService.findByVenueNameOrAddress(k, k, null, 1, SEARCH_PAGE_SIZE);
         List<Course> courses = courseService.findAll(null, null, null, k, null, null, 1, SEARCH_PAGE_SIZE);

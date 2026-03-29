@@ -4,7 +4,7 @@
       <h1 class="page-title">关于我们</h1>
     </header>
     <el-card class="about-card" shadow="hover">
-      <h2>羽毛球管理系统（BMP）</h2>
+      <h2>羽擎（BMP）</h2>
       <p class="version">版本：1.0</p>
       <p class="intro">
         本系统为羽毛球场馆与协会提供场地预约、器材租借、课程预约、赛事报名、穿线服务、会员与财务管理等功能，

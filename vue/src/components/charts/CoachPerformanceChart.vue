@@ -66,6 +66,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { StarFilled } from '@element-plus/icons-vue'
 import { getCoachList } from '@/api/coach'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const router = useRouter()
 const loading = ref(false)
@@ -143,6 +144,8 @@ const fetchCoachData = async () => {
 onMounted(() => {
   fetchCoachData()
 })
+
+useDashboardChartRefresh(() => fetchCoachData())
 </script>
 
 <style scoped>

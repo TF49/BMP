@@ -47,6 +47,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { User, Plus, TrendCharts } from '@element-plus/icons-vue'
 import { getMemberStatistics } from '@/api/member'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -297,6 +298,8 @@ const initChart = async () => {
 onMounted(() => {
   initChart()
 })
+
+useDashboardChartRefresh(() => fetchChartData())
 
 onUnmounted(() => {
   if (chartInstance) {

@@ -141,7 +141,7 @@ const props = withDefaults(
   {
     loading: false,
     list: () => [],
-    bannerTitle: '羽毛球管理系统',
+    bannerTitle: '羽擎',
     bannerSubtitle: '及时了解场馆动态、预订与活动信息',
     footerTodayText: '今日关闭',
     footerCloseText: '关闭公告',

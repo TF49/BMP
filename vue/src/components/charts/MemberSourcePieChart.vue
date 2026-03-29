@@ -25,6 +25,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
 import { getMemberSource } from '@/api/member'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -187,6 +188,8 @@ onMounted(() => {
   fetchSourceData().then(() => updateChart())
   window.addEventListener('resize', resizeChart)
 })
+
+useDashboardChartRefresh(() => fetchSourceData().then(() => updateChart()))
 
 onUnmounted(() => {
   window.removeEventListener('resize', resizeChart)

@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 // 课程列表
 export function getCourseList(params) {
@@ -63,10 +64,12 @@ export function updateCourseStatus(id, status) {
 
 // 统计信息
 export function getCourseStatistics() {
-  return request({
-    url: '/api/course/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/course/statistics', () =>
+    request({
+      url: '/api/course/statistics',
+      method: 'get'
+    })
+  )
 }
 
 // 下拉：教练

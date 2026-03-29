@@ -66,12 +66,12 @@ public class EquipmentController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllEquipments(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) String equipmentType,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "equipmentType", required = false) String equipmentType,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // 验证分页参数
             if (page < 1) {
@@ -116,7 +116,7 @@ public class EquipmentController extends BaseController {
     @Operation(summary = "器材详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Equipment> getEquipmentInfo(@PathVariable Long id) {
+    public Result<Equipment> getEquipmentInfo(@PathVariable("id") Long id) {
         try {
             Equipment equipment = equipmentService.findById(id);
             if (equipment != null) {
@@ -224,7 +224,7 @@ public class EquipmentController extends BaseController {
     @Operation(summary = "删除器材")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteEquipment(@PathVariable Long id) {
+    public Result<Object> deleteEquipment(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除器材
             if (!isAdmin()) {
@@ -252,7 +252,7 @@ public class EquipmentController extends BaseController {
     @Operation(summary = "更新器材状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateEquipmentStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateEquipmentStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
             // 权限验证：仅管理员可更新状态
             if (!isAdmin()) {
@@ -312,7 +312,7 @@ public class EquipmentController extends BaseController {
     @Operation(summary = "低库存预警列表", description = "可用数量 ≤ 阈值的器材，threshold 默认 10")
     @GetMapping("/low-stock")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getLowStock(@RequestParam(defaultValue = "10") Integer threshold) {
+    public Result<Object> getLowStock(@RequestParam(value = "threshold", defaultValue = "10") Integer threshold) {
         try {
             return success(equipmentService.getLowStock(threshold));
         } catch (Exception e) {
@@ -398,8 +398,8 @@ public class EquipmentController extends BaseController {
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
     public Result<Object> uploadEquipmentImages(
             @RequestParam("files") MultipartFile[] files,
-            @RequestParam(required = false) Long equipmentId,
-            @RequestParam(required = false, defaultValue = "DETAIL") String imageType) {
+            @RequestParam(value = "equipmentId", required = false) Long equipmentId,
+            @RequestParam(value = "imageType", required = false, defaultValue = "DETAIL") String imageType) {
         try {
             // 权限验证：仅管理员可上传
             if (!isAdmin()) {
@@ -505,7 +505,7 @@ public class EquipmentController extends BaseController {
     @Operation(summary = "器材图片列表")
     @GetMapping("/{equipmentId}/images")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getEquipmentImages(@PathVariable Long equipmentId) {
+    public Result<Object> getEquipmentImages(@PathVariable("equipmentId") Long equipmentId) {
         try {
             List<EquipmentImage> images = equipmentImageService.findByEquipmentId(equipmentId);
             return success(images);
@@ -522,7 +522,7 @@ public class EquipmentController extends BaseController {
     @Operation(summary = "删除器材图片")
     @DeleteMapping("/image/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteEquipmentImage(@PathVariable Long id) {
+    public Result<Object> deleteEquipmentImage(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除
             if (!isAdmin()) {
@@ -549,7 +549,7 @@ public class EquipmentController extends BaseController {
     @Operation(summary = "更新器材图片排序")
     @PutMapping("/image/{id}/sort")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateImageSortOrder(@PathVariable Long id, @RequestParam Integer sortOrder) {
+    public Result<Object> updateImageSortOrder(@PathVariable("id") Long id, @RequestParam("sortOrder") Integer sortOrder) {
         try {
             // 权限验证：仅管理员可更新
             if (!isAdmin()) {

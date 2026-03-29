@@ -25,6 +25,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
 import { getFinanceRatio } from '@/api/finance'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -215,6 +216,8 @@ onMounted(() => {
   fetchRevenueStructure().then(() => updateChart())
   window.addEventListener('resize', resizeChart)
 })
+
+useDashboardChartRefresh(() => fetchRevenueStructure().then(() => updateChart()))
 
 onUnmounted(() => {
   window.removeEventListener('resize', resizeChart)

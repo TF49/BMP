@@ -45,15 +45,15 @@ public class TournamentRegistrationController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllRegistrations(
-            @RequestParam(required = false) Long tournamentId,
-            @RequestParam(required = false) Long memberId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String registrationNo,
-            @RequestParam(required = false) String memberKeyword,
-            @RequestParam(required = false) String startTime,
-            @RequestParam(required = false) String endTime,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "tournamentId", required = false) Long tournamentId,
+            @RequestParam(value = "memberId", required = false) Long memberId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "registrationNo", required = false) String registrationNo,
+            @RequestParam(value = "memberKeyword", required = false) String memberKeyword,
+            @RequestParam(value = "startTime", required = false) String startTime,
+            @RequestParam(value = "endTime", required = false) String endTime,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;
@@ -100,7 +100,7 @@ public class TournamentRegistrationController extends BaseController {
     @Operation(summary = "赛事报名详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<TournamentRegistration> getRegistrationInfo(@PathVariable Long id) {
+    public Result<TournamentRegistration> getRegistrationInfo(@PathVariable("id") Long id) {
         try {
             TournamentRegistration registration = tournamentRegistrationService.findById(id);
             return registration != null ? success(registration) : error("报名记录不存在");
@@ -187,7 +187,7 @@ public class TournamentRegistrationController extends BaseController {
     @Operation(summary = "删除赛事报名")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteRegistration(@PathVariable Long id) {
+    public Result<Object> deleteRegistration(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除报名记录
             if (!isAdmin()) {
@@ -220,7 +220,7 @@ public class TournamentRegistrationController extends BaseController {
     @Operation(summary = "更新赛事报名状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> updateRegistrationStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateRegistrationStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
 
             if (id == null) {
@@ -269,7 +269,7 @@ public class TournamentRegistrationController extends BaseController {
     @Operation(summary = "赛事报名支付")
     @PostMapping("/payment")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processPayment(@RequestParam Long registrationId, @RequestParam String paymentMethod) {
+    public Result<Object> processPayment(@RequestParam("registrationId") Long registrationId, @RequestParam("paymentMethod") String paymentMethod) {
         try {
             // 权限验证：仅管理员可处理支付
             if (!isAdmin()) {
@@ -312,7 +312,7 @@ public class TournamentRegistrationController extends BaseController {
     @Operation(summary = "赛事报名退款")
     @PostMapping("/refund")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processRefund(@RequestParam Long registrationId) {
+    public Result<Object> processRefund(@RequestParam("registrationId") Long registrationId) {
         try {
             // 权限验证：仅管理员可处理退款
             if (!isAdmin()) {
@@ -377,7 +377,7 @@ public class TournamentRegistrationController extends BaseController {
     @Operation(summary = "会员下拉列表")
     @GetMapping("/members")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getMemberList(@RequestParam(required = false) String keyword) {
+    public Result<Object> getMemberList(@RequestParam(value = "keyword", required = false) String keyword) {
         try {
             String nameOrPhone = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
             List<Member> members = memberService.findByConditions(nameOrPhone, null, null, null, null, 1, 1000);

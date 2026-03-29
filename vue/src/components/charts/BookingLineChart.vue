@@ -56,6 +56,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import * as echarts from 'echarts'
 import { getBookingTrend } from '@/api/booking'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -291,6 +292,16 @@ onMounted(() => {
     })
     .catch((e) => console.error('获取预订趋势失败:', e))
   window.addEventListener('resize', resizeChart)
+})
+
+useDashboardChartRefresh(() => {
+  Promise.all([fetchTrend('week'), fetchTrend('month')])
+    .then(([week, month]) => {
+      if (week) weekData.value = week
+      if (month) monthData.value = month
+      updateChart()
+    })
+    .catch((e) => console.error('获取预订趋势失败:', e))
 })
 
 onUnmounted(() => {

@@ -12,7 +12,7 @@
     <artifactId>BMP</artifactId>
     <version>1.0.0</version>
     <name>BMP</name>
-    <description>羽毛球管理系统</description>
+    <description>羽擎</description>
     <url>http://www.badminton.vip</url>
     <properties>
         <java.version>17</java.version>

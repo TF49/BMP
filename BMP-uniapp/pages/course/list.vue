@@ -109,6 +109,8 @@
         </scroll-view>
       </view>
     </uni-popup>
+    <!-- Custom BottomNavBar Shell -->
+    <CustomTabBar :current="2" />
   </MobileLayout>
 </template>
 
@@ -117,6 +119,7 @@ import { ref, onMounted } from 'vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
+import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getCourseList, getCoachList } from '@/api/course'
 import { safeNavigateBack } from '@/utils/navigation'
 

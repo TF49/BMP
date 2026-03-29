@@ -30,6 +30,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getOperationTodoStatistics } from '@/api/booking'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const pendingBookings = ref(0)
 const unpaidOrders = ref(0)
@@ -65,6 +66,8 @@ const fetchTodoStatistics = async () => {
 onMounted(() => {
   fetchTodoStatistics()
 })
+
+useDashboardChartRefresh(() => fetchTodoStatistics())
 </script>
 
 <style scoped>

@@ -9,7 +9,6 @@ import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { getToken } from '@/utils/auth'
 
-const WS_BASE = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : ''
 const WS_PATH = '/ws'
 
 /** 订单状态推送 payload */
@@ -45,9 +44,15 @@ function getWsUrl(): string {
   return (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin + WS_PATH : ''
 }
 
+/** 与 Spring SockJS 一致：配置了 setAllowedOriginPatterns 时，服务端会对 /ws/iframe.html 返回 404（禁用 iframe 传输），见 AbstractSockJsService */
+const SOCKJS_TRANSPORTS = ['websocket', 'xhr-streaming', 'xhr-polling'] as const
+
 function createClient(token: string, isAdmin: boolean): Client {
   const client = new Client({
-    webSocketFactory: () => new SockJS(getWsUrl()) as any,
+    webSocketFactory: () =>
+      new SockJS(getWsUrl(), undefined, {
+        transports: [...SOCKJS_TRANSPORTS]
+      }) as any,
     connectHeaders: {
       token: token,
       Authorization: 'Bearer ' + token

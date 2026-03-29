@@ -153,8 +153,8 @@ public class VenueController extends BaseController {
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
     public Result<Object> uploadVenueImages(
             @RequestParam("files") MultipartFile[] files,
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false, defaultValue = "DETAIL") String imageType) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "imageType", required = false, defaultValue = "DETAIL") String imageType) {
         try {
             // 权限验证：仅管理员可上传
             if (!isAdmin()) {
@@ -259,7 +259,7 @@ public class VenueController extends BaseController {
 
     @Operation(summary = "获取场馆图片列表")
     @GetMapping("/{venueId}/images")
-    public Result<Object> getVenueImages(@Parameter(description = "场馆ID", required = true) @PathVariable Long venueId) {
+    public Result<Object> getVenueImages(@Parameter(description = "场馆ID", required = true) @PathVariable("venueId") Long venueId) {
         try {
             List<VenueImage> images = venueImageService.findByVenueId(venueId);
             return success(images);
@@ -271,7 +271,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "绑定已上传图片到场馆", description = "将未入库的图片 URL 关联到指定场馆")
     @PostMapping("/{venueId}/images/bind")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> bindVenueImages(@PathVariable Long venueId,
+    public Result<Object> bindVenueImages(@PathVariable("venueId") Long venueId,
                                           @RequestBody List<Map<String, Object>> images) {
         try {
             // 权限验证：超管可操作；场馆管理员仅能对自己所属场馆执行绑定
@@ -354,7 +354,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "删除场馆图片")
     @DeleteMapping("/image/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteVenueImage(@PathVariable Long id) {
+    public Result<Object> deleteVenueImage(@PathVariable("id") Long id) {
         try {
             // 权限验证：超管可删除所有图片；场馆管理员仅能删除自己场馆下的图片
             com.badminton.bmp.modules.venue.entity.VenueImage image = venueImageService.findById(id);
@@ -380,7 +380,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "更新图片排序")
     @PutMapping("/image/{id}/sort")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateImageSortOrder(@PathVariable Long id, @RequestParam Integer sortOrder) {
+    public Result<Object> updateImageSortOrder(@PathVariable("id") Long id, @RequestParam("sortOrder") Integer sortOrder) {
         try {
             // 权限验证：超管可更新所有图片排序；场馆管理员仅能更新自己场馆下的图片
             com.badminton.bmp.modules.venue.entity.VenueImage image = venueImageService.findById(id);
@@ -407,11 +407,11 @@ public class VenueController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllVenues(
-            @RequestParam(required = false) String venueName,
-            @RequestParam(required = false) String address,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "venueName", required = false) String venueName,
+            @RequestParam(value = "address", required = false) String address,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // 验证分页参数
             if (page < 1) {
@@ -491,7 +491,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "场馆详情", description = "根据ID获取单个场馆信息")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Venue> getVenueInfo(@PathVariable Long id) {
+    public Result<Venue> getVenueInfo(@PathVariable("id") Long id) {
         try {
             Venue venue = venueService.findById(id);
             if (venue != null) {
@@ -565,7 +565,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "删除场馆", description = "需协会会长权限，有关联场地/赛事时不可删")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('PRESIDENT')")
-    public Result<Object> deleteVenue(@PathVariable Long id) {
+    public Result<Object> deleteVenue(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除场馆
             if (!isAdmin()) {
@@ -606,7 +606,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "获取场馆营业时间配置")
     @GetMapping("/{venueId}/schedules")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getVenueSchedules(@PathVariable Long venueId) {
+    public Result<Object> getVenueSchedules(@PathVariable("venueId") Long venueId) {
         try {
             // 权限验证：超管可查看所有；场馆管理员仅能查看自己所属场馆的营业时间
             if (!canManageVenue(venueId)) {
@@ -627,7 +627,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "保存场馆营业时间配置")
     @PostMapping("/{venueId}/schedules")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> saveVenueSchedules(@PathVariable Long venueId, @Valid @RequestBody List<VenueSchedule> schedules) {
+    public Result<Object> saveVenueSchedules(@PathVariable("venueId") Long venueId, @Valid @RequestBody List<VenueSchedule> schedules) {
         try {
             // 权限验证：超管可配置所有场馆；场馆管理员仅能配置自己所属场馆
             if (!canManageVenue(venueId)) {
@@ -654,7 +654,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "删除营业时间配置")
     @DeleteMapping("/schedule/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteVenueSchedule(@PathVariable Long id) {
+    public Result<Object> deleteVenueSchedule(@PathVariable("id") Long id) {
         try {
             // 权限验证：超管可删除所有时间表；场馆管理员仅能删除自己所属场馆的时间表
             VenueSchedule schedule = venueScheduleService.findById(id);
@@ -680,7 +680,7 @@ public class VenueController extends BaseController {
     @Operation(summary = "获取场馆状态变更历史")
     @GetMapping("/{venueId}/status-logs")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getVenueStatusLogs(@PathVariable Long venueId) {
+    public Result<Object> getVenueStatusLogs(@PathVariable("venueId") Long venueId) {
         try {
             // 权限验证：超管可查看所有；场馆管理员仅能查看自己所属场馆的日志
             if (!canManageVenue(venueId)) {

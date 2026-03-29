@@ -1,0 +1,533 @@
+<template>
+  <view class="auth-page">
+    <!-- WeChat Mini-Program Capsule Safe Area -->
+    <view class="safe-area-capsule"></view>
+
+    <!-- Top AppBar -->
+    <view class="top-bar">
+      <view class="brand-logo" @tap="handleBack">
+        <text class="icon-bolt">⚡</text>
+        <text class="brand-text">Kinetic Logic</text>
+      </view>
+    </view>
+
+    <!-- Main Content -->
+    <view class="main-content">
+      <!-- Hero Branding -->
+      <view class="hero-section">
+        <text class="main-title">羽   擎</text>
+        <text class="sub-title">RECOVER PASSWORD</text>
+      </view>
+
+      <!-- Reset Form -->
+      <view class="login-form">
+        <!-- Mobile Number Input -->
+        <view class="field-group">
+          <text class="field-label">手机号码 MOBILE NUMBER</text>
+          <view class="input-wrapper">
+            <view class="input-container">
+              <text class="input-icon">📱</text>
+              <input 
+                class="input-field" 
+                v-model="formData.phone" 
+                placeholder="输入您的手机号" 
+                placeholder-class="input-placeholder"
+                type="number"
+                @focus="focusPhone = true"
+                @blur="focusPhone = false"
+              />
+            </view>
+            <view class="input-underline" :class="{ 'active': focusPhone }"></view>
+          </view>
+        </view>
+
+        <!-- ID Card Number -->
+        <view class="field-group">
+          <text class="field-label">身份证号 ID CARD NUMBER</text>
+          <view class="input-wrapper">
+            <view class="input-container">
+              <text class="input-icon">🪪</text>
+              <input 
+                class="input-field" 
+                v-model="formData.idCard" 
+                placeholder="请输入您的身份证号" 
+                placeholder-class="input-placeholder"
+                type="text"
+                @focus="focusIdCard = true"
+                @blur="focusIdCard = false"
+              />
+            </view>
+            <view class="input-underline" :class="{ 'active': focusIdCard }"></view>
+          </view>
+        </view>
+
+        <!-- New Password -->
+        <view class="field-group">
+          <text class="field-label">设置新密码 NEW PASSWORD</text>
+          <view class="input-wrapper">
+            <view class="input-container">
+              <text class="input-icon">🔒</text>
+              <input 
+                class="input-field" 
+                v-model="formData.password" 
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="请输入新密码" 
+                placeholder-class="input-placeholder"
+                @focus="focusPassword = true"
+                @blur="focusPassword = false"
+              />
+              <text class="toggle-icon" @tap="showPassword = !showPassword">
+                {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+              </text>
+            </view>
+            <view class="input-underline" :class="{ 'active': focusPassword }"></view>
+          </view>
+        </view>
+
+        <!-- Confirm Password -->
+        <view class="field-group">
+          <text class="field-label">确认新密码 CONFIRM PASSWORD</text>
+          <view class="input-wrapper">
+            <view class="input-container">
+              <text class="input-icon">🔐</text>
+              <input 
+                class="input-field" 
+                v-model="formData.confirmPassword" 
+                :type="showConfirmPassword ? 'text' : 'password'"
+                placeholder="请再次输入新密码" 
+                placeholder-class="input-placeholder"
+                @focus="focusConfirmPassword = true"
+                @blur="focusConfirmPassword = false"
+              />
+              <text class="toggle-icon" @tap="showConfirmPassword = !showConfirmPassword">
+                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </text>
+            </view>
+            <view class="input-underline" :class="{ 'active': focusConfirmPassword }"></view>
+          </view>
+        </view>
+
+        <!-- Primary Action -->
+        <view class="action-primary">
+          <button 
+            class="btn-login" 
+            :loading="loading" 
+            :disabled="loading" 
+            @tap="handleReset"
+          >
+            <text v-if="!loading" class="btn-text">重置密码</text>
+            <text v-if="!loading" class="btn-icon">→</text>
+            <text v-else>处理中...</text>
+          </button>
+        </view>
+
+        <!-- Secondary Action (Back to login) -->
+        <view class="action-secondary">
+          <view class="btn-register" @tap="handleBack">
+            <text class="register-icon">‹</text>
+            <text class="register-text">返回登录</text>
+          </view>
+        </view>
+
+      </view>
+    </view>
+
+    <!-- Footer Decoration -->
+    <view class="footer-decoration">
+      <view class="footer-content">
+        <text class="footer-title">羽擎管理系统</text>
+        <text class="footer-subtitle">动力精密架构</text>
+      </view>
+    </view>
+
+    <!-- Abstract Shape Decoration -->
+    <view class="abstract-shape"></view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const loading = ref(false)
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+
+const focusPhone = ref(false)
+const focusIdCard = ref(false)
+const focusPassword = ref(false)
+const focusConfirmPassword = ref(false)
+
+const formData = ref({
+  phone: '',
+  idCard: '',
+  password: '',
+  confirmPassword: ''
+})
+
+const handleReset = () => {
+  if (!formData.value.phone || !formData.value.idCard || !formData.value.password || !formData.value.confirmPassword) {
+    uni.showToast({
+      title: '请填写完整信息',
+      icon: 'none'
+    })
+    return
+  }
+  
+  if (formData.value.password !== formData.value.confirmPassword) {
+    uni.showToast({
+      title: '两次密码不一致',
+      icon: 'none'
+    })
+    return
+  }
+
+  loading.value = true
+  
+  // 模拟接口调用，可替换为真实的找回密码接口
+  setTimeout(() => {
+    loading.value = false
+    uni.showToast({
+      title: '重置成功',
+      icon: 'success'
+    })
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 1500)
+  }, 1000)
+}
+
+const handleBack = () => {
+  uni.navigateBack()
+}
+</script>
+
+<style lang="scss" scoped>
+@import '@/styles/common.scss';
+
+view, text, scroll-view, input, button, textarea {
+  box-sizing: border-box;
+}
+
+.auth-page {
+  width: 100vw;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  background: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  
+  // 背景渐变效果
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 100% 0%, rgba(255, 102, 0, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 0% 100%, rgba(255, 102, 0, 0.03) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+// WeChat Mini-Program Capsule Safe Area
+.safe-area-capsule {
+  height: 120rpx;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+// Top AppBar
+.top-bar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 48rpx;
+  height: 120rpx;
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    padding: 10rpx 0;
+
+    .icon-bolt {
+      font-size: 48rpx;
+      color: #FF6600;
+      line-height: 1;
+    }
+
+    .brand-text {
+      font-size: 48rpx;
+      font-weight: bold;
+      font-style: italic;
+      letter-spacing: -2rpx;
+      color: #FF6600;
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1;
+    }
+  }
+}
+
+// Main Content
+.main-content {
+  position: relative;
+  z-index: 1;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 40rpx 48rpx 240rpx;
+  max-width: 100vw;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+// Hero Branding
+.hero-section {
+  margin-bottom: 60rpx;
+
+  .main-title {
+    display: block;
+    font-size: 88rpx;
+    font-weight: bold;
+    color: #1a1c1c;
+    margin-bottom: 16rpx;
+    letter-spacing: 16rpx;
+    line-height: 1.2;
+    white-space: nowrap;
+    width: 100%;
+    text-align: left;
+  }
+
+  .sub-title {
+    display: block;
+    font-size: 26rpx;
+    color: #636262;
+    letter-spacing: 8rpx;
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+}
+
+// Login Form
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 40rpx; 
+}
+
+.field-group {
+  position: relative;
+
+  .field-label {
+    display: block;
+    font-size: 20rpx;
+    font-weight: bold;
+    letter-spacing: 1rpx;
+    text-transform: uppercase;
+    color: #5f5e5e;
+    margin-bottom: 16rpx;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .input-wrapper {
+    position: relative;
+
+    .input-container {
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      border-radius: 16rpx;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      padding: 0 32rpx;
+      height: 112rpx;
+
+      .input-icon {
+        font-size: 40rpx;
+        color: #8e7164;
+        margin-right: 32rpx;
+        flex-shrink: 0;
+      }
+
+      .input-field {
+        flex: 1;
+        width: 100%;
+        background: transparent;
+        border: none;
+        font-size: 32rpx;
+        color: #1a1c1c;
+        height: 100%;
+      }
+
+      .input-placeholder {
+        color: #e3bfb1;
+      }
+
+      .toggle-icon {
+        font-size: 40rpx;
+        color: #8e7164;
+        margin-left: 32rpx;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: color 0.3s ease;
+
+        &:active {
+          color: #a33e00;
+        }
+      }
+    }
+
+    .input-underline {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 4rpx;
+      background: #a33e00;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 2rpx;
+
+      &.active {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Primary Action
+.action-primary {
+  padding-top: 20rpx;
+
+  .btn-login {
+    width: 100%;
+    height: 128rpx;
+    background: linear-gradient(45deg, #a33e00 0%, #ff6600 100%);
+    border-radius: 16rpx;
+    color: #ffffff;
+    font-weight: bold;
+    border: none;
+    box-shadow: 0 16rpx 32rpx rgba(163, 62, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24rpx;
+    transition: transform 0.3s ease;
+
+    .btn-text {
+      font-size: 32rpx;
+      letter-spacing: 10rpx;
+      font-weight: bold;
+    }
+
+    .btn-icon {
+      font-size: 48rpx;
+      line-height: 1;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    &::after {
+      border: none;
+    }
+  }
+}
+
+// Secondary Action
+.action-secondary {
+  display: flex;
+  justify-content: center;
+  padding-top: 10rpx;
+
+  .btn-register {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    padding: 20rpx 48rpx;
+    border-radius: 16rpx;
+    color: #a33e00;
+    font-weight: bold;
+    transition: all 0.3s ease;
+
+    .register-text {
+      font-size: 30rpx;
+      letter-spacing: 4rpx;
+    }
+
+    .register-icon {
+      font-size: 40rpx;
+      line-height: 1;
+    }
+
+    &:active {
+      background: rgba(163, 62, 0, 0.05);
+      transform: scale(0.98);
+    }
+  }
+}
+
+// Footer Decoration
+.footer-decoration {
+  position: fixed;
+  bottom: 80rpx;
+  left: 0;
+  width: 100%;
+  padding: 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+
+  .footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+
+    .footer-title {
+      font-size: 22rpx;
+      font-weight: bold;
+      letter-spacing: 14rpx;
+      text-transform: uppercase;
+      margin-bottom: 10rpx;
+      color: #1a1c1c;
+    }
+
+    .footer-subtitle {
+      font-size: 18rpx;
+      letter-spacing: 5rpx;
+      color: #1a1c1c;
+    }
+  }
+}
+
+// Abstract Shape Decoration
+.abstract-shape {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400rpx;
+  height: 400rpx;
+  opacity: 0.05;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23a33e00' d='M44.7,-76.4C58.8,-69.2,71.8,-59.1,79.6,-46.2C87.4,-33.3,90.1,-17.7,89.5,-1.9C88.8,13.8,84.9,29.8,76.4,43.2C67.9,56.7,54.9,67.7,40.5,74.5C26.1,81.3,10.2,83.9,-4.9,81.9C-20,79.9,-34.3,73.4,-47.5,65.8C-60.7,58.2,-72.8,49.5,-79.8,38.1C-86.8,26.7,-88.7,12.6,-87.3,-1.2C-85.8,-15,-81,-28.4,-73.1,-39.9C-65.1,-51.4,-54,-61,-41.2,-68.8C-28.4,-76.6,-14.2,-82.6,0.5,-83.4C15.2,-84.3,30.5,-80,44.7,-76.4Z' transform='translate(100 100)'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+</style>

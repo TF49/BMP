@@ -1,6 +1,12 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
+/** 可选降级类接口：减少 Toast（天气失败、Dashboard 汇总未部署时前端会回退） */
+function isGracefulFallbackApi(url) {
+  if (!url || typeof url !== 'string') return false
+  return url.includes('/api/weather') || url.includes('/api/dashboard/summary')
+}
+
 // 是否正在刷新Token
 let isRefreshing = false
 // 等待刷新Token的请求队列
@@ -46,6 +52,7 @@ service.interceptors.response.use(
 
     // 如果返回的状态码不是200，则判断为错误
     if (res.code !== 200) {
+      const isNonCriticalAPI = isGracefulFallbackApi(response.config?.url || '')
       // 50008: 非法token; 50012: 其他客户端登录了; 50014: Token 过期了
       if (res.code === 50008 || res.code === 50012 || res.code === 50014) {
         // 重新登录
@@ -56,11 +63,13 @@ service.interceptors.response.use(
       } else {
         // 统一错误提示：避免页面静默失败（例如统计卡片一直为0）
         const msg = res.message || '请求失败'
-        try {
-          ElMessage.error(msg)
-        } catch (e) {
-          // 忽略 UI 组件未就绪等异常
-          console.error('ElMessage.error failed:', e)
+        if (!isNonCriticalAPI) {
+          try {
+            ElMessage.error(msg)
+          } catch (e) {
+            // 忽略 UI 组件未就绪等异常
+            console.error('ElMessage.error failed:', e)
+          }
         }
       }
       return Promise.reject(new Error(res.message || 'Error'))
@@ -153,11 +162,14 @@ service.interceptors.response.use(
 
     // 处理其他网络错误
     if (error.response) {
+      const isNonCriticalAPI = isGracefulFallbackApi(error.config?.url || '')
       switch (error.response.status) {
         case 403:
           // 拒绝访问，可能是token无效或过期，跳转到官网
           console.error('403 Forbidden: 拒绝访问，请重新登录')
-          try { ElMessage.error('拒绝访问，请重新登录') } catch (e) {}
+          if (!isNonCriticalAPI) {
+            try { ElMessage.error('拒绝访问，请重新登录') } catch (e) {}
+          }
           localStorage.removeItem('token')
           localStorage.removeItem('refreshToken')
           localStorage.removeItem('userInfo')
@@ -166,16 +178,22 @@ service.interceptors.response.use(
         case 404:
           // 请求资源不存在
           console.error('404 Not Found: 请求的资源不存在', error.config.url)
-          try { ElMessage.error('请求的资源不存在') } catch (e) {}
+          if (!isNonCriticalAPI) {
+            try { ElMessage.error('请求的资源不存在') } catch (e) {}
+          }
           break
         case 500:
           // 服务器内部错误
           console.error('500 Server Error: 服务器内部错误')
-          try { ElMessage.error('服务器内部错误') } catch (e) {}
+          if (!isNonCriticalAPI) {
+            try { ElMessage.error('服务器内部错误') } catch (e) {}
+          }
           break
         default:
           console.error(`HTTP 错误: ${error.response.status}`)
-          try { ElMessage.error(`网络错误：${error.response.status}`) } catch (e) {}
+          if (!isNonCriticalAPI) {
+            try { ElMessage.error(`网络错误：${error.response.status}`) } catch (e) {}
+          }
       }
     } else if (error.request) {
       // 请求已发送但没有收到响应
@@ -188,8 +206,7 @@ service.interceptors.response.use(
       }
     } else {
       // 断网等情况
-      // 对于某些非关键API（如天气API），静默处理
-      const isNonCriticalAPI = error.config?.url?.includes('/api/weather')
+      const isNonCriticalAPI = isGracefulFallbackApi(error.config?.url || '')
       
       if (!isNonCriticalAPI) {
         console.error('网络连接异常:', error.message)

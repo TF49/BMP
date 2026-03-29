@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 /**
  * 获取场馆列表
@@ -199,11 +200,13 @@ export function getVenueStatusLogs(venueId) {
 }
 
 /**
- * 获取场馆统计信息
+ * 获取场馆统计信息（Dashboard 多图并发时去重）
  */
 export function getVenueStatistics() {
-  return request({
-    url: '/api/venue/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/venue/statistics', () =>
+    request({
+      url: '/api/venue/statistics',
+      method: 'get'
+    })
+  )
 }

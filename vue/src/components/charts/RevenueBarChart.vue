@@ -52,6 +52,8 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import * as echarts from 'echarts'
 import { getFinanceTrend } from '@/api/finance'
+import { formatLocalDate } from '@/utils/localDate'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -96,7 +98,7 @@ const trendChange = computed(() => {
   return prevValue > 0 ? ((lastValue - prevValue) / prevValue) * 100 : 0
 })
 
-const toDateStr = (d) => d.toISOString().slice(0, 10)
+const toDateStr = (d) => formatLocalDate(d)
 const weekdayLabel = (dateStr) => {
   const labels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   const d = new Date(dateStr + 'T00:00:00')
@@ -298,6 +300,12 @@ onMounted(() => {
     .then(() => updateChart())
     .catch((e) => console.error('获取收入趋势失败:', e))
   window.addEventListener('resize', resizeChart)
+})
+
+useDashboardChartRefresh(() => {
+  Promise.all([fetchWeek(), fetchMonth()])
+    .then(() => updateChart())
+    .catch((e) => console.error('获取收入趋势失败:', e))
 })
 
 onUnmounted(() => {

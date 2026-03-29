@@ -1,18 +1,4 @@
 const path = require('path')
-const os = require('os')
-
-// 获取本机局域网 IP
-let localIp = 'localhost'
-const interfaces = os.networkInterfaces()
-for (const devName in interfaces) {
-  const iface = interfaces[devName]
-  for (let i = 0; i < iface.length; i++) {
-    const alias = iface[i]
-    if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-      localIp = alias.address
-    }
-  }
-}
 
 module.exports = {
   // 生产环境不生成 source map：显著减少构建体积与首屏下载
@@ -25,7 +11,7 @@ module.exports = {
     config
       .plugin('html')
       .tap(args => {
-        args[0].title = '羽毛球管理系统'
+        args[0].title = '羽擎'
         return args
       })
 
@@ -77,11 +63,12 @@ module.exports = {
   },
   devServer: {
     host: '0.0.0.0',
-    port: 8080,
+    // 与「局域网 IP + 可变端口」一致：PORT=8082 npm run serve 等
+    port: Number(process.env.PORT) || 8080,
     allowedHosts: 'all',
-    // HMR 的 WebSocket 不要用 /ws，否则会被 proxy 转到后端导致 Invalid frame header；用独立路径
+    // HMR 不要用 /ws（会与后端 SockJS 代理冲突）。auto 使用当前页面主机名与端口，不依赖启动时扫网卡
     client: {
-      webSocketURL: `ws://${localIp}:8080/sockjs-node`
+      webSocketURL: 'auto://0.0.0.0:0/sockjs-node'
     },
     proxy: {
       '/api': {

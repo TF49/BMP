@@ -23,8 +23,8 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("羽毛球管理系统（BMP）API")
-                        .description("羽毛球管理系统后端接口文档，在线调试请使用 Swagger UI。认证方式：登录后获取 AccessToken，在 Swagger UI 顶部点击 Authorize 填写 Bearer {token}。")
+                        .title("羽擎（BMP）API")
+                        .description("羽擎后端接口文档，在线调试请使用 Swagger UI。认证方式：登录后获取 AccessToken，在 Swagger UI 顶部点击 Authorize 填写 Bearer {token}。")
                         .version("1.0.0")
                         .contact(new Contact().name("BMP").url("http://www.badminton.vip")))
                 .components(new Components()

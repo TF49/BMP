@@ -51,15 +51,15 @@ public class StringingServiceController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllServices(
-            @RequestParam(required = false) Long memberId,
-            @RequestParam(required = false) Long userId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) String createTimeStart,
-            @RequestParam(required = false) String createTimeEnd,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "memberId", required = false) Long memberId,
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "createTimeStart", required = false) String createTimeStart,
+            @RequestParam(value = "createTimeEnd", required = false) String createTimeEnd,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // 验证分页参数
             if (page < 1) {
@@ -102,7 +102,7 @@ public class StringingServiceController extends BaseController {
     @Operation(summary = "穿线服务详情（按ID）")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<StringingService> getServiceInfo(@PathVariable Long id) {
+    public Result<StringingService> getServiceInfo(@PathVariable("id") Long id) {
         try {
             StringingService service = stringingServiceService.findById(id);
             if (service != null) {
@@ -123,7 +123,7 @@ public class StringingServiceController extends BaseController {
     @Operation(summary = "穿线服务详情（按单号）")
     @GetMapping("/info/no/{serviceNo}")
     @PreAuthorize("isAuthenticated()")
-    public Result<StringingService> getServiceInfoByNo(@PathVariable String serviceNo) {
+    public Result<StringingService> getServiceInfoByNo(@PathVariable("serviceNo") String serviceNo) {
         try {
             StringingService service = stringingServiceService.findByServiceNo(serviceNo);
             if (service != null) {
@@ -219,7 +219,7 @@ public class StringingServiceController extends BaseController {
     @Operation(summary = "删除穿线服务")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteService(@PathVariable Long id) {
+    public Result<Object> deleteService(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除服务记录
             if (!isAdmin()) {
@@ -249,7 +249,7 @@ public class StringingServiceController extends BaseController {
     @Operation(summary = "更新穿线服务状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateServiceStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateServiceStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
             // 权限验证：仅管理员可更新状态
             if (!isAdmin()) {
@@ -329,8 +329,8 @@ public class StringingServiceController extends BaseController {
     @GetMapping("/calculate-price")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> calculatePrice(
-            @RequestParam(required = false) Long stringId,
-            @RequestParam(required = false, defaultValue = "0") Integer isOwnString) {
+            @RequestParam(value = "stringId", required = false) Long stringId,
+            @RequestParam(value = "isOwnString", required = false, defaultValue = "0") Integer isOwnString) {
         try {
             BigDecimal price = stringingServiceService.calculatePrice(stringId, isOwnString);
             Map<String, Object> result = new HashMap<>();
@@ -350,7 +350,7 @@ public class StringingServiceController extends BaseController {
     @Operation(summary = "穿线服务支付")
     @PostMapping("/payment")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processPayment(@RequestParam Long serviceId, @RequestParam String paymentMethod) {
+    public Result<Object> processPayment(@RequestParam("serviceId") Long serviceId, @RequestParam("paymentMethod") String paymentMethod) {
         try {
             if (!isAdmin()) {
                 return error("权限不足，仅管理员可执行此操作");
@@ -386,7 +386,7 @@ public class StringingServiceController extends BaseController {
     @Operation(summary = "穿线服务退款")
     @PostMapping("/refund")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processRefund(@RequestParam Long serviceId) {
+    public Result<Object> processRefund(@RequestParam("serviceId") Long serviceId) {
         try {
             if (!isAdmin()) {
                 return error("权限不足，仅管理员可执行此操作");

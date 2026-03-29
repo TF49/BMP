@@ -176,9 +176,6 @@ const handleTermsChange = (e: any) => {
 }
 
 const handleRegister = async () => {
-  // #region agent log
-  fetch('http://127.0.0.1:7694/ingest/0cb5edb8-daea-4bfb-a66c-44141cbed0e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'47f8e5'},body:JSON.stringify({sessionId:'47f8e5',runId:'pre-fix',hypothesisId:'H1',location:'pages/register/register.vue:179',message:'handleRegister entry',data:{hasPhone:!!formData.value.phone,hasIdCard:!!formData.value.idCard,hasPassword:!!formData.value.password,hasConfirmPassword:!!formData.value.confirmPassword,agreed:formData.value.agreed},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (!formData.value.phone || !formData.value.idCard || !formData.value.password) {
     uni.showToast({ title: '请填写完整信息', icon: 'none' })
     return
@@ -198,9 +195,6 @@ const handleRegister = async () => {
 
   try {
     // 映射到 API 所需的字段
-    // #region agent log
-    fetch('http://127.0.0.1:7694/ingest/0cb5edb8-daea-4bfb-a66c-44141cbed0e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'47f8e5'},body:JSON.stringify({sessionId:'47f8e5',runId:'pre-fix',hypothesisId:'H2',location:'pages/register/register.vue:202',message:'register payload snapshot',data:{username:formData.value.phone,idCardLength:formData.value.idCard?.length||0,passwordLength:formData.value.password?.length||0,confirmPasswordLength:formData.value.confirmPassword?.length||0,role:'USER'},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     await register({
       username: formData.value.phone, // 使用手机号作为用户名或按后端要求
       password: formData.value.password,

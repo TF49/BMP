@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 // 会员列表
 export function getMemberList(params) {
@@ -51,29 +52,37 @@ export function deleteMember(id) {
   })
 }
 
-// 会员统计
+// 会员统计（同 period 并发去重）
 export function getMemberStatistics(params) {
-  return request({
-    url: '/api/member/statistics',
-    method: 'get',
-    params
-  })
+  const p = params || {}
+  const period = p.period ?? ''
+  return withDedupe(`GET:/api/member/statistics:${period}`, () =>
+    request({
+      url: '/api/member/statistics',
+      method: 'get',
+      params
+    })
+  )
 }
 
 // 会员等级/类型分布（Dashboard饼图）
 export function getMemberDistribution() {
-  return request({
-    url: '/api/member/distribution',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/member/distribution', () =>
+    request({
+      url: '/api/member/distribution',
+      method: 'get'
+    })
+  )
 }
 
 // 会员漏斗（Dashboard漏斗图：注册→活跃→高频→VIP）
 export function getMemberFunnel() {
-  return request({
-    url: '/api/member/funnel',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/member/funnel', () =>
+    request({
+      url: '/api/member/funnel',
+      method: 'get'
+    })
+  )
 }
 
 // 会员消费记录（按会员聚合）
@@ -87,17 +96,23 @@ export function getMemberConsumeList(memberId, params) {
 
 // 会员来源分布
 export function getMemberSource() {
-  return request({
-    url: '/api/member/source',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/member/source', () =>
+    request({
+      url: '/api/member/source',
+      method: 'get'
+    })
+  )
 }
 
 // 即将到期会员列表
 export function getExpiringMembers(params) {
-  return request({
-    url: '/api/member/expiring',
-    method: 'get',
-    params
-  })
+  const p = params || {}
+  const days = p.days != null ? String(p.days) : ''
+  return withDedupe(`GET:/api/member/expiring:${days}`, () =>
+    request({
+      url: '/api/member/expiring',
+      method: 'get',
+      params
+    })
+  )
 }

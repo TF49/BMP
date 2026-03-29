@@ -23,6 +23,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
 import { getTournamentRegistrationStatistics } from '@/api/tournamentRegistration'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -185,6 +186,8 @@ onMounted(() => {
   fetchFunnelData().then(() => updateChart())
   window.addEventListener('resize', resizeChart)
 })
+
+useDashboardChartRefresh(() => fetchFunnelData().then(() => updateChart()))
 
 onUnmounted(() => {
   window.removeEventListener('resize', resizeChart)

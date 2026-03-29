@@ -364,7 +364,7 @@ public class AuthController extends BaseController {
     @Operation(summary = "检查账户锁定状态", description = "用于测试和管理，无需认证")
     @SecurityRequirements()
     @GetMapping("/check-lock/{username}")
-    public Result<Object> checkAccountLock(@Parameter(description = "用户名", required = true) @PathVariable String username) {
+    public Result<Object> checkAccountLock(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
         try {
             boolean locked = loginRateLimiter.isAccountLocked(username);
             long remainingTime = loginRateLimiter.getRemainingLockTime(username);
@@ -378,7 +378,7 @@ public class AuthController extends BaseController {
     @Operation(summary = "解锁账户", description = "管理员使用")
     @PostMapping("/unlock/{username}")
     @PreAuthorize("hasRole('PRESIDENT')")
-    public Result<Object> unlockAccount(@Parameter(description = "用户名", required = true) @PathVariable String username) {
+    public Result<Object> unlockAccount(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
         try {
             loginRateLimiter.unlockAccount(username);
             return success("账户已解锁");

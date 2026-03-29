@@ -44,13 +44,13 @@ public class CoachController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllCoaches(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String coachName,
-            @RequestParam(required = false) Integer gender,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "coachName", required = false) String coachName,
+            @RequestParam(value = "gender", required = false) Integer gender,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // 兼容前端传入的 coachName 作为 keyword
             if ((keyword == null || keyword.trim().isEmpty()) && coachName != null && !coachName.trim().isEmpty()) {
@@ -154,7 +154,7 @@ public class CoachController extends BaseController {
     @Operation(summary = "教练详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Coach> getCoachInfo(@PathVariable Long id) {
+    public Result<Coach> getCoachInfo(@PathVariable("id") Long id) {
         try {
             Coach coach = coachService.findById(id);
             if (coach != null) {
@@ -224,7 +224,7 @@ public class CoachController extends BaseController {
     @Operation(summary = "删除教练")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteCoach(@PathVariable Long id) {
+    public Result<Object> deleteCoach(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除教练
             if (!isAdmin()) {
@@ -249,7 +249,7 @@ public class CoachController extends BaseController {
     @Operation(summary = "更新教练状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateCoachStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateCoachStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
             if (!isAdmin()) {
                 return error("权限不足，仅管理员可执行此操作");

@@ -38,7 +38,7 @@ public class UserSettingController extends BaseController {
     @Operation(summary = "按 key 获取设置值")
     @GetMapping("/{key}")
     @PreAuthorize("isAuthenticated()")
-    public Result<UserSetting> getSettingByKey(@PathVariable String key) {
+    public Result<UserSetting> getSettingByKey(@PathVariable("key") String key) {
         try {
             Long userId = getCurrentUserId();
             String value = userSettingService.getSetting(userId, key);
@@ -59,7 +59,7 @@ public class UserSettingController extends BaseController {
     @PutMapping("/{key}")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> updateSetting(
-            @PathVariable String key,
+            @PathVariable("key") String key,
             @RequestBody Map<String, String> request) {
         try {
             if (key == null || key.trim().isEmpty()) {
@@ -86,7 +86,7 @@ public class UserSettingController extends BaseController {
     @Operation(summary = "删除指定 key 的设置")
     @DeleteMapping("/{key}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> deleteSetting(@PathVariable String key) {
+    public Result<Object> deleteSetting(@PathVariable("key") String key) {
         try {
             if (key == null || key.trim().isEmpty()) {
                 return error("设置key不能为空");

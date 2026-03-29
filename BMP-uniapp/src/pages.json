@@ -185,6 +185,13 @@
       }
     },
     {
+      "path": "pages/recover/recover",
+      "style": {
+        "navigationBarTitleText": "找回密码",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/venue/detail",
       "style": {
         "navigationBarTitleText": "场馆详情",
@@ -369,7 +376,7 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "羽毛球管理系统",
+    "navigationBarTitleText": "羽擎",
     "navigationBarBackgroundColor": "#F8FAFC",
     "backgroundColor": "#F8FAFC",
     "app-plus": {

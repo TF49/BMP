@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-container">
     <div class="dashboard-content">
-      <h1>欢迎使用羽毛球管理系统</h1>
+      <h1>欢迎使用羽擎</h1>
       <p>登录成功，正在跳转到首页...</p>
     </div>
   </div>

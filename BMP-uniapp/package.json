@@ -1,7 +1,7 @@
 {
   "name": "bmp-miniprogram",
   "version": "1.0.0",
-  "description": "羽毛球管理系统微信小程序",
+  "description": "羽擎微信小程序",
   "main": "main.ts",
   "scripts": {
     "dev:mp-weixin": "set UNI_INPUT_DIR=.&& uni -p mp-weixin",

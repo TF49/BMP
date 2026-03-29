@@ -45,10 +45,10 @@ public class CourseBookingController extends BaseController {
     @GetMapping("/for-coach")
     @PreAuthorize("hasRole('COACH')")
     public Result<Object> getBookingsForCoach(
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             Long coachId = coachService.getCurrentCoachIdOrNull();
             if (coachId == null) {
@@ -81,12 +81,12 @@ public class CourseBookingController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllBookings(
-            @RequestParam(required = false) Long memberId,
-            @RequestParam(required = false) Long courseId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "memberId", required = false) Long memberId,
+            @RequestParam(value = "courseId", required = false) Long courseId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;
@@ -110,7 +110,7 @@ public class CourseBookingController extends BaseController {
     @Operation(summary = "课程预约详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<CourseBooking> getBookingInfo(@PathVariable Long id) {
+    public Result<CourseBooking> getBookingInfo(@PathVariable("id") Long id) {
         try {
             CourseBooking booking = courseBookingService.findById(id);
             return booking != null ? success(booking) : error("预约记录不存在");
@@ -182,7 +182,7 @@ public class CourseBookingController extends BaseController {
     @Operation(summary = "删除课程预约")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> deleteBooking(@PathVariable Long id) {
+    public Result<Object> deleteBooking(@PathVariable("id") Long id) {
         try {
 
             // 删除预约记录
@@ -205,7 +205,7 @@ public class CourseBookingController extends BaseController {
     @Operation(summary = "更新课程预约状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> updateBookingStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateBookingStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
 
             if (id == null) {
@@ -253,7 +253,7 @@ public class CourseBookingController extends BaseController {
     @Operation(summary = "课程预约支付")
     @PostMapping("/payment")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processPayment(@RequestParam Long bookingId, @RequestParam String paymentMethod) {
+    public Result<Object> processPayment(@RequestParam("bookingId") Long bookingId, @RequestParam("paymentMethod") String paymentMethod) {
         try {
             // 权限验证：仅管理员可处理支付
             if (!isAdmin()) {
@@ -296,7 +296,7 @@ public class CourseBookingController extends BaseController {
     @Operation(summary = "课程预约退款")
     @PostMapping("/refund")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> processRefund(@RequestParam Long bookingId) {
+    public Result<Object> processRefund(@RequestParam("bookingId") Long bookingId) {
         try {
             // 权限验证：仅管理员可处理退款
             if (!isAdmin()) {
@@ -351,7 +351,7 @@ public class CourseBookingController extends BaseController {
      */
     @Operation(summary = "会员下拉列表")
     @GetMapping("/members")
-    public Result<Object> getMemberList(@RequestParam(required = false) String keyword) {
+    public Result<Object> getMemberList(@RequestParam(value = "keyword", required = false) String keyword) {
         try {
             String nameOrPhone = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
             List<Member> members = memberService.findByConditions(nameOrPhone, null, null, null, null, 1, 1000);

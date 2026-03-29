@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 // 租借记录列表
 export function getEquipmentRentalList(params) {
@@ -63,10 +64,12 @@ export function processEquipmentRentalPayment(rentalId, paymentMethod) {
 
 // 统计信息
 export function getEquipmentRentalStatistics() {
-  return request({
-    url: '/api/equipment/rental/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/equipment/rental/statistics', () =>
+    request({
+      url: '/api/equipment/rental/statistics',
+      method: 'get'
+    })
+  )
 }
 
 // 下拉：器材

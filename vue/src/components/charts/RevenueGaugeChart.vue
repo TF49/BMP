@@ -37,6 +37,8 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getFinanceStatistics } from '@/api/finance'
+import { formatLocalDate } from '@/utils/localDate'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -243,10 +245,10 @@ const getChartOption = (progress) => {
 const fetchData = async () => {
   loading.value = true
   try {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = formatLocalDate()
     const yesterdayDate = new Date()
     yesterdayDate.setDate(yesterdayDate.getDate() - 1)
-    const yesterday = yesterdayDate.toISOString().slice(0, 10)
+    const yesterday = formatLocalDate(yesterdayDate)
 
     if (targetType.value === 'day') {
       const [todayRes, yesterdayRes] = await Promise.all([
@@ -319,6 +321,8 @@ const initChart = async () => {
 onMounted(() => {
   initChart()
 })
+
+useDashboardChartRefresh(() => fetchData())
 
 onUnmounted(() => {
   if (chartInstance) {

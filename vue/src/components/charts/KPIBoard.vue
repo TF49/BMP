@@ -112,12 +112,15 @@ const props = defineProps({
     default: () => ({
       memberTotal: 0,
       memberGrowth: 0,
+      activeMembers: 0,
       todayBookings: 0,
       bookingGrowth: 0,
       todayRevenue: 0,
       revenueGrowth: 0,
       courtTotal: 0,
-      courtGrowth: 0
+      courtGrowth: 0,
+      courtsInUse: 0,
+      courtUsageRate: 0
     })
   },
   loading: {
@@ -128,16 +131,16 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh'])
 
-// 计算 KPI 数据（从 props 转换）
+// 计算 KPI 数据（与 Dashboard 统计接口字段一致，见 /api/member/statistics、/api/court/statistics）
 const kpiData = computed(() => ({
   todayRevenue: props.stats.todayRevenue || 0,
   revenueTrend: props.stats.revenueGrowth || 0,
   todayBookings: props.stats.todayBookings || 0,
   bookingTrend: props.stats.bookingGrowth || 0,
-  activeMembers: props.stats.memberTotal || 0,
+  activeMembers: props.stats.activeMembers != null ? props.stats.activeMembers : props.stats.memberTotal || 0,
   totalMembers: props.stats.memberTotal || 0,
-  courtUsageRate: props.stats.courtGrowth || 0,
-  courtsInUse: props.stats.courtGrowth || 0,
+  courtUsageRate: props.stats.courtUsageRate != null ? props.stats.courtUsageRate : 0,
+  courtsInUse: props.stats.courtsInUse != null ? props.stats.courtsInUse : 0,
   totalCourts: props.stats.courtTotal || 0
 }))
 

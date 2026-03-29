@@ -20,6 +20,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getBookingHeatmap } from '@/api/booking'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -196,6 +197,8 @@ const initChart = async () => {
 onMounted(() => {
   initChart()
 })
+
+useDashboardChartRefresh(() => fetchChartData())
 
 onUnmounted(() => {
   if (chartInstance) {

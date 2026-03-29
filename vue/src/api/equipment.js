@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 // 器材列表
 export function getEquipmentList(params) {
@@ -54,10 +55,12 @@ export function updateEquipmentStatus(id, status) {
 
 // 器材统计
 export function getEquipmentStatistics() {
-  return request({
-    url: '/api/equipment/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/equipment/statistics', () =>
+    request({
+      url: '/api/equipment/statistics',
+      method: 'get'
+    })
+  )
 }
 
 // 器材类型下拉
@@ -78,9 +81,12 @@ export function getEquipmentVenues() {
 
 // 库存预警列表
 export function getEquipmentLowStock(params) {
-  return request({
-    url: '/api/equipment/low-stock',
-    method: 'get',
-    params
-  })
+  const p = params || {}
+  return withDedupe(`GET:/api/equipment/low-stock:${p.venueId ?? ''}:${p.page ?? ''}:${p.size ?? ''}`, () =>
+    request({
+      url: '/api/equipment/low-stock',
+      method: 'get',
+      params
+    })
+  )
 }

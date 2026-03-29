@@ -14,163 +14,31 @@
     </div>
 
     <div class="dashboard-content">
-      <!-- 欢迎语 -->
-      <div class="welcome-section mb-24">
-        <div class="welcome-background">
-          <div class="welcome-gradient"></div>
-          <div class="welcome-pattern"></div>
-          <div class="floating-elements">
-            <div class="float-circle circle-1"></div>
-            <div class="float-circle circle-2"></div>
-            <div class="float-circle circle-3"></div>
-          </div>
-        </div>
-        <div class="welcome-main">
-          <div class="welcome-left">
-            <div class="welcome-icon-wrapper">
-              <div class="welcome-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-                  <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                  <circle cx="9" cy="9" r="1" fill="currentColor"/>
-                  <circle cx="15" cy="9" r="1" fill="currentColor"/>
-                </svg>
-              </div>
-            </div>
-            <div class="welcome-content">
-              <div class="welcome-greeting">
-                <span class="greeting-emoji">{{ greetingEmoji }}</span>
-                <h1 class="welcome-title">
-                  <span class="greeting-text">{{ greeting }}</span>
-                  <span class="user-name">{{ userName }}</span>
-                </h1>
-              </div>
-              <p class="welcome-subtitle">
-                <span class="subtitle-icon">✨</span>
-                欢迎回到羽毛球场馆管理系统，祝您工作顺利！
-              </p>
-              <div class="welcome-tags">
-                <span class="welcome-tag tag-primary">
-                  <el-icon><Calendar /></el-icon>
-                  今日预订 {{ numOrZero(dashboardStats.todayBookings) }} 次
-                </span>
-                <span class="welcome-tag tag-success">
-                  <el-icon><User /></el-icon>
-                  新增会员 {{ numOrZero(dashboardStats.todayNewMembers) }} 人
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="welcome-right">
-            <div class="date-card">
-              <div class="date-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/>
-                  <line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-              </div>
-              <div class="date-info">
-                <span class="date-text">{{ currentDate }}</span>
-                <span class="weekday-text">{{ currentWeekday }}</span>
-              </div>
-              <div class="time-display">{{ currentTime }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <DashboardWelcome
+        class="mb-24"
+        :greeting-emoji="greetingEmoji"
+        :greeting="greeting"
+        :user-name="userName"
+        :current-date="currentDate"
+        :current-weekday="currentWeekday"
+        :current-time="currentTime"
+        :today-bookings="numOrZero(dashboardStats.todayBookings)"
+        :today-new-members="numOrZero(dashboardStats.todayNewMembers)"
+      />
 
       <!-- KPI看板 -->
       <el-row :gutter="24" class="mb-24">
         <el-col :xs="24">
-          <KPIBoard :stats="dashboardStats" :loading="statsLoading" />
+          <KPIBoard :stats="dashboardStats" :loading="statsLoading" @refresh="onDashboardRefresh" />
         </el-col>
       </el-row>
 
-      <!-- 第一行：统计卡片 -->
-      <el-row :gutter="24" class="mb-24">
-        <el-col :xs="24" :sm="12" :lg="4" :xl="4">
-          <div class="stat-card stat-card-members" :class="{ 'loading': statsLoading }">
-            <div class="stat-icon-wrapper">
-              <div class="stat-icon-bg">
-                <el-icon :size="28"><User /></el-icon>
-              </div>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ numOrZero(dashboardStats.memberTotal) }}</div>
-              <div class="stat-label">会员总数</div>
-              <div class="stat-trend" :class="numOrZero(dashboardStats.memberGrowth) >= 0 ? 'up' : 'down'">
-                <el-icon><ArrowUp /></el-icon> {{ numOrZero(dashboardStats.memberGrowth) }}%
-              </div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12" :lg="5" :xl="5">
-          <div class="stat-card stat-card-venues" :class="{ 'loading': statsLoading }">
-            <div class="stat-icon-wrapper">
-              <div class="stat-icon-bg">
-                <el-icon :size="28"><OfficeBuilding /></el-icon>
-              </div>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ venueCount }}</div>
-              <div class="stat-label">场馆数量</div>
-              <div class="stat-trend up">
-                <el-icon><ArrowUp /></el-icon> {{ numOrZero(dashboardStats.venueGrowth) }}
-              </div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12" :lg="5" :xl="5">
-          <div class="stat-card stat-card-courts" :class="{ 'loading': statsLoading }">
-            <div class="stat-icon-wrapper">
-              <div class="stat-icon-bg">
-                <el-icon :size="28"><Grid /></el-icon>
-              </div>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ numOrZero(dashboardStats.courtTotal) }}</div>
-              <div class="stat-label">场地数量</div>
-              <div class="stat-trend" :class="numOrZero(dashboardStats.courtGrowth) >= 0 ? 'up' : 'down'">
-                <el-icon><ArrowUp /></el-icon> {{ numOrZero(dashboardStats.courtGrowth) }}
-              </div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12" :lg="5" :xl="5">
-          <div class="stat-card stat-card-bookings" :class="{ 'loading': statsLoading }">
-            <div class="stat-icon-wrapper">
-              <div class="stat-icon-bg">
-                <el-icon :size="28"><Calendar /></el-icon>
-              </div>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ numOrZero(dashboardStats.todayBookings) }}</div>
-              <div class="stat-label">今日预订</div>
-              <div class="stat-trend" :class="numOrZero(dashboardStats.bookingGrowth) >= 0 ? 'up' : 'down'">
-                <el-icon><ArrowUp /></el-icon> {{ Math.abs(numOrZero(dashboardStats.bookingGrowth)) }}%
-              </div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12" :lg="5" :xl="5">
-          <div class="stat-card stat-card-revenue" :class="{ 'loading': statsLoading }">
-            <div class="stat-icon-wrapper">
-              <div class="stat-icon-bg">
-                <el-icon :size="28"><Money /></el-icon>
-              </div>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">¥{{ formatCurrency(dashboardStats.todayRevenue) }}</div>
-              <div class="stat-label">今日收入</div>
-              <div class="stat-trend" :class="numOrZero(dashboardStats.revenueGrowth) >= 0 ? 'up' : 'down'">
-                <el-icon><ArrowUp /></el-icon> {{ Math.abs(numOrZero(dashboardStats.revenueGrowth)).toFixed(1) }}%
-              </div>
-            </div>
-          </div>
-        </el-col>
-      </el-row>
+      <DashboardStatCards
+        class="mb-24"
+        :stats="dashboardStats"
+        :stats-loading="statsLoading"
+        :venue-count="venueCount"
+      />
 
       <!-- 第二行：快捷入口 + 今日运营 + 场地状态 -->
       <el-row :gutter="24" class="mb-24 charts-row-aligned">
@@ -224,8 +92,19 @@
                   </svg>
                 </div>
                 <div class="operation-info">
-                  <span class="operation-value">{{ numOrZero(dashboardStats.bookingRate) }}%</span>
-                  <span class="operation-label">今日预订率</span>
+                  <span class="operation-value">
+                    {{ formatBookingPerCourt(dashboardStats.bookingPerCourt) }}
+                    <span class="operation-unit">次/场</span>
+                  </span>
+                  <el-tooltip
+                    content="今日预订场次 ÷ 场地总数，反映场均预订强度（非时段占用率）"
+                    placement="top"
+                  >
+                    <span class="operation-label operation-label-hint">
+                      场均预订
+                      <el-icon class="op-hint-icon"><QuestionFilled /></el-icon>
+                    </span>
+                  </el-tooltip>
                 </div>
               </div>
               <div class="operation-item">
@@ -241,9 +120,9 @@
                 </div>
               </div>
             </div>
-            <div class="operation-tip" :class="{ 'tip-low': numOrZero(dashboardStats.bookingRate) === 0 }">
+            <div class="operation-tip" :class="{ 'tip-low': numOrZero(dashboardStats.bookingPerCourt) === 0 }">
               <el-icon class="tip-icon"><InfoFilled /></el-icon>
-              <span>{{ numOrZero(dashboardStats.bookingRate) === 0 ? '暂无预订数据，可引导用户预约场地' : (numOrZero(dashboardStats.bookingRate) >= 50 ? '今日场地预订率较高，建议用户提前预约' : '当前预订率一般，可适当推广预约') }}</span>
+              <span>{{ bookingIntensityTip }}</span>
             </div>
           </div>
         </el-col>
@@ -262,10 +141,14 @@
                   </div>
                   <span
                     class="court-status-badge"
-                    :class="court.status === 'available' ? 'status-available' : 'status-occupied'"
+                    :class="{
+                      'status-available': court.status === 'available',
+                      'status-occupied': court.status === 'occupied',
+                      'status-maintenance': court.status === 'maintenance'
+                    }"
                   >
                     <span class="status-dot"></span>
-                    {{ court.status === 'available' ? '空闲' : '使用中' }}
+                    {{ court.status === 'available' ? '空闲' : court.status === 'occupied' ? '使用中' : '维护中' }}
                   </span>
                 </div>
               </template>
@@ -285,6 +168,11 @@
               </div>
               <div class="summary-divider"></div>
               <div class="summary-item">
+                <span class="summary-value maintenance">{{ numOrZero(maintenanceCount) }}</span>
+                <span class="summary-label">维护</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-item">
                 <span class="summary-value total">{{ (dashboardStats.courts && dashboardStats.courts.length) || 0 }}</span>
                 <span class="summary-label">总数</span>
               </div>
@@ -293,6 +181,7 @@
         </el-col>
       </el-row>
 
+      <DashboardLazySection min-height="560px">
       <!-- 第三行：图表区域（收入 + 会员分布） -->
       <el-row :gutter="24" class="mb-24 charts-row-aligned">
         <el-col :xs="24" :lg="16">
@@ -316,7 +205,7 @@
             >
               {{ showAllRevenueVenues ? '收起' : `查看更多 (${venueRevenueData.length - 3})` }}
               <el-icon>
-                <component :is="showAllRevenueVenues ? 'ArrowUp' : 'ArrowDown'" />
+                <component :is="showAllRevenueVenues ? ArrowUp : ArrowDown" />
               </el-icon>
             </el-button>
           </div>
@@ -365,7 +254,7 @@
             >
               {{ showAllBookingVenues ? '收起' : `查看更多 (${venueBookingData.length - 3})` }}
               <el-icon>
-                <component :is="showAllBookingVenues ? 'ArrowUp' : 'ArrowDown'" />
+                <component :is="showAllBookingVenues ? ArrowUp : ArrowDown" />
               </el-icon>
             </el-button>
           </div>
@@ -390,7 +279,9 @@
           </div>
         </el-col>
       </el-row>
+      </DashboardLazySection>
 
+      <DashboardLazySection min-height="720px">
       <!-- 新增：收入预订对比 + 器材租借 -->
       <el-row :gutter="24" class="mb-24 charts-row-aligned">
         <el-col :xs="24" :lg="16">
@@ -504,6 +395,7 @@
           <CourtUtilizationAnomalyChart class="chart-full-height" />
         </el-col>
       </el-row>
+      </DashboardLazySection>
 
       <!-- 最后一行：最近活动 -->
       <el-row :gutter="24" class="charts-row-aligned">
@@ -561,7 +453,13 @@ import { getMemberStatistics } from '@/api/member'
 import { getBookingStatistics, getBookingVenueTrend } from '@/api/booking'
 import { getFinanceStatistics, getFinanceVenueTrend } from '@/api/finance'
 import { getCourtStatistics, getCourtList } from '@/api/court'
+import { getDashboardSummary } from '@/api/dashboard'
 import { getRecentActivities } from '@/api/activity'
+import { formatLocalDate } from '@/utils/localDate'
+import { DASHBOARD_CHARTS_REFRESH } from '@/composables/useDashboardChartRefresh'
+import { ElMessage } from 'element-plus'
+import DashboardWelcome from '@/components/dashboard/DashboardWelcome.vue'
+import DashboardStatCards from '@/components/dashboard/DashboardStatCards.vue'
 
 // 导入图表组件
 import RevenueBarChart from '@/components/charts/RevenueBarChart.vue'
@@ -573,6 +471,7 @@ import VenueBookingChart from '@/components/charts/VenueBookingChart.vue'
 
 // 导入新增图表组件
 import KPIBoard from '@/components/charts/KPIBoard.vue'
+import DashboardLazySection from '@/components/DashboardLazySection.vue'
 import RevenueBookingCompareChart from '@/components/charts/RevenueBookingCompareChart.vue'
 import EquipmentRentalChart from '@/components/charts/EquipmentRentalChart.vue'
 import MemberGrowthChart from '@/components/charts/MemberGrowthChart.vue'
@@ -610,16 +509,23 @@ const statsLoading = ref(false)
 const dashboardStats = ref({
   memberTotal: 0,
   memberGrowth: 0,
+  /** 正常状态会员数（后端 normal），用于 KPI「活跃会员」 */
+  activeMembers: 0,
   venueTotal: 0,
   venueGrowth: 0,
   courtTotal: 0,
   courtGrowth: 0,
+  /** 预约中+使用中场地数，用于 KPI 进度条分子 */
+  courtsInUse: 0,
+  /** (预约中+使用中)/总数，用于 KPI「场地使用率」 */
+  courtUsageRate: 0,
   todayBookings: 0,
   bookingGrowth: 0,
   todayRevenue: 0,
   revenueGrowth: 0,
   todayNewMembers: 0,
-  bookingRate: 0,
+  /** 今日预订场次 ÷ 场地总数（场均强度，非时段占用率） */
+  bookingPerCourt: 0,
   peakHours: '暂无',
   courts: [],
   activities: []
@@ -834,61 +740,61 @@ const shortcuts = ref([
 
 const availableCount = computed(() => dashboardStats.value.courts.filter(c => c.status === 'available').length)
 const occupiedCount = computed(() => dashboardStats.value.courts.filter(c => c.status === 'occupied').length)
+const maintenanceCount = computed(() => dashboardStats.value.courts.filter(c => c.status === 'maintenance').length)
 
-// 天气数据
-const weatherData = ref({
-  temp: '--',
-  text: '加载中...',
-  icon: 'sunny',
-  advice: '正在获取天气信息...',
-  city: '',
-  loading: true
-})
-
-// 获取天气数据
-const fetchWeather = async () => {
-  try {
-    weatherData.value.loading = true
-    const result = await getWeather()
-    if (result.success && result.data) {
+  // 天气数据
+ const weatherData = ref({
+   temp: '--',
+   text: '加载中...',
+   icon: 'sunny',
+   advice: '正在获取天气信息...',
+   city: '',
+   loading: true
+ })
+ 
+ // 获取天气数据
+ const fetchWeather = async () => {
+   try {
+     weatherData.value.loading = true
+     const result = await getWeather()
+     if (result.success && result.data) {
+       weatherData.value = {
+         temp: result.data.temp,
+         text: result.data.text,
+         icon: result.data.icon,
+         advice: result.data.advice,
+         city: result.data.city || '',
+         loading: false
+       }
+     } else {
       weatherData.value = {
-        temp: result.data.temp,
-        text: result.data.text,
-        icon: result.data.icon,
-        advice: result.data.advice,
-        city: result.data.city || '',
-        loading: false
-      }
-    } else {
-      // API失败时显示默认数据
-      weatherData.value = {
-        temp: '24',
-        text: '晴',
+        temp: '--',
+        text: '暂无天气信息',
         icon: 'sunny',
-        advice: '天气适宜运动',
+        advice: '无法获取天气信息',
         city: '',
         loading: false
       }
-    }
-  } catch (error) {
-    console.error('获取天气失败:', error)
-    weatherData.value = {
-      temp: '24',
-      text: '晴',
+     }
+   } catch (error) {
+     console.error('获取天气失败:', error)
+     weatherData.value = {
+      temp: '--',
+      text: '暂无天气信息',
       icon: 'sunny',
-      advice: '天气适宜运动',
+      advice: '无法获取天气信息',
       city: '',
       loading: false
-    }
-  }
-}
+     }
+   }
+ }
 
-// 获取天气图标SVG路径
-const getWeatherSvgPath = computed(() => {
-  const iconType = weatherData.value.icon
-  switch (iconType) {
-    case 'sunny':
-      return 'M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'
+ // 获取天气图标SVG路径
+ const getWeatherSvgPath = computed(() => {
+   const iconType = weatherData.value.icon
+   switch (iconType) {
+     case 'sunny':
+       return 'M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'
     case 'cloudy':
       return 'M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z'
     case 'rainy':
@@ -901,9 +807,6 @@ const getWeatherSvgPath = computed(() => {
       return 'M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'
   }
 })
-
-// 场馆列表（来自API）
-const venueList = ref([])
 
 // Dashboard 场馆趋势图数据（来自API）
 const venueRevenueData = ref([])
@@ -949,11 +852,10 @@ const fetchVenueList = async () => {
         venues = res.data.list
       }
       
-      venueList.value = venues
       dashboardStats.value.venueTotal = venues.length
 
       // 当日新增场馆数量（作为增长展示）
-      const todayStr = new Date().toISOString().slice(0, 10)
+      const todayStr = formatLocalDate()
       dashboardStats.value.venueGrowth = venues.filter(v => {
         const ct = v?.createTime
         if (!ct) return false
@@ -961,13 +863,11 @@ const fetchVenueList = async () => {
         return d === todayStr
       }).length
     } else {
-      venueList.value = []
       dashboardStats.value.venueTotal = 0
       dashboardStats.value.venueGrowth = 0
     }
   } catch (error) {
     console.error('获取场馆列表失败:', error)
-    venueList.value = []
     dashboardStats.value.venueTotal = 0
     dashboardStats.value.venueGrowth = 0
   }
@@ -1027,51 +927,106 @@ const fetchRecentActivities = async () => {
   }
 }
 
-// 获取Dashboard统计数据
+// 统一：无数据时显示为 0，避免页面出现空白或 undefined
+const numOrZero = (v) => {
+  if (v === null || v === undefined) return 0
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+// 格式化金额（不带¥符号，因为模板中已有）
+const formatCurrency = (amount) => {
+  const n = numOrZero(amount)
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+/** 今日预订场次 ÷ 场地数，展示为 1 位小数 */
+const formatBookingPerCourt = (v) => numOrZero(v).toFixed(1)
+
+const bookingIntensityTip = computed(() => {
+  const v = numOrZero(dashboardStats.value.bookingPerCourt)
+  if (v === 0) return '暂无预订数据，可引导用户预约场地'
+  if (v >= 2) return '场均预订较高，建议关注场地周转与高峰时段'
+  return '场均预订一般，可适当推广预约'
+})
+
+/** 将各模块统计写入 dashboard；财务 fd 为 null 时收入相关置 0（与无财务权限一致） */
+const applyDashboardStatsFromParts = (md, bd, fd, cd) => {
+  if (md) {
+    dashboardStats.value.memberTotal = numOrZero(md.total)
+    dashboardStats.value.todayNewMembers = numOrZero(md.newToday)
+    dashboardStats.value.memberGrowth = numOrZero(md.growthRate)
+    dashboardStats.value.activeMembers = md.normal != null ? numOrZero(md.normal) : numOrZero(md.total)
+  }
+
+  if (bd) {
+    const d = bd
+    dashboardStats.value.todayBookings = d.todayBookings != null ? numOrZero(d.todayBookings) : (numOrZero(d.ongoing) + numOrZero(d.finished))
+    dashboardStats.value.bookingGrowth = numOrZero(d.bookingTrend)
+    const ph = d.peakHours
+    dashboardStats.value.peakHours =
+      ph != null && ph !== '' && ph !== '--' ? ph : '暂无'
+  }
+
+  if (fd) {
+    const revenue = fd.totalIncome != null ? fd.totalIncome : 0
+    dashboardStats.value.todayRevenue = numOrZero(revenue)
+    dashboardStats.value.revenueGrowth = fd.incomeChange != null ? numOrZero(fd.incomeChange) : 0
+  } else {
+    dashboardStats.value.todayRevenue = 0
+    dashboardStats.value.revenueGrowth = 0
+  }
+
+  if (cd) {
+    const cdv = cd
+    dashboardStats.value.courtTotal = numOrZero(cdv.total)
+    dashboardStats.value.courtGrowth = numOrZero(cdv.newToday)
+    const totalCourts = dashboardStats.value.courtTotal
+    const reserved = numOrZero(cdv.reserved)
+    const inUse = numOrZero(cdv.inUse)
+    dashboardStats.value.courtsInUse = reserved + inUse
+    dashboardStats.value.courtUsageRate =
+      totalCourts > 0 ? Math.min(100, Math.round(((reserved + inUse) / totalCourts) * 100)) : 0
+    const tb = numOrZero(dashboardStats.value.todayBookings)
+    dashboardStats.value.bookingPerCourt =
+      totalCourts > 0 ? Math.round((tb / totalCourts) * 100) / 100 : 0
+  }
+}
+
+const fetchDashboardStatsLegacy = async () => {
+  const today = formatLocalDate()
+  const [memberRes, bookingRes, financeRes, courtRes] = await Promise.all([
+    getMemberStatistics(),
+    getBookingStatistics(),
+    getFinanceStatistics({ startDate: today, endDate: today }).catch(() => ({ code: 0, data: null })),
+    getCourtStatistics()
+  ])
+  applyDashboardStatsFromParts(
+    memberRes.code === 200 && memberRes.data ? memberRes.data : null,
+    bookingRes.code === 200 && bookingRes.data ? bookingRes.data : null,
+    financeRes.code === 200 && financeRes.data ? financeRes.data : null,
+    courtRes.code === 200 && courtRes.data ? courtRes.data : null
+  )
+}
+
 const fetchDashboardStats = async () => {
   try {
     statsLoading.value = true
-    const today = new Date().toISOString().split('T')[0]
-
-    // 并行请求所有统计接口
-    const [memberStats, bookingStats, financeStats, courtStats] = await Promise.all([
-      getMemberStatistics(),
-      getBookingStatistics(),
-      getFinanceStatistics({ startDate: today, endDate: today }),
-      getCourtStatistics()
-    ])
-
-    // 处理会员数据
-    if (memberStats.code === 200 && memberStats.data) {
-      dashboardStats.value.memberTotal = numOrZero(memberStats.data.total)
-      dashboardStats.value.todayNewMembers = numOrZero(memberStats.data.newToday)
-      dashboardStats.value.memberGrowth = numOrZero(memberStats.data.growthRate)
+    const today = formatLocalDate()
+    const summaryRes = await getDashboardSummary({ startDate: today, endDate: today })
+    if (summaryRes.code === 200 && summaryRes.data) {
+      const d = summaryRes.data
+      applyDashboardStatsFromParts(d.member, d.booking, d.finance, d.court)
+      return
     }
-
-    // 处理预订数据
-    if (bookingStats.code === 200 && bookingStats.data) {
-      const d = bookingStats.data
-      dashboardStats.value.todayBookings = d.todayBookings != null ? numOrZero(d.todayBookings) : (numOrZero(d.ongoing) + numOrZero(d.finished))
-      dashboardStats.value.bookingGrowth = numOrZero(d.bookingTrend)
-      dashboardStats.value.peakHours = (d.peakHours != null && d.peakHours !== '') ? d.peakHours : '暂无'
-    }
-
-    // 处理财务数据
-    if (financeStats.code === 200 && financeStats.data) {
-      const revenue = financeStats.data.totalIncome != null ? financeStats.data.totalIncome : 0
-      dashboardStats.value.todayRevenue = numOrZero(revenue)
-      dashboardStats.value.revenueGrowth = financeStats.data.incomeChange != null ? numOrZero(financeStats.data.incomeChange) : 0
-    }
-
-    // 处理场地数据
-    if (courtStats.code === 200 && courtStats.data) {
-      dashboardStats.value.courtTotal = numOrZero(courtStats.data.total)
-      dashboardStats.value.courtGrowth = numOrZero(courtStats.data.newToday)
-      const total = dashboardStats.value.courtTotal
-      dashboardStats.value.bookingRate = total > 0 ? Math.round((numOrZero(dashboardStats.value.todayBookings) / total) * 100) : 0
-    }
+    await fetchDashboardStatsLegacy()
   } catch (error) {
     console.error('获取Dashboard统计数据失败:', error)
+    try {
+      await fetchDashboardStatsLegacy()
+    } catch (e2) {
+      console.error('Dashboard 聚合回退请求失败:', e2)
+    }
   } finally {
     statsLoading.value = false
   }
@@ -1094,11 +1049,17 @@ const fetchCourtStatus = async () => {
         courtList = res.data.list
       }
       
-      // 转换场地数据格式
-      const today = new Date()
-      dashboardStats.value.courts = courtList.slice(0, 6).map(court => {
-        // 根据状态判断是否使用中
-        const isOccupied = court.status === 2 || court.status === 3
+      dashboardStats.value.courts = courtList.slice(0, 6).map((court) => {
+        const st = court.status
+        if (st === 0) {
+          return {
+            id: court.id,
+            name: court.courtName || court.courtCode || `场地 ${court.id}`,
+            time: '维护中',
+            status: 'maintenance'
+          }
+        }
+        const isOccupied = st === 2 || st === 3
         return {
           id: court.id,
           name: court.courtName || court.courtCode || `场地 ${court.id}`,
@@ -1113,19 +1074,6 @@ const fetchCourtStatus = async () => {
   }
 }
 
-// 统一：无数据时显示为 0，避免页面出现空白或 undefined
-const numOrZero = (v) => {
-  if (v === null || v === undefined) return 0
-  const n = Number(v)
-  return Number.isFinite(n) ? n : 0
-}
-
-// 格式化金额（不带¥符号，因为模板中已有）
-const formatCurrency = (amount) => {
-  const n = numOrZero(amount)
-  return n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
-
 const initAnimations = () => {
   shuttlecocks.value = Array.from({ length: 5 }, () => ({
     x: Math.random() * 80 + 10,
@@ -1138,8 +1086,26 @@ const initAnimations = () => {
 // 时间更新定时器
 let timeInterval = null
 
+const dispatchChartsRefresh = () => {
+  window.dispatchEvent(new CustomEvent(DASHBOARD_CHARTS_REFRESH))
+}
+
+const DASHBOARD_REFRESH_COOLDOWN_MS = 2500
+let lastDashboardRefreshAt = 0
+
 const onDashboardRefresh = () => {
-  fetchDashboardStats()
+  const now = Date.now()
+  if (now - lastDashboardRefreshAt < DASHBOARD_REFRESH_COOLDOWN_MS) {
+    ElMessage.warning(`请稍后再试（${DASHBOARD_REFRESH_COOLDOWN_MS / 1000} 秒内仅可刷新一次）`)
+    return
+  }
+  lastDashboardRefreshAt = now
+  fetchVenueList()
+  fetchDashboardStats().then(() => fetchCourtStatus())
+  fetchRecentActivities()
+  fetchVenueRevenueTrend()
+  fetchVenueBookingTrend()
+  dispatchChartsRefresh()
 }
 
 onMounted(() => {
@@ -1171,9 +1137,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap');
-
 .dashboard {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   padding: 24px;
   background: linear-gradient(135deg, var(--color-background) 0%, var(--color-card-bg-hover) 50%, var(--color-background) 100%);
   min-height: calc(100vh - 84px);
@@ -1296,7 +1261,7 @@ onUnmounted(() => {
 }
 
 .section-empty-text {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 14px;
   color: #94A3B8;
 }
@@ -1311,504 +1276,6 @@ onUnmounted(() => {
 
 .operation-tip.tip-low span {
   color: #64748B;
-}
-
-/* ========== 欢迎语区域样式 ========== */
-.welcome-section {
-  position: relative;
-  border-radius: 24px;
-  overflow: hidden;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary, #8B5CF6) 50%, var(--color-accent, #EC4899) 100%);
-  box-shadow:
-    0 20px 60px rgba(var(--color-primary-rgb, 37, 99, 235), 0.3),
-    0 8px 24px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  animation: welcomeFadeIn 0.8s ease-out;
-}
-
-@keyframes welcomeFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.welcome-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.welcome-gradient {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-}
-
-.welcome-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.08) 2px, transparent 2px),
-    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.06) 2px, transparent 2px);
-  background-size: 60px 60px;
-  animation: patternMove 20s linear infinite;
-}
-
-@keyframes patternMove {
-  0% { background-position: 0 0, 30px 30px; }
-  100% { background-position: 60px 60px, 90px 90px; }
-}
-
-.floating-elements {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-
-.float-circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
-  animation: floatCircle 8s ease-in-out infinite;
-}
-
-.circle-1 {
-  width: 120px;
-  height: 120px;
-  top: -30px;
-  right: 10%;
-  animation-delay: 0s;
-}
-
-.circle-2 {
-  width: 80px;
-  height: 80px;
-  bottom: -20px;
-  left: 15%;
-  animation-delay: 2s;
-}
-
-.circle-3 {
-  width: 60px;
-  height: 60px;
-  top: 50%;
-  right: 25%;
-  animation-delay: 4s;
-}
-
-@keyframes floatCircle {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translateY(-20px) scale(1.1);
-    opacity: 0.8;
-  }
-}
-
-.welcome-main {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 32px 40px;
-  gap: 24px;
-}
-
-.welcome-left {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex: 1;
-}
-
-.welcome-icon-wrapper {
-  flex-shrink: 0;
-}
-
-.welcome-icon {
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border-radius: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: iconPulse 3s ease-in-out infinite;
-}
-
-.welcome-icon:hover {
-  transform: scale(1.1) rotate(5deg);
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-@keyframes iconPulse {
-  0%, 100% {
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-  50% {
-    box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.2),
-      0 0 30px rgba(255, 255, 255, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  }
-}
-
-.welcome-icon svg {
-  width: 40px;
-  height: 40px;
-  color: #ffffff;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.welcome-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.welcome-greeting {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.greeting-emoji {
-  font-size: 32px;
-  animation: emojiWave 2s ease-in-out infinite;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-@keyframes emojiWave {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-10deg); }
-  75% { transform: rotate(10deg); }
-}
-
-.welcome-title {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin: 0;
-  font-family: 'Poppins', sans-serif;
-}
-
-.greeting-text {
-  font-size: 28px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.user-name {
-  font-size: 32px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  position: relative;
-}
-
-.user-name::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
-  border-radius: 2px;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.4s ease;
-}
-
-.welcome-greeting:hover .user-name::after {
-  transform: scaleX(1);
-}
-
-.welcome-subtitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-family: 'Open Sans', sans-serif;
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.85);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-}
-
-.subtitle-icon {
-  font-size: 16px;
-  animation: sparkle 2s ease-in-out infinite;
-}
-
-@keyframes sparkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.2); }
-}
-
-.welcome-tags {
-  display: flex;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.welcome-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-family: 'Open Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-  cursor: default;
-}
-
-.welcome-tag:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.tag-primary {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
-
-.tag-success {
-  background: rgba(16, 185, 129, 0.3);
-  color: #ffffff;
-  border-color: rgba(16, 185, 129, 0.4);
-}
-
-.welcome-right {
-  flex-shrink: 0;
-}
-
-.date-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 28px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(16px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: all 0.4s ease;
-  min-width: 180px;
-}
-
-.date-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow:
-    0 16px 48px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.date-icon {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 14px;
-  color: #ffffff;
-  transition: all 0.3s ease;
-}
-
-.date-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.date-card:hover .date-icon {
-  transform: scale(1.1) rotate(5deg);
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.date-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.date-text {
-  font-family: 'Poppins', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: #ffffff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-}
-
-.weekday-text {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 500;
-}
-
-.time-display {
-  font-family: 'Poppins', monospace;
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.7));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .welcome-main {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-    padding: 28px 32px;
-  }
-
-  .welcome-right {
-    width: 100%;
-  }
-
-  .date-card {
-    flex-direction: row;
-    justify-content: center;
-    width: 100%;
-  }
-
-  .date-info {
-    align-items: flex-start;
-  }
-}
-
-@media (max-width: 768px) {
-  .welcome-section {
-    border-radius: 18px;
-  }
-
-  .welcome-main {
-    padding: 24px;
-  }
-
-  .welcome-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .welcome-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-  }
-
-  .welcome-icon svg {
-    width: 32px;
-    height: 32px;
-  }
-
-  .greeting-emoji {
-    font-size: 24px;
-  }
-
-  .greeting-text {
-    font-size: 22px;
-  }
-
-  .user-name {
-    font-size: 26px;
-  }
-
-  .welcome-subtitle {
-    font-size: 14px;
-  }
-
-  .welcome-tags {
-    flex-wrap: wrap;
-  }
-
-  .welcome-tag {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  .time-display {
-    font-size: 22px;
-  }
-
-  .circle-1 {
-    width: 80px;
-    height: 80px;
-  }
-
-  .circle-2, .circle-3 {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .welcome-title {
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .greeting-text, .user-name {
-    font-size: 20px;
-  }
-
-  .date-card {
-    padding: 16px 20px;
-    flex-direction: column;
-  }
-
-  .time-display {
-    font-size: 20px;
-  }
 }
 
 /* ========== 统一列内组件的间距 ========== */
@@ -1834,143 +1301,6 @@ onUnmounted(() => {
 /* 增加图表组件之间的间距 */
 .chart-full-height {
   margin-bottom: 0;
-}
-
-/* 统计卡片样式 */
-.stat-card {
-  display: flex;
-  align-items: center;
-  padding: 24px;
-  background: #FFFFFF;
-  border-radius: 18px;
-  border: 1px solid #E2E8F0;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  animation: cardFadeIn 0.6s ease-out both;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left 0.5s ease;
-}
-
-.stat-card:hover::before {
-  left: 100%;
-}
-
-.stat-card:nth-child(1) { animation-delay: 0s; }
-.stat-card:nth-child(2) { animation-delay: 0.1s; }
-.stat-card:nth-child(3) { animation-delay: 0.2s; }
-.stat-card:nth-child(4) { animation-delay: 0.3s; }
-
-.stat-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.stat-card.loading {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-@keyframes cardFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.stat-icon-wrapper {
-  margin-right: 18px;
-}
-
-.stat-card .stat-icon-bg {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card:hover .stat-icon-bg {
-  transform: scale(1.1) rotate(5deg);
-}
-
-.stat-card-members .stat-icon-bg {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  box-shadow: 0 4px 15px rgba(var(--color-primary-rgb, 37, 99, 235), 0.4);
-}
-
-.stat-card-venues .stat-icon-bg {
-  background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
-}
-
-.stat-card-courts .stat-icon-bg {
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-warning) 100%);
-  box-shadow: 0 4px 15px rgba(var(--color-accent-rgb, 236, 72, 153), 0.4);
-}
-
-.stat-card-bookings .stat-icon-bg {
-  background: linear-gradient(135deg, var(--color-info) 0%, var(--color-primary-light) 100%);
-  box-shadow: 0 4px 15px rgba(var(--color-info-rgb, 6, 182, 212), 0.4);
-}
-
-.stat-card-revenue .stat-icon-bg {
-  background: linear-gradient(135deg, var(--color-success) 0%, var(--color-info) 100%);
-  box-shadow: 0 4px 15px rgba(var(--color-success-rgb, 16, 185, 129), 0.4);
-}
-
-.stat-value {
-  font-family: 'Poppins', sans-serif;
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1E293B);
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 14px;
-  color: var(--color-text-secondary, #64748B);
-  margin-top: 4px;
-}
-
-.stat-trend {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 8px;
-  font-family: 'Open Sans', sans-serif;
-}
-
-.stat-trend.up {
-  color: var(--color-success, #10B981);
-}
-
-.stat-trend.down {
-  color: var(--color-danger, #EF4444);
 }
 
 /* 玻璃卡片样式 */
@@ -2015,20 +1345,20 @@ onUnmounted(() => {
 }
 
 .card-title {
-  font-family: 'Poppins', sans-serif;
+  font-family: inherit;
   font-size: 18px;
   font-weight: 600;
   color: #1E293B;
 }
 
 .card-subtitle {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 13px;
   color: #94A3B8;
 }
 
 .view-all {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
 }
@@ -2129,7 +1459,7 @@ onUnmounted(() => {
 }
 
 .shortcut-name {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   color: #1E293B;
@@ -2138,7 +1468,7 @@ onUnmounted(() => {
 }
 
 .shortcut-desc {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 12px;
   color: #94A3B8;
   text-align: center;
@@ -2168,7 +1498,7 @@ onUnmounted(() => {
 }
 
 .court-empty-text {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 13px;
   color: #94A3B8;
 }
@@ -2220,14 +1550,14 @@ onUnmounted(() => {
 }
 
 .court-name {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   color: #1E293B;
 }
 
 .court-time {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 12px;
   color: #94A3B8;
 }
@@ -2238,7 +1568,7 @@ onUnmounted(() => {
   gap: 6px;
   padding: 6px 12px;
   border-radius: 20px;
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 500;
 }
@@ -2267,6 +1597,15 @@ onUnmounted(() => {
   background: var(--color-danger);
 }
 
+.status-maintenance {
+  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  color: var(--color-warning);
+}
+
+.status-maintenance .status-dot {
+  background: var(--color-warning);
+}
+
 .court-summary {
   display: flex;
   justify-content: center;
@@ -2285,7 +1624,7 @@ onUnmounted(() => {
 }
 
 .summary-value {
-  font-family: 'Poppins', sans-serif;
+  font-family: inherit;
   font-size: 24px;
   font-weight: 700;
 }
@@ -2302,8 +1641,12 @@ onUnmounted(() => {
   color: var(--color-primary);
 }
 
+.summary-value.maintenance {
+  color: var(--color-warning);
+}
+
 .summary-label {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 12px;
   color: #64748B;
 }
@@ -2334,7 +1677,7 @@ onUnmounted(() => {
 }
 
 .activity-empty-text {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 14px;
   color: #94A3B8;
 }
@@ -2424,7 +1767,7 @@ onUnmounted(() => {
 }
 
 .activity-desc {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
   color: #1E293B;
@@ -2435,7 +1778,7 @@ onUnmounted(() => {
 }
 
 .activity-time {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 12px;
   color: #94A3B8;
 }
@@ -2443,7 +1786,7 @@ onUnmounted(() => {
 .activity-badge {
   padding: 4px 10px;
   border-radius: 6px;
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
@@ -2583,16 +1926,36 @@ onUnmounted(() => {
 }
 
 .operation-value {
-  font-family: 'Poppins', sans-serif;
+  font-family: inherit;
   font-size: 18px;
   font-weight: 600;
   color: #1E293B;
 }
 
 .operation-label {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 13px;
   color: #64748B;
+}
+
+.operation-unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+.operation-label-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: help;
+}
+
+.op-hint-icon {
+  font-size: 14px;
+  color: #94a3b8;
+  vertical-align: middle;
 }
 
 .operation-tip {
@@ -2613,7 +1976,7 @@ onUnmounted(() => {
 }
 
 .operation-tip span {
-  font-family: 'Open Sans', sans-serif;
+  font-family: inherit;
   font-size: 13px;
   color: var(--color-primary-dark);
   line-height: 1.5;
@@ -2630,34 +1993,11 @@ onUnmounted(() => {
   .shortcut-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
-  .stat-card {
-    padding: 20px;
-  }
-  
-  .stat-value {
-    font-size: 28px;
-  }
 }
 
 @media (max-width: 768px) {
   .dashboard {
     padding: 16px;
-  }
-
-  .stat-card {
-    flex-direction: column;
-    text-align: center;
-    padding: 20px;
-  }
-
-  .stat-icon-wrapper {
-    margin-right: 0;
-    margin-bottom: 14px;
-  }
-
-  .stat-value {
-    font-size: 28px;
   }
 
   .shortcut-grid {
@@ -2675,8 +2015,10 @@ onUnmounted(() => {
   }
 
   .court-summary {
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px 16px;
     padding: 14px;
+    justify-content: center;
   }
 
   .summary-value {
@@ -2702,19 +2044,6 @@ onUnmounted(() => {
     gap: 10px;
   }
 
-  .stat-card {
-    padding: 18px;
-  }
-
-  .stat-value {
-    font-size: 24px;
-  }
-  
-  .stat-icon-bg {
-    width: 56px;
-    height: 56px;
-  }
-  
   .glass-card {
     padding: 16px;
   }
@@ -2728,7 +2057,6 @@ onUnmounted(() => {
 
 /* 减少动画对性能敏感用户的影响 */
 @media (prefers-reduced-motion: reduce) {
-  .stat-card,
   .activity-item,
   .shortcut-item,
   .court-item,

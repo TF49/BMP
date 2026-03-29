@@ -52,6 +52,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { getExpiringMembers } from '@/api/member'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const expiringMembers = ref([])
 const loading = ref(false)
@@ -93,6 +94,8 @@ const within15Days = computed(() => expiringMembers.value.filter(m => m.daysLeft
 onMounted(() => {
   fetchExpiringMembers()
 })
+
+useDashboardChartRefresh(() => fetchExpiringMembers())
 </script>
 
 <style scoped>

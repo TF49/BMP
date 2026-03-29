@@ -8,18 +8,18 @@
   },
   "pages": [
     {
-      "path": "pages/login/login",
-      "style": {
-        "navigationBarTitleText": "登录",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "首页",
         "navigationStyle": "custom",
         "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -181,6 +181,13 @@
       "path": "pages/register/register",
       "style": {
         "navigationBarTitleText": "注册",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/recover/recover",
+      "style": {
+        "navigationBarTitleText": "找回密码",
         "navigationStyle": "custom"
       }
     },
@@ -398,51 +405,14 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "羽毛球管理系统",
+    "navigationBarTitleText": "羽擎",
     "navigationBarBackgroundColor": "#F8FAFC",
     "backgroundColor": "#F8FAFC",
     "app-plus": {
       "titleNView": false
     }
   },
-  "tabBar": {
-    "color": "#475569",
-    "selectedColor": "#3cc51f",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "首页",
-        "iconPath": "static/tabbar/tab-home.png",
-        "selectedIconPath": "static/tabbar/tab-home-active.png"
-      },
-      {
-        "pagePath": "pages/venue/list",
-        "text": "场馆",
-        "iconPath": "static/tabbar/tab-venue.png",
-        "selectedIconPath": "static/tabbar/tab-venue-active.png"
-      },
-      {
-        "pagePath": "pages/course/list",
-        "text": "课程",
-        "iconPath": "static/tabbar/tab-course.png",
-        "selectedIconPath": "static/tabbar/tab-course-active.png"
-      },
-      {
-        "pagePath": "pages/tournament/list",
-        "text": "赛事",
-        "iconPath": "static/tabbar/tab-tournament.png",
-        "selectedIconPath": "static/tabbar/tab-tournament-active.png"
-      },
-      {
-        "pagePath": "pages/profile/index",
-        "text": "我的",
-        "iconPath": "static/tabbar/tab-profile.png",
-        "selectedIconPath": "static/tabbar/tab-profile-active.png"
-      }
-    ]
-  },
+
   "condition": {
     "current": 0,
     "list": [

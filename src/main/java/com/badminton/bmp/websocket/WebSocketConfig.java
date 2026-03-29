@@ -42,7 +42,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(allowedOriginPatterns)
                 .withSockJS()
-                // 让 SockJS 的 /ws/iframe.html 正常可用（部分环境会请求该资源作为 fallback）
+                // 注意：Spring 在配置了 setAllowedOriginPatterns 时会故意对 /ws/iframe.html 返回 404，
+                // 禁用 iframe 传输（见 AbstractSockJsService）。前端 SockJS 应限制 transports，勿依赖 iframe。
                 .setClientLibraryUrl("https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js");
     }
 

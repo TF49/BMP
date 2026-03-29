@@ -28,8 +28,8 @@ public class NotificationController extends BaseController {
     @Operation(summary = "通知列表", description = "分页查询")
     @GetMapping
     public Result<Object> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
         try {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 20;
@@ -70,7 +70,7 @@ public class NotificationController extends BaseController {
 
     @Operation(summary = "通知详情")
     @GetMapping("/{id}")
-    public Result<Object> getById(@PathVariable Long id) {
+    public Result<Object> getById(@PathVariable("id") Long id) {
         try {
             Notification notification = notificationService.findById(id);
             if (notification == null) {
@@ -85,7 +85,7 @@ public class NotificationController extends BaseController {
     @Operation(summary = "删除通知")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> delete(@PathVariable Long id) {
+    public Result<Object> delete(@PathVariable("id") Long id) {
         try {
             Notification notification = notificationService.findById(id);
             if (notification == null) {
@@ -107,7 +107,7 @@ public class NotificationController extends BaseController {
     @Operation(summary = "编辑通知")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> update(@PathVariable Long id, @Valid @RequestBody Notification notification) {
+    public Result<Object> update(@PathVariable("id") Long id, @Valid @RequestBody Notification notification) {
         try {
             notification.setId(id);
             int rows = notificationService.update(notification);

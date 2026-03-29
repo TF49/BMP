@@ -41,14 +41,14 @@ public class TournamentController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllTournaments(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String startTime,
-            @RequestParam(required = false) String endTime,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "type", required = false) String type,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "startTime", required = false) String startTime,
+            @RequestParam(value = "endTime", required = false) String endTime,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;
@@ -86,7 +86,7 @@ public class TournamentController extends BaseController {
     @Operation(summary = "赛事详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Tournament> getTournamentInfo(@PathVariable Long id) {
+    public Result<Tournament> getTournamentInfo(@PathVariable("id") Long id) {
         try {
             Tournament tournament = tournamentService.findById(id);
             return tournament != null ? success(tournament) : error("赛事不存在");
@@ -171,7 +171,7 @@ public class TournamentController extends BaseController {
     @Operation(summary = "删除赛事")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteTournament(@PathVariable Long id) {
+    public Result<Object> deleteTournament(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除赛事
             if (!isAdmin()) {
@@ -202,7 +202,7 @@ public class TournamentController extends BaseController {
     @Operation(summary = "更新赛事状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateTournamentStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateTournamentStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
             // 权限验证：仅管理员可更新状态
             if (!isAdmin()) {

@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 // 教练列表
 export function getCoachList(params) {
@@ -54,10 +55,12 @@ export function updateCoachStatus(id, status) {
 
 // 统计信息
 export function getCoachStatistics() {
-  return request({
-    url: '/api/coach/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/coach/statistics', () =>
+    request({
+      url: '/api/coach/statistics',
+      method: 'get'
+    })
+  )
 }
 
 // 场馆下拉（新增教练时会长需选择所属场馆）

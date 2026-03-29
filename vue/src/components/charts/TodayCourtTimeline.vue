@@ -44,6 +44,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getCourtSchedule } from '@/api/court'
+import { formatLocalDate } from '@/utils/localDate'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const courts = ref([])
 const loading = ref(false)
@@ -51,7 +53,7 @@ const loading = ref(false)
 const fetchTodaySchedule = async () => {
   loading.value = true
   try {
-    const res = await getCourtSchedule({ date: new Date().toISOString().split('T')[0] })
+    const res = await getCourtSchedule({ date: formatLocalDate() })
     if (res.code === 200 && Array.isArray(res.data)) {
       courts.value = res.data.map(court => ({
         id: court.courtId || court.id,
@@ -72,6 +74,8 @@ const fetchTodaySchedule = async () => {
 onMounted(() => {
   fetchTodaySchedule()
 })
+
+useDashboardChartRefresh(() => fetchTodaySchedule())
 </script>
 
 <style scoped>

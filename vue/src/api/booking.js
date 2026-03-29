@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 // 场地预约列表
 export function getBookingList(params) {
@@ -52,47 +53,59 @@ export function updateBookingStatus(id, status) {
   })
 }
 
-// 预约统计
+// 预约统计（Dashboard 与多图并发去重）
 export function getBookingStatistics() {
-  return request({
-    url: '/api/booking/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/booking/statistics', () =>
+    request({
+      url: '/api/booking/statistics',
+      method: 'get'
+    })
+  )
 }
 
-// 预订趋势（week/month）
+// 预订趋势（week/month）（多图同 period 并发去重）
 export function getBookingTrend(params) {
-  return request({
-    url: '/api/booking/trend',
-    method: 'get',
-    params
-  })
+  const p = params || {}
+  return withDedupe(`GET:/api/booking/trend:${p.period ?? ''}`, () =>
+    request({
+      url: '/api/booking/trend',
+      method: 'get',
+      params
+    })
+  )
 }
 
 // 预订热力图（period=week|month）
 export function getBookingHeatmap(params) {
-  return request({
-    url: '/api/booking/heatmap',
-    method: 'get',
-    params
-  })
+  const p = params || {}
+  return withDedupe(`GET:/api/booking/heatmap:${p.period ?? ''}`, () =>
+    request({
+      url: '/api/booking/heatmap',
+      method: 'get',
+      params
+    })
+  )
 }
 
 // 各场馆预订趋势（Dashboard）
 export function getBookingVenueTrend(params) {
-  return request({
-    url: '/api/booking/venue-trend',
-    method: 'get',
-    params
-  })
+  return withDedupe('GET:/api/booking/venue-trend', () =>
+    request({
+      url: '/api/booking/venue-trend',
+      method: 'get',
+      params
+    })
+  )
 }
 
-// 运营待办统计
+// 运营待办统计（多卡片并发去重）
 export function getOperationTodoStatistics() {
-  return request({
-    url: '/api/booking/operation-todo',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/booking/operation-todo', () =>
+    request({
+      url: '/api/booking/operation-todo',
+      method: 'get'
+    })
+  )
 }
 
 // 按时间段统计当前场地预约人数

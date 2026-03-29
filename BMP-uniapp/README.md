@@ -1,8 +1,8 @@
-# 羽毛球管理系统（BMP）微信小程序
+# 羽擎（BMP）微信小程序
 
 ## 项目简介
 
-基于 UniApp + Vue 3 + TypeScript 开发的羽毛球管理系统微信小程序，与 Web 端共享同一套后端 API。
+基于 UniApp + Vue 3 + TypeScript 开发的羽擎微信小程序，与 Web 端共享同一套后端 API。
 
 ## 技术栈
 

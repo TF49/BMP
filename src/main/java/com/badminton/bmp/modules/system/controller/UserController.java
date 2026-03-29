@@ -29,12 +29,12 @@ public class UserController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("hasRole('PRESIDENT')")
     public Result<Object> getAllUsers(
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String idCard,
-            @RequestParam(required = false) String role,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "idCard", required = false) String idCard,
+            @RequestParam(value = "role", required = false) String role,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // 验证分页参数
             if (page < 1) {
@@ -82,7 +82,7 @@ public class UserController extends BaseController {
     @Operation(summary = "用户详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("hasRole('PRESIDENT')")
-    public Result<User> getUserInfo(@PathVariable Long id) {
+    public Result<User> getUserInfo(@PathVariable("id") Long id) {
         try {
             User user = userService.findById(id);
             if (user != null) {
@@ -101,7 +101,7 @@ public class UserController extends BaseController {
     @Operation(summary = "按角色查询用户", description = "用于前端检查 PRESIDENT 唯一性")
     @GetMapping("/findByRole")
     @PreAuthorize("hasRole('PRESIDENT')")
-    public Result<User> findByRole(@RequestParam String role) {
+    public Result<User> findByRole(@RequestParam("role") String role) {
         try {
             User user = userService.findByRole(role);
             if (user != null) {
@@ -190,7 +190,7 @@ public class UserController extends BaseController {
     @Operation(summary = "删除用户")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('PRESIDENT')")
-    public Result<Object> deleteUser(@PathVariable Long id) {
+    public Result<Object> deleteUser(@PathVariable("id") Long id) {
         try {
             // 检查用户是否存在
             User existingUser = userService.findById(id);

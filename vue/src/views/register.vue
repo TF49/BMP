@@ -82,7 +82,7 @@
               </svg>
             </div>
             <h2>创建账号</h2>
-            <p>注册成为羽毛球管理系统新用户</p>
+            <p>注册成为羽擎新用户</p>
           </div>
 
           <el-form ref="registerForm" :model="registerForm" :rules="registerRules" class="register-form" size="medium">

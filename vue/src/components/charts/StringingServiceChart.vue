@@ -30,6 +30,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { getStringingStatistics } from '@/api/stringing'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const router = useRouter()
 const chartRef = ref(null)
@@ -201,6 +202,8 @@ const initChart = async () => {
 onMounted(() => {
   initChart()
 })
+
+useDashboardChartRefresh(() => fetchChartData())
 
 onUnmounted(() => {
   if (chartInstance) {

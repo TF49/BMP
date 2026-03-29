@@ -42,7 +42,7 @@ public class ActivityController extends BaseController {
     @Operation(summary = "近期动态", description = "limit 默认 10")
     @GetMapping("/recent")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> recent(@RequestParam(required = false, defaultValue = "10") int limit) {
+    public Result<Object> recent(@RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
         try {
             int safeLimit = Math.max(1, Math.min(limit, 50));
 

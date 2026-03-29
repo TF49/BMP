@@ -32,6 +32,8 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getFinanceTrend } from '@/api/finance'
 import { getBookingTrend } from '@/api/booking'
+import { formatLocalDate } from '@/utils/localDate'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
 let chartInstance = null
@@ -43,7 +45,7 @@ const timeOptions = [
   { label: '最近30天', value: 'month' }
 ]
 
-const toDateStr = (d) => d.toISOString().slice(0, 10)
+const toDateStr = (d) => formatLocalDate(d)
 const weekdayLabel = (dateStr) => {
   const labels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   const d = new Date(dateStr + 'T00:00:00')
@@ -339,6 +341,8 @@ const initChart = async () => {
 onMounted(() => {
   initChart()
 })
+
+useDashboardChartRefresh(() => fetchChartData())
 
 onUnmounted(() => {
   if (chartInstance) {

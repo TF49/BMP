@@ -75,11 +75,15 @@
         </button>
       </view>
     </view>
+    
+    <!-- Custom BottomNavBar Shell -->
+    <CustomTabBar :current="4" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { useUserStore } from '@/store/modules/user'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { getCurrentUser } from '@/api/auth'

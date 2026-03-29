@@ -42,13 +42,13 @@ public class CourseController extends BaseController {
     @GetMapping("/my")
     @PreAuthorize("hasRole('COACH')")
     public Result<Object> getMyCourses(
-            @RequestParam(required = false) Long courtId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String startTime,
-            @RequestParam(required = false) String endTime,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "courtId", required = false) Long courtId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "startTime", required = false) String startTime,
+            @RequestParam(value = "endTime", required = false) String endTime,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             Long coachId = coachService.getCurrentCoachIdOrNull();
             if (coachId == null) {
@@ -83,14 +83,14 @@ public class CourseController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllCourses(
-            @RequestParam(required = false) Long coachId,
-            @RequestParam(required = false) Long courtId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String startTime,
-            @RequestParam(required = false) String endTime,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "coachId", required = false) Long coachId,
+            @RequestParam(value = "courtId", required = false) Long courtId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "startTime", required = false) String startTime,
+            @RequestParam(value = "endTime", required = false) String endTime,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;
@@ -116,7 +116,7 @@ public class CourseController extends BaseController {
     @Operation(summary = "课程详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Course> getCourseInfo(@PathVariable Long id) {
+    public Result<Course> getCourseInfo(@PathVariable("id") Long id) {
         try {
             Course course = courseService.findById(id);
             return course != null ? success(course) : error("课程不存在");
@@ -205,7 +205,7 @@ public class CourseController extends BaseController {
     @Operation(summary = "删除课程")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteCourse(@PathVariable Long id) {
+    public Result<Object> deleteCourse(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除课程
             if (!isAdmin()) {
@@ -238,7 +238,7 @@ public class CourseController extends BaseController {
     @Operation(summary = "更新课程状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateCourseStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateCourseStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
             // 权限验证：仅管理员可更新状态
             if (!isAdmin()) {

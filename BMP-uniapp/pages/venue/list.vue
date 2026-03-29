@@ -92,6 +92,8 @@
         </view>
       </view>
     </view>
+    <!-- Custom BottomNavBar Shell -->
+    <CustomTabBar :current="1" />
   </MobileLayout>
 </template>
 
@@ -100,6 +102,7 @@ import { ref, onMounted } from 'vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
+import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getVenueList } from '@/api/venue'
 import { safeNavigateBack } from '@/utils/navigation'
 

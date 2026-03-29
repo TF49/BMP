@@ -826,7 +826,7 @@ export default {
                 // 保存登录信息（包含AccessToken、RefreshToken、用户信息）
                 saveLoginData(response.data)
                 // 显示成功消息
-                this.$message.success('登录成功，欢迎使用羽毛球管理系统！')
+                this.$message.success('登录成功，欢迎使用羽擎！')
                 // 按角色跳转：USER/MEMBER 去用户端，COACH 去教练端，PRESIDENT/ADMIN/VENUE_MANAGER 去管理端
                 const role = (response.data.user && response.data.user.role) || (response.data.role)
                 const isUserSide = role === 'USER' || role === 'MEMBER'

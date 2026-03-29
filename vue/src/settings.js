@@ -1,6 +1,6 @@
 const baseSettings = {
-  title: '羽毛球管理系统',
-  footerContent: '© 2026 羽毛球管理系统 - 让运动更智能',
+  title: '羽擎',
+  footerContent: '© 2026 羽擎 - 让运动更智能',
   showSettings: true,
   tagsView: true,
   fixedHeader: false,

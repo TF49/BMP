@@ -34,13 +34,13 @@ public class MemberController extends BaseController {
     @Operation(summary = "会员列表", description = "支持姓名/手机/类型/状态筛选与分页")
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> list(@RequestParam(required = false) String memberName,
-                               @RequestParam(required = false) String phone,
-                               @RequestParam(required = false) Long memberId,
-                               @RequestParam(required = false) String memberType,
-                               @RequestParam(required = false) Integer status,
-                               @RequestParam(defaultValue = "1") int page,
-                               @RequestParam(defaultValue = "10") int size) {
+    public Result<Object> list(@RequestParam(value = "memberName", required = false) String memberName,
+                               @RequestParam(value = "phone", required = false) String phone,
+                               @RequestParam(value = "memberId", required = false) Long memberId,
+                               @RequestParam(value = "memberType", required = false) String memberType,
+                               @RequestParam(value = "status", required = false) Integer status,
+                               @RequestParam(value = "page", defaultValue = "1") int page,
+                               @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             List<Member> data = memberService.findByConditions(memberName, phone, memberId, memberType, status, page, size);
             int total = memberService.countByConditions(memberName, phone, memberId, memberType, status);
@@ -59,7 +59,7 @@ public class MemberController extends BaseController {
     @Operation(summary = "会员详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> info(@PathVariable Long id) {
+    public Result<Object> info(@PathVariable("id") Long id) {
         Member member = memberService.findById(id);
         if (member == null || (member.getDelFlag() != null && member.getDelFlag() == 1)) {
             return error("会员不存在");
@@ -117,7 +117,7 @@ public class MemberController extends BaseController {
     @Operation(summary = "删除会员", description = "逻辑删除")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> delete(@PathVariable Long id) {
+    public Result<Object> delete(@PathVariable("id") Long id) {
         try {
             memberService.deleteById(id);
             return success(null);
@@ -129,7 +129,7 @@ public class MemberController extends BaseController {
     @Operation(summary = "会员统计")
     @GetMapping("/statistics")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> statistics(@RequestParam(required = false) String period) {
+    public Result<Object> statistics(@RequestParam(value = "period", required = false) String period) {
         try {
             Map<String, Object> stats = memberService.getStatistics();
 
@@ -271,7 +271,7 @@ public class MemberController extends BaseController {
     @Operation(summary = "即将到期会员", description = "Dashboard 预警，days 默认 30")
     @GetMapping("/expiring")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> expiring(@RequestParam(defaultValue = "30") int days) {
+    public Result<Object> expiring(@RequestParam(value = "days", defaultValue = "30") int days) {
         try {
             List<Map<String, Object>> list = memberService.getExpiringMembers(days);
             return success(list);
@@ -294,9 +294,9 @@ public class MemberController extends BaseController {
     @Operation(summary = "会员消费记录", description = "分页查询")
     @GetMapping("/{id}/consume-records")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> consumeRecords(@PathVariable Long id,
-                                         @RequestParam(defaultValue = "1") int page,
-                                         @RequestParam(defaultValue = "10") int size) {
+    public Result<Object> consumeRecords(@PathVariable("id") Long id,
+                                         @RequestParam(value = "page", defaultValue = "1") int page,
+                                         @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             Map<String, Object> data = memberService.getConsumeRecords(id, page, size);
             Map<String, Object> result = new HashMap<>();

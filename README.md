@@ -1,4 +1,4 @@
-# 羽毛球管理系统（Badminton Management Platform，BMP）
+# 羽擎（Badminton Management Platform，BMP）
 
 > **项目状态**：Web 端 ✅ 主要功能完成；移动端 UniApp（`BMP-uniapp/`）🚧 持续迭代中；移动端 Android（`BMPandroid/`）🚧 开发中。  
 > **后端端口**：`9090`（默认）｜**Web 前端端口**：`8080`（默认）

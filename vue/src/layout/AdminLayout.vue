@@ -123,7 +123,7 @@
                 <component :is="isCollapse ? 'Expand' : 'Fold'" />
               </el-icon>
             </button>
-            <h2 class="header-title">羽毛球管理系统</h2>
+            <h2 class="header-title">羽擎</h2>
           </div>
           
           <div class="header-right">
@@ -185,7 +185,7 @@
         </el-main>
         
         <el-footer class="footer-container">
-          <p>© 2026 羽毛球管理系统 · 用心管理每一份数据</p>
+          <p>© 2026 羽擎 · 用心管理每一份数据</p>
         </el-footer>
       </el-container>
     </el-container>

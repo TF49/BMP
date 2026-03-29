@@ -68,6 +68,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getTournamentList } from '@/api/tournament'
+import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const tournaments = ref([])
 const loading = ref(false)
@@ -147,6 +148,8 @@ const fetchTournaments = async () => {
 onMounted(() => {
   fetchTournaments()
 })
+
+useDashboardChartRefresh(() => fetchTournaments())
 </script>
 
 <style scoped>

@@ -182,11 +182,11 @@ public class RechargeController extends BaseController {
     @GetMapping("/records")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getRechargeRecords(HttpServletRequest request,
-                                             @RequestParam(defaultValue = "1") int page,
-                                             @RequestParam(defaultValue = "10") int size,
-                                             @RequestParam(required = false) String memberKeyword,
-                                             @RequestParam(required = false) String startTime,
-                                             @RequestParam(required = false) String endTime) {
+                                             @RequestParam(value = "page", defaultValue = "1") int page,
+                                             @RequestParam(value = "size", defaultValue = "10") int size,
+                                             @RequestParam(value = "memberKeyword", required = false) String memberKeyword,
+                                             @RequestParam(value = "startTime", required = false) String startTime,
+                                             @RequestParam(value = "endTime", required = false) String endTime) {
         try {
             // 1. 获取当前用户ID
             Long userId = getCurrentUserId(request);
@@ -235,9 +235,9 @@ public class RechargeController extends BaseController {
     @Operation(summary = "按会员ID查充值记录", description = "管理员使用")
     @GetMapping("/records/{memberId}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> getRechargeRecordsByMemberId(@PathVariable Long memberId,
-                                                       @RequestParam(defaultValue = "1") int page,
-                                                       @RequestParam(defaultValue = "10") int size) {
+    public Result<Object> getRechargeRecordsByMemberId(@PathVariable("memberId") Long memberId,
+                                                       @RequestParam(value = "page", defaultValue = "1") int page,
+                                                       @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // 1. 检查管理员权限
             if (!isAdmin()) {

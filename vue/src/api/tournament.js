@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withDedupe } from '@/utils/requestDedupe'
 
 // 赛事列表
 export function getTournamentList(params) {
@@ -54,10 +55,12 @@ export function updateTournamentStatus(id, status) {
 
 // 统计信息
 export function getTournamentStatistics() {
-  return request({
-    url: '/api/tournament/statistics',
-    method: 'get'
-  })
+  return withDedupe('GET:/api/tournament/statistics', () =>
+    request({
+      url: '/api/tournament/statistics',
+      method: 'get'
+    })
+  )
 }
 
 // 场馆下拉

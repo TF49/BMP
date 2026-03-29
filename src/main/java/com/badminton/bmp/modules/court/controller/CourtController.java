@@ -47,11 +47,11 @@ public class CourtController extends BaseController {
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getAllCourts(
-            @RequestParam(required = false) Long venueId,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             // 验证分页参数
             if (page < 1) {
@@ -90,7 +90,7 @@ public class CourtController extends BaseController {
     @Operation(summary = "场地详情")
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Result<Court> getCourtInfo(@PathVariable Long id) {
+    public Result<Court> getCourtInfo(@PathVariable("id") Long id) {
         try {
             Court court = courtService.findById(id);
             if (court != null) {
@@ -164,7 +164,7 @@ public class CourtController extends BaseController {
     @Operation(summary = "删除场地")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> deleteCourt(@PathVariable Long id) {
+    public Result<Object> deleteCourt(@PathVariable("id") Long id) {
         try {
             // 权限验证：仅管理员可删除场地
             if (!isAdmin()) {
@@ -189,7 +189,7 @@ public class CourtController extends BaseController {
     @Operation(summary = "更新场地状态")
     @PutMapping("/status")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> updateCourtStatus(@RequestParam Long id, @RequestParam Integer status) {
+    public Result<Object> updateCourtStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
             // 权限验证：仅管理员可更新状态
             if (!isAdmin()) {
@@ -252,8 +252,8 @@ public class CourtController extends BaseController {
     @Operation(summary = "指定场地当天预约用户", description = "仅管理员，返回脱敏信息")
     @GetMapping("/{id}/bookings/today")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> getTodayBookingUsers(@PathVariable Long id,
-                                              @RequestParam(required = false) String date) {
+    public Result<Object> getTodayBookingUsers(@PathVariable("id") Long id,
+                                              @RequestParam(value = "date", required = false) String date) {
         try {
             List<CourtBookingUserDTO> bookingUsers = courtService.getTodayBookingUsers(id, date);
             return success(bookingUsers);
@@ -267,8 +267,8 @@ public class CourtController extends BaseController {
     @Operation(summary = "批量获取场地当天预约数量", description = "ids 逗号分隔，返回场地ID与数量映射")
     @GetMapping("/bookings/today/counts")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getTodayBookingCounts(@RequestParam String ids,
-                                               @RequestParam(required = false) String date) {
+    public Result<Object> getTodayBookingCounts(@RequestParam("ids") String ids,
+                                               @RequestParam(value = "date", required = false) String date) {
         try {
             if (ids == null || ids.trim().isEmpty()) {
                 return success(new HashMap<>());
@@ -299,7 +299,7 @@ public class CourtController extends BaseController {
     @Operation(summary = "今日场地时间轴", description = "指定日期各场地占用时间轴，date 格式 yyyy-MM-dd")
     @GetMapping("/timeline/today")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> getTimelineToday(@RequestParam(required = false) String date) {
+    public Result<Object> getTimelineToday(@RequestParam(value = "date", required = false) String date) {
         try {
             java.util.List<java.util.Map<String, Object>> list = courtService.getTimelineToday(date);
             return success(list);

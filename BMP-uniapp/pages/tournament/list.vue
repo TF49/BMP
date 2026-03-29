@@ -96,6 +96,8 @@
         </view>
       </view>
     </scroll-view>
+    <!-- Custom BottomNavBar Shell -->
+    <CustomTabBar :current="3" />
   </MobileLayout>
 </template>
 
@@ -104,6 +106,7 @@ import { ref, onMounted } from 'vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
+import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getTournamentList } from '@/api/tournament'
 import { safeNavigateBack } from '@/utils/navigation'
 
