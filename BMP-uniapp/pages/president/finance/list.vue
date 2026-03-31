@@ -1,5 +1,5 @@
 <template>
-  <PresidentLayout :showTabBar="true">
+  <PresidentLayout :showTabBar="false">
     <view class="finance-list-page">
       <PresidentNavBar title="财务管理" />
       <view class="list-content">

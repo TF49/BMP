@@ -9,7 +9,11 @@ export interface VenueItem {
   contactPerson: string
   businessHours: string
   description: string
+  // 后端 venue 主图（会以相对路径形式返回，如 /api/uploads/venues/xxx.png）
+  // 小程序端需要拼接 IMAGE_BASE_URL 后才能展示。
+  venueImage?: string
   status: number
+  hourlyPrice?: number
   createTime: string
   updateTime: string
 }
@@ -39,6 +43,13 @@ export function getVenueList(params?: {
   page?: number
   size?: number
 }) {
+  // 过滤掉 undefined / null 的参数，避免后端收到 "undefined" 字符串
+  const cleanParams = params
+    ? Object.fromEntries(
+        Object.entries(params).filter(([, value]) => value !== undefined && value !== null)
+      )
+    : undefined
+
   return request<{
     data: VenueItem[]
     total: number
@@ -48,7 +59,7 @@ export function getVenueList(params?: {
   }>({
     url: API_PATHS.VENUE.LIST,
     method: 'GET',
-    data: params
+    data: cleanParams
   })
 }
 

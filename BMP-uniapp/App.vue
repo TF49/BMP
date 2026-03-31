@@ -15,6 +15,9 @@ const themeStore = useThemeStore()
 onLaunch(async () => {
   console.log('App Launch')
 
+  // 加载全局字体 - 解决小程序渲染层网络错误
+  loadGlobalFonts()
+
   // 初始化主题
   themeStore.initTheme()
 
@@ -24,6 +27,36 @@ onLaunch(async () => {
   // 可以在这里初始化WebSocket连接（如果需要）
   // initWebSocket()
 })
+
+/**
+ * 加载系统所需字体
+ */
+function loadGlobalFonts() {
+  const fonts = [
+    {
+      family: 'Lexend',
+      source: 'https://fonts.gstatic.com/s/lexend/v26/wlptgwvFAVdoq2_F94zlCfv0bz1WCzsW_LA.ttf'
+    },
+    {
+      family: 'Material Symbols Outlined',
+      source: 'https://fonts.gstatic.com/s/materialsymbolsoutlined/v322/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oDMzByHX9rA6RzaxHMPdY43zj-jCxv3fzvRNU22ZXGJpEpjC_1v-p_4MrImHCIJIZrDCvHOem.ttf'
+    }
+  ]
+
+  fonts.forEach(font => {
+    uni.loadFontFace({
+      family: font.family,
+      source: `url("${font.source}")`,
+      global: true,
+      success: () => {
+        console.log(`Font ${font.family} loaded successfully`)
+      },
+      fail: (err) => {
+        console.error(`Failed to load font ${font.family}:`, err)
+      }
+    })
+  })
+}
 
 // 过滤微信小程序开发环境的非关键错误
 // #ifdef MP-WEIXIN
@@ -140,7 +173,7 @@ onHide(() => {
 
 page {
   background-color: var(--color-background, #F8FAFC);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color: var(--color-text, #1E293B);
   transition: background-color 0.2s ease, color 0.2s ease;
 }

@@ -14,7 +14,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useUserStore } from '@/store/modules/user'
+import { isPresidentRole } from '@/utils/roleCheck'
 
 const props = defineProps({
   current: {
@@ -23,16 +25,30 @@ const props = defineProps({
   }
 })
 
-const list = ref([
-  { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
-  { pagePath: '/pages/venue/list', text: '场馆', icon: '🏢' },
-  { pagePath: '/pages/course/list', text: '课程', icon: '👨‍🏫' },
-  { pagePath: '/pages/tournament/list', text: '赛事', icon: '🏆' },
-  { pagePath: '/pages/profile/index', text: '我的', icon: '👤' }
-])
+const userStore = useUserStore()
+const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
+
+const list = computed(() => {
+  if (isPresident.value) {
+    return [
+      { pagePath: '/pages/index/index', text: '工作台', icon: '⊞' },
+      { pagePath: '/pages/president/venue/list', text: '场馆', icon: '🏋️' },
+      { pagePath: '/pages/president/user/list', text: '成员', icon: '👥' },
+      { pagePath: '/pages/president/profile/index', text: '个人中心', icon: '👤' }
+    ]
+  }
+  return [
+    { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
+    { pagePath: '/pages/venue/list', text: '场馆', icon: '🏢' },
+    { pagePath: '/pages/course/list', text: '课程', icon: '👨‍🏫' },
+    { pagePath: '/pages/tournament/list', text: '赛事', icon: '🏆' },
+    { pagePath: '/pages/profile/index', text: '我的', icon: '👤' }
+  ]
+})
 
 const switchTab = (url: string, index: number) => {
   if (props.current !== index) {
+    if (url === '#' || !url) return
     uni.reLaunch({
       url: url
     })

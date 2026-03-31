@@ -45,7 +45,13 @@
           @click="goToVenueDetail(venue)"
         >
           <view class="result-image">
-            <text class="image-placeholder">Venue Image</text>
+            <image
+              v-if="venue.image"
+              class="result-img"
+              :src="resolveImageUrl(venue.image)"
+              mode="aspectFill"
+            />
+            <text v-else class="image-placeholder">Venue Image</text>
           </view>
           <view class="result-info">
             <view class="result-header">
@@ -170,6 +176,7 @@ import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { searchVenues, searchCourses, searchTournaments } from '@/api/search'
 import { safeNavigateBack } from '@/utils/navigation'
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
 
 // 响应式数据
 const searchKeyword = ref('')
@@ -267,6 +274,8 @@ const performSearch = async () => {
         name: v.venueName,
         location: v.address,
         price: v.hourlyPrice || 50,
+        // 统一与 web 使用的主图字段：sys_venue.venue_image
+        image: v.venueImage,
         rating: v.rating || 4.5,
         tags: [
           { text: '空调', class: 'tag-green' },
@@ -493,6 +502,12 @@ onMounted(async () => {
   justify-content: center;
   color: rgba(153, 153, 153, 0.3);
   font-size: 20rpx;
+  overflow: hidden;
+}
+
+.result-img {
+  width: 100%;
+  height: 100%;
 }
 
 .result-info {

@@ -16,6 +16,13 @@
       }
     },
     {
+      "path": "pages/notice/index",
+      "style": {
+        "navigationBarTitleText": "通知中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/login/login",
       "style": {
         "navigationBarTitleText": "登录",
