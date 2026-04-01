@@ -96,6 +96,11 @@ export const API_PATHS = {
     TOURNAMENTS: '/search/tournaments',
     EQUIPMENT: '/search/equipment'
   },
+  // 通知相关
+  NOTIFICATION: {
+    LIST: '/api/notifications',
+    DETAIL: '/api/notifications'
+  },
   // 穿线服务相关
   STRINGING: {
     LIST: '/api/stringing/list',

@@ -7,12 +7,12 @@
       <view class="nav-header">
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
-            <text class="material-icons">sports_tennis</text>
+            <uni-icons type="flag" size="28" color="#ff6600" class="nav-left-icon"></uni-icons>
             <text class="nav-title">Kinetic Venues</text>
           </view>
           <view class="nav-right">
             <view class="avatar-box">
-              <image class="avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5OKakZBRZbTR44wV6Znu2DbOoE1XHmVGlmSnwEyuafmdLqajaPmASRvUitcbq_4NQvbYo34bk3I_BuTOKKkrzCk2oXR3Ha4ZYkOe1yOasMaeyHOIlM8C7KmaydeZLKk2CisPDKpQClh056IEurB2899kM6zVZFnDVjosC-f1uhoRbx5QLiTG5Hc5F_oU7qVroZJmFsgvqrDg2S14UX53VSvLyAj4ChZbfIE6S91YFMbmZ0ocGoQeUTLadnWDext5FnDQ60PnWWo3_" mode="aspectFill"></image>
+              <image class="avatar" src="/static/placeholders/avatar.svg" mode="aspectFill"></image>
             </view>
           </view>
         </view>
@@ -32,7 +32,7 @@
               v-model="queryParams.venueName"
               @confirm="handleSearch"
             />
-            <text class="material-icons search-icon">search</text>
+            <uni-icons type="search" size="18" color="#5f5e5e" class="search-icon"></uni-icons>
           </view>
         </view>
 
@@ -74,10 +74,10 @@
 
               <view class="card-actions" @click.stop>
                 <view class="action-btn" @click="handleEdit(item)">
-                  <text class="material-icons">edit</text>
+                  <uni-icons type="compose" size="18" color="#1a1c1c" class="action-icon"></uni-icons>
                 </view>
                 <view class="action-btn btn-delete" @click="handleDelete(item)">
-                  <text class="material-icons">delete</text>
+                  <uni-icons type="trash" size="18" color="#ba1a1a" class="action-icon"></uni-icons>
                 </view>
               </view>
             </view>
@@ -87,22 +87,22 @@
               
               <view class="info-list">
                 <view class="info-item">
-                  <text class="material-icons info-icon">location_on</text>
+                  <uni-icons type="location" size="16" color="#a33e00" class="info-icon"></uni-icons>
                   <text class="info-text">{{ item.address || '未设置地址' }}</text>
                 </view>
                 <view class="info-item">
-                  <text class="material-icons info-icon">schedule</text>
+                  <uni-icons type="calendar" size="16" color="#a33e00" class="info-icon"></uni-icons>
                   <text class="info-text">{{ item.businessHours || '09:00 - 22:00' }}</text>
                 </view>
                 <view class="info-item">
-                  <text class="material-icons info-icon">person</text>
+                  <uni-icons type="person" size="16" color="#a33e00" class="info-icon"></uni-icons>
                   <text class="info-text">{{ item.contactPerson || '管理员' }} ({{ item.contactPhone || '—' }})</text>
                 </view>
               </view>
 
               <view class="detail-btn">
                 <text>查看详情</text>
-                <text class="material-icons">arrow_forward</text>
+                <uni-icons type="right" size="14" color="#5a4136" class="detail-icon"></uni-icons>
               </view>
             </view>
           </view>
@@ -116,7 +116,7 @@
 
       <!-- Floating Action Button -->
       <view class="fab-btn" @click="goAdd">
-        <text class="material-icons">add</text>
+        <uni-icons type="plusempty" size="26" color="#ffffff" class="fab-icon"></uni-icons>
       </view>
     </view>
   </PresidentLayout>
@@ -129,6 +129,7 @@ import { getVenueList, deleteVenue, type VenueItem } from '@/api/president/venue
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { parsePagedList } from '@/utils/parsePagedList'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
+import { safeNavigateBack } from '@/utils/navigation'
 
 const loading = ref(false)
 const list = ref<VenueItem[]>([])
@@ -178,9 +179,7 @@ function loadMore() {
 }
 
 function goBack() {
-  uni.navigateBack({
-    fail: () => uni.reLaunch({ url: PRESIDENT_PAGES.DASHBOARD })
-  })
+  safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
 }
 
 function goDetail(id: number) {
@@ -218,21 +217,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.material-icons {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
-}
-
 .venue-list-page {
   min-height: 100vh;
   background-color: #f9f9f9;
@@ -262,12 +246,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  
-  .material-icons {
-    color: #ff6600;
-    font-size: 56rpx;
-  }
-  
+
   .nav-title {
     font-size: 40rpx;
     font-weight: 900;
@@ -439,12 +418,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  
-  .material-icons {
-    font-size: 32rpx;
-    color: #1a1c1c;
-  }
-  
+
   &:active {
     background-color: #eee;
   }
@@ -453,9 +427,6 @@ onMounted(() => {
 .btn-delete {
   &:active {
     background-color: #fee2e2;
-  }
-  .material-icons {
-    color: #ba1a1a;
   }
 }
 
@@ -484,8 +455,7 @@ onMounted(() => {
 }
 
 .info-icon {
-  font-size: 32rpx !important;
-  color: #a33e00;
+  flex: 0 0 auto;
 }
 
 .info-text {
@@ -508,14 +478,9 @@ onMounted(() => {
     color: #5a4136;
   }
   
-  .material-icons {
-    font-size: 24rpx;
-  }
-  
   &:active {
     background-color: #ff6600;
     text { color: #fff; }
-    .material-icons { color: #fff; }
   }
 }
 
@@ -566,12 +531,7 @@ onMounted(() => {
   box-shadow: 0 12rpx 32rpx rgba(163, 62, 0, 0.3);
   /* PresidentTabBar z-index = 999，FAB 需要在其上层 */
   z-index: 1001;
-  
-  .material-icons {
-    color: #fff;
-    font-size: 60rpx;
-  }
-  
+
   &:active {
     transform: scale(0.9);
   }

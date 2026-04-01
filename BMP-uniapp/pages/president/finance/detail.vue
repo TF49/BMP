@@ -26,6 +26,7 @@ import { ref, computed, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import PresidentNavBar from '@/components/president/PresidentNavBar.vue'
 import { getFinanceInfo, deleteFinance, type FinanceItem } from '@/api/president/finance'
+import { safeNavigateBack } from '@/utils/navigation'
 
 const id = computed(() => {
   const pages = getCurrentPages()
@@ -58,7 +59,7 @@ function onDelete() {
       try {
         await deleteFinance(id.value)
         uni.showToast({ title: '删除成功', icon: 'success' })
-        setTimeout(() => uni.navigateBack(), 800)
+        setTimeout(() => safeNavigateBack('/pages/president/finance/list'), 800)
       } catch (e: any) {
         uni.showToast({ title: e?.message || '删除失败', icon: 'none' })
       }

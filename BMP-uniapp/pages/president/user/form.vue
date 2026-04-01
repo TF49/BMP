@@ -89,6 +89,7 @@ import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import PresidentNavBar from '@/components/president/PresidentNavBar.vue'
 import { getUserInfo, addUser, updateUser, checkPresidentExists } from '@/api/president/user'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { safeNavigateBack } from '@/utils/navigation'
 
 const roleOptions = [
   { label: '协会会长', value: 'PRESIDENT' },
@@ -187,7 +188,7 @@ async function onSubmit() {
     }
     uni.showToast({ title: '保存成功', icon: 'success' })
     setTimeout(() => {
-      uni.navigateBack()
+      safeNavigateBack(PRESIDENT_PAGES.USER_LIST)
     }, 800)
   } catch (e: any) {
     uni.showToast({ title: e?.message || '保存失败', icon: 'none' })

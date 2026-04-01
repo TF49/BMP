@@ -5,12 +5,12 @@
       <view class="w-full bg-[#f3f3f3] flex justify-between items-center px-6 py-4 pb-6" :style="{ paddingTop: (statusBarHeight || 44) + 'px' }">
         <view class="flex items-center gap-3">
           <view class="w-10 h-10 rounded-full overflow-hidden transition-all duration-300 ease-in-out hover-scale-102">
-            <image class="w-full h-full object-cover" mode="aspectFill" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAPf38tJVZ02tFSpdu7B629aKFYfJiWrwxoi8WW0y2CIOatF5ce27Vzk5_SBLkyvBtR4BNcWtsZFconz9IvLVyr8ERdvAgxHTfuR5hjvVYLjqQ7S5eG-nDSw3Oe-hU_RQEIU-u75lfVqqSIpu1SgvRXDlF-8kg0n040vJjZDOzk5N2VVuO67duO-QPuwEPShD44Dm4MB0fUU8ORqfTccDpaumazfQDNVHhVO5GtB5m5dD6Ag3uFSPHoqSKJDELBeqKJD837ECLeIC4" />
+            <image class="w-full h-full object-cover" mode="aspectFill" src="/static/placeholders/avatar.svg" />
           </view>
           <text class="font-lexend text-xl font-bold tracking-tight text-[#1a1a1a]">Kinetic Logic</text>
         </view>
         <view class="text-[#5f5e5e] transition-transform duration-200" :style="{ marginRight: navBarMarginRight + 'px' }" hover-class="scale-105" @tap="navigateTo('/pages/notice/index')">
-          <text class="material-symbols-outlined">notifications</text>
+          <uni-icons type="chatbubble" size="20" color="#5f5e5e"></uni-icons>
         </view>
       </view>
 
@@ -27,11 +27,11 @@
               </view>
             </view>
             <view class="absolute-bottom-right opacity-5 transition-transform duration-500">
-              <text class="material-symbols-outlined icon-9xl">account_balance_wallet</text>
+              <uni-icons type="wallet" size="52" color="rgba(0,0,0,0.12)"></uni-icons>
             </view>
             <view class="z-10 self-end">
               <view class="text-primary text-sm font-bold flex items-center gap-1">
-                立即充值 <text class="material-symbols-outlined text-sm">arrow_forward</text>
+                立即充值 <uni-icons type="right" size="14" color="#a33e00"></uni-icons>
               </view>
             </view>
           </view>
@@ -43,7 +43,7 @@
               <text class="text-2xl font-black block mt-1">14:00</text>
             </view>
             <view class="mt-4 flex flex-row gap-2 items-center">
-              <text class="material-symbols-outlined text-sm">location_on</text>
+              <uni-icons type="location" size="14" color="#ffffff"></uni-icons>
               <text class="text-xs-10 font-medium">中心体育馆 · 3号场地</text>
             </view>
           </view>
@@ -60,7 +60,7 @@
             <!-- Court Booking -->
             <view class="bg-surface-container-lowest aspect-square p-5 rounded-xl flex flex-col items-center justify-center gap-2 text-center hover-scale shadow-sm" @tap="navigateTo('/pages/venue/list')">
               <view class="w-12 h-12 rounded-lg bg-primary-alpha flex items-center justify-center text-primary">
-                <text class="material-symbols-outlined text-3xl">sports_tennis</text>
+                <uni-icons type="flag" size="24" color="#a33e00"></uni-icons>
               </view>
               <view>
                 <text class="font-bold text-on-surface block">场地预订</text>
@@ -70,7 +70,7 @@
             <!-- Coach Courses -->
             <view class="bg-surface-container-lowest aspect-square p-5 rounded-xl flex flex-col items-center justify-center gap-2 text-center hover-scale shadow-sm" @tap="navigateTo('/pages/course/list')">
               <view class="w-12 h-12 rounded-lg bg-tertiary-fixed flex items-center justify-center text-tertiary">
-                <text class="material-symbols-outlined text-3xl">school</text>
+                <uni-icons type="compose" size="24" color="#0062a1"></uni-icons>
               </view>
               <view>
                 <text class="font-bold text-on-surface block">教练课程</text>
@@ -80,7 +80,7 @@
             <!-- Tournament Registration -->
             <view class="bg-surface-container-lowest aspect-square p-5 rounded-xl flex flex-col items-center justify-center gap-2 text-center hover-scale shadow-sm" @tap="navigateTo('/pages/tournament/list')">
               <view class="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">
-                <text class="material-symbols-outlined text-3xl">emoji_events</text>
+                <uni-icons type="medal" size="24" color="#ea580c"></uni-icons>
               </view>
               <view>
                 <text class="font-bold text-on-surface block">赛事报名</text>
@@ -90,7 +90,7 @@
             <!-- Equipment Rental -->
             <view class="bg-surface-container-lowest aspect-square p-5 rounded-xl flex flex-col items-center justify-center gap-2 text-center hover-scale shadow-sm" @tap="navigateTo('/pages/equipment/list')">
               <view class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
-                <text class="material-symbols-outlined text-3xl">shopping_bag</text>
+                <uni-icons type="cart" size="24" color="#475569"></uni-icons>
               </view>
               <view>
                 <text class="font-bold text-on-surface block">器材租赁</text>
@@ -100,7 +100,7 @@
             <!-- Member Center -->
             <view class="bg-surface-container-lowest aspect-square p-5 rounded-xl flex flex-col items-center justify-center gap-2 text-center hover-scale shadow-sm" @tap="navigateTo('/pages/profile/index')">
               <view class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">
-                <text class="material-symbols-outlined text-3xl">card_membership</text>
+                <uni-icons type="vip" size="24" color="#9333ea"></uni-icons>
               </view>
               <view>
                 <text class="font-bold text-on-surface block">会员中心</text>
@@ -110,7 +110,7 @@
             <!-- Stringing Services -->
             <view class="bg-surface-container-lowest aspect-square p-5 rounded-xl flex flex-col items-center justify-center gap-2 text-center hover-scale shadow-sm" @tap="navigateTo('/pages/stringing/list')">
               <view class="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
-                <text class="material-symbols-outlined text-3xl">architecture</text>
+                <uni-icons type="compose" size="24" color="#059669"></uni-icons>
               </view>
               <view>
                 <text class="font-bold text-on-surface block">穿线服务</text>
@@ -129,7 +129,7 @@
           <view class="flex flex-col gap-4">
             <!-- Large Feature Card -->
             <view class="relative h-64 rounded-xl overflow-hidden group shadow-md bg-gray-900 group-hover-scale" @tap="navigateTo('/pages/insights/detail')">
-              <image class="absolute inset-0 w-full h-full object-cover transition-transform duration-700" mode="aspectFill" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkAxZJbojbJ5QylYUJkd53Yj-Gg9rU3HilMHa8oZdS06gDYT7-TYL5sfZoFtoEhGwMWOTmnSgnk3qEvQfFF4LMc7-Bwi-X2v1ZOyhfpfkem5WUojQfoMPYXRftYByJNwdmTWZip7fRUo8punXCngunXZ5FRl5tTg5IUry9KVLYoyfPqL7OP7_OEkSfb3eLmhVaijcPktFLszC144wJhW3B9yXiwc41ORUFwMDoRmsA9VSNHceTCw5A57AUAt8LzHum00VGlovW_fH3" />
+              <image class="absolute inset-0 w-full h-full object-cover transition-transform duration-700" mode="aspectFill" src="/static/placeholders/hero.svg" />
               <view class="absolute inset-0 bg-gradient-to-t flex flex-col justify-end p-6">
                 <text class="bg-primary px-2 py-1 text-xs-8 font-bold text-white rounded w-fit mb-2">热门话题</text>
                 <text class="text-white text-xl font-bold block">夏季羽毛球公开赛现已开启报名</text>
@@ -141,7 +141,7 @@
               <!-- Small Insight 1 -->
               <view class="bg-surface-container-low p-4 rounded-xl flex flex-row items-center gap-4 shadow-sm" @tap="navigateTo('/pages/insights/detail')">
                 <view class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200">
-                  <image class="w-full h-full object-cover" mode="aspectFill" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtHLxnOTnutOyas1JZMyVOBgBRW76nAR1mdtsWdR4BWHb5pFGuKJ4sdf-gtBrS_HxZQT4WFkI5mB2cuX41c8Qo-Q5ZQGCbiEkJq8A7tLxGTECi-BhNYzegqnfI932b9PZYFGG9KBd9ca8NkIIzTZYMORkJ7G1ZSotFvL6RDdX-plQoGHPYHJc_6bVQkDEloC8KN5eHPl4OkuEO_exz3c3pu8RuhAJmJGUvEiFxyPyAc_KeqTVafIZdFjrN13qU-cxC3vtcBuKmoRME" />
+                  <image class="w-full h-full object-cover" mode="aspectFill" src="/static/placeholders/avatar.svg" />
                 </view>
                 <view class="flex flex-col flex-1">
                   <text class="font-bold text-sm text-on-surface block">新手如何提升反手球？</text>
@@ -151,7 +151,7 @@
               <!-- Small Insight 2 -->
               <view class="bg-surface-container-low p-4 rounded-xl flex flex-row items-center gap-4 shadow-sm" @tap="navigateTo('/pages/insights/detail')">
                 <view class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200">
-                  <image class="w-full h-full object-cover" mode="aspectFill" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAANTkY-21ljc0xjADkXtsJkjnYjlq55klvLcFeRsHl9UBX1Lcsi1JsAVirSTll8NqeKxOJpVbg2sBhWNJUNCBVJZLwdQG4rtepLjCA1PVg-Oqf1hFtATOWFH9cRIWHAoeLRzm8LssTFnQB8nz2HCpB0aHPh2fv0EkrY_-NFODQVzerif0se_Uxuqs17s-BZImrLNNZLKpU9ZTziG9MAFP8EnqDwGx11hI5W98H4zoOW_eybsud0rxsJrNnucubW4jLFyFq4oGngDsF" />
+                  <image class="w-full h-full object-cover" mode="aspectFill" src="/static/placeholders/avatar.svg" />
                 </view>
                 <view class="flex flex-col flex-1">
                   <text class="font-bold text-sm text-on-surface block">新一代穿线科技揭秘</text>
@@ -165,8 +165,8 @@
     </scroll-view>
 
     <!-- Floating Action Button -->
-    <view class="fixed right-6 bottom-24 w-14 h-14 gradient-cta text-white rounded-full flex items-center justify-center shadow-2xl transition-transform z-60" hover-class="scale-95" @tap="navigateTo('/pages/booking/create')">
-      <text class="material-symbols-outlined text-3xl">add</text>
+    <view class="fixed right-6 bottom-24 w-14 h-14 gradient-cta text-white rounded-full flex items-center justify-center shadow-2xl transition-transform z-60" hover-class="scale-95" @tap="navigateTo('/pages/venue/list')">
+      <uni-icons type="plusempty" size="24" color="#ffffff"></uni-icons>
     </view>
 
   </view>

@@ -4,7 +4,7 @@
     <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="header-content">
         <view class="back-btn" @click="handleBack">
-          <text class="material-symbols-outlined">arrow_back</text>
+          <uni-icons type="left" size="20" color="#a33e00"></uni-icons>
         </view>
         <text class="header-title">场馆详情</text>
         <view class="spacer"></view>
@@ -21,7 +21,7 @@
           v-if="venue.venueImage"
         ></image>
         <view v-else class="hero-image-placeholder">
-          <text class="material-symbols-outlined">image</text>
+          <uni-icons type="image" size="28" color="#999999"></uni-icons>
         </view>
         <view class="hero-gradient"></view>
         <!-- Floating Status Chip -->
@@ -46,7 +46,7 @@
           </view>
           <view class="rating-row">
             <view class="rating-box">
-              <text class="material-symbols-outlined fill-icon">star</text>
+              <uni-icons type="star-filled" size="16" color="#a33e00"></uni-icons>
               <text class="rating-text">4.9</text>
               <text class="reviews-text">(120+ Reviews)</text>
             </view>
@@ -60,7 +60,7 @@
           <!-- Address -->
           <view class="info-card">
             <view class="card-icon-box">
-              <text class="material-symbols-outlined">location_on</text>
+              <uni-icons type="location" size="18" color="#a33e00"></uni-icons>
             </view>
             <view class="card-content">
               <text class="card-label">地址</text>
@@ -71,7 +71,7 @@
           <!-- Contact -->
           <view class="info-card">
             <view class="card-icon-box">
-              <text class="material-symbols-outlined">person</text>
+              <uni-icons type="person" size="18" color="#a33e00"></uni-icons>
             </view>
             <view class="card-content">
               <text class="card-label">联系人 / 电话</text>
@@ -81,7 +81,7 @@
                   <text class="contact-phone">{{ venue.contactPhone || '暂无联系电话' }}</text>
                 </view>
                 <view v-if="venue.contactPhone" class="call-btn" @click="handleCall(venue.contactPhone)">
-                  <text class="material-symbols-outlined">call</text>
+                  <uni-icons type="phone" size="16" color="#ffffff"></uni-icons>
                 </view>
               </view>
             </view>
@@ -90,7 +90,7 @@
           <!-- Hours -->
           <view class="info-card">
             <view class="card-icon-box">
-              <text class="material-symbols-outlined">schedule</text>
+              <uni-icons type="calendar" size="18" color="#a33e00"></uni-icons>
             </view>
             <view class="card-content">
               <text class="card-label">营业时间</text>
@@ -102,7 +102,7 @@
           <!-- Specs -->
           <view class="info-card">
             <view class="card-icon-box">
-              <text class="material-symbols-outlined">sports_tennis</text>
+              <uni-icons type="flag" size="18" color="#a33e00"></uni-icons>
             </view>
             <view class="card-content">
               <text class="card-label">场地规格</text>
@@ -125,19 +125,19 @@
         <!-- Amenities Chips -->
         <view class="amenities-chips">
           <view class="amenity-chip">
-            <text class="material-symbols-outlined">wifi</text>
+            <uni-icons type="info" size="16" color="#1a1c1c"></uni-icons>
             <text class="amenity-text">FREE WIFI</text>
           </view>
           <view class="amenity-chip">
-            <text class="material-symbols-outlined">local_parking</text>
+            <uni-icons type="info" size="16" color="#1a1c1c"></uni-icons>
             <text class="amenity-text">PARKING</text>
           </view>
           <view class="amenity-chip">
-            <text class="material-symbols-outlined">shower</text>
+            <uni-icons type="info" size="16" color="#1a1c1c"></uni-icons>
             <text class="amenity-text">SHOWERS</text>
           </view>
           <view class="amenity-chip">
-            <text class="material-symbols-outlined">ac_unit</text>
+            <uni-icons type="info" size="16" color="#1a1c1c"></uni-icons>
             <text class="amenity-text">A/C</text>
           </view>
         </view>
@@ -153,17 +153,17 @@
       <view class="bottom-nav-content">
         <view class="secondary-actions">
           <view class="action-item" @click="handleShare">
-            <text class="material-symbols-outlined">share</text>
+            <uni-icons type="paperplane" size="18" color="#94a3b8"></uni-icons>
             <text class="action-label">SHARE</text>
           </view>
           <view class="action-item" @click="handleHistory">
-            <text class="material-symbols-outlined">calendar_today</text>
+            <uni-icons type="calendar" size="18" color="#94a3b8"></uni-icons>
             <text class="action-label">HISTORY</text>
           </view>
         </view>
         <view class="primary-cta" @click="handleBook">
           <text class="cta-text">立即预约</text>
-          <text class="material-symbols-outlined cta-icon">arrow_forward_ios</text>
+          <uni-icons type="right" size="16" color="#ffffff"></uni-icons>
         </view>
       </view>
     </view>
@@ -238,7 +238,7 @@ const handleCall = (phone: string) => {
 
 const handleBook = () => {
   uni.navigateTo({
-    url: `/pages/booking/create?venueId=${venue.value.id}`
+    url: `/pages/venue/booking?venueId=${venue.value.id}`
   })
 }
 
@@ -262,25 +262,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
-}
-
-.fill-icon {
-  font-variation-settings: 'FILL' 1;
-}
-
 .venue-detail-page {
   min-height: 100vh;
   background-color: #f9f9f9;
@@ -483,7 +464,6 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  .material-symbols-outlined { font-size: 20px; }
 }
 
 .card-content {
@@ -544,7 +524,6 @@ onMounted(async () => {
   justify-content: center;
   color: #fff;
   &:active { transform: scale(1.1); }
-  .material-symbols-outlined { font-size: 16px; }
 }
 
 /* Description */
@@ -594,7 +573,6 @@ onMounted(async () => {
   gap: 8px;
   transition: transform 0.2s;
   &:active { transform: scale(1.05); }
-  .material-symbols-outlined { font-size: 18px; color: #1a1c1c; }
 }
 
 .amenity-text {
@@ -648,7 +626,6 @@ onMounted(async () => {
   padding: 12px;
   transition: all 0.2s;
   &:active { background-color: #f1f5f9; border-radius: 12px; }
-  .material-symbols-outlined { font-size: 24px; }
 }
 
 .action-label {
@@ -675,11 +652,6 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 2px;
-}
-
-.cta-icon {
-  color: #ffffff;
-  font-size: 16px;
 }
 
 /* Animations */

@@ -5,19 +5,29 @@
       <view class="w-full bg-[#f3f3f3] flex justify-between items-center px-6 py-4 pb-6" :style="{ paddingTop: (statusBarHeight || 44) + 'px' }">
         <view class="flex items-center gap-3">
           <view class="w-10 h-10 rounded-full overflow-hidden transition-all duration-300 ease-in-out hover-scale-102">
-            <image class="w-full h-full object-cover" mode="aspectFill" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAPf38tJVZ02tFSpdu7B629aKFYfJiWrwxoi8WW0y2CIOatF5ce27Vzk5_SBLkyvBtR4BNcWtsZFconz9IvLVyr8ERdvAgxHTfuR5hjvVYLjqQ7S5eG-nDSw3Oe-hU_RQEIU-u75lfVqqSIpu1SgvRXDlF-8kg0n040vJjZDOzk5N2VVuO67duO-QPuwEPShD44Dm4MB0fUU8ORqfTccDpaumazfQDNVHhVO5GtB5m5dD6Ag3uFSPHoqSKJDELBeqKJD837ECLeIC4" />
+            <image
+              class="w-full h-full object-cover"
+              mode="aspectFill"
+              src="/static/placeholders/avatar.svg"
+              @error="onImgError('avatar_googleusercontent', $event)"
+            />
           </view>
           <text class="font-lexend text-xl font-bold tracking-tight text-[#1a1a1a]">Kinetic Logic</text>
         </view>
         <view class="text-[#5f5e5e] transition-transform duration-200" :style="{ marginRight: navBarMarginRight + 'px' }" hover-class="scale-105" @tap="navigateTo('/pages/notice/index')">
-          <text class="material-symbols-outlined">notifications</text>
+          <uni-icons type="chatbubble" size="20" color="#5f5e5e"></uni-icons>
         </view>
       </view>
 
       <view class="px-6 space-y-8 pb-32 pt-2">
         <!-- Hero Section -->
         <view class="relative h-48 rounded-2xl overflow-hidden shadow-lg group">
-          <image class="absolute inset-0 w-full h-full object-cover" mode="aspectFill" src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" />
+          <image
+            class="absolute inset-0 w-full h-full object-cover"
+            mode="aspectFill"
+            src="/static/placeholders/hero.svg"
+            @error="onImgError('hero_unsplash', $event)"
+          />
           <view class="absolute inset-0 bg-gradient-to-t flex flex-col justify-center p-6 bg-black-alpha-40">
             <text class="text-primary font-bold text-sm tracking-widest mb-2">会长管理面板</text>
             <text class="text-white text-3xl font-bold tracking-tight">BMP 经营概览</text>
@@ -42,14 +52,14 @@
           <view class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
             <view class="flex flex-col gap-2">
               <view class="text-primary flex items-center gap-1">
-                <text class="material-symbols-outlined">bar_chart</text>
+                <uni-icons type="wallet" size="18" color="#a33e00"></uni-icons>
               </view>
               <text class="text-2xl font-bold text-on-surface">82%</text>
               <text class="text-secondary text-xs-12">场地利用率</text>
             </view>
             <view class="flex flex-col gap-2 border-l border-gray-100 pl-4">
               <view class="text-primary flex items-center gap-1">
-                <text class="material-symbols-outlined">group_add</text>
+                <uni-icons type="person" size="18" color="#a33e00"></uni-icons>
               </view>
               <text class="text-2xl font-bold text-on-surface">1,402</text>
               <text class="text-secondary text-xs-12">新增会员</text>
@@ -61,31 +71,31 @@
         <view class="mt-8">
           <view class="flex flex-row justify-between items-end mb-6">
             <text class="font-headline text-xl font-bold tracking-tight text-on-surface">管理中心</text>
-            <text class="text-primary text-xs-12 font-bold hover-scale" @tap="navigateTo(PRESIDENT_PAGES.DASHBOARD)">查看全部</text>
+            <text class="text-primary text-xs-12 font-bold hover-scale" @tap="navigateTo(PRESIDENT_PAGES.VENUE_LIST)">查看全部</text>
           </view>
           <view class="grid-card-3 gap-4">
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.VENUE_LIST)">
-              <text class="material-symbols-outlined text-3xl text-primary">domain</text>
+              <uni-icons type="location" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">场馆管理</text>
             </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.MEMBER_LIST)">
-              <text class="material-symbols-outlined text-3xl text-primary">badge</text>
+              <uni-icons type="person" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">会员中心</text>
             </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.FINANCE_LIST)">
-              <text class="material-symbols-outlined text-3xl text-primary">account_balance_wallet</text>
+              <uni-icons type="wallet" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">财务审计</text>
             </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.USER_LIST)">
-              <text class="material-symbols-outlined text-3xl text-primary">manage_accounts</text>
+              <uni-icons type="person" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">员工管理</text>
             </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.EQUIPMENT_LIST)">
-              <text class="material-symbols-outlined text-3xl text-primary">inventory_2</text>
+              <uni-icons type="cart" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">器材库存</text>
             </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.TOURNAMENT_LIST)">
-              <text class="material-symbols-outlined text-3xl text-primary">emoji_events</text>
+              <uni-icons type="medal" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">赛事中心</text>
             </view>
           </view>
@@ -100,38 +110,38 @@
             <view class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex items-center justify-between" hover-class="scale-98 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.USER_LIST)">
               <view class="flex items-center gap-4">
                 <view class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <text class="material-symbols-outlined text-orange-600">how_to_reg</text>
+                  <uni-icons type="person" size="20" color="#ea580c"></uni-icons>
                 </view>
                 <view>
                   <text class="text-sm font-bold text-on-surface block">待审核会员</text>
                   <text class="text-xs-12 text-secondary mt-1 block">5 名申请人等待审核</text>
                 </view>
               </view>
-              <text class="material-symbols-outlined text-secondary text-sm">chevron_right</text>
+              <uni-icons type="right" size="16" color="#5f5e5e"></uni-icons>
             </view>
             <view class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex items-center justify-between" hover-class="scale-98 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.EQUIPMENT_LIST)">
               <view class="flex items-center gap-4">
                 <view class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <text class="material-symbols-outlined text-red-600">warning</text>
+                  <uni-icons type="info" size="20" color="#dc2626"></uni-icons>
                 </view>
                 <view>
                   <text class="text-sm font-bold text-on-surface block">库存不足预警</text>
                   <text class="text-xs-12 text-secondary mt-1 block">3 项核心耗材低于阈值</text>
                 </view>
               </view>
-              <text class="material-symbols-outlined text-secondary text-sm">chevron_right</text>
+              <uni-icons type="right" size="16" color="#5f5e5e"></uni-icons>
             </view>
             <view class="gradient-cta p-4 rounded-2xl shadow-md flex items-center justify-between" hover-class="scale-98 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.TOURNAMENT_LIST)">
                <view class="flex items-center gap-4">
                 <view class="w-12 h-12 bg-white-20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <text class="material-symbols-outlined text-white">event</text>
+                  <uni-icons type="calendar" size="20" color="#ffffff"></uni-icons>
                 </view>
                 <view>
                   <text class="text-sm font-bold text-white block">即将开始的赛事</text>
                   <text class="text-xs-12 text-white-80 mt-1 block">夏季公开赛将在 3 天后开始</text>
                 </view>
               </view>
-              <text class="material-symbols-outlined text-white text-sm">chevron_right</text>
+              <uni-icons type="right" size="16" color="#ffffff"></uni-icons>
             </view>
           </view>
         </view>
@@ -148,9 +158,23 @@ import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
 
+type ImgErrEvent = {
+  detail?: any
+  target?: any
+  currentTarget?: any
+  timeStamp?: number
+}
+
+const onImgError = (tag: string, e: ImgErrEvent) => {
+  // keep parameters consumed for future diagnostics without side effects in MP runtime
+  void tag
+  void e
+}
+
 onMounted(() => {
   const systemInfo = uni.getSystemInfoSync()
   statusBarHeight.value = systemInfo.statusBarHeight || 44
+  const uniPlatform = typeof process !== 'undefined' && (process as any)?.env ? (process as any).env.UNI_PLATFORM : 'unknown'
   
   // #ifdef MP
   try {
@@ -163,6 +187,8 @@ onMounted(() => {
     }
   } catch (e) {}
   // #endif
+
+  void uniPlatform
 })
 
 const navigateTo = (url: string) => {

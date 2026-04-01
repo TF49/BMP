@@ -16,7 +16,12 @@ public class CourseEntityCache {
     @Autowired
     private CourseMapper courseMapper;
 
-    @Cacheable(cacheNames = "course", key = "#id", unless = "#result == null")
+    @Cacheable(
+            cacheNames = "course",
+            key = "#id",
+            condition = "#id != null",
+            unless = "#result == null"
+    )
     public Course getById(Long id) {
         if (id == null) return null;
         return courseMapper.findById(id);

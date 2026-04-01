@@ -147,6 +147,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { safeNavigateBack } from '@/utils/navigation'
 
 const loading = ref(false)
 const showPassword = ref(false)
@@ -191,13 +192,13 @@ const handleReset = () => {
       icon: 'success'
     })
     setTimeout(() => {
-      uni.navigateBack()
+      safeNavigateBack('/pages/login/login')
     }, 1500)
   }, 1000)
 }
 
 const handleBack = () => {
-  uni.navigateBack()
+  safeNavigateBack('/pages/login/login')
 }
 </script>
 

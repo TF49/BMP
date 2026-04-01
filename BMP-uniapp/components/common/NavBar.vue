@@ -14,6 +14,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { safeNavigateBack } from '@/utils/navigation'
 
 interface Props {
   title: string
@@ -32,14 +33,7 @@ onMounted(() => {
 })
 
 const handleBack = () => {
-  const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
-    uni.navigateTo({
-      url: '/pages/index/index'
-    })
-  }
+  safeNavigateBack('/pages/index/index')
 }
 </script>
 

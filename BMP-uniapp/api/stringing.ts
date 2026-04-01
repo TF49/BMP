@@ -142,9 +142,22 @@ export function getStringList() {
  * 计算价格
  */
 export function calculatePrice(params: CalculatePriceParams) {
-  return request<PriceCalculation>({
+  // 后端为 GET /api/stringing/calculate-price?stringId=&isOwnString=
+  return request<{ price: number | string }>({
     url: API_PATHS.STRINGING.CALCULATE_PRICE,
-    method: 'POST',
-    data: params
+    method: 'GET',
+    data: {
+      stringId: params.stringId,
+      isOwnString: params.ownString ? 1 : 0
+    }
+  }).then((res) => {
+    const total = typeof res?.price === 'string' ? Number(res.price) : (res?.price ?? 0)
+    const own = !!params.ownString
+    const result: PriceCalculation = {
+      stringPrice: own ? 0 : total,
+      servicePrice: own ? total : 0,
+      totalPrice: total
+    }
+    return result
   })
 }

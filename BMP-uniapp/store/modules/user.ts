@@ -4,6 +4,7 @@ import { login, getCurrentUser, refreshToken as refreshTokenApi } from '@/api/au
 import type { LoginResult, UserInfo } from '@/api/auth'
 import { checkAndHandleRole } from '@/utils/roleCheck'
 import { safeReLaunch } from '@/utils/safeRoute'
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
@@ -16,18 +17,28 @@ export const useUserStore = defineStore('user', () => {
   const userRole = computed(() => userInfo.value?.role || '')
   const userId = computed(() => userInfo.value?.id || 0)
 
+  const normalizeUserInfo = (user: UserInfo | null) => {
+    if (!user) return null
+
+    return {
+      ...user,
+      avatar: user.avatar ? resolveImageUrl(user.avatar) : ''
+    }
+  }
+
   // 方法
   async function doLogin(params: { username: string; password: string }) {
     try {
       const result = await login(params)
       token.value = result.token
       refreshTokenValue.value = result.refreshToken
-      userInfo.value = result.user
+      const normalizedUser = normalizeUserInfo(result.user)
+      userInfo.value = normalizedUser
       
       // 保存到本地存储
       uni.setStorageSync('token', result.token)
       uni.setStorageSync('refreshToken', result.refreshToken)
-      uni.setStorageSync('userInfo', result.user)
+      uni.setStorageSync('userInfo', normalizedUser)
       
       return result
     } catch (error) {
@@ -40,13 +51,14 @@ export const useUserStore = defineStore('user', () => {
     if (savedToken) {
       token.value = savedToken
       refreshTokenValue.value = uni.getStorageSync('refreshToken')
-      userInfo.value = uni.getStorageSync('userInfo')
+      userInfo.value = normalizeUserInfo(uni.getStorageSync('userInfo'))
       
       // 验证Token是否有效
       try {
         const currentUser = await getCurrentUser()
-        userInfo.value = currentUser
-        uni.setStorageSync('userInfo', currentUser)
+        const normalizedCurrentUser = normalizeUserInfo(currentUser)
+        userInfo.value = normalizedCurrentUser
+        uni.setStorageSync('userInfo', normalizedCurrentUser)
         
         // 检查用户角色，如果是不允许的角色，清除登录状态并提示
         if (!checkAndHandleRole(currentUser?.role)) {
@@ -65,11 +77,12 @@ export const useUserStore = defineStore('user', () => {
       const result = await refreshTokenApi(refreshTokenValue.value)
       token.value = result.token
       refreshTokenValue.value = result.refreshToken
-      userInfo.value = result.user
+      const normalizedUser = normalizeUserInfo(result.user)
+      userInfo.value = normalizedUser
       
       uni.setStorageSync('token', result.token)
       uni.setStorageSync('refreshToken', result.refreshToken)
-      uni.setStorageSync('userInfo', result.user)
+      uni.setStorageSync('userInfo', normalizedUser)
       
       if (!checkAndHandleRole(result.user?.role)) {
         logout()

@@ -7,7 +7,7 @@
       <view class="nav-header">
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
-            <text class="material-icons">sports_tennis</text>
+            <uni-icons type="flag" size="28" color="#ff6600" class="nav-left-icon"></uni-icons>
             <text class="nav-title">Kinetic Venues</text>
           </view>
           <view class="nav-right"></view>
@@ -28,7 +28,7 @@
               v-model="queryParams.venueName"
               @confirm="handleSearch"
             />
-            <text class="material-icons search-icon">search</text>
+            <uni-icons type="search" size="18" color="#5f5e5e" class="search-icon"></uni-icons>
           </view>
         </view>
 
@@ -74,22 +74,22 @@
               
               <view class="info-list">
                 <view class="info-item">
-                  <text class="material-icons info-icon">location_on</text>
+                  <uni-icons type="location" size="16" color="#a33e00" class="info-icon"></uni-icons>
                   <text class="info-text">{{ item.address || '未设置地址' }}</text>
                 </view>
                 <view class="info-item">
-                  <text class="material-icons info-icon">schedule</text>
+                  <uni-icons type="calendar" size="16" color="#a33e00" class="info-icon"></uni-icons>
                   <text class="info-text">{{ item.businessHours || '09:00 - 22:00' }}</text>
                 </view>
                 <view class="info-item" v-if="item.contactPhone">
-                  <text class="material-icons info-icon">call</text>
+                  <uni-icons type="phone" size="16" color="#a33e00" class="info-icon"></uni-icons>
                   <text class="info-text">{{ item.contactPhone }}</text>
                 </view>
               </view>
 
               <view class="detail-btn">
                 <text>查看详情</text>
-                <text class="material-icons">arrow_forward</text>
+                <uni-icons type="right" size="14" color="#5a4136" class="detail-icon"></uni-icons>
               </view>
             </view>
           </view>
@@ -188,21 +188,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.material-icons {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
-}
-
 .venue-list-page {
   min-height: 100vh;
   background-color: #f9f9f9;
@@ -232,12 +217,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  
-  .material-icons {
-    color: #ff6600;
-    font-size: 56rpx;
-  }
-  
+
   .nav-title {
     font-size: 40rpx;
     font-weight: 900;
@@ -417,8 +397,7 @@ onMounted(() => {
 }
 
 .info-icon {
-  font-size: 32rpx !important;
-  color: #a33e00;
+  flex: 0 0 auto;
 }
 
 .info-text {
@@ -441,14 +420,9 @@ onMounted(() => {
     color: #5a4136;
   }
   
-  .material-icons {
-    font-size: 24rpx;
-  }
-  
   &:active {
     background-color: #ff6600;
     text { color: #fff; }
-    .material-icons { color: #fff; }
   }
 }
 

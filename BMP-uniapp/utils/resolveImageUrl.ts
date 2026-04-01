@@ -16,10 +16,12 @@ export function resolveImageUrl(url?: string | null) {
 
   // 后端相对路径：以 / 开头
   if (url.startsWith('/')) {
-    return `${IMAGE_BASE_URL}${url}`
+    const resolved = `${IMAGE_BASE_URL}${url}`
+    return resolved
   }
 
   // 兜底：尝试拼接（避免误传导致空白）
-  return `${IMAGE_BASE_URL}/${url}`
+  const resolved = `${IMAGE_BASE_URL}/${url}`
+  return resolved
 }
 

@@ -4,7 +4,8 @@
  */
 
 export const PRESIDENT_PAGES = {
-  DASHBOARD: '/pages/president/dashboard/index',
+  // 会长端“工作台”已回归到首页（index 内按角色渲染 PresidentIndex）
+  DASHBOARD: '/pages/index/index',
   USER_LIST: '/pages/president/user/list',
   USER_DETAIL: '/pages/president/user/detail',
   USER_FORM: '/pages/president/user/form',
@@ -33,7 +34,7 @@ export const PRESIDENT_PAGES = {
 
 /** 会长端 tabBar 页面路径（用于判断当前是否在 tabBar 页） */
 export const PRESIDENT_TAB_PATHS = [
-  'pages/president/dashboard/index',
+  'pages/index/index',
   'pages/president/user/list',
   'pages/president/venue/list',
   'pages/president/finance/list',

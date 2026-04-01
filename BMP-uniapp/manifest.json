@@ -85,7 +85,9 @@
                 "desc" : "用于获取附近场馆位置"
             }
         },
-        "requiredPrivateInfos" : [],
+        "requiredPrivateInfos" : [
+            "chooseLocation"
+        ],
         "lazyCodeLoading" : "requiredComponents"
     },
     "mp-alipay" : {

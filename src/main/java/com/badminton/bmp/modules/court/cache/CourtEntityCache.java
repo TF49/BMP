@@ -16,7 +16,12 @@ public class CourtEntityCache {
     @Autowired
     private CourtMapper courtMapper;
 
-    @Cacheable(cacheNames = "court", key = "#id", unless = "#result == null")
+    @Cacheable(
+            cacheNames = "court",
+            key = "#id",
+            condition = "#id != null",
+            unless = "#result == null"
+    )
     public Court getById(Long id) {
         if (id == null) return null;
         return courtMapper.findById(id);

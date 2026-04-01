@@ -1,125 +1,136 @@
 <template>
-  <PresidentLayout :showTabBar="false" backgroundColor="bg-f9">
-    <PresidentNavBar :title="isEdit ? '编辑场馆' : '添加场馆'" />
+  <PresidentLayout :showTabBar="false" backgroundColor="#f9f9f9">
+    <view class="kinetic-header">
+      <view class="back-btn" @click="onBack">
+        <uni-icons type="left" size="24" color="#ff6600"></uni-icons>
+      </view>
+      <text class="header-title">{{ isEdit ? '编辑场馆' : '添加场馆' }}</text>
+    </view>
     
-    <scroll-view scroll-y class="form-scroll-view">
-      <view class="form-container">
+    <scroll-view scroll-y class="kinetic-scroll-view">
+      <view class="kinetic-container">
         <!-- Section: Basic Information -->
-        <view class="section">
+        <view class="kinetic-section">
           <view class="section-header">
-            <text class="section-title">基本信息</text>
-            <view class="section-line"></view>
+            <text class="section-badge">基本信息</text>
+            <view class="section-divider"></view>
           </view>
           
-          <view class="glass-card section-card">
-            <view class="form-item">
-              <text class="form-label">场馆名称</text>
+          <view class="kinetic-card">
+            <view class="form-field">
+              <text class="field-label">场馆名称</text>
               <input 
                 v-model="form.venueName" 
-                class="form-input" 
+                class="field-input" 
                 placeholder="输入场馆全称" 
-                placeholder-class="placeholder"
+                placeholder-class="kinetic-placeholder"
               />
             </view>
             
-            <view class="form-item">
-              <text class="form-label">详细地址</text>
-              <view class="input-with-icon" @click="onChooseLocation">
+            <view class="form-field">
+              <text class="field-label">详细地址</text>
+              <view class="input-group" @click="onChooseLocation">
                 <input 
                   v-model="form.address" 
-                  class="form-input" 
+                  class="field-input pr-80" 
                   placeholder="选择或输入场馆地址" 
-                  placeholder-class="placeholder"
+                  placeholder-class="kinetic-placeholder"
                   disabled
                 />
-                <uni-icons type="location-filled" size="24" color="#ff6600" class="input-icon"></uni-icons>
+                <uni-icons type="location-filled" size="22" color="#ff6600" class="group-icon"></uni-icons>
               </view>
             </view>
             
-            <view class="grid-2">
-              <view class="form-item">
-                <text class="form-label">联系人</text>
+            <view class="field-grid">
+              <view class="form-field">
+                <text class="field-label">联系人</text>
                 <input 
                   v-model="form.contactPerson" 
-                  class="form-input" 
+                  class="field-input" 
                   placeholder="负责人姓名" 
-                  placeholder-class="placeholder"
+                  placeholder-class="kinetic-placeholder"
                 />
               </view>
-              <view class="form-item">
-                <text class="form-label">联系电话</text>
+              <view class="form-field">
+                <text class="field-label">联系电话</text>
                 <input 
                   v-model="form.contactPhone" 
-                  class="form-input" 
+                  class="field-input" 
                   type="tel"
                   placeholder="座机或手机号" 
-                  placeholder-class="placeholder"
+                  placeholder-class="kinetic-placeholder"
                 />
               </view>
             </view>
 
-            <view class="form-item">
-              <text class="form-label">小时单价 (元)</text>
+            <view class="form-field">
+              <text class="field-label">小时单价 (元)</text>
               <input 
                 v-model="form.hourlyPrice" 
-                class="form-input" 
+                class="field-input" 
                 type="digit"
                 placeholder="请输入场馆小时单价" 
-                placeholder-class="placeholder"
+                placeholder-class="kinetic-placeholder"
               />
             </view>
           </view>
         </view>
 
         <!-- Section: Operational Details -->
-        <view class="section">
+        <view class="kinetic-section">
           <view class="section-header">
-            <text class="section-title">运营详情</text>
-            <view class="section-line"></view>
+            <text class="section-badge">运营详情</text>
+            <view class="section-divider"></view>
           </view>
           
-          <view class="glass-card section-card">
-            <view class="form-item">
-              <text class="form-label">营业时间</text>
-              <view class="time-range">
-                <picker mode="time" :value="startTime" @change="onStartTimeChange" class="time-picker">
-                  <view class="time-value">{{ startTime || '08:00' }}</view>
+          <view class="kinetic-card">
+            <view class="form-field">
+              <text class="field-label mb-16">营业时间</text>
+              <view class="time-selector">
+                <picker mode="time" :value="startTime" @change="onStartTimeChange" class="time-picker-box">
+                  <view class="time-box-content">
+                    <text class="time-text">{{ startTime || '08:00' }}</text>
+                    <uni-icons type="paperplane" size="16" color="#94a3b8"></uni-icons>
+                  </view>
                 </picker>
-                <text class="range-separator">至</text>
-                <picker mode="time" :value="endTime" @change="onEndTimeChange" class="time-picker">
-                  <view class="time-value">{{ endTime || '22:00' }}</view>
+                <text class="to-text">至</text>
+                <picker mode="time" :value="endTime" @change="onEndTimeChange" class="time-picker-box">
+                  <view class="time-box-content">
+                    <text class="time-text">{{ endTime || '22:00' }}</text>
+                    <uni-icons type="paperplane" size="16" color="#94a3b8"></uni-icons>
+                  </view>
                 </picker>
               </view>
             </view>
             
-            <view class="form-item">
-              <text class="form-label">运营状态</text>
-              <view class="segmented-control">
+            <view class="form-field">
+              <text class="field-label mb-16">运营状态</text>
+              <view class="status-tabs">
                 <view 
-                  class="segment-item" 
+                  class="tab-item" 
                   :class="{ active: form.status === 1 }"
                   @click="form.status = 1"
                 >营业中</view>
                 <view 
-                  class="segment-item" 
+                  class="tab-item" 
                   :class="{ active: form.status === 2 }"
                   @click="form.status = 2"
                 >暂停营业</view>
                 <view 
-                  class="segment-item" 
+                  class="tab-item" 
                   :class="{ active: form.status === 0 }"
                   @click="form.status = 0"
                 >已关闭</view>
               </view>
             </view>
             
-            <view class="form-item">
-              <text class="form-label">场馆描述</text>
+            <view class="form-field">
+              <text class="field-label">场馆描述</text>
               <textarea 
                 v-model="form.description" 
-                class="form-textarea" 
+                class="field-textarea" 
                 placeholder="介绍场馆的特色、设施等..." 
-                placeholder-class="placeholder"
+                placeholder-class="kinetic-placeholder"
                 :auto-height="false"
               ></textarea>
             </view>
@@ -127,65 +138,71 @@
         </view>
 
         <!-- Section: Visuals -->
-        <view class="section">
+        <view class="kinetic-section">
           <view class="section-header">
-            <text class="section-title">场馆相册</text>
-            <view class="section-line"></view>
+            <text class="section-badge">场馆相册</text>
+            <view class="section-divider"></view>
           </view>
           
-          <view class="album-grid">
-            <view class="album-item main-image" @click="onChooseMainImage">
-              <image v-if="venuePreview" :src="venuePreview" mode="aspectFill" class="full-image"></image>
-              <template v-else>
+          <view class="photo-grid">
+            <!-- Main Photo -->
+            <view class="photo-slot primary-slot" @click="onChooseMainImage">
+              <image v-if="venuePreview" :src="venuePreview" mode="aspectFill" class="slot-img"></image>
+              <view v-else class="slot-placeholder">
                 <uni-icons type="camera-filled" size="32" color="#ff6600"></uni-icons>
-                <text class="album-label">主图</text>
-              </template>
+                <text class="slot-text">主图</text>
+              </view>
             </view>
-            <view class="album-item">
-              <uni-icons type="image" size="32" color="#cccccc"></uni-icons>
-              <text class="album-label">内景</text>
+            <!-- Interior Photo -->
+            <view class="photo-slot">
+              <view class="slot-placeholder">
+                <uni-icons type="image" size="32" color="#cccccc"></uni-icons>
+                <text class="slot-text">内景</text>
+              </view>
             </view>
-            <view class="album-item">
-              <uni-icons type="image" size="32" color="#cccccc"></uni-icons>
-              <text class="album-label">设施</text>
+            <!-- Facility Photo -->
+            <view class="photo-slot">
+              <view class="slot-placeholder">
+                <uni-icons type="image" size="32" color="#cccccc"></uni-icons>
+                <text class="slot-text">设施</text>
+              </view>
             </view>
           </view>
         </view>
 
         <!-- Map Preview -->
-        <view class="map-preview">
+        <view class="map-card" @click="onChooseLocation">
           <image 
-            src="https://img.js.design/assets/static/f7743d84351658b4da799f2c8d287ce9.png" 
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkjoybV9TCjLCnKoofY0yHK5EqrDAxBDwq2iYfWWPcrxk9fshKtL0Gik-k8ezRsP_GCjZ57QevUJp3wi66FqUqvXDcFqLErXrxwRvBb9v3Cd-1ntz62CMR8bRmWjdamDpx6MoomX6UgkzO-vsERgGy_p17zbRMlgrjoxEC_nyrDYGM8PEszpHFQQ5AmB3UYbtAdq4_JdrgTy39tHmCmVhDC8V-oXMZXeDkN65pR2CI4UgI9PDGzOZFpUgpwFknZh8LUqAsC_srqY_d" 
             mode="aspectFill" 
-            class="map-bg"
+            class="map-image"
           ></image>
-          <view class="map-overlay"></view>
-          <view class="map-info">
-            <view class="map-text">
-              <text class="map-label">地图定位</text>
-              <text class="map-address">{{ form.address || '尚未选择地址' }}</text>
+          <view class="map-gradient"></view>
+          <view class="map-content">
+            <view class="map-meta">
+              <text class="meta-label">地图定位</text>
+              <text class="meta-value">{{ form.address || '尚未选择场馆地址' }}</text>
             </view>
-            <view class="map-action" @click="onChooseLocation">
-              <uni-icons type="expand" size="20" color="#ffffff"></uni-icons>
+            <view class="map-btn">
+              <uni-icons type="expand-filled" size="18" color="#ffffff"></uni-icons>
             </view>
           </view>
         </view>
         
-        <!-- Spacer for footer -->
-        <view class="footer-spacer"></view>
+        <view class="safe-area-spacer"></view>
       </view>
     </scroll-view>
 
-    <!-- Bottom Action Bar -->
-    <view class="footer-bar">
-      <view class="footer-content">
+    <!-- Floating Action Footer -->
+    <view class="action-footer">
+      <view class="action-wrapper">
         <button 
-          class="submit-btn" 
+          class="kinetic-submit-btn" 
           :class="{ loading: submitLoading }"
           @click="onSubmit"
         >
-          <uni-icons type="checkbox-filled" size="24" color="#ffffff" style="margin-right: 12rpx;"></uni-icons>
-          <text>{{ submitLoading ? (isEdit ? '正在保存...' : '正在添加...') : (isEdit ? '确认修改' : '确认添加') }}</text>
+          <uni-icons type="checkbox-filled" size="24" color="#ffffff"></uni-icons>
+          <text class="btn-text">{{ isEdit ? (submitLoading ? '保存中...' : '确认修改') : (submitLoading ? '添加中...' : '确认添加') }}</text>
         </button>
       </view>
     </view>
@@ -195,11 +212,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import PresidentNavBar from '@/components/president/PresidentNavBar.vue'
 import { getVenueInfo, addVenue, updateVenue } from '@/api/president/venue'
 import { VENUE_STATUS } from '@/utils/constant'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
+import { safeNavigateBack } from '@/utils/navigation'
 
+// --- State & Computed ---
 const id = computed(() => {
   const pages = getCurrentPages()
   const p = pages[pages.length - 1] as any
@@ -225,6 +243,15 @@ const form = ref({
   venueImage: ''
 })
 
+// --- Lifecycle ---
+onMounted(() => {
+  if (isEdit.value) loadDetail()
+})
+
+// --- Methods ---
+function onBack() {
+  safeNavigateBack('/pages/president/venue/list')
+}
 function onStartTimeChange(e: any) {
   startTime.value = e.detail.value
   updateBusinessHours()
@@ -246,15 +273,6 @@ function onChooseLocation() {
     },
     fail: (err) => {
       console.error('选择位置失败', err)
-      if (err.errMsg.indexOf('auth deny') >= 0) {
-        uni.showModal({
-          title: '提示',
-          content: '请在设置中开启定位权限',
-          success: (res) => {
-            if (res.confirm) uni.openSetting()
-          }
-        })
-      }
     }
   })
 }
@@ -265,8 +283,7 @@ function onChooseMainImage() {
     success: (res) => {
       tempImagePath.value = res.tempFilePaths[0]
       venuePreview.value = res.tempFilePaths[0]
-      // 这里本应调用上传接口，但没有现成API。假设后端支持base64或者稍后处理。
-      // 我们暂存路径，在提交时模拟处理。
+      // Simulating immediate upload if backend expects URL
     }
   })
 }
@@ -276,21 +293,22 @@ async function loadDetail() {
   uni.showLoading({ title: '加载中...' })
   try {
     const res = await getVenueInfo(id.value) as any
-    form.value.venueName = res.venueName ?? ''
-    form.value.address = res.address ?? ''
-    form.value.contactPerson = res.contactPerson ?? ''
-    form.value.contactPhone = res.contactPhone ?? ''
-    form.value.description = res.description ?? ''
-    form.value.status = res.status ?? VENUE_STATUS.OPEN
-    form.value.hourlyPrice = res.hourlyPrice ?? 0
-    form.value.venueImage = res.venueImage ?? ''
+    Object.assign(form.value, {
+      venueName: res.venueName ?? '',
+      address: res.address ?? '',
+      contactPerson: res.contactPerson ?? '',
+      contactPhone: res.contactPhone ?? '',
+      description: res.description ?? '',
+      status: res.status ?? VENUE_STATUS.OPEN,
+      hourlyPrice: res.hourlyPrice ?? 0,
+      venueImage: res.venueImage ?? ''
+    })
     
     if (res.venueImage) {
       venuePreview.value = resolveImageUrl(res.venueImage)
     }
 
     if (res.businessHours) {
-      form.value.businessHours = res.businessHours
       const parts = res.businessHours.split('-')
       if (parts.length === 2) {
         startTime.value = parts[0]
@@ -306,28 +324,16 @@ async function loadDetail() {
 }
 
 async function onSubmit() {
-  if (!form.value.venueName.trim()) {
-    uni.showToast({ title: '请输入场馆名称', icon: 'none' })
-    return
-  }
-  if (!form.value.address.trim()) {
-    uni.showToast({ title: '请选择场馆地址', icon: 'none' })
-    return
-  }
+  if (!form.value.venueName.trim()) return uni.showToast({ title: '请输入场馆名称', icon: 'none' })
+  if (!form.value.address.trim()) return uni.showToast({ title: '请选择场馆地址', icon: 'none' })
   
   submitLoading.value = true
   try {
-    // 模拟文件上传：如果有新选图片且没有现成的uploadFile API
-    // 实际项目中这里应该先调用 uni.uploadFile 换取后端 URL
     const payload: any = { ...form.value }
     if (isEdit.value) payload.id = id.value
     
-    // 如果有本地临时路径，实际应该先上传
-    if (tempImagePath.value) {
-      // payload.venueImage = await uploadFile(tempImagePath.value)
-      // 模拟上传成功
-    }
-
+    // In a real scenario, handle image upload here
+    
     if (isEdit.value) {
       await updateVenue(payload)
     } else {
@@ -336,36 +342,56 @@ async function onSubmit() {
     
     uni.showToast({ title: '保存成功', icon: 'success' })
     const eventChannel = (getCurrentPages()[getCurrentPages().length - 1] as any).getOpenerEventChannel()
-    if (eventChannel && eventChannel.emit) {
-      eventChannel.emit('refresh')
-    }
-    setTimeout(() => uni.navigateBack(), 1200)
+    if (eventChannel?.emit) eventChannel.emit('refresh')
+    
+    setTimeout(() => safeNavigateBack('/pages/president/venue/list'), 1000)
   } catch (e: any) {
-    console.error(e)
     uni.showToast({ title: e?.message || '保存失败', icon: 'none' })
   } finally {
     submitLoading.value = false
   }
 }
-
-onMounted(() => {
-  if (isEdit.value) loadDetail()
-})
 </script>
 
 <style lang="scss" scoped>
-.form-scroll-view {
+.kinetic-scroll-view {
   height: 100vh;
   background-color: #f9f9f9;
 }
 
-.form-container {
-  padding: 32rpx;
-  padding-top: calc(140rpx + env(safe-area-inset-top));
-  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+.kinetic-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 24rpx 32rpx;
+  padding-top: calc(80rpx + env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  background-color: #f9f9f9;
 }
 
-.section {
+.back-btn {
+  padding: 12rpx;
+  margin-right: 12rpx;
+  display: flex;
+  align-items: center;
+}
+
+.header-title {
+  font-size: 38rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+
+.kinetic-container {
+  padding: 32rpx;
+  padding-top: calc(200rpx + env(safe-area-inset-top));
+  padding-bottom: calc(240rpx + env(safe-area-inset-bottom));
+}
+
+.kinetic-section {
   margin-bottom: 48rpx;
 }
 
@@ -375,295 +401,319 @@ onMounted(() => {
   margin-bottom: 24rpx;
 }
 
-.section-title {
-  font-size: 24rpx;
-  font-weight: 700;
+.section-badge {
+  font-size: 20rpx;
+  font-weight: 800;
   text-transform: uppercase;
-  color: #a33e00;
+  color: #7c2e00; // Primary dark variant
   opacity: 0.6;
-  letter-spacing: 2rpx;
+  letter-spacing: 4rpx;
 }
 
-.section-line {
+.section-divider {
   flex: 1;
-  height: 1rpx;
-  background-color: #e2d8d4;
+  height: 2rpx;
+  background-color: #e3bfb1;
   margin-left: 24rpx;
-  opacity: 0.3;
+  opacity: 0.2;
 }
 
-.section-card {
-  padding: 40rpx;
+.kinetic-card {
+  background-color: #ffffff;
   border-radius: 32rpx;
+  padding: 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.02);
 }
 
-.form-item {
-  margin-bottom: 32rpx;
+.form-field {
+  margin-bottom: 40rpx;
   &:last-child { margin-bottom: 0; }
 }
 
-.form-label {
+.field-label {
   display: block;
   font-size: 20rpx;
   font-weight: 700;
   color: #5f5e5e;
   text-transform: uppercase;
   margin-bottom: 12rpx;
-  letter-spacing: 1rpx;
+  letter-spacing: 2rpx;
+  
+  &.mb-16 { margin-bottom: 24rpx; }
 }
 
-.form-input {
+.field-input {
   width: 100%;
-  height: 96rpx;
+  height: 100rpx;
   background-color: #f3f3f3;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 0 32rpx;
   font-size: 28rpx;
   color: #1a1c1c;
   box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:focus {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4rpx rgba(255, 102, 0, 0.1);
+  }
 }
 
-.form-textarea {
+.field-textarea {
   width: 100%;
-  height: 200rpx;
+  height: 240rpx;
   background-color: #f3f3f3;
-  border-radius: 16rpx;
-  padding: 24rpx 32rpx;
+  border-radius: 24rpx;
+  padding: 32rpx;
   font-size: 28rpx;
   color: #1a1c1c;
   box-sizing: border-box;
 }
 
-.placeholder {
-  color: #94a3b8;
+.kinetic-placeholder {
+  color: #cbd5e1;
 }
 
-.input-with-icon {
+.input-group {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-icon {
+.group-icon {
   position: absolute;
-  right: 24rpx;
+  right: 32rpx;
 }
 
-.grid-2 {
+.field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24rpx;
 }
 
-/* 时间范围选择 */
-.time-range {
+.pr-80 {
+  padding-right: 80rpx;
+}
+
+/* Time Selector */
+.time-selector {
   display: flex;
   align-items: center;
   gap: 24rpx;
 }
 
-.time-picker {
+.time-picker-box {
   flex: 1;
-  height: 96rpx;
+  height: 100rpx;
   background-color: #f3f3f3;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
+}
+
+.time-box-content {
+  height: 100rpx;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 0 24rpx;
 }
 
-.time-value {
-  font-size: 30rpx;
-  font-weight: 500;
-  color: #1a1c1c;
-  line-height: 96rpx;
-  text-align: center;
-}
-
-.range-separator {
+.time-text {
   font-size: 28rpx;
-  color: #94a3b8;
-  font-weight: 700;
+  font-weight: 600;
+  color: #1a1c1c;
 }
 
-/* 分段控制 */
-.segmented-control {
+.to-text {
+  font-size: 24rpx;
+  color: #94a3b8;
+  font-weight: 800;
+}
+
+/* Status Tabs (Segmented Control) */
+.status-tabs {
   background-color: #f3f3f3;
   padding: 8rpx;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   display: flex;
   gap: 8rpx;
 }
 
-.segment-item {
+.tab-item {
   flex: 1;
   text-align: center;
-  padding: 16rpx 0;
+  padding: 20rpx 0;
   font-size: 26rpx;
-  font-weight: 500;
+  font-weight: 600;
   color: #5f5e5e;
-  border-radius: 12rpx;
-  transition: all 0.2s;
+  border-radius: 16rpx;
+  transition: all 0.3s;
   
   &.active {
     background-color: #ff6600;
     color: #ffffff;
-    font-weight: 700;
-    box-shadow: 0 4rpx 12rpx rgba(255, 102, 0, 0.2);
+    box-shadow: 0 8rpx 20rpx rgba(255, 102, 0, 0.2);
   }
 }
 
-/* 场馆相册 */
-.album-grid {
+/* Photo Grid */
+.photo-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24rpx;
 }
 
-.album-item {
+.photo-slot {
   aspect-ratio: 1/1;
   background-color: #ffffff;
-  border: 2rpx dashed #e2bfb1;
+  border: 4rpx dashed rgba(227, 191, 177, 0.3);
   border-radius: 24rpx;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
-  position: relative;
   overflow: hidden;
+  position: relative;
+  transition: all 0.2s;
   
-  &.main-image {
-    background-color: #fff9f5;
+  &:active { transform: scale(0.96); }
+  
+  &.primary-slot {
     border-color: #ff6600;
   }
 }
 
-.full-image {
-  width: 100%;
-  height: 100%;
+.slot-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
 }
 
-.album-label {
-  font-size: 20rpx;
-  font-weight: 700;
+.slot-text {
+  font-size: 18rpx;
+  font-weight: 800;
   color: #94a3b8;
   text-transform: uppercase;
 }
 
-/* 地图预览 */
-.map-preview {
+.slot-img {
+  width: 100%;
+  height: 100%;
+}
+
+/* Map Card */
+.map-card {
   position: relative;
-  height: 300rpx;
-  border-radius: 48rpx;
+  height: 380rpx;
+  border-radius: 56rpx;
   overflow: hidden;
-  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.08);
+  margin-top: 48rpx;
+  box-shadow: 0 20rpx 50rpx -15rpx rgba(0, 0, 0, 0.15);
 }
 
-.map-bg {
+.map-image {
   width: 100%;
   height: 100%;
-  filter: grayscale(1);
-  opacity: 0.8;
+  filter: grayscale(0.8) brightness(0.9);
 }
 
-.map-overlay {
+.map-gradient {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+  inset: 0;
+  background: linear-gradient(to top, rgba(26, 28, 28, 0.7), transparent 60%);
 }
 
-.map-info {
+.map-content {
   position: absolute;
-  bottom: 24rpx;
-  left: 32rpx;
-  right: 32rpx;
+  bottom: 40rpx;
+  left: 48rpx;
+  right: 48rpx;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
 }
 
-.map-text {
-  display: flex;
-  flex-direction: column;
+.map-meta {
+  flex: 1;
+  margin-right: 24rpx;
 }
 
-.map-label {
+.meta-label {
+  display: block;
   font-size: 18rpx;
-  font-weight: 700;
+  font-weight: 800;
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
-  letter-spacing: 2rpx;
+  letter-spacing: 4rpx;
+  margin-bottom: 8rpx;
 }
 
-.map-address {
-  font-size: 26rpx;
+.meta-value {
+  font-size: 28rpx;
   font-weight: 600;
   color: #ffffff;
 }
 
-.map-action {
-  width: 72rpx;
-  height: 72rpx;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
+.map-btn {
+  width: 80rpx;
+  height: 80rpx;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12rpx);
+  -webkit-backdrop-filter: blur(12rpx);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 底部按钮 */
-.footer-bar {
+/* Action Footer */
+.action-footer {
   position: fixed;
   bottom: 0;
   left: 0;
-  width: 100%;
+  right: 0;
   padding: 32rpx 48rpx;
-  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
-  z-index: 100;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  z-index: 1000;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
-.footer-content {
-  max-width: 800rpx;
+.action-wrapper {
+  max-width: 100%;
   margin: 0 auto;
   pointer-events: auto;
+  display: flex;
+  justify-content: center;
 }
 
-.submit-btn {
-  background: linear-gradient(to right, #a33e00, #ff6600);
-  height: 112rpx;
-  border-radius: 32rpx;
+.kinetic-submit-btn {
+  width: 100%;
+  height: 110rpx;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  border-radius: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 16rpx 48rpx -12rpx rgba(255, 102, 0, 0.5);
+  gap: 16rpx;
+  box-shadow: 0 20rpx 40rpx rgba(255, 102, 0, 0.3);
   border: none;
-  transition: all 0.2s;
+  transition: all 0.3s;
+  
+  &:active { transform: scale(0.97); opacity: 0.95; }
+}
+
+.btn-text {
   color: #ffffff;
   font-size: 32rpx;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 4rpx;
-  
-  &:active {
-    transform: scale(0.98);
-    opacity: 0.9;
-  }
 }
 
 .loading {
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
-.footer-spacer {
+.safe-area-spacer {
   height: 20rpx;
-}
-
-.bg-f9 {
-  background-color: #f9f9f9;
 }
 </style>

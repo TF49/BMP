@@ -79,14 +79,6 @@
       }
     },
     {
-      "path": "pages/president/dashboard/index",
-      "style": {
-        "navigationBarTitleText": "看板",
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
       "path": "pages/president/user/list",
       "style": {
         "navigationBarTitleText": "用户管理",
@@ -157,6 +149,13 @@
       }
     },
     {
+      "path": "pages/president/booking/confirm",
+      "style": {
+        "navigationBarTitleText": "确认订单",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/booking/detail",
       "style": {
         "navigationBarTitleText": "预约详情",
@@ -206,9 +205,23 @@
       }
     },
     {
-      "path": "pages/booking/create",
+      "path": "pages/venue/booking",
       "style": {
-        "navigationBarTitleText": "创建预约",
+        "navigationBarTitleText": "场地预约",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/booking/confirm",
+      "style": {
+        "navigationBarTitleText": "确认订单",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/booking/fee-detail",
+      "style": {
+        "navigationBarTitleText": "费用明细",
         "navigationStyle": "custom"
       }
     },

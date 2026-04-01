@@ -15,8 +15,12 @@ const themeStore = useThemeStore()
 onLaunch(async () => {
   console.log('App Launch')
 
-  // 加载全局字体 - 解决小程序渲染层网络错误
+  // 加载全局字体
+  // - 小程序端可能受域名白名单/网络影响导致加载失败并产生噪声报错，P0 默认禁用外链字体。
+  // - H5/App 端可继续加载以获得一致的品牌字体。
+  // #ifndef MP-WEIXIN
   loadGlobalFonts()
+  // #endif
 
   // 初始化主题
   themeStore.initTheme()
@@ -52,7 +56,8 @@ function loadGlobalFonts() {
         console.log(`Font ${font.family} loaded successfully`)
       },
       fail: (err) => {
-        console.error(`Failed to load font ${font.family}:`, err)
+        // 不阻塞启动：字体加载失败时保持系统字体
+        console.warn(`Failed to load font ${font.family}:`, err)
       }
     })
   })

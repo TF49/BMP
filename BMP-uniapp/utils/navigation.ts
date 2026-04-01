@@ -8,8 +8,14 @@ export const safeNavigateBack = (fallbackUrl: string = '/pages/index/index') => 
   if (pages.length > 1) {
     uni.navigateBack()
   } else {
-    uni.navigateTo({
-      url: fallbackUrl
+    // 首页/Tab 页优先使用 switchTab，避免首屏 navigateBack 报错
+    uni.switchTab({
+      url: fallbackUrl,
+      fail: () => {
+        uni.reLaunch({
+          url: fallbackUrl
+        })
+      }
     })
   }
 }

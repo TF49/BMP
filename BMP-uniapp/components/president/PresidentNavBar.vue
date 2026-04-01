@@ -16,6 +16,7 @@
 import { ref, onMounted } from 'vue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { safeReLaunch } from '@/utils/safeRoute'
+import { safeNavigateBack } from '@/utils/navigation'
 
 interface Props {
   title: string
@@ -35,11 +36,11 @@ onMounted(() => {
 
 function handleBack() {
   const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
+  if (pages.length <= 1) {
     safeReLaunch(PRESIDENT_PAGES.DASHBOARD, PRESIDENT_PAGES.DASHBOARD)
+    return
   }
+  safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
 }
 </script>
 

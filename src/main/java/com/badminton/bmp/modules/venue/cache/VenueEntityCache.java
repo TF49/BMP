@@ -16,7 +16,12 @@ public class VenueEntityCache {
     @Autowired
     private VenueMapper venueMapper;
 
-    @Cacheable(cacheNames = "venue", key = "#id", unless = "#result == null")
+    @Cacheable(
+            cacheNames = "venue",
+            key = "#id",
+            condition = "#id != null",
+            unless = "#result == null"
+    )
     public Venue getById(Long id) {
         if (id == null) return null;
         return venueMapper.findById(id);

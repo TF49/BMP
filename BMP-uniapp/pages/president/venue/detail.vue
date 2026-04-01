@@ -4,9 +4,9 @@
     <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="header-content">
         <view class="back-btn" @click="handleBack">
-          <text class="material-symbols-outlined">arrow_back</text>
+          <uni-icons type="left" size="20" color="#ff6600"></uni-icons>
         </view>
-        <text class="header-title">场馆管理</text>
+        <text class="header-title">场馆详情</text>
         <view class="spacer"></view>
       </view>
     </view>
@@ -26,7 +26,7 @@
           v-if="detail.venueImage"
         ></image>
         <view v-else class="hero-image-placeholder">
-          <text class="material-symbols-outlined">image</text>
+          <uni-icons type="image" size="28" color="#999999"></uni-icons>
         </view>
         <view class="hero-gradient"></view>
         <!-- Floating Status Chip -->
@@ -46,7 +46,7 @@
           </view>
           <view class="rating-row">
             <view class="rating-box">
-              <text class="material-symbols-outlined fill-icon">star</text>
+              <uni-icons type="star-filled" size="16" color="#ff6600"></uni-icons>
               <text class="rating-text">PROFESSIONAL</text>
             </view>
             <view class="dot-separator"></view>
@@ -59,7 +59,7 @@
           <!-- Address -->
           <view class="info-card">
             <view class="card-icon-box">
-              <text class="material-symbols-outlined">location_on</text>
+              <uni-icons type="location" size="18" color="#ff6600"></uni-icons>
             </view>
             <view class="card-content">
               <text class="card-label">地址</text>
@@ -70,7 +70,7 @@
           <!-- Contact -->
           <view class="info-card">
             <view class="card-icon-box">
-              <text class="material-symbols-outlined">person</text>
+              <uni-icons type="person" size="18" color="#ff6600"></uni-icons>
             </view>
             <view class="card-content">
               <text class="card-label">联系人 / 电话</text>
@@ -80,7 +80,7 @@
                   <text class="contact-phone">{{ detail.contactPhone || '暂无联系电话' }}</text>
                 </view>
                 <view v-if="detail.contactPhone" class="call-btn" @click="handleCall(detail.contactPhone)">
-                  <text class="material-symbols-outlined">call</text>
+                  <uni-icons type="phone" size="16" color="#ffffff"></uni-icons>
                 </view>
               </view>
             </view>
@@ -89,7 +89,7 @@
           <!-- Hours -->
           <view class="info-card">
             <view class="card-icon-box">
-              <text class="material-symbols-outlined">schedule</text>
+              <uni-icons type="calendar" size="18" color="#ff6600"></uni-icons>
             </view>
             <view class="card-content">
               <text class="card-label">营业时间</text>
@@ -100,7 +100,7 @@
           <!-- Status -->
           <view class="info-card">
             <view class="card-icon-box">
-              <text class="material-symbols-outlined">settings</text>
+              <uni-icons type="auth" size="18" color="#ff6600"></uni-icons>
             </view>
             <view class="card-content">
               <text class="card-label">运营状态</text>
@@ -135,21 +135,21 @@
       <view class="bottom-nav-content">
         <view class="secondary-actions">
           <view class="action-item delete-action" @click="onDelete">
-            <text class="material-symbols-outlined">delete</text>
+            <uni-icons type="trash" size="18" color="#94a3b8"></uni-icons>
             <text class="action-label">DELETE</text>
           </view>
           <view class="action-item edit-action" @click="goEdit">
-            <text class="material-symbols-outlined">edit</text>
+            <uni-icons type="compose" size="18" color="#94a3b8"></uni-icons>
             <text class="action-label">EDIT</text>
           </view>
           <view class="action-item" @click="handleShare">
-            <text class="material-symbols-outlined">share</text>
+            <uni-icons type="paperplane" size="18" color="#94a3b8"></uni-icons>
             <text class="action-label">SHARE</text>
           </view>
         </view>
         <view class="primary-cta" @click="handleBook">
           <text class="cta-text">立即预约</text>
-          <text class="material-symbols-outlined cta-icon">arrow_forward_ios</text>
+          <uni-icons type="right" size="16" color="#ffffff"></uni-icons>
         </view>
       </view>
     </view>
@@ -161,6 +161,7 @@ import { ref, computed, onMounted } from 'vue'
 import { getVenueInfo, deleteVenue, type VenueItem } from '@/api/president/venue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
+import { safeNavigateBack } from '@/utils/navigation'
 
 // System info for custom header
 const systemInfo = uni.getSystemInfoSync()
@@ -190,7 +191,7 @@ async function load() {
 }
 
 const handleBack = () => {
-  uni.navigateBack()
+  safeNavigateBack(PRESIDENT_PAGES.VENUE_LIST)
 }
 
 const handleCall = (phone: string) => {
@@ -205,7 +206,7 @@ function goEdit() {
 
 const handleBook = () => {
   uni.navigateTo({
-    url: `/pages/booking/create?venueId=${detail.value?.id}`
+    url: `/pages/venue/booking?venueId=${detail.value?.id}`
   })
 }
 
@@ -219,7 +220,7 @@ function onDelete() {
       try {
         await deleteVenue(id.value)
         uni.showToast({ title: '删除成功', icon: 'success' })
-        setTimeout(() => uni.navigateBack(), 800)
+        setTimeout(() => safeNavigateBack(PRESIDENT_PAGES.VENUE_LIST), 800)
       } catch (e: any) {
         uni.showToast({ title: e?.message || '删除失败', icon: 'none' })
       }
@@ -235,25 +236,6 @@ onMounted(() => load())
 </script>
 
 <style lang="scss" scoped>
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
-}
-
-.fill-icon {
-  font-variation-settings: 'FILL' 1;
-}
-
 .venue-detail-page {
   min-height: 100vh;
   background-color: #f9f9f9;
@@ -439,7 +421,6 @@ onMounted(() => load())
   display: flex;
   align-items: center;
   justify-content: center;
-  .material-symbols-outlined { font-size: 20px; }
 }
 
 .card-content { flex: 1; }
@@ -461,7 +442,6 @@ onMounted(() => load())
   align-items: center;
   justify-content: center;
   color: #fff;
-  .material-symbols-outlined { font-size: 16px; }
 }
 
 /* Description */
@@ -478,7 +458,7 @@ onMounted(() => load())
 .bottom-nav-content { position: relative; display: flex; justify-content: space-between; align-items: center; padding: 24px 32px 10px; }
 
 .secondary-actions { display: flex; gap: 16px; }
-.action-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; padding: 12px; .material-symbols-outlined { font-size: 24px; } }
+.action-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; padding: 12px; }
 .action-label { font-size: 8px; font-weight: 700; margin-top: 4px; }
 .delete-action { &:active { color: #ba1a1a; } }
 .edit-action { &:active { color: #ff6600; } }
@@ -494,8 +474,6 @@ onMounted(() => load())
   &:active { transform: scale(0.95); }
 }
 .cta-text { color: #ffffff; font-size: 14px; font-weight: 700; }
-.cta-icon { color: #ffffff; font-size: 16px; }
-
 .loading-state, .empty-state { padding: 100px 0; text-align: center; color: #636262; }
 .spinner { width: 40px; height: 40px; border: 4px solid #eee; border-top-color: #ff6600; border-radius: 50%; animation: rotate 1s linear infinite; margin: 0 auto 20px; }
 @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

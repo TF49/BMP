@@ -15,6 +15,7 @@ export interface ErrorHandlerOptions {
 }
 
 import { safeReLaunch } from './safeRoute'
+import { safeNavigateBack } from './navigation'
 
 /**
  * 统一错误处理函数
@@ -90,7 +91,7 @@ export function handleError(
       }
       if (navigateBackOnForbidden) {
         setTimeout(() => {
-          uni.navigateBack()
+          safeNavigateBack('/pages/index/index')
         }, duration)
       }
       break

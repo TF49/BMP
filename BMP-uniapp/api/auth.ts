@@ -16,6 +16,7 @@ export interface LoginResult {
     username: string
     role: string
     status: number
+    avatar?: string
   }
 }
 
@@ -32,6 +33,7 @@ export interface UserInfo {
   username: string
   role: string
   status: number
+  avatar?: string
   venueId?: number
 }
 

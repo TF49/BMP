@@ -72,14 +72,6 @@
       }
     },
     {
-      "path": "pages/president/dashboard/index",
-      "style": {
-        "navigationBarTitleText": "看板",
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
       "path": "pages/president/user/list",
       "style": {
         "navigationBarTitleText": "用户管理",
@@ -195,13 +187,6 @@
       "path": "pages/venue/detail",
       "style": {
         "navigationBarTitleText": "场馆详情",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/booking/create",
-      "style": {
-        "navigationBarTitleText": "创建预约",
         "navigationStyle": "custom"
       }
     },

@@ -1,10 +1,10 @@
 <template>
   <view class="notice-page bg-surface min-h-screen pb-24">
-    <scroll-view scroll-y class="main-content">
+    <scroll-view scroll-y class="main-content" lower-threshold="120" @scrolltolower="loadMore">
       <!-- Top Navbar -->
       <view class="w-full bg-[#F8FAFC] flex justify-between items-center px-6 py-4 pb-4 sticky-nav" :style="{ paddingTop: (statusBarHeight || 44) + 'px' }">
         <view class="text-[#1a1a1a] transition-transform duration-200 w-10 h-10 flex items-center" hover-class="scale-95" @tap="goBack">
-          <text class="material-symbols-outlined text-2xl">arrow_back</text>
+          <uni-icons type="left" size="22" color="#1a1a1a"></uni-icons>
         </view>
         <text class="font-bold text-lg text-[#1a1a1a]">通知中心</text>
         <view class="text-primary text-sm font-bold w-fit whitespace-nowrap transition-transform duration-200" :style="{ marginRight: navBarMarginRight + 'px' }" hover-class="scale-95" @tap="markAllAsRead">
@@ -19,131 +19,39 @@
           <text class="text-3xl font-black text-on-surface tracking-tight mt-1">时刻掌握最新动态</text>
         </view>
 
-        <!-- Tabs -->
+        <!-- Tabs（P0：后端无类型字段，仅保留“全部”避免误导） -->
         <view class="flex flex-row gap-3 mt-6">
-          <view 
-            class="tab-pill" 
-            :class="{ 'active': activeTab === 'all' }" 
-            @tap="activeTab = 'all'"
-          >
-            全部
-          </view>
-          <view 
-            class="tab-pill" 
-            :class="{ 'active': activeTab === 'match' }" 
-            @tap="activeTab = 'match'"
-          >
-            赛事
-          </view>
-          <view 
-            class="tab-pill" 
-            :class="{ 'active': activeTab === 'system' }" 
-            @tap="activeTab = 'system'"
-          >
-            系统
-          </view>
+          <view class="tab-pill active">全部</view>
         </view>
 
         <!-- Notice List -->
         <view class="flex flex-col gap-4 mt-6">
-          
-          <!-- Item 1: Match starts soon -->
-          <view class="notice-card group shadow-sm flex flex-row p-5 rounded-2xl bg-white relative overflow-hidden active-scale border-left-primary">
-            <view class="icon-box bg-orange-50 text-orange-600 relative">
-              <text class="material-symbols-outlined icon-lg">sports_tennis</text>
-              <view class="red-dot"></view>
+          <view v-if="loading && list.length === 0" class="py-8 flex justify-center">
+            <text class="text-xs text-secondary opacity-60 tracking-wider">加载中...</text>
+          </view>
+
+          <view v-else-if="!loading && list.length === 0" class="py-8 flex justify-center">
+            <text class="text-xs text-secondary opacity-60 tracking-wider">暂无通知</text>
+          </view>
+
+          <view
+            v-for="item in list"
+            :key="item.id"
+            class="notice-card shadow-sm flex flex-row p-5 rounded-2xl bg-white relative overflow-hidden active-scale"
+            :class="{ 'border-left-primary': !isRead(item.id) }"
+            @tap="openDetail(item)"
+          >
+            <view class="icon-box" :class="!isRead(item.id) ? 'bg-orange-50 text-orange-600' : 'bg-gray-100 text-gray-500'">
+              <uni-icons type="chatbubble" size="20" :color="!isRead(item.id) ? '#ea580c' : '#64748b'"></uni-icons>
+              <view v-if="!isRead(item.id)" class="red-dot"></view>
             </view>
             <view class="flex flex-col flex-1 pl-4">
               <view class="flex justify-between items-center">
-                <text class="font-bold text-on-surface text-base">即将开始的比赛</text>
-                <text class="text-xs text-secondary opacity-70">10分钟前</text>
+                <text class="font-bold text-on-surface text-base">{{ item.title }}</text>
+                <text class="text-xs text-secondary opacity-70">{{ formatTime(item.createTime) }}</text>
               </view>
               <text class="text-sm text-secondary mt-2 leading-relaxed">
-                Your semi-final match against <text class="font-bold text-on-surface">Alex Chen</text> at Court 04 starts in 30 minutes. Get warmed up!
-              </text>
-            </view>
-          </view>
-
-          <!-- Item 2: Registration Reminder -->
-          <view class="notice-card shadow-sm flex flex-row p-5 rounded-2xl bg-white relative overflow-hidden active-scale">
-             <view class="icon-box bg-gray-100 text-gray-500 relative">
-              <text class="material-symbols-outlined icon-lg">calendar_month</text>
-            </view>
-            <view class="flex flex-col flex-1 pl-4">
-              <view class="flex justify-between items-center">
-                <text class="font-bold text-on-surface text-base">赛事报名提醒</text>
-                <text class="text-xs text-secondary opacity-70">2小时前</text>
-              </view>
-              <text class="text-sm text-secondary mt-2 leading-relaxed">
-                Early bird registration for the <text class="font-bold text-on-surface">Summer Smash Open</text> closes in 24 hours.
-              </text>
-            </view>
-          </view>
-
-          <!-- Item 3: System Maintenance -->
-          <view class="notice-card shadow-sm flex flex-row p-5 rounded-2xl bg-white relative overflow-hidden active-scale border-left-primary">
-             <view class="icon-box bg-orange-50 text-orange-600 relative">
-              <text class="material-symbols-outlined icon-lg">settings</text>
-              <view class="red-dot"></view>
-            </view>
-            <view class="flex flex-col flex-1 pl-4">
-              <view class="flex justify-between items-center">
-                <text class="font-bold text-on-surface text-base">系统维护公告</text>
-                <text class="text-xs text-secondary opacity-70">5小时前</text>
-              </view>
-              <text class="text-sm text-secondary mt-2 leading-relaxed">
-                Kinetic Logic will be down for scheduled maintenance tonight from <text class="font-bold text-on-surface">02:00 AM to 03:00 AM EST</text>.
-              </text>
-            </view>
-          </view>
-
-          <!-- Item 4: Premium Upgrade -->
-          <view class="premium-card shadow-md flex flex-row p-6 rounded-2xl relative overflow-hidden active-scale">
-            <!-- Background Decorative Elements -->
-            <view class="premium-bg-circle premium-bg-circle-1"></view>
-            <view class="premium-bg-circle premium-bg-circle-2"></view>
-            <view class="premium-bg-line premium-bg-line-1"></view>
-            <view class="premium-bg-line premium-bg-line-2"></view>
-            
-            <view class="flex flex-col flex-1 z-20">
-              <text class="text-primary text-xs-10 font-bold tracking-widest uppercase">高级会员特权</text>
-              <text class="text-xl font-bold text-white mt-2 leading-snug" style="width: 80%;">解锁下一场赛事的耐力数据分析报告</text>
-              <view class="mt-4">
-                <view class="inline-flex py-2 px-5 bg-white rounded-full active-scale" @tap="navigateTo('/pages/profile/member')">
-                  <text class="text-sm font-bold text-black">立即升级</text>
-                </view>
-              </view>
-            </view>
-          </view>
-
-          <!-- Item 5: Match Result -->
-          <view class="notice-card shadow-sm flex flex-row p-5 rounded-2xl bg-white relative overflow-hidden active-scale">
-             <view class="icon-box bg-gray-100 text-gray-500 relative">
-              <text class="material-symbols-outlined icon-lg">emoji_events</text>
-            </view>
-            <view class="flex flex-col flex-1 pl-4">
-              <view class="flex justify-between items-center">
-                <text class="font-bold text-on-surface text-base">比赛结果已发布</text>
-                <text class="text-xs text-secondary opacity-70">昨天</text>
-              </view>
-              <text class="text-sm text-secondary mt-2 leading-relaxed">
-                Your score against <text class="font-bold text-on-surface">Marcus J.</text> has been verified. Rank updated to <text class="font-bold text-primary">#14</text>.
-              </text>
-            </view>
-          </view>
-
-          <!-- Item 6: Security Alert -->
-          <view class="notice-card shadow-sm flex flex-row p-5 rounded-2xl bg-white relative overflow-hidden active-scale">
-             <view class="icon-box bg-gray-100 text-gray-500 relative">
-              <text class="material-symbols-outlined icon-lg">security</text>
-            </view>
-            <view class="flex flex-col flex-1 pl-4">
-              <view class="flex justify-between items-center">
-                <text class="font-bold text-on-surface text-base">安全警报</text>
-                <text class="text-xs text-secondary opacity-70">2天前</text>
-              </view>
-              <text class="text-sm text-secondary mt-2 leading-relaxed">
-                A new login was detected from <text class="font-bold text-on-surface">Chrome on MacOS (San Jose, CA)</text>.
+                {{ item.content }}
               </text>
             </view>
           </view>
@@ -152,7 +60,7 @@
 
         <!-- Bottom Load More -->
         <view class="py-8 flex justify-center">
-          <text class="text-xs text-secondary opacity-60 tracking-wider">加载历史通知</text>
+          <text class="text-xs text-secondary opacity-60 tracking-wider">{{ hasMore ? (loading ? '加载中...' : '上拉加载更多') : '没有更多了' }}</text>
         </view>
         
       </view>
@@ -164,11 +72,50 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { getNotificationList, type NotificationItem } from '@/api/notification'
+import { safeNavigateBack } from '@/utils/navigation'
 
 const statusBarHeight = ref(44)
-const activeTab = ref('all')
 const navBarMarginRight = ref(0) // right margin to avoid capsule
+const loading = ref(false)
+const page = ref(1)
+const size = ref(20)
+const total = ref(0)
+const list = ref<NotificationItem[]>([])
+
+const READ_IDS_KEY = 'notice_read_ids_v1'
+const readIds = ref<Set<number>>(new Set())
+
+function loadReadIds() {
+  try {
+    const raw = uni.getStorageSync(READ_IDS_KEY)
+    const arr = Array.isArray(raw) ? raw : []
+    readIds.value = new Set(arr.map((x: any) => Number(x)).filter((n: any) => Number.isFinite(n)))
+  } catch (e) {
+    readIds.value = new Set()
+  }
+}
+
+function persistReadIds() {
+  try {
+    uni.setStorageSync(READ_IDS_KEY, Array.from(readIds.value))
+  } catch (e) {
+    // ignore
+  }
+}
+
+function isRead(id: number) {
+  return readIds.value.has(Number(id))
+}
+
+function markRead(id: number) {
+  readIds.value.add(Number(id))
+  persistReadIds()
+}
+
+const hasMore = computed(() => list.value.length < total.value)
 
 onMounted(() => {
   const systemInfo = uni.getSystemInfoSync()
@@ -186,27 +133,73 @@ onMounted(() => {
     }
   } catch (e) {}
   // #endif
+
+  loadReadIds()
+  loadList(false)
 })
 
 const goBack = () => {
-  uni.navigateBack({
-    fail: () => {
-      uni.reLaunch({ url: '/pages/index/index' })
-    }
-  })
+  safeNavigateBack('/pages/index/index')
 }
 
-const navigateTo = (url: string) => {
-  if (url === '#') return
-  uni.navigateTo({ url })
+function formatTime(createTime?: string) {
+  return createTime ? String(createTime).slice(0, 16) : ''
 }
 
 const markAllAsRead = () => {
+  list.value.forEach((n) => {
+    if (n?.id != null) readIds.value.add(Number(n.id))
+  })
+  persistReadIds()
   uni.showToast({
     title: '已全部标为已读',
     icon: 'success'
   })
 }
+
+async function loadList(append: boolean) {
+  if (loading.value) return
+  loading.value = true
+  try {
+    const res = await getNotificationList({ page: page.value, size: size.value })
+    total.value = res.total || 0
+    if (append) {
+      list.value = list.value.concat(res.data || [])
+    } else {
+      list.value = res.data || []
+    }
+  } catch (e) {
+    console.error('加载通知失败:', e)
+    uni.showToast({ title: '加载通知失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+function loadMore() {
+  if (loading.value) return
+  if (!hasMore.value) return
+  page.value += 1
+  loadList(true)
+}
+
+function openDetail(item: NotificationItem) {
+  if (item?.id != null) {
+    markRead(item.id)
+  }
+  // P0：先仅弹窗查看内容，避免新增详情页路由
+  uni.showModal({
+    title: item.title || '通知',
+    content: item.content || '',
+    showCancel: false,
+    confirmText: '我知道了'
+  })
+}
+
+onPullDownRefresh(() => {
+  page.value = 1
+  loadList(false).finally(() => uni.stopPullDownRefresh())
+})
 </script>
 
 <style lang="scss" scoped>
