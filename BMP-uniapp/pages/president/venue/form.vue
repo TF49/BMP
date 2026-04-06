@@ -33,11 +33,21 @@
                 <input 
                   v-model="form.address" 
                   class="field-input pr-80" 
-                  placeholder="选择或输入场馆地址" 
+                  placeholder="选点或定位后自动填入" 
                   placeholder-class="kinetic-placeholder"
                   disabled
                 />
                 <uni-icons type="location-filled" size="22" color="#ff6600" class="group-icon"></uni-icons>
+              </view>
+              <view class="addr-toolbar">
+                <view class="addr-tool" @click.stop="onChooseLocation">地图选点</view>
+                <view
+                  class="addr-tool addr-tool--primary"
+                  :class="{ 'addr-tool--disabled': locating }"
+                  @click.stop="onUseCurrentLocation"
+                >
+                  {{ locating ? '定位中…' : '定位当前' }}
+                </view>
               </view>
             </view>
             
@@ -170,20 +180,25 @@
           </view>
         </view>
 
-        <!-- Map Preview -->
-        <view class="map-card" @click="onChooseLocation">
-          <image 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkjoybV9TCjLCnKoofY0yHK5EqrDAxBDwq2iYfWWPcrxk9fshKtL0Gik-k8ezRsP_GCjZ57QevUJp3wi66FqUqvXDcFqLErXrxwRvBb9v3Cd-1ntz62CMR8bRmWjdamDpx6MoomX6UgkzO-vsERgGy_p17zbRMlgrjoxEC_nyrDYGM8PEszpHFQQ5AmB3UYbtAdq4_JdrgTy39tHmCmVhDC8V-oXMZXeDkN65pR2CI4UgI9PDGzOZFpUgpwFknZh8LUqAsC_srqY_d" 
-            mode="aspectFill" 
-            class="map-image"
-          ></image>
+        <!-- Map Preview：有坐标时展示真实地图，否则用占位图 -->
+        <view class="map-card">
+          <map
+            v-if="hasMapCenter && mapLatitude != null && mapLongitude != null"
+            class="map-real"
+            :latitude="mapLatitude"
+            :longitude="mapLongitude"
+            :markers="mapMarkers"
+            :scale="16"
+            :show-location="false"
+          />
+          <view v-else class="map-placeholder" />
           <view class="map-gradient"></view>
           <view class="map-content">
             <view class="map-meta">
               <text class="meta-label">地图定位</text>
               <text class="meta-value">{{ form.address || '尚未选择场馆地址' }}</text>
             </view>
-            <view class="map-btn">
+            <view class="map-btn" @click.stop="onChooseLocation">
               <uni-icons type="expand-filled" size="18" color="#ffffff"></uni-icons>
             </view>
           </view>
@@ -213,9 +228,24 @@
 import { ref, computed, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getVenueInfo, addVenue, updateVenue } from '@/api/president/venue'
+import { reverseGeocode } from '@/api/map'
 import { VENUE_STATUS } from '@/utils/constant'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
 import { safeNavigateBack } from '@/utils/navigation'
+
+type VenueStatus = (typeof VENUE_STATUS)[keyof typeof VENUE_STATUS]
+
+type VenueFormState = {
+  venueName: string
+  address: string
+  contactPerson: string
+  contactPhone: string
+  businessHours: string
+  description: string
+  status: VenueStatus
+  hourlyPrice: number
+  venueImage: string
+}
 
 // --- State & Computed ---
 const id = computed(() => {
@@ -230,8 +260,32 @@ const startTime = ref('08:00')
 const endTime = ref('22:00')
 const venuePreview = ref('')
 const tempImagePath = ref('')
+const locating = ref(false)
+const mapLatitude = ref<number | null>(null)
+const mapLongitude = ref<number | null>(null)
 
-const form = ref({
+const ADDRESS_MAX = 200
+
+const hasMapCenter = computed(
+  () => mapLatitude.value != null && mapLongitude.value != null
+)
+
+const mapMarkers = computed(() => {
+  if (mapLatitude.value == null || mapLongitude.value == null) return []
+  return [
+    {
+      id: 1,
+      latitude: mapLatitude.value,
+      longitude: mapLongitude.value,
+      iconPath: '/static/map-pin.png',
+      width: 28,
+      height: 28,
+      anchor: { x: 0.5, y: 1 }
+    }
+  ]
+})
+
+const form = ref<VenueFormState>({
   venueName: '',
   address: '',
   contactPerson: '',
@@ -266,13 +320,73 @@ function updateBusinessHours() {
   form.value.businessHours = `${startTime.value}-${endTime.value}`
 }
 
+function formatAddressLine(address: string, name?: string | null) {
+  const line = address + (name ? `(${name})` : '')
+  return line.length > ADDRESS_MAX ? line.slice(0, ADDRESS_MAX) : line
+}
+
+function applyGeoResult(data: { address: string; title?: string | null; latitude: number; longitude: number }) {
+  form.value.address = formatAddressLine(data.address, data.title ?? undefined)
+  mapLatitude.value = data.latitude
+  mapLongitude.value = data.longitude
+}
+
 function onChooseLocation() {
   uni.chooseLocation({
     success: (res) => {
-      form.value.address = res.address + (res.name ? `(${res.name})` : '')
+      form.value.address = formatAddressLine(res.address, res.name)
+      mapLatitude.value = res.latitude
+      mapLongitude.value = res.longitude
     },
     fail: (err) => {
+      const msg = (err as any)?.errMsg || ''
+      if (msg.includes('cancel')) return
       console.error('选择位置失败', err)
+      if (!msg.includes('fail auth deny')) {
+        uni.showToast({ title: '打开地图选点失败', icon: 'none' })
+      }
+    }
+  })
+}
+
+function onUseCurrentLocation() {
+  if (locating.value) return
+  locating.value = true
+  uni.showLoading({ title: '定位中...' })
+  uni.getLocation({
+    type: 'gcj02',
+    isHighAccuracy: true,
+    success: async (loc) => {
+      try {
+        const data = await reverseGeocode(loc.latitude, loc.longitude)
+        applyGeoResult(data)
+        uni.showToast({ title: '已填入当前位置', icon: 'success' })
+      } catch {
+        // request 内已对业务/网络错误弹出提示
+      } finally {
+        uni.hideLoading()
+        locating.value = false
+      }
+    },
+    fail: (err) => {
+      uni.hideLoading()
+      locating.value = false
+      const msg = (err as any)?.errMsg || ''
+      if (msg.includes('requiredPrivateInfos')) {
+        uni.showToast({
+          title: '请重新编译小程序并勾选「地理位置」隐私协议',
+          icon: 'none',
+          duration: 3500
+        })
+        console.warn('getLocation: 请在 manifest 的 requiredPrivateInfos 中声明 getLocation 后重新编译')
+        return
+      }
+      console.error('getLocation fail', err)
+      if (msg.includes('auth deny')) {
+        uni.showToast({ title: '请在设置中允许位置权限', icon: 'none' })
+      } else {
+        uni.showToast({ title: '获取定位失败', icon: 'none' })
+      }
     }
   })
 }
@@ -610,10 +724,44 @@ async function onSubmit() {
   box-shadow: 0 20rpx 50rpx -15rpx rgba(0, 0, 0, 0.15);
 }
 
-.map-image {
+.map-real {
   width: 100%;
   height: 100%;
-  filter: grayscale(0.8) brightness(0.9);
+  display: block;
+}
+
+.map-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #dfe6ef 0%, #c5d0e0 45%, #e8edf4 100%);
+}
+
+.addr-toolbar {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+.addr-tool {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #5f5e5e;
+  background-color: #f3f3f3;
+  border-radius: 16rpx;
+}
+
+.addr-tool--primary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  box-shadow: 0 8rpx 20rpx rgba(255, 102, 0, 0.2);
+}
+
+.addr-tool--disabled {
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .map-gradient {

@@ -17,6 +17,7 @@ import { ref, onMounted } from 'vue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
 interface Props {
   title: string
@@ -30,7 +31,7 @@ withDefaults(defineProps<Props>(), {
 const statusBarHeight = ref(0)
 
 onMounted(() => {
-  const systemInfo = uni.getSystemInfoSync()
+  const systemInfo = getSafeSystemInfo()
   statusBarHeight.value = systemInfo.statusBarHeight || 0
 })
 

@@ -389,10 +389,12 @@ const handleSubmit = async () => {
     }
 
     const isPresident = isPresidentRole(userStore.userInfo?.role)
-    const targetUrl = isPresident ? '/pages/president/booking/confirm' : '/pages/booking/confirm'
+    const returnUrl = isPresident
+      ? `/pages/president/venue/detail?id=${venueId.value}`
+      : '/pages/booking/list'
 
     uni.navigateTo({
-      url: `${targetUrl}?data=${encodeURIComponent(JSON.stringify(bookingSummary))}`
+      url: `/pages/booking/confirm?data=${encodeURIComponent(JSON.stringify(bookingSummary))}&returnUrl=${encodeURIComponent(returnUrl)}`
     })
   } catch (e: any) {
     uni.hideLoading()

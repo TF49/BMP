@@ -1,3 +1,4 @@
+import { installShowToastSanitizer } from './utils/mp-weixin-showToast-patch'
 import { createSSRApp } from 'vue'
 import App from './App.vue'
 import { createPinia } from 'pinia'
@@ -116,13 +117,19 @@ if (typeof globalThis !== 'undefined') {
 
 export function createApp() {
   const app = createSSRApp(App)
+
   const pinia = createPinia()
   app.use(pinia)
   app.use(uviewPlus)
-  
+
+  // #ifdef MP-WEIXIN
+  // 模块首行已 patch 一次；插件安装后若替换了 uni API，再包一层
+  installShowToastSanitizer()
+  // #endif
+
   // 在应用初始化后再次尝试禁用日志（双保险）
   app.config.globalProperties.$disableLogging = true
-  
+
   return {
     app,
     pinia

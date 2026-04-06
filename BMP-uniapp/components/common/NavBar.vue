@@ -15,6 +15,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
 interface Props {
   title: string
@@ -28,7 +29,7 @@ const props = withDefaults(defineProps<Props>(), {
 const statusBarHeight = ref(0)
 
 onMounted(() => {
-  const systemInfo = uni.getSystemInfoSync()
+  const systemInfo = getSafeSystemInfo()
   statusBarHeight.value = systemInfo.statusBarHeight || 0
 })
 

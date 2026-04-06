@@ -9,6 +9,24 @@ interface RequestOptions {
   needAuth?: boolean
 }
 
+function sanitizeRequestData<T>(payload: T): T {
+  if (payload === undefined) return undefined as T
+  if (payload === null) return payload
+  if (Array.isArray(payload)) {
+    return payload
+      .map((item) => sanitizeRequestData(item))
+      .filter((item) => item !== undefined) as T
+  }
+  if (typeof payload === 'object') {
+    return Object.fromEntries(
+      Object.entries(payload as Record<string, unknown>)
+        .map(([key, value]) => [key, sanitizeRequestData(value)])
+        .filter(([, value]) => value !== undefined)
+    ) as T
+  }
+  return payload
+}
+
 /**
  * 判断是否是认证相关接口（登录/注册等），这些接口不需要token，也不应该自动跳转
  */
@@ -42,7 +60,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
     uni.request({
       url: API_BASE_URL + options.url,
       method: options.method || 'GET',
-      data: options.data,
+      data: sanitizeRequestData(options.data),
       header,
       success: (res) => {
         const { statusCode, data } = res

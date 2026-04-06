@@ -135,20 +135,6 @@
       }
     },
     {
-      "path": "pages/president/booking/list",
-      "style": {
-        "navigationBarTitleText": "预约管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/president/booking/detail",
-      "style": {
-        "navigationBarTitleText": "预约详情",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/president/profile/index",
       "style": {
         "navigationBarTitleText": "我的",

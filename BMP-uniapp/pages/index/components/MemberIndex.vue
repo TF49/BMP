@@ -129,7 +129,7 @@
           <view class="flex flex-col gap-4">
             <!-- Large Feature Card -->
             <view class="relative h-64 rounded-xl overflow-hidden group shadow-md bg-gray-900 group-hover-scale" @tap="navigateTo('/pages/insights/detail')">
-              <image class="absolute inset-0 w-full h-full object-cover transition-transform duration-700" mode="aspectFill" src="/static/placeholders/hero.svg" />
+              <image class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover-image" mode="aspectFill" src="/static/placeholders/hero.svg" />
               <view class="absolute inset-0 bg-gradient-to-t flex flex-col justify-end p-6">
                 <text class="bg-primary px-2 py-1 text-xs-8 font-bold text-white rounded w-fit mb-2">热门话题</text>
                 <text class="text-white text-xl font-bold block">夏季羽毛球公开赛现已开启报名</text>
@@ -174,12 +174,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
 const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
 
 onMounted(() => {
-  const systemInfo = uni.getSystemInfoSync()
+  const systemInfo = getSafeSystemInfo()
   statusBarHeight.value = systemInfo.statusBarHeight || 44
   
   // #ifdef MP
@@ -372,9 +373,9 @@ const navigateTo = (url: string) => {
 .scale-95 { transform: scale(0.95); }
 .hover-scale { transition: transform 0.3s; &:active { transform: scale(0.98); } }
 .hover-scale-102 { transition: transform 0.3s; &:active { transform: scale(1.02); } }
+.group-hover-image { transition: transform 0.7s; }
 .group-hover-scale {
-  image { transition: transform 0.7s; }
-  &:active image { transform: scale(1.1); }
+  &:active .group-hover-image { transform: scale(1.1); }
 }
 
 .icon-9xl { font-size: 140px; }

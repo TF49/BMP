@@ -121,9 +121,23 @@
       }
     },
     {
+      "path": "pages/president/court/list",
+      "style": {
+        "navigationBarTitleText": "场地管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/finance/list",
       "style": {
-        "navigationBarTitleText": "财务管理",
+        "navigationBarTitleText": "财务列表",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/finance/statistics",
+      "style": {
+        "navigationBarTitleText": "财务数据",
         "navigationStyle": "custom"
       }
     },
@@ -138,27 +152,6 @@
       "path": "pages/president/finance/reconciliation",
       "style": {
         "navigationBarTitleText": "全面对账",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/president/booking/list",
-      "style": {
-        "navigationBarTitleText": "预约管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/president/booking/confirm",
-      "style": {
-        "navigationBarTitleText": "确认订单",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/president/booking/detail",
-      "style": {
-        "navigationBarTitleText": "预约详情",
         "navigationStyle": "custom"
       }
     },
@@ -180,6 +173,34 @@
       "path": "pages/president/member/list",
       "style": {
         "navigationBarTitleText": "会员管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/coach/list",
+      "style": {
+        "navigationBarTitleText": "教练管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/course/list",
+      "style": {
+        "navigationBarTitleText": "课程管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/equipment/list",
+      "style": {
+        "navigationBarTitleText": "器材管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/tournament/list",
+      "style": {
+        "navigationBarTitleText": "赛事管理",
         "navigationStyle": "custom"
       }
     },
@@ -419,6 +440,13 @@
       "path": "pages/stringing/query",
       "style": {
         "navigationBarTitleText": "服务查询",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/detail",
+      "style": {
+        "navigationBarTitleText": "教练详情",
         "navigationStyle": "custom"
       }
     }

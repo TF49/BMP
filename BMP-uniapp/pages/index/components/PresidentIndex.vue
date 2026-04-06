@@ -154,6 +154,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
 const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
@@ -172,7 +173,7 @@ const onImgError = (tag: string, e: ImgErrEvent) => {
 }
 
 onMounted(() => {
-  const systemInfo = uni.getSystemInfoSync()
+  const systemInfo = getSafeSystemInfo()
   statusBarHeight.value = systemInfo.statusBarHeight || 44
   const uniPlatform = typeof process !== 'undefined' && (process as any)?.env ? (process as any).env.UNI_PLATFORM : 'unknown'
   

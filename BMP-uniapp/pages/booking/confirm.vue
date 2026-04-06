@@ -52,8 +52,12 @@
       <!-- Payment Method Selection -->
       <view class="mb-10">
         <view class="flex flex-row items-center justify-between mb-4 px-1">
-          <text class="text-[11px] font-black uppercase tracking-[0.15em] text-secondary/70">选择支付方式</text>
-          <text class="text-[10px] text-primary font-bold">安全加密支付</text>
+          <text class="text-[11px] font-black uppercase tracking-[0.15em] text-secondary/70">
+            {{ isPresidentFlow ? '确认结算方式' : '选择支付方式' }}
+          </text>
+          <text class="text-[10px] text-primary font-bold">
+            {{ isPresidentFlow ? '管理权限确认' : '安全加密支付' }}
+          </text>
         </view>
         <view class="space-y-3">
           <!-- Balance Payment -->
@@ -67,10 +71,14 @@
                 <uni-icons type="wallet-filled" size="24" color="#FF6600"></uni-icons>
               </view>
               <view>
-                <text class="font-bold text-on-surface text-base block">余额支付</text>
+                <text class="font-bold text-on-surface text-base block">
+                  {{ isPresidentFlow ? '会员余额代扣' : '余额支付' }}
+                </text>
                 <view class="flex flex-row items-center">
-                  <text class="text-[11px] text-secondary font-medium">可用余额: </text>
-                  <text class="text-[11px] text-primary font-bold ml-1">¥1,240.50</text>
+                  <text class="text-[11px] text-secondary font-medium">
+                    {{ isPresidentFlow ? '会员可用: ' : '可用余额: ' }}
+                  </text>
+                  <text class="text-[11px] text-primary font-bold ml-1">{{ balanceLabel }}</text>
                 </view>
               </view>
             </view>
@@ -78,8 +86,9 @@
             <view v-else class="w-6 h-6 rounded-full border-2 border-neutral-200 shrink-0"></view>
           </view>
 
-          <!-- WeChat Pay -->
+          <!-- User Payment -->
           <view 
+            v-if="!isPresidentFlow"
             class="payment-option p-5 rounded-2xl flex flex-row items-center justify-between border-2 transition-all"
             :class="selectedPayment === 'wechat' ? 'border-primary bg-white shadow-lg shadow-primary/5' : 'border-transparent bg-white card-glow'"
             @tap="selectedPayment = 'wechat'"
@@ -94,8 +103,9 @@
             <view v-else class="w-6 h-6 rounded-full border-2 border-neutral-200 shrink-0"></view>
           </view>
 
-          <!-- Alipay -->
+          <!-- User Payment -->
           <view 
+            v-if="!isPresidentFlow"
             class="payment-option p-5 rounded-2xl flex flex-row items-center justify-between border-2 transition-all"
             :class="selectedPayment === 'alipay' ? 'border-primary bg-white shadow-lg shadow-primary/5' : 'border-transparent bg-white card-glow'"
             @tap="selectedPayment = 'alipay'"
@@ -107,6 +117,23 @@
               <text class="font-bold text-on-surface text-base">支付宝</text>
             </view>
             <uni-icons v-if="selectedPayment === 'alipay'" type="checkbox-filled" size="24" color="#FF6600"></uni-icons>
+            <view v-else class="w-6 h-6 rounded-full border-2 border-neutral-200 shrink-0"></view>
+          </view>
+
+          <!-- President Payment -->
+          <view 
+            v-if="isPresidentFlow"
+            class="payment-option p-5 rounded-2xl flex flex-row items-center justify-between border-2 transition-all"
+            :class="selectedPayment === 'offline' ? 'border-primary bg-white shadow-lg shadow-primary/5' : 'border-transparent bg-white card-glow'"
+            @tap="selectedPayment = 'offline'"
+          >
+            <view class="flex flex-row items-center gap-4">
+              <view class="w-12 h-12 rounded-xl bg-neutral-50 flex items-center justify-center shrink-0">
+                <uni-icons type="paperplane-filled" size="24" color="#5f5e5e"></uni-icons>
+              </view>
+              <text class="font-bold text-on-surface text-base">线下/免额登记</text>
+            </view>
+            <uni-icons v-if="selectedPayment === 'offline'" type="checkbox-filled" size="24" color="#FF6600"></uni-icons>
             <view v-else class="w-6 h-6 rounded-full border-2 border-neutral-200 shrink-0"></view>
           </view>
         </view>
@@ -122,9 +149,11 @@
           </view>
           <view class="flex flex-row justify-between items-center text-primary">
             <view class="flex flex-row items-center gap-2">
-              <text class="text-sm font-medium">会员折扣</text>
+              <text class="text-sm font-medium">{{ isPresidentFlow ? '后台调价 / 折扣' : '会员折扣' }}</text>
               <view class="bg-primary-10 px-2 py-0.5 rounded ml-1">
-                <text class="text-[10px] italic font-black uppercase text-primary">GOLD VIP</text>
+                <text class="text-[10px] italic font-black uppercase text-primary">
+                  {{ isPresidentFlow ? 'ADMIN OVERRIDE' : 'GOLD VIP' }}
+                </text>
               </view>
             </view>
             <text class="font-black">-¥{{ bookingInfo.vipDiscount.toFixed(2) }}</text>
@@ -143,7 +172,7 @@
       </view>
 
       <!-- Terms Agreement -->
-      <view class="flex flex-row items-start gap-3 px-2 mt-8 mb-4">
+      <view v-if="!isPresidentFlow" class="flex flex-row items-start gap-3 px-2 mt-8 mb-4">
         <view class="mt-0.5 flex flex-row items-center justify-center shrink-0" @tap="agreed = !agreed">
           <uni-icons :type="agreed ? 'checkbox-filled' : 'circle'" size="20" :color="agreed ? '#FF6600' : '#d1d5db'"></uni-icons>
         </view>
@@ -153,6 +182,16 @@
             <text class="text-primary font-bold decoration-primary/30 underline" @tap.stop="openRule('venue')">《场馆预约规则》</text>
             及
             <text class="text-primary font-bold decoration-primary/30 underline" @tap.stop="openRule('cancel')">《取消政策》</text>
+          </text>
+        </view>
+      </view>
+      <view v-else class="flex flex-row items-start gap-3 px-2 mt-8 mb-4">
+        <view class="mt-0.5 flex flex-row items-center justify-center shrink-0">
+          <uni-icons type="checkbox-filled" size="20" color="#FF6600"></uni-icons>
+        </view>
+        <view class="flex-1">
+          <text class="text-[13px] text-secondary leading-snug font-medium">
+            管理员确认：该笔预约由会长审核并处理，按场馆管理链路返回。
           </text>
         </view>
       </view>
@@ -168,12 +207,16 @@
         </view>
         <button 
           class="flex-1 bg-primary text-white rounded-2xl py-3 energy-shadow flex flex-col items-center justify-center overflow-hidden relative transition-all"
-          :class="{'opacity-50 grayscale': !agreed}"
+          :class="{'opacity-50 grayscale': !isPresidentFlow && !agreed}"
           @tap="handlePayment"
         >
           <view class="absolute inset-0 bg-white-10 opacity-0 active-opacity-20 transition-opacity"></view>
-          <text class="font-headline font-black text-base uppercase tracking-widest leading-none block">立即支付</text>
-          <text class="text-[9px] font-bold opacity-80 mt-1 uppercase tracking-tighter block">SECURE CHECKOUT • ¥{{ bookingInfo.payableAmount.toFixed(2) }}</text>
+          <text class="font-headline font-black text-base uppercase tracking-widest leading-none block">
+            {{ isPresidentFlow ? '确认并结算' : '立即支付' }}
+          </text>
+          <text class="text-[9px] font-bold opacity-80 mt-1 uppercase tracking-tighter block">
+            {{ isPresidentFlow ? 'ADMIN CHECKOUT' : 'SECURE CHECKOUT' }} • ¥{{ bookingInfo.payableAmount.toFixed(2) }}
+          </text>
         </button>
       </view>
     </view>
@@ -194,9 +237,19 @@ const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
 const selectedPayment = ref('balance')
 const agreed = ref(false)
+const returnUrl = ref('/pages/booking/list')
+const isPresidentFlow = computed(() => returnUrl.value.includes('/pages/president/'))
 
 const scrollHeight = computed(() => {
   return `calc(100vh - ${statusBarHeight.value + 60}px)`
+})
+
+const balanceLabel = computed(() => {
+  const raw = (bookingInfo.value as any).memberBalance
+  if (raw !== undefined && raw !== null && raw !== '') {
+    return `¥${raw}`
+  }
+  return '¥1,240.50'
 })
 
 const bookingInfo = ref({
@@ -219,6 +272,10 @@ onLoad((options: any = {}) => {
       console.error('Parse booking data error:', e)
     }
   }
+
+  if (options.returnUrl) {
+    returnUrl.value = decodeURIComponent(options.returnUrl)
+  }
 })
 
 onMounted(() => {
@@ -236,7 +293,7 @@ onMounted(() => {
 })
 
 const goBack = () => {
-  safeNavigateBack('/pages/index/index')
+  safeNavigateBack(returnUrl.value)
 }
 
 const openRule = (type: string) => {
@@ -256,7 +313,7 @@ const showDetails = () => {
 }
 
 const handlePayment = () => {
-  if (!agreed.value) {
+  if (!isPresidentFlow.value && !agreed.value) {
     uni.showToast({ title: '请先阅读并同意相关规则', icon: 'none' })
     return
   }
@@ -266,7 +323,7 @@ const handlePayment = () => {
     uni.hideLoading()
     uni.showToast({ title: '支付成功', icon: 'success' })
     setTimeout(() => {
-      uni.reLaunch({ url: '/pages/booking/list' })
+      uni.reLaunch({ url: returnUrl.value })
     }, 1500)
   }, 2000)
 }
@@ -476,4 +533,3 @@ const handlePayment = () => {
 
 .pb-48 { padding-bottom: 300rpx; }
 </style>
-

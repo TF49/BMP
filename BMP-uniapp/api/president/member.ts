@@ -37,5 +37,10 @@ export function getMemberList(params?: {
   page?: number
   size?: number
 }) {
-  return get<MemberListResult>('/member/list', params || {})
+  const sanitizedParams = params
+    ? Object.fromEntries(
+        Object.entries(params).filter(([, value]) => value !== undefined && value !== null)
+      )
+    : {}
+  return get<MemberListResult>('/member/list', sanitizedParams)
 }

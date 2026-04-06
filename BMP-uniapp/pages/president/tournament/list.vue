@@ -1,0 +1,851 @@
+<template>
+  <PresidentLayout :showTabBar="true">
+    <view class="tournament-page">
+      <view class="status-bar-placeholder"></view>
+
+      <!-- TopAppBar -->
+      <view class="nav-header">
+        <view class="nav-row">
+          <view class="nav-left" @click="goBack">
+            <view class="back-btn">
+              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+            </view>
+            <view class="brand-wrap">
+              <text class="brand-name">Kinetic Logic</text>
+            </view>
+          </view>
+          <view class="nav-right">
+            <view class="icon-btn" @click="handleSearch">
+              <uni-icons type="search" size="22" color="#71717a"></uni-icons>
+            </view>
+            <view class="icon-btn" @click="handleSettings">
+              <uni-icons type="gear" size="22" color="#71717a"></uni-icons>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="main-content">
+        <!-- Hero Section -->
+        <view class="hero-section">
+          <view class="hero-text">
+            <text class="hero-title">赛事管理</text>
+            <text class="hero-subtitle">TOURNAMENT CONTROL CENTER</text>
+          </view>
+          <view class="create-btn" @click="handleCreate">
+            <uni-icons type="plusempty" size="20" color="#561d00"></uni-icons>
+            <text class="create-btn-text">创建赛事</text>
+          </view>
+        </view>
+
+        <!-- Bento Stats Grid -->
+        <view class="stats-grid">
+          <!-- Active -->
+          <view class="stat-card primary-border">
+            <view class="stat-card-top">
+              <text class="stat-icon-text material-icon">rocket_launch</text>
+              <view class="stat-badge active-badge">
+                <text class="stat-badge-text">Active</text>
+              </view>
+            </view>
+            <text class="stat-number">04</text>
+            <text class="stat-label">进行中的赛事</text>
+          </view>
+
+          <!-- Total Participants -->
+          <view class="stat-card tertiary-border">
+            <view class="stat-card-top">
+              <text class="stat-icon-text material-icon tertiary-icon">groups</text>
+            </view>
+            <text class="stat-number">1,284</text>
+            <text class="stat-label">总参赛人数</text>
+          </view>
+
+          <!-- Completed -->
+          <view class="stat-card secondary-border">
+            <view class="stat-card-top">
+              <text class="stat-icon-text material-icon secondary-icon">emoji_events</text>
+            </view>
+            <text class="stat-number">12</text>
+            <text class="stat-label">本年度已完成</text>
+            <text class="deco-icon material-icon">workspace_premium</text>
+          </view>
+        </view>
+
+        <!-- Filter Tabs -->
+        <view class="filter-tabs">
+          <view
+            class="tab-item"
+            :class="{ active: currentTab === 0 }"
+            @click="currentTab = 0"
+          >全部赛事</view>
+          <view
+            class="tab-item"
+            :class="{ active: currentTab === 1 }"
+            @click="currentTab = 1"
+          >报名中</view>
+          <view
+            class="tab-item"
+            :class="{ active: currentTab === 2 }"
+            @click="currentTab = 2"
+          >进行中</view>
+          <view
+            class="tab-item"
+            :class="{ active: currentTab === 3 }"
+            @click="currentTab = 3"
+          >已结束</view>
+        </view>
+
+        <!-- Tournament Cards List -->
+        <view class="cards-list">
+          <view
+            v-for="(t, index) in filteredTournaments"
+            :key="t.id"
+            class="tournament-card"
+            :class="{ ended: t.status === 'ended' }"
+            @click="handleCardClick(t)"
+          >
+            <view class="card-image-wrap">
+              <image class="card-image" :src="t.image" mode="aspectFill"></image>
+            </view>
+            <view class="card-body">
+              <view class="card-header-row">
+                <view class="status-badge" :class="t.status">
+                  <text class="status-text">{{ statusLabel(t.status) }}</text>
+                </view>
+                <text class="category-text">{{ t.category }}</text>
+              </view>
+
+              <text class="card-title">{{ t.name }}</text>
+              <view class="location-row">
+                <uni-icons type="location" size="14" color="#5f5e5e"></uni-icons>
+                <text class="location-text">{{ t.location }}</text>
+              </view>
+
+              <!-- Status-specific content -->
+              <!-- Registration open -->
+              <view v-if="t.status === 'registration'" class="card-detail">
+                <view class="progress-bar-wrap">
+                  <view class="progress-bar-bg">
+                    <view class="progress-bar-fill" :style="{ width: ((t.registered ?? 0) / (t.capacity ?? 1) * 100) + '%' }"></view>
+                  </view>
+                </view>
+                <view class="card-stats-row">
+                  <view>
+                    <text class="stats-label">报名人数</text>
+                    <text class="stats-value-primary">{{ t.registered }} <text class="stats-value-muted">/ {{ t.capacity }}</text></text>
+                  </view>
+                  <view class="right-align">
+                    <text class="stats-label">截止日期</text>
+                    <text class="stats-value">{{ t.deadline }}</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- Ongoing -->
+              <view v-else-if="t.status === 'ongoing'" class="card-detail">
+                <view class="ongoing-status-row">
+                  <view class="ongoing-left">
+                    <view class="pulse-dot"></view>
+                    <text class="ongoing-round-text">当前场次: {{ t.currentRound }}</text>
+                  </view>
+                  <uni-icons type="arrowright" size="14" color="#5f5e5e"></uni-icons>
+                </view>
+                <view class="card-stats-row">
+                  <view>
+                    <text class="stats-label">总参赛数</text>
+                    <text class="stats-value">{{ t.totalPlayers }}</text>
+                  </view>
+                  <view class="right-align">
+                    <text class="stats-label">预计结束</text>
+                    <text class="stats-value">{{ t.endTime }}</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- Ended -->
+              <view v-else-if="t.status === 'ended'" class="card-detail">
+                <view class="ended-row">
+                  <view class="champion-avatars">
+                    <view class="champion-item">
+                      <text class="stats-label ended-label">冠军</text>
+                      <text class="champion-name">{{ t.champion }}</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+
+              <!-- Draft/Upcoming -->
+              <view v-else-if="t.status === 'draft'" class="card-detail">
+                <view class="draft-row">
+                  <view class="edit-link" @click.stop="handleEdit(t)">
+                    <text class="edit-link-text">继续编辑资料</text>
+                    <uni-icons type="compose" size="14" color="#a33e00"></uni-icons>
+                  </view>
+                  <view class="right-align">
+                    <text class="stats-label">计划时间</text>
+                    <text class="stats-value">{{ t.plannedDate }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- FAB -->
+      <view class="fab-btn" @click="handleCreate">
+        <uni-icons type="plusempty" size="30" color="#ffffff"></uni-icons>
+      </view>
+    </view>
+  </PresidentLayout>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import { safeNavigateBack } from '@/utils/navigation'
+import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+
+const currentTab = ref(0)
+
+type TournamentStatus = 'registration' | 'ongoing' | 'ended' | 'draft'
+
+interface Tournament {
+  id: number
+  name: string
+  status: TournamentStatus
+  category: string
+  location: string
+  image: string
+  registered?: number
+  capacity?: number
+  deadline?: string
+  currentRound?: string
+  totalPlayers?: number
+  endTime?: string
+  champion?: string
+  plannedDate?: string
+}
+
+const tournaments = ref<Tournament[]>([
+  {
+    id: 1,
+    name: '2024 夏季精英挑战赛',
+    status: 'registration',
+    category: '单打 / 双打',
+    location: '北京国家体育馆',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAHQBMrX2QDYyNvqY7NrBMKlxFnAYAuoMimCSR6WyksMH7or8Kcgr2lhXj2SyNQvPPYyXSztlwJlJFrRJ7kedKYHNG1ncMwJdenvsmfflsdk-KGad0NKZ3y-A7-M5lN4WGeD7lr0NB4IFAPf9K13l3McVI5Jrd3BPCtc8Zi4QPGS5Rvq1BG5TBtQwrQH30Oq5CfqLHSxnj1wVtR1aYTWQm342E1DMQgeVk2Fl4bjJoasg2kAeJFlw1JoZ7jlIe80kNBobNjffMJIeNV',
+    registered: 24,
+    capacity: 32,
+    deadline: '08月20日'
+  },
+  {
+    id: 2,
+    name: '城市之光锦标赛',
+    status: 'ongoing',
+    category: '混合双打',
+    location: '上海旗忠网球中心',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBBEkDdXmV58bCfN0gbZNYuZdWCxEoaczgrl9Gy4yJbLFEmEWNlEF-EWkk03Ztj8rhGlLySGz4ssr5UUY-f83XiLaFMveeVeR2nezXzORa-gNAsudGxF75CWx0DC9rxVCNcEKOW6t2HnS4-WY1bzANv7JTk1nl_XJ53Uc1zKKUDC8w_yYLbQ7Qj9kp9MIUZTS6mcnKVsapkJ9_TNRkUL9dNRnu6Z9eX0Z8PqCptdCfKeT5I6XyMKKKn2P7u-bdGEIl_Gw1rELFEA5Kh',
+    currentRound: '1/4 决赛',
+    totalPlayers: 64,
+    endTime: '今日 18:00'
+  },
+  {
+    id: 3,
+    name: '春季公开赛',
+    status: 'ended',
+    category: '单打',
+    location: '深圳大运中心',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCPIa6Tremvwe2ekZVPBJ_4yHMA1RJT6ChZ_vCUe99gQ-e5Dg50xgd5kbi8795oYtjJ4lP2P-miGQSePX3mq4kDJu1P9Mkd9_tM0cU-ur_oOajR6ydg1H9ZkJOkUD7Ki2wrGuD6o_CXnNQrBgU2eCwx6THGVIuDjsVA6PbzrdhEO4jt8Vrc0DAs_MlILVAP9ITT81dwR3Wh-SijhQEYTjOUsKMu21RyAJ-TwbUctdpYvY_4mx9V9S75IL3QOf9bETPn3XBcLYwA_U9',
+    champion: '陈伟宏'
+  },
+  {
+    id: 4,
+    name: '年度总决赛',
+    status: 'draft',
+    category: '全项目',
+    location: '广州天河体育中心',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-MnG0ZxNrGvdnmBVE_ctrZLk1ENMBlb3szH4IuHVNX1mA_aRLcFgOxkivj2fWaspIzqu3hc8Tf3RJn0YfAZ0sIRn83fK8KLlOSuic3A-dwGMx_DgXTzlt8q01iZTYTiKAUC8kHK20tRIQWTUbQ5Gm6rHBjnY2et9nxvyatPHsK4yhZ9BKX5rjcKmIhPxS-fdiDoggUIMz5aTOdkDTPx-YHkel6pwsCEFfeMkzNeU0mO8Msnz47Jx68t1UKh6aI-LEzvMs18IC_U62',
+    plannedDate: '12月15日'
+  }
+])
+
+const filteredTournaments = computed(() => {
+  if (currentTab.value === 0) return tournaments.value
+  const map: Record<number, TournamentStatus> = {
+    1: 'registration',
+    2: 'ongoing',
+    3: 'ended'
+  }
+  const target = map[currentTab.value]
+  if (!target) return tournaments.value
+  return tournaments.value.filter(t => t.status === target)
+})
+
+function statusLabel(status: TournamentStatus) {
+  const map: Record<TournamentStatus, string> = {
+    registration: '报名中',
+    ongoing: '进行中',
+    ended: '已结束',
+    draft: '筹备中'
+  }
+  return map[status] || status
+}
+
+function goBack() {
+  safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
+}
+
+function handleSearch() {
+  uni.showToast({ title: '搜索功能开发中', icon: 'none' })
+}
+
+function handleSettings() {
+  uni.showToast({ title: '设置功能开发中', icon: 'none' })
+}
+
+function handleCreate() {
+  uni.showToast({ title: '创建赛事功能开发中', icon: 'none' })
+}
+
+function handleCardClick(t: Tournament) {
+  uni.showToast({ title: `查看：${t.name}`, icon: 'none' })
+}
+
+function handleEdit(t: Tournament) {
+  uni.showToast({ title: `编辑：${t.name}`, icon: 'none' })
+}
+</script>
+
+<style lang="scss" scoped>
+.tournament-page {
+  min-height: 100vh;
+  background-color: #f9f9f9;
+  padding-bottom: 240rpx;
+  font-family: "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.status-bar-placeholder {
+  height: var(--status-bar-height);
+  background-color: #f8fafc;
+}
+
+/* ── Navigation ── */
+.nav-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: rgba(248, 250, 252, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 24rpx 48rpx;
+  border-bottom: 1rpx solid rgba(0, 0, 0, 0.04);
+}
+
+.nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+
+  .back-btn {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:active {
+      background-color: #e4e4e7;
+    }
+  }
+
+  .brand-name {
+    font-size: 36rpx;
+    font-weight: 800;
+    color: #ea580c;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+}
+
+.nav-right {
+  display: flex;
+  gap: 8rpx;
+
+  .icon-btn {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+
+    &:active {
+      background-color: #e4e4e7;
+    }
+  }
+}
+
+/* ── Main Content ── */
+.main-content {
+  padding: 48rpx 48rpx 48rpx;
+  max-width: 1200rpx;
+  margin: 0 auto;
+}
+
+/* ── Hero ── */
+.hero-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 64rpx;
+  gap: 32rpx;
+  flex-wrap: wrap;
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column;
+
+  .hero-title {
+    font-size: 72rpx;
+    font-weight: 900;
+    color: #18181b;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .hero-subtitle {
+    font-size: 22rpx;
+    font-weight: 600;
+    color: #71717a;
+    letter-spacing: 0.15em;
+    margin-top: 8rpx;
+    text-transform: uppercase;
+  }
+}
+
+.create-btn {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background-color: #ff6600;
+  padding: 28rpx 48rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 16rpx 40rpx rgba(163, 62, 0, 0.25);
+  transition: transform 0.2s;
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  .create-btn-text {
+    font-size: 30rpx;
+    font-weight: 700;
+    color: #561d00;
+  }
+}
+
+/* ── Stats Grid ── */
+.stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  margin-bottom: 64rpx;
+}
+
+.stat-card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 48rpx;
+  border-left: 8rpx solid transparent;
+  position: relative;
+  overflow: hidden;
+
+  &.primary-border {
+    border-left-color: #a33e00;
+  }
+  &.tertiary-border {
+    border-left-color: #0062a1;
+  }
+  &.secondary-border {
+    border-left-color: #5f5e5e;
+  }
+}
+
+.stat-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32rpx;
+}
+
+.material-icon {
+  font-family: 'Material Symbols Outlined';
+  font-size: 48rpx;
+  color: #a33e00;
+  font-style: normal;
+  line-height: 1;
+
+  &.tertiary-icon {
+    color: #0062a1;
+  }
+  &.secondary-icon {
+    color: #5f5e5e;
+  }
+}
+
+.stat-badge {
+  &.active-badge {
+    background-color: #ffdbcd;
+    padding: 6rpx 16rpx;
+    border-radius: 8rpx;
+
+    .stat-badge-text {
+      font-size: 20rpx;
+      font-weight: 700;
+      color: #a33e00;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+  }
+}
+
+.stat-number {
+  display: block;
+  font-size: 72rpx;
+  font-weight: 800;
+  color: #18181b;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.deco-icon {
+  position: absolute;
+  right: -30rpx;
+  bottom: -30rpx;
+  font-size: 200rpx !important;
+  color: #1a1c1c;
+  opacity: 0.04;
+}
+
+/* ── Filter Tabs ── */
+.filter-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 48rpx;
+  border-bottom: 2rpx solid #eeeeee;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tab-item {
+  padding: 0 32rpx 32rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #71717a;
+  white-space: nowrap;
+  border-bottom: 4rpx solid transparent;
+  margin-bottom: -2rpx;
+  transition: all 0.2s ease;
+
+  &.active {
+    color: #ea580c;
+    border-bottom-color: #ea580c;
+  }
+
+  &:active {
+    color: #ea580c;
+  }
+}
+
+/* ── Cards ── */
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 48rpx;
+}
+
+.tournament-card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:active {
+    transform: scale(0.99);
+  }
+
+  &.ended {
+    opacity: 0.82;
+  }
+}
+
+.card-image-wrap {
+  width: 100%;
+  height: 320rpx;
+  overflow: hidden;
+
+  .card-image {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease;
+  }
+}
+
+.card-body {
+  padding: 40rpx 40rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.status-badge {
+  padding: 6rpx 20rpx;
+  border-radius: 8rpx;
+
+  .status-text {
+    font-size: 20rpx;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  &.registration {
+    background-color: #ffdbcd;
+    .status-text { color: #a33e00; }
+  }
+  &.ongoing {
+    background-color: #009cfc;
+    .status-text { color: #ffffff; }
+  }
+  &.ended {
+    background-color: #e5e5e5;
+    .status-text { color: #6b6b6b; }
+  }
+  &.draft {
+    background-color: #fff7ed;
+    .status-text { color: #9a3412; }
+  }
+}
+
+.category-text {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5f5e5e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.card-title {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #18181b;
+  letter-spacing: -0.02em;
+}
+
+.location-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+
+  .location-text {
+    font-size: 26rpx;
+    color: #5f5e5e;
+  }
+}
+
+/* ── Card Detail Sections ── */
+.card-detail {
+  margin-top: 16rpx;
+}
+
+.progress-bar-wrap {
+  margin-bottom: 24rpx;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8rpx;
+  background-color: #eeeeee;
+  border-radius: 99rpx;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #a33e00;
+  border-radius: 99rpx;
+}
+
+.card-stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.stats-label {
+  display: block;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4rpx;
+}
+
+.stats-value {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #18181b;
+}
+
+.stats-value-primary {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #18181b;
+}
+
+.stats-value-muted {
+  font-size: 28rpx;
+  font-weight: 400;
+  color: #a1a1aa;
+}
+
+.right-align {
+  text-align: right;
+}
+
+/* Ongoing */
+.ongoing-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #eee;
+  padding: 24rpx 28rpx;
+  border-radius: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.ongoing-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.pulse-dot {
+  width: 16rpx;
+  height: 16rpx;
+  background-color: #22c55e;
+  border-radius: 50%;
+  animation: pulse-anim 1.5s infinite;
+}
+
+@keyframes pulse-anim {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+.ongoing-round-text {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #18181b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Ended */
+.ended-row {
+  display: flex;
+  align-items: center;
+}
+
+.ended-label {
+  display: block;
+}
+
+.champion-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #a33e00;
+}
+
+/* Draft */
+.draft-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.edit-link {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+
+  &:active {
+    opacity: 0.7;
+  }
+
+  .edit-link-text {
+    font-size: 28rpx;
+    font-weight: 700;
+    color: #a33e00;
+  }
+}
+
+/* ── FAB ── */
+.fab-btn {
+  position: fixed;
+  bottom: 240rpx;
+  right: 48rpx;
+  width: 120rpx;
+  height: 120rpx;
+  background-color: #ea580c;
+  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16rpx 40rpx rgba(234, 88, 12, 0.4);
+  z-index: 1001;
+  transition: transform 0.2s ease;
+
+  &:active {
+    transform: scale(0.9);
+  }
+}
+</style>

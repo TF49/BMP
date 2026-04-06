@@ -15,8 +15,6 @@ export const PRESIDENT_PAGES = {
   FINANCE_LIST: '/pages/president/finance/list',
   FINANCE_DETAIL: '/pages/president/finance/detail',
   FINANCE_RECONCILIATION: '/pages/president/finance/reconciliation',
-  BOOKING_LIST: '/pages/president/booking/list',
-  BOOKING_DETAIL: '/pages/president/booking/detail',
   COURT_LIST: '/pages/president/court/list',
   MEMBER_LIST: '/pages/president/member/list',
   EQUIPMENT_LIST: '/pages/president/equipment/list',

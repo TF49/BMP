@@ -20,6 +20,7 @@ import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { PRESIDENT_TAB_BAR_LIST } from '@/utils/presidentTabBar'
 import { safeReLaunch } from '@/utils/safeRoute'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
 const currentPath = ref('')
 const safeAreaBottom = ref(0)
@@ -36,7 +37,7 @@ function updateCurrentPath() {
 onMounted(() => {
   updateCurrentPath()
   try {
-    const systemInfo = uni.getSystemInfoSync()
+    const systemInfo = getSafeSystemInfo()
     safeAreaBottom.value = systemInfo.safeAreaInsets?.bottom ?? 0
   } catch {
     safeAreaBottom.value = 0
