@@ -54,16 +54,7 @@
 
         <!-- Coach List -->
         <view class="coach-grid">
-          <view class="coach-card group" v-for="(coach, index) in filteredList" :key="index">
-            <!-- Hover Actions -->
-            <view class="card-actions">
-              <view class="action-btn" @click.stop="handleEdit(coach)">
-                <uni-icons type="compose" size="18" color="#5f5e5e"></uni-icons>
-              </view>
-              <view class="action-btn delete" @click.stop="handleDelete(coach)">
-                <uni-icons type="trash" size="18" color="#ba1a1a"></uni-icons>
-              </view>
-            </view>
+          <view class="coach-card group" v-for="(coach, index) in filteredList" :key="index" @click="goDetail(coach)">
 
             <view class="card-top">
               <view class="avatar-wrap">
@@ -187,21 +178,10 @@ function goAdd() {
   uni.showToast({ title: '添加功能开发中', icon: 'none' })
 }
 
-function handleEdit(coach: any) {
-  uni.showToast({ title: '编辑功能开发中', icon: 'none' })
-}
-
-function handleDelete(coach: any) {
-  uni.showModal({
-    title: '确认删除',
-    content: `确定要删除教练 "${coach.name}" 吗？`,
-    confirmColor: '#ba1a1a',
-    success: (res) => {
-      if (res.confirm) {
-        coaches.value = coaches.value.filter(c => c.id !== coach.id)
-        uni.showToast({ title: '已删除', icon: 'success' })
-      }
-    }
+function goDetail(coach: any) {
+  if (!coach || !coach.id) return
+  uni.navigateTo({
+    url: `${PRESIDENT_PAGES.COACH_DETAIL}?id=${encodeURIComponent(String(coach.id))}`
   })
 }
 </script>

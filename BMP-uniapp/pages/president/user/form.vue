@@ -1,6 +1,5 @@
 <template>
   <PresidentLayout :showTabBar="false">
-    <PresidentNavBar :title="isEdit ? '编辑用户' : '添加用户'" />
     <view class="form-content">
       <view class="form-card glass-card">
         <view class="form-item">
@@ -86,7 +85,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import PresidentNavBar from '@/components/president/PresidentNavBar.vue'
 import { getUserInfo, addUser, updateUser, checkPresidentExists } from '@/api/president/user'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { safeNavigateBack } from '@/utils/navigation'
@@ -205,7 +203,6 @@ onMounted(() => {
 <style lang="scss" scoped>
 .form-content {
   padding: 24rpx;
-  padding-top: calc(120rpx + env(safe-area-inset-top));
 }
 .form-card {
   padding: 32rpx;

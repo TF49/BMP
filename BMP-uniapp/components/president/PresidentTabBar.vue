@@ -2,7 +2,7 @@
   <view class="president-tabbar" :style="{ paddingBottom: safeAreaBottom + 'px' }">
     <view class="president-tabbar-inner">
       <view
-        v-for="(item, index) in tabList"
+        v-for="item in tabList"
         :key="item.pagePath"
         class="tab-item"
         :class="{ active: isActive(item.pagePath) }"
@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { PRESIDENT_TAB_BAR_LIST } from '@/utils/presidentTabBar'
+import { PRESIDENT_TAB_BAR_LIST, isPresidentTabActive } from '@/utils/presidentTabBar'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 
@@ -49,16 +49,7 @@ onShow(() => {
 })
 
 function isActive(pagePath: string): boolean {
-  const path = pagePath.replace(/^\//, '')
-  const cur = currentPath.value || ''
-  if (cur === path) return true
-  
-  // Highlight for sub-pages
-  if (path.includes('user/list')) return cur.includes('president/user')
-  if (path.includes('venue/list')) return cur.includes('president/venue')
-  if (path.includes('index/index')) return cur.includes('pages/index/index') || cur.includes('dashboard/index')
-  
-  return false
+  return isPresidentTabActive(pagePath, currentPath.value || '')
 }
 
 function switchTab(pagePath: string) {

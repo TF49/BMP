@@ -1,6 +1,7 @@
 <template>
   <PresidentLayout :showTabBar="true">
     <view class="profile-page">
+      <PresidentBrandLogo floating />
       <view class="header glass-card">
         <view class="avatar-wrap">
           <uni-icons type="person-filled" size="48" color="#3cc51f"></uni-icons>
@@ -25,6 +26,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import PresidentBrandLogo from '@/components/president/PresidentBrandLogo.vue'
 import { useUserStore } from '@/store/modules/user'
 import { safeReLaunch } from '@/utils/safeRoute'
 
@@ -50,7 +52,7 @@ function logout() {
 </script>
 
 <style lang="scss" scoped>
-.profile-page { padding: 24rpx; }
+.profile-page { padding: 120rpx 24rpx 24rpx; }
 .header {
   padding: 48rpx 32rpx;
   margin-bottom: 24rpx;

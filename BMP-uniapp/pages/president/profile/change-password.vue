@@ -1,6 +1,5 @@
 <template>
   <PresidentLayout :showTabBar="false">
-    <PresidentNavBar title="修改密码" />
     <view class="change-password-page">
       <view class="form-card glass-card">
         <view class="form-item">
@@ -49,7 +48,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import PresidentNavBar from '@/components/president/PresidentNavBar.vue'
 import { updatePassword } from '@/api/auth'
 import { safeReLaunch } from '@/utils/safeRoute'
 
@@ -103,7 +101,6 @@ async function handleSubmit() {
 <style lang="scss" scoped>
 .change-password-page {
   padding: 24rpx;
-  padding-top: calc(120rpx + env(safe-area-inset-top));
 }
 .form-card {
   padding: 32rpx;

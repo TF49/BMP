@@ -3,17 +3,7 @@
     <scroll-view scroll-y class="main-content">
       <!-- TopAppBar (Moved inside scroll-view) -->
       <view class="w-full bg-[#f3f3f3] flex justify-between items-center px-6 py-4 pb-6" :style="{ paddingTop: (statusBarHeight || 44) + 'px' }">
-        <view class="flex items-center gap-3">
-          <view class="w-10 h-10 rounded-full overflow-hidden transition-all duration-300 ease-in-out hover-scale-102">
-            <image
-              class="w-full h-full object-cover"
-              mode="aspectFill"
-              src="/static/placeholders/avatar.svg"
-              @error="onImgError('avatar_googleusercontent', $event)"
-            />
-          </view>
-          <text class="font-lexend text-xl font-bold tracking-tight text-[#1a1a1a]">Kinetic Logic</text>
-        </view>
+        <PresidentBrandLogo width="220rpx" />
         <view class="text-[#5f5e5e] transition-transform duration-200" :style="{ marginRight: navBarMarginRight + 'px' }" hover-class="scale-105" @tap="navigateTo('/pages/notice/index')">
           <uni-icons type="chatbubble" size="20" color="#5f5e5e"></uni-icons>
         </view>
@@ -71,20 +61,20 @@
         <view class="mt-8">
           <view class="flex flex-row justify-between items-end mb-6">
             <text class="font-headline text-xl font-bold tracking-tight text-on-surface">管理中心</text>
-            <text class="text-primary text-xs-12 font-bold hover-scale" @tap="navigateTo(PRESIDENT_PAGES.VENUE_LIST)">查看全部</text>
+            <text class="text-primary text-xs-12 font-bold hover-scale" @tap="navigateTo(PRESIDENT_PAGES.USER_LIST)">查看全部</text>
           </view>
           <view class="grid-card-3 gap-4">
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.VENUE_LIST)">
               <uni-icons type="location" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">场馆管理</text>
             </view>
+            <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.COACH_LIST)">
+              <uni-icons type="staff" size="24" color="#a33e00"></uni-icons>
+              <text class="text-xs-12 font-bold text-on-surface">教练管理</text>
+            </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.MEMBER_LIST)">
               <uni-icons type="person" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">会员中心</text>
-            </view>
-            <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.FINANCE_LIST)">
-              <uni-icons type="wallet" size="24" color="#a33e00"></uni-icons>
-              <text class="text-xs-12 font-bold text-on-surface">财务审计</text>
             </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.USER_LIST)">
               <uni-icons type="person" size="24" color="#a33e00"></uni-icons>
@@ -153,6 +143,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import PresidentBrandLogo from '@/components/president/PresidentBrandLogo.vue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 

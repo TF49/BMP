@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <PresidentLayout :showTabBar="true">
     <view class="tournament-page">
       <view class="status-bar-placeholder"></view>
@@ -30,11 +30,7 @@
         <view class="hero-section">
           <view class="hero-text">
             <text class="hero-title">赛事管理</text>
-            <text class="hero-subtitle">TOURNAMENT CONTROL CENTER</text>
-          </view>
-          <view class="create-btn" @click="handleCreate">
-            <uni-icons type="plusempty" size="20" color="#561d00"></uni-icons>
-            <text class="create-btn-text">创建赛事</text>
+            <text class="hero-subtitle">赛事控制中心</text>
           </view>
         </view>
 
@@ -43,9 +39,9 @@
           <!-- Active -->
           <view class="stat-card primary-border">
             <view class="stat-card-top">
-              <text class="stat-icon-text material-icon">rocket_launch</text>
+              <text class="stat-icon-text">进行中</text>
               <view class="stat-badge active-badge">
-                <text class="stat-badge-text">Active</text>
+                <text class="stat-badge-text">活跃</text>
               </view>
             </view>
             <text class="stat-number">04</text>
@@ -55,7 +51,7 @@
           <!-- Total Participants -->
           <view class="stat-card tertiary-border">
             <view class="stat-card-top">
-              <text class="stat-icon-text material-icon tertiary-icon">groups</text>
+              <text class="stat-icon-text tertiary-icon">参赛</text>
             </view>
             <text class="stat-number">1,284</text>
             <text class="stat-label">总参赛人数</text>
@@ -64,7 +60,7 @@
           <!-- Completed -->
           <view class="stat-card secondary-border">
             <view class="stat-card-top">
-              <text class="stat-icon-text material-icon secondary-icon">emoji_events</text>
+              <text class="stat-icon-text secondary-icon">完赛</text>
             </view>
             <text class="stat-number">12</text>
             <text class="stat-label">本年度已完成</text>
@@ -430,27 +426,6 @@ function handleEdit(t: Tournament) {
     letter-spacing: 0.15em;
     margin-top: 8rpx;
     text-transform: uppercase;
-  }
-}
-
-.create-btn {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  background-color: #ff6600;
-  padding: 28rpx 48rpx;
-  border-radius: 16rpx;
-  box-shadow: 0 16rpx 40rpx rgba(163, 62, 0, 0.25);
-  transition: transform 0.2s;
-
-  &:active {
-    transform: scale(0.96);
-  }
-
-  .create-btn-text {
-    font-size: 30rpx;
-    font-weight: 700;
-    color: #561d00;
   }
 }
 

@@ -1,10 +1,10 @@
 <template>
   <view class="custom-tab-bar">
-    <view 
-      v-for="(item, index) in list" 
+    <view
+      v-for="(item, index) in list"
       :key="index"
       class="tab-item"
-      :class="{ 'active': current === index }"
+      :class="{ active: current === index }"
       @tap="switchTab(item.pagePath, index)"
     >
       <text class="tab-icon">{{ item.icon }}</text>
@@ -17,6 +17,7 @@
 import { computed } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { isPresidentRole } from '@/utils/roleCheck'
+import { PRESIDENT_TAB_BAR_LIST } from '@/utils/presidentTabBar'
 
 const props = defineProps({
   current: {
@@ -30,13 +31,13 @@ const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
 
 const list = computed(() => {
   if (isPresident.value) {
-    return [
-      { pagePath: '/pages/index/index', text: '工作台', icon: '⊞' },
-      { pagePath: '/pages/president/venue/list', text: '场馆', icon: '🏋️' },
-      { pagePath: '/pages/president/user/list', text: '成员', icon: '👥' },
-      { pagePath: '/pages/president/profile/index', text: '个人中心', icon: '👤' }
-    ]
+    return PRESIDENT_TAB_BAR_LIST.map(item => ({
+      pagePath: '/' + item.pagePath.replace(/^\//, ''),
+      text: item.text,
+      icon: item.iconPath
+    }))
   }
+
   return [
     { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
     { pagePath: '/pages/venue/list', text: '场馆', icon: '🏢' },
@@ -50,7 +51,7 @@ const switchTab = (url: string, index: number) => {
   if (props.current !== index) {
     if (url === '#' || !url) return
     uni.reLaunch({
-      url: url
+      url
     })
   }
 }

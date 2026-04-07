@@ -1,6 +1,5 @@
 <template>
   <PresidentLayout :showTabBar="false">
-    <PresidentNavBar title="用户详情" />
     <view class="detail-content">
       <view v-if="loading" class="loading-wrap">加载中...</view>
       <view v-else-if="detail" class="detail-card glass-card">
@@ -36,7 +35,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import PresidentNavBar from '@/components/president/PresidentNavBar.vue'
 import { getUserInfo, type UserDetail } from '@/api/president/user'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
@@ -82,7 +80,6 @@ onMounted(() => {
 <style lang="scss" scoped>
 .detail-content {
   padding: 24rpx;
-  padding-top: calc(120rpx + env(safe-area-inset-top));
 }
 .detail-card {
   padding: 32rpx;

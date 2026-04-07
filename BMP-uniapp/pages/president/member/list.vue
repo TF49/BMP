@@ -2,29 +2,48 @@
   <PresidentLayout :showTabBar="true">
     <view class="member-list-page">
       <view class="status-bar-placeholder"></view>
-      
-      <!-- Nav Header -->
+
+      <!-- TopAppBar（与赛事管理一致：返回 + 橙色品牌，右侧搜索/设置） -->
       <view class="nav-header">
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
-            <uni-icons type="arrow-left" size="24" color="#a33e00" class="nav-left-icon"></uni-icons>
-            <text class="nav-title">会员管理</text>
+            <view class="back-btn">
+              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+            </view>
+            <view class="brand-wrap">
+              <text class="brand-name">Kinetic Logic</text>
+            </view>
           </view>
           <view class="nav-right">
-            <text class="brand-text">KL.V2</text>
+            <view class="icon-btn" @click.stop="handleNavSearch">
+              <uni-icons type="search" size="22" color="#71717a"></uni-icons>
+            </view>
+            <view class="icon-btn" @click.stop="handleNavSettings">
+              <uni-icons type="gear" size="22" color="#71717a"></uni-icons>
+            </view>
           </view>
         </view>
       </view>
 
       <view class="main-content">
+        <view class="hero-section">
+          <view class="hero-text">
+            <text class="hero-title">会员管理</text>
+            <text class="hero-subtitle">会员信息中心</text>
+          </view>
+        </view>
+
         <!-- Search and Stats -->
         <view class="dashboard-section">
           <view class="search-wrap">
             <uni-icons type="search" size="20" color="#5f5e5e" class="search-icon"></uni-icons>
-            <input 
-              class="search-input" 
-              placeholder="搜索会员姓名、手机号..." 
+            <input
+              id="member-search-input"
+              class="search-input"
+              placeholder="搜索会员姓名、手机号..."
               v-model="queryParams.memberName"
+              :focus="searchInputFocused"
+              @blur="onSearchInputBlur"
               @confirm="handleSearch"
             />
             <view class="search-line"></view>
@@ -32,11 +51,11 @@
 
           <view class="stats-wrap">
             <view class="stat-card total">
-              <text class="stat-label">Total Members</text>
+              <text class="stat-label">会员总数</text>
               <text class="stat-value">{{ total }}</text>
             </view>
             <view class="stat-card active-today">
-              <text class="stat-label">Active Today</text>
+              <text class="stat-label">今日活跃</text>
               <text class="stat-value">{{ activeToday }}</text>
             </view>
           </view>
@@ -77,14 +96,14 @@
                   <!-- Gender fallback -->
                   <text class="gender-icon male" v-if="item.gender === 1">♂</text>
                   <text class="gender-icon female" v-else-if="item.gender === 2">♀</text>
-                  <view class="vip-badge" :class="item.memberLevel > 1 ? 'high' : 'low'">
-                    VIP {{ item.memberLevel || 1 }}
+                  <view class="vip-badge" :class="(item.memberLevel ?? 1) > 1 ? 'high' : 'low'">
+                    会员等级 {{ item.memberLevel ?? 1 }}
                   </view>
                 </view>
                 <text class="member-phone">{{ formatPhone(item.phone) }}</text>
               </view>
               <view class="member-balance">
-                <text class="balance-label">BALANCE</text>
+                <text class="balance-label">余额</text>
                 <text class="balance-value">¥{{ formatMoney(item.balance) }}</text>
               </view>
             </view>
@@ -110,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, nextTick } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getMemberList, type MemberListItem } from '@/api/president/member'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
@@ -138,6 +157,13 @@ const queryParams = reactive({
 })
 
 const hasMore = computed(() => list.value.length < total.value)
+
+/** 顶栏「搜索」与下方 input 联动聚焦（小程序需 toggle :focus） */
+const searchInputFocused = ref(false)
+
+function onSearchInputBlur() {
+  searchInputFocused.value = false
+}
 
 async function loadList(append = false) {
   if (loading.value) return
@@ -191,6 +217,24 @@ function loadMore() {
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
+}
+
+function handleNavSearch() {
+  searchInputFocused.value = false
+  const focusInput = () => {
+    nextTick(() => {
+      searchInputFocused.value = true
+    })
+  }
+  uni.pageScrollTo({
+    selector: '#member-search-input',
+    duration: 200,
+    complete: focusInput
+  })
+}
+
+function handleNavSettings() {
+  uni.showToast({ title: '设置功能开发中', icon: 'none' })
 }
 
 function handleDetail(item: MemberListItem) {
@@ -273,16 +317,18 @@ onMounted(() => {
 
 .status-bar-placeholder {
   height: var(--status-bar-height);
-  background-color: #f3f3f3;
+  background-color: #f8fafc;
 }
 
-/* Nav Header */
+/* Nav（对齐赛事管理） */
 .nav-header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: #f3f3f3;
-  padding: 32rpx 40rpx;
+  background-color: rgba(248, 250, 252, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 24rpx 48rpx;
+  border-bottom: 1rpx solid rgba(0, 0, 0, 0.04);
 }
 
 .nav-row {
@@ -294,35 +340,92 @@ onMounted(() => {
 .nav-left {
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  cursor: pointer;
+  gap: 24rpx;
+  min-width: 0;
 
-  &:active {
-    opacity: 0.7;
+  .back-btn {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &:active {
+      background-color: #e4e4e7;
+    }
+  }
+
+  .brand-name {
+    font-size: 36rpx;
+    font-weight: 800;
+    color: #ea580c;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
   }
 }
 
-.nav-title {
-  font-size: 40rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-  font-family: 'Lexend', sans-serif;
-}
+.nav-right {
+  display: flex;
+  gap: 8rpx;
+  flex-shrink: 0;
 
-.brand-text {
-  font-size: 36rpx;
-  font-weight: 900;
-  color: #ff6600;
-  letter-spacing: -2rpx;
-  font-family: 'Lexend', sans-serif;
+  .icon-btn {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+
+    &:active {
+      background-color: #e4e4e7;
+    }
+  }
 }
 
 /* Main Content */
 .main-content {
-  padding: 40rpx;
+  padding: 48rpx 48rpx 40rpx;
+  max-width: 1200rpx;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 40rpx;
+}
+
+/* Hero（大标题在导航下方，与赛事管理一致） */
+.hero-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 8rpx;
+  gap: 32rpx;
+  flex-wrap: wrap;
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column;
+
+  .hero-title {
+    font-size: 72rpx;
+    font-weight: 900;
+    color: #18181b;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .hero-subtitle {
+    font-size: 22rpx;
+    font-weight: 600;
+    color: #71717a;
+    letter-spacing: 0.15em;
+    margin-top: 8rpx;
+    text-transform: uppercase;
+  }
 }
 
 /* Dashboard Section */

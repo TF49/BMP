@@ -14,7 +14,7 @@
     <scroll-view class="main-content" scroll-y :show-scrollbar="false">
       <!-- Hero Section -->
       <view class="hero-section">
-        <image class="hero-bg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRxzwTBjTJ2hUvfLvdZtYV2eSQMZaRYfBJZF4-I_SxLjriXlM05_K1sP5mLIsm9cuTo_JGfHkDeVjvuSUrr9NyJTe6SeQr5k21-v4g62s_B3byHvQGR-0uj9L3tMqbcsHS9U_Og54IO8i58LoAsElcyMBeNLD3gLiYaeud0uZdEyzDsF3_CofgVCTcVDGnjrZuTlLw99rq-pdGuE1fvXx48WlEUy1_bJpJBGgAVnZVorzwpfdWJJtbn0WWKmLH1rbGMe1Cr-8NacUD" mode="aspectFill"></image>
+        <image class="hero-bg" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
         <view class="hero-gradient"></view>
         <view class="hero-content">
           <view class="badge">ELITE COACH</view>
@@ -117,7 +117,7 @@
         <view class="course-list">
           <!-- Course Card 1 -->
           <view class="course-card">
-            <image class="course-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkFBPKERZPfUdBLq6ytAcAI9S8zuXRlNFMbMJiemWrTPMc3_43hW0nX_tGXy4OSvo3Zn2HLrCJG7S5NfByYWENpuWMf8NwQOt7eGs_8OLIh05d1dmNAZ2osJoh4NPlSPZJDNY5eATUxRftgIphs-WkC4Qc46mi3hqeioxd8_zWEpm3XdQTeXSrwsx0p4wYYTzlJbry5oNQ4TFA-WpxUs6quSbvQUzfAHqt05KLqIRsWXOBvNQCSI4CRIPBvjY-4pft66XNXRrzRxlQ" mode="aspectFill"></image>
+            <image class="course-img" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
             <view class="course-info">
               <view class="course-level">ADVANCED / 进阶</view>
               <view class="course-title">暴风进攻：杀球专项强化班</view>
@@ -136,7 +136,7 @@
 
           <!-- Course Card 2 -->
           <view class="course-card">
-            <image class="course-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfnbrujmADJA-4E_b_aoH-ek1d_TL4irF9LfP_Jw6TbWNQxN2fjaU2XFpglUJT5RoNQxzDvJUE4t457l9QY7hdOD8Y4ZBXuxl4yHnqWVUWXa-ZGcaWVcA3Jqrc6nUBG0MI4R1_XQz34md5M_ROkY8LSdDbbeLc63tZffde9OBNYNVwbUMAzu2145QRYAykSjLzpFEJ4Yd2Gj8S2DrIzzdARxBgrGSoerizrxsQKnAL5Wx9zfzn6wXflzFuu-cYaoZT2ZwHW3kFLbE1" mode="aspectFill"></image>
+            <image class="course-img" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
             <view class="course-info">
               <view class="course-level">INTERMEDIATE / 中级</view>
               <view class="course-title">凌云步法：场上移动效率提升</view>

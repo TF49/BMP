@@ -1,6 +1,5 @@
 <template>
   <PresidentLayout :showTabBar="false">
-    <PresidentNavBar title="财务详情" />
     <view class="detail-content">
       <view v-if="loading" class="loading-wrap">加载中...</view>
       <view v-else-if="detail" class="detail-card glass-card">
@@ -24,7 +23,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import PresidentNavBar from '@/components/president/PresidentNavBar.vue'
 import { getFinanceInfo, deleteFinance, type FinanceItem } from '@/api/president/finance'
 import { safeNavigateBack } from '@/utils/navigation'
 
@@ -71,7 +69,7 @@ onMounted(() => load())
 </script>
 
 <style lang="scss" scoped>
-.detail-content { padding: 24rpx; padding-top: calc(120rpx + env(safe-area-inset-top)); }
+.detail-content { padding: 24rpx; }
 .detail-card { padding: 32rpx; border-radius: 24rpx; }
 .detail-row { display: flex; justify-content: space-between; padding: 24rpx 0; border-bottom: 1rpx solid #E2E8F0; }
 .label { font-size: 28rpx; color: #475569; }

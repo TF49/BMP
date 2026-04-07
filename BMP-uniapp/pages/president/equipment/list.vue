@@ -2,25 +2,37 @@
   <PresidentLayout :showTabBar="true">
     <view class="equipment-list-page">
       <view class="status-bar-placeholder"></view>
-      
-      <!-- Top AppBar -->
+
+      <!-- TopAppBar（与赛事管理一致） -->
       <view class="nav-header">
         <view class="nav-row">
-          <view class="nav-left">
-            <view class="avatar-wrap border-primary">
-              <image class="avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpAzmmqsUTjbXRElQkdjwk2FCXt3GZxFD4WwVft-QOXu5Fmst4ddxykRbcjb7_nB2VK4nIUtpL35PEs72rfTbhGjjLXShCLxwzmaLAAavv2zNgj-XLOOMtzZFwu6aIEbGpTF1Cnhn4vN0kGYwySmOQu8yDJtHJbYgqQKtM_uuKtE_hnvj8r9kHe8mthIOvD_DCkXypz8ucBkoy4di4mLqALbX-I6LhWb5lbLgvmWB_VXR089I2XO-ECryhLOJ2LCBtj90U-525yPit" mode="aspectFill"></image>
+          <view class="nav-left" @click="goBack">
+            <view class="back-btn">
+              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
             </view>
-            <text class="brand-title">KINETIC LOGIC</text>
+            <view class="brand-wrap">
+              <text class="brand-name">Kinetic Logic</text>
+            </view>
           </view>
           <view class="nav-right">
-            <view class="icon-btn">
-              <uni-icons type="notification" size="24" color="#71717a"></uni-icons>
+            <view class="icon-btn" @click.stop="handleSearch">
+              <uni-icons type="search" size="22" color="#71717a"></uni-icons>
+            </view>
+            <view class="icon-btn" @click.stop="handleSettings">
+              <uni-icons type="gear" size="22" color="#71717a"></uni-icons>
             </view>
           </view>
         </view>
       </view>
 
       <view class="main-content">
+        <view class="hero-section">
+          <view class="hero-text">
+            <text class="hero-title">器材管理</text>
+            <text class="hero-subtitle">器材监控中心</text>
+          </view>
+        </view>
+
         <!-- Dashboard Inventory Overview (Bento Grid) -->
         <view class="overview-section">
           <view class="bento-card regular">
@@ -53,7 +65,6 @@
 
         <!-- Navigation & Filter Section -->
         <view class="filter-section">
-          <text class="section-title">器材管理</text>
           <view class="tabs-wrap">
             <view class="tab-item" :class="{ active: currentTab === 0 }" @click="currentTab = 0">球拍</view>
             <view class="tab-item" :class="{ active: currentTab === 1 }" @click="currentTab = 1">羽毛球</view>
@@ -120,6 +131,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import { safeNavigateBack } from '@/utils/navigation'
+import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 const currentTab = ref(0)
 
@@ -174,6 +187,18 @@ const filteredEquipments = computed(() => {
   return equipments.value.filter(e => e.category === currentTab.value)
 })
 
+function goBack() {
+  safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
+}
+
+function handleSearch() {
+  uni.showToast({ title: '搜索功能开发中', icon: 'none' })
+}
+
+function handleSettings() {
+  uni.showToast({ title: '设置功能开发中', icon: 'none' })
+}
+
 function goAdd() {
   uni.showToast({ title: '添加器材功能开发中', icon: 'none' })
 }
@@ -198,15 +223,17 @@ function handleRestock(item: any) {
 
 .status-bar-placeholder {
   height: var(--status-bar-height);
-  background-color: #f9f9f9;
+  background-color: #f8fafc;
 }
 
 .nav-header {
   position: sticky;
   top: 0;
-  z-index: 50;
-  background-color: #f9f9f9;
-  padding: 32rpx 48rpx;
+  z-index: 100;
+  background-color: rgba(248, 250, 252, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 24rpx 48rpx;
+  border-bottom: 1rpx solid rgba(0, 0, 0, 0.04);
 }
 
 .nav-row {
@@ -219,34 +246,45 @@ function handleRestock(item: any) {
   display: flex;
   align-items: center;
   gap: 24rpx;
+  min-width: 0;
 
-  .avatar-wrap {
-    width: 80rpx;
-    height: 80rpx;
+  .back-btn {
+    width: 72rpx;
+    height: 72rpx;
     border-radius: 50%;
-    overflow: hidden;
-    border: 4rpx solid #ff6600;
-    
-    .avatar {
-      width: 100%;
-      height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &:active {
+      background-color: #e4e4e7;
     }
   }
 
-  .brand-title {
-    font-size: 40rpx;
-    font-weight: 700;
+  .brand-name {
+    font-size: 36rpx;
+    font-weight: 800;
     color: #ea580c;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
   }
 }
 
 .nav-right {
+  display: flex;
+  gap: 8rpx;
+  flex-shrink: 0;
+
   .icon-btn {
-    padding: 16rpx;
-    border-radius: 24rpx;
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: background-color 0.2s;
-    
+
     &:active {
       background-color: #e4e4e7;
     }
@@ -254,9 +292,41 @@ function handleRestock(item: any) {
 }
 
 .main-content {
-  padding: 16rpx 48rpx 48rpx;
+  padding: 48rpx 48rpx 48rpx;
   max-width: 1400rpx;
   margin: 0 auto;
+}
+
+/* Hero（与赛事管理一致） */
+.hero-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 64rpx;
+  gap: 32rpx;
+  flex-wrap: wrap;
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column;
+
+  .hero-title {
+    font-size: 72rpx;
+    font-weight: 900;
+    color: #18181b;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .hero-subtitle {
+    font-size: 22rpx;
+    font-weight: 600;
+    color: #71717a;
+    letter-spacing: 0.15em;
+    margin-top: 8rpx;
+    text-transform: uppercase;
+  }
 }
 
 /* Overview Section */
@@ -349,25 +419,12 @@ function handleRestock(item: any) {
   }
 }
 
-/* Filter Section */
+/* Filter Section（分类标签；主标题已在 Hero 区） */
 .filter-section {
   display: flex;
   flex-direction: column;
   gap: 32rpx;
   margin-bottom: 48rpx;
-
-  @media (min-width: 768px) {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .section-title {
-    font-size: 48rpx;
-    font-weight: 700;
-    color: #1a1c1c;
-    letter-spacing: -0.025em;
-  }
 
   .tabs-wrap {
     display: flex;

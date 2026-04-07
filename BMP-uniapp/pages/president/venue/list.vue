@@ -3,7 +3,6 @@
     <view class="venue-list-page">
       <view class="status-bar-placeholder"></view>
       
-      <!-- Custom Navigation Content (Integrated with PresidentNavBar logic) -->
       <view class="nav-header">
         <view class="nav-row">
           <view class="nav-left" @click="goBack">

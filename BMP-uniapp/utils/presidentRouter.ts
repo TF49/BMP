@@ -20,6 +20,7 @@ export const PRESIDENT_PAGES = {
   EQUIPMENT_LIST: '/pages/president/equipment/list',
   EQUIPMENT_RENTAL_LIST: '/pages/president/equipment-rental/list',
   COACH_LIST: '/pages/president/coach/list',
+  COACH_DETAIL: '/pages/president/coach/detail',
   COURSE_LIST: '/pages/president/course/list',
   COURSE_BOOKING_LIST: '/pages/president/course-booking/list',
   TOURNAMENT_LIST: '/pages/president/tournament/list',

@@ -1,6 +1,5 @@
 <template>
   <PresidentLayout :showTabBar="false">
-    <PresidentNavBar title="全面对账" />
     <view class="recon-content">
       <view class="tip glass-card">
         <text>对账将汇总各业务模块财务数据，仅协会会长可操作。</text>
@@ -21,7 +20,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import PresidentNavBar from '@/components/president/PresidentNavBar.vue'
 import { reconciliation } from '@/api/president/finance'
 
 const running = ref(false)
@@ -44,7 +42,7 @@ async function runRecon() {
 </script>
 
 <style lang="scss" scoped>
-.recon-content { padding: 24rpx; padding-top: calc(120rpx + env(safe-area-inset-top)); }
+.recon-content { padding: 24rpx; }
 .tip { padding: 24rpx; margin-bottom: 32rpx; border-radius: 20rpx; font-size: 28rpx; color: #475569; }
 .btn-wrap { margin-bottom: 32rpx; }
 .btn-run {

@@ -135,13 +135,6 @@
       }
     },
     {
-      "path": "pages/president/finance/statistics",
-      "style": {
-        "navigationBarTitleText": "财务数据",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/president/finance/detail",
       "style": {
         "navigationBarTitleText": "财务详情",
@@ -180,6 +173,13 @@
       "path": "pages/president/coach/list",
       "style": {
         "navigationBarTitleText": "教练管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/coach/detail",
+      "style": {
+        "navigationBarTitleText": "教练详情",
         "navigationStyle": "custom"
       }
     },

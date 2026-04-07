@@ -129,6 +129,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getBookingList } from '@/api/booking'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
+import { getAvatarImage } from '@/utils/displayImage'
 
 const userStore = useUserStore()
 const currentTab = ref(0)
@@ -138,7 +139,7 @@ const bookingList = ref<any[]>([])
 const loading = ref(false)
 const refreshing = ref(false)
 const topOffset = computed(() => statusBarHeight.value + 54)
-const avatarUrl = computed(() => userStore.userInfo?.avatar || 'https://img1.baidu.com/it/u=3553945796,3906778330&fm=253&fmt=auto&app=120&f=JPEG?w=500&h=500')
+const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 
 // 统计数据
 const stats = computed(() => {
