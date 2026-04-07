@@ -68,6 +68,10 @@
               <uni-icons type="location" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">场馆管理</text>
             </view>
+            <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.COURT_LIST)">
+              <uni-icons type="calendar" size="24" color="#a33e00"></uni-icons>
+              <text class="text-xs-12 font-bold text-on-surface">场地管理</text>
+            </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.COACH_LIST)">
               <uni-icons type="staff" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">教练管理</text>

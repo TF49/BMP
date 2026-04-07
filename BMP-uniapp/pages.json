@@ -128,6 +128,13 @@
       }
     },
     {
+      "path": "pages/president/court/form",
+      "style": {
+        "navigationBarTitleText": "场地编辑",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/finance/list",
       "style": {
         "navigationBarTitleText": "财务列表",
@@ -201,6 +208,48 @@
       "path": "pages/president/tournament/list",
       "style": {
         "navigationBarTitleText": "赛事管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/tournament-registration/list",
+      "style": {
+        "navigationBarTitleText": "赛事报名管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/course-booking/list",
+      "style": {
+        "navigationBarTitleText": "课程预约管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/equipment-rental/list",
+      "style": {
+        "navigationBarTitleText": "器材租借管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/stringing/list",
+      "style": {
+        "navigationBarTitleText": "穿线服务管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/notification/list",
+      "style": {
+        "navigationBarTitleText": "通知管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/notification/form",
+      "style": {
+        "navigationBarTitleText": "发布通知",
         "navigationStyle": "custom"
       }
     },
