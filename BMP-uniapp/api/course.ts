@@ -19,6 +19,21 @@ export interface CourseItem {
   createTime: string
 }
 
+export interface CoursePayload {
+  id?: number
+  courseName: string
+  coachId: number
+  courtId?: number
+  coursePrice: number
+  courseDuration: number
+  courseDate: string
+  startTime: string
+  endTime: string
+  maxStudents: number
+  status?: number
+  courseContent?: string
+}
+
 export interface CourseBookingParams {
   memberId: number
   courseId: number
@@ -70,6 +85,28 @@ export function getCourseDetail(id: number) {
   return request<CourseItem>({
     url: `${API_PATHS.COURSE.DETAIL}/${id}`,
     method: 'GET'
+  })
+}
+
+/**
+ * 新增课程（会长/场馆管理员）
+ */
+export function addCourse(data: CoursePayload) {
+  return request<{ id: number }>({
+    url: '/course/add',
+    method: 'POST',
+    data
+  })
+}
+
+/**
+ * 更新课程（会长/场馆管理员）
+ */
+export function updateCourse(data: CoursePayload) {
+  return request<null>({
+    url: '/course/update',
+    method: 'PUT',
+    data
   })
 }
 

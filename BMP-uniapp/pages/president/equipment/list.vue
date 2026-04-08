@@ -75,7 +75,7 @@
 
         <!-- Equipment Grid -->
         <view class="equipment-grid">
-          <view class="equipment-card group" v-for="(item, index) in filteredEquipments" :key="index">
+          <view class="equipment-card group" v-for="(item, index) in filteredEquipments" :key="index" @click="goDetail(item)">
             <view class="card-image-wrap">
               <image class="equipment-image" :src="item.image" mode="aspectFit"></image>
               <view class="status-badge" :class="item.status === '库存充足' ? 'success' : 'warning'">
@@ -200,15 +200,39 @@ function handleSettings() {
 }
 
 function goAdd() {
-  uni.showToast({ title: '添加器材功能开发中', icon: 'none' })
+  uni.navigateTo({ url: PRESIDENT_PAGES.EQUIPMENT_FORM })
 }
 
 function handleEdit(item: any) {
-  uni.showToast({ title: `编辑 ${item.name}`, icon: 'none' })
+  goDetail(item)
 }
 
 function handleRestock(item: any) {
-  uni.showToast({ title: `为 ${item.name} 补货`, icon: 'success' })
+  if (!item?.id) {
+    uni.showToast({ title: '器材信息不完整', icon: 'none' })
+    return
+  }
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.EQUIPMENT_STOCK}?id=${item.id}` })
+}
+
+function goDetail(item: any) {
+  if (!item?.id) {
+    uni.showToast({ title: '器材信息不完整', icon: 'none' })
+    return
+  }
+  const q = [
+    `id=${item.id}`,
+    `equipmentName=${encodeURIComponent(item.name || '')}`,
+    `equipmentCode=${encodeURIComponent(item.sku || '')}`,
+    `equipmentType=${encodeURIComponent(currentTab.value === 0 ? '专业级' : '标准级')}`,
+    `brand=${encodeURIComponent('YONEX')}`,
+    `price=${item.price || 0}`,
+    `rentalPrice=${item.price || 0}`,
+    `totalQuantity=${item.total || 0}`,
+    `availableQuantity=${item.available || 0}`,
+    `description=${encodeURIComponent(item.status || '')}`
+  ].join('&')
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.EQUIPMENT_DETAIL}?${q}` })
 }
 </script>
 

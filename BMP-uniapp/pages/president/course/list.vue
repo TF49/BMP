@@ -100,8 +100,8 @@
               </view>
               
               <view class="action-row">
-                <button class="btn btn-secondary">编辑</button>
-                <button class="btn btn-primary">查看详情</button>
+                <button class="btn btn-secondary" @click.stop="goEdit(1)">编辑</button>
+                <button class="btn btn-primary" @click.stop="goDetail(1)">查看详情</button>
               </view>
             </view>
           </view>
@@ -146,8 +146,8 @@
               </view>
               
               <view class="action-row">
-                <button class="btn btn-secondary">编辑</button>
-                <button class="btn btn-primary">查看详情</button>
+                <button class="btn btn-secondary" @click.stop="goEdit(2)">编辑</button>
+                <button class="btn btn-primary" @click.stop="goDetail(2)">查看详情</button>
               </view>
             </view>
           </view>
@@ -188,8 +188,8 @@
               </view>
               
               <view class="action-row">
-                <button class="btn btn-secondary">数据统计</button>
-                <button class="btn btn-primary dark">历史记录</button>
+                <button class="btn btn-secondary" @click.stop="goDetail(3)">数据统计</button>
+                <button class="btn btn-primary dark" @click.stop="goDetail(3)">历史记录</button>
               </view>
             </view>
           </view>
@@ -285,8 +285,15 @@ function goBack() {
 }
 
 function goAdd() {
-  // Navigate to add course page (placeholder for now)
-  uni.showToast({ title: '发布课程功能开发中', icon: 'none' })
+  uni.navigateTo({ url: PRESIDENT_PAGES.COURSE_FORM })
+}
+
+function goDetail(courseId: number) {
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURSE_DETAIL}?id=${courseId}` })
+}
+
+function goEdit(courseId: number) {
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURSE_FORM}?id=${courseId}` })
 }
 </script>
 

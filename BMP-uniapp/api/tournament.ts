@@ -19,6 +19,22 @@ export interface TournamentItem {
   createTime: string
 }
 
+export interface TournamentPayload {
+  id?: number
+  tournamentName: string
+  tournamentType: string
+  venueId: number
+  maxParticipants: number
+  registrationStart: string
+  registrationEnd: string
+  tournamentStart: string
+  tournamentEnd: string
+  entryFee: number
+  status?: number
+  prizeInfo?: string
+  description?: string
+}
+
 export interface TournamentRegistrationParams {
   tournamentId: number
   memberId: number
@@ -73,6 +89,28 @@ export function getTournamentDetail(id: number) {
   return request<TournamentItem>({
     url: `${API_PATHS.TOURNAMENT.DETAIL}/${id}`,
     method: 'GET'
+  })
+}
+
+/**
+ * 新增赛事（会长 / 场馆管理员）
+ */
+export function addTournament(data: TournamentPayload) {
+  return request<{ id: number }>({
+    url: '/tournament/add',
+    method: 'POST',
+    data
+  })
+}
+
+/**
+ * 更新赛事（会长 / 场馆管理员）
+ */
+export function updateTournament(data: TournamentPayload) {
+  return request<null>({
+    url: '/tournament/update',
+    method: 'PUT',
+    data
   })
 }
 

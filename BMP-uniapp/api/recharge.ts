@@ -1,6 +1,14 @@
 import { request } from '../utils/request'
 import { API_PATHS } from '../config/api'
 
+/** 管理员代充结果（与后端 `/api/recharge/admin` 返回 data 一致） */
+export interface AdminRechargeResult {
+  rechargeRecord: RechargeRecord
+  message: string
+  memberLevel?: number
+  totalRecharge?: number
+}
+
 export interface RechargeParams {
   memberId: number
   rechargeAmount: number
@@ -42,6 +50,44 @@ export function createRechargeOrder(params: RechargeParams) {
   return request<RechargeRecord>({
     url: API_PATHS.RECHARGE.USER,
     method: 'POST',
+    data: params
+  })
+}
+
+/**
+ * 管理员为指定会员充值（会长 / 场馆管理员）
+ */
+export function adminRecharge(params: {
+  memberId: number
+  amount: number
+  method: 'CASH' | 'ALIPAY' | 'WECHAT' | 'BANK'
+  remark?: string
+}) {
+  return request<AdminRechargeResult>({
+    url: API_PATHS.RECHARGE.ADMIN,
+    method: 'POST',
+    data: {
+      memberId: params.memberId,
+      amount: params.amount,
+      method: params.method,
+      remark: params.remark
+    }
+  })
+}
+
+/**
+ * 按会员查询充值记录（会长端详情页使用）
+ */
+export function getRechargeRecordsByMemberId(memberId: number, params?: { page?: number; size?: number }) {
+  return request<{
+    data: RechargeRecord[]
+    total: number
+    page: number
+    size: number
+    pages: number
+  }>({
+    url: `${API_PATHS.RECHARGE.RECORDS}/${memberId}`,
+    method: 'GET',
     data: params
   })
 }

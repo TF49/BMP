@@ -238,16 +238,27 @@ function handleNavSettings() {
 }
 
 function handleDetail(item: MemberListItem) {
-    // Navigate to detail
-    uni.showToast({ title: '详情开发中', icon: 'none' })
+  if (item.id == null) {
+    uni.showToast({ title: '会员信息不完整', icon: 'none' })
+    return
+  }
+  uni.navigateTo({
+    url: `${PRESIDENT_PAGES.MEMBER_DETAIL}?memberId=${item.id}`
+  })
 }
 
 function handleRecharge(item: MemberListItem) {
-    uni.showToast({ title: '充值开发中', icon: 'none' })
+  if (item.id == null) {
+    uni.showToast({ title: '会员信息不完整', icon: 'none' })
+    return
+  }
+  uni.navigateTo({
+    url: `${PRESIDENT_PAGES.MEMBER_RECHARGE}?memberId=${item.id}`
+  })
 }
 
 function handleAdd() {
-    uni.showToast({ title: '新增会员开发中', icon: 'none' })
+  uni.navigateTo({ url: PRESIDENT_PAGES.MEMBER_FORM })
 }
 
 function formatPhone(phone?: string) {

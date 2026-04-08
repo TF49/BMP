@@ -76,6 +76,10 @@
               <uni-icons type="staff" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">教练管理</text>
             </view>
+            <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.COURSE_LIST)">
+              <uni-icons type="compose" size="24" color="#a33e00"></uni-icons>
+              <text class="text-xs-12 font-bold text-on-surface">璇剧▼绠＄悊</text>
+            </view>
             <view class="bg-surface-container-lowest aspect-square rounded-2xl flex flex-col items-center justify-center gap-3 text-center shadow-sm" hover-class="scale-95 transition-transform" @tap="navigateTo(PRESIDENT_PAGES.MEMBER_LIST)">
               <uni-icons type="person" size="24" color="#a33e00"></uni-icons>
               <text class="text-xs-12 font-bold text-on-surface">会员中心</text>

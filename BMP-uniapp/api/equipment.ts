@@ -16,6 +16,22 @@ export interface EquipmentItem {
   createTime: string
 }
 
+export interface EquipmentPayload {
+  id?: number
+  equipmentCode: string
+  equipmentImage?: string
+  equipmentName: string
+  equipmentType: 'RACKET' | 'SHUTTLE' | 'STRING' | 'OTHER'
+  brand?: string
+  price: number
+  rentalPrice?: number
+  rentalDeposit?: number
+  totalQuantity: number
+  availableQuantity?: number
+  status?: number
+  description?: string
+}
+
 export interface EquipmentRentalParams {
   memberId: number
   equipmentId: number
@@ -70,6 +86,28 @@ export function getEquipmentDetail(id: number) {
   return request<EquipmentItem>({
     url: `${API_PATHS.EQUIPMENT.DETAIL}/${id}`,
     method: 'GET'
+  })
+}
+
+/**
+ * 新增器材（会长 / 场馆管理员）
+ */
+export function addEquipment(data: EquipmentPayload) {
+  return request<{ id: number }>({
+    url: '/equipment/add',
+    method: 'POST',
+    data
+  })
+}
+
+/**
+ * 更新器材（会长 / 场馆管理员）
+ */
+export function updateEquipment(data: EquipmentPayload) {
+  return request<null>({
+    url: '/equipment/update',
+    method: 'PUT',
+    data
   })
 }
 

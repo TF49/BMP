@@ -175,7 +175,7 @@ function goBack() {
 }
 
 function goAdd() {
-  uni.showToast({ title: '添加功能开发中', icon: 'none' })
+  uni.navigateTo({ url: PRESIDENT_PAGES.COACH_FORM })
 }
 
 function goDetail(coach: any) {

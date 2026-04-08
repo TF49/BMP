@@ -170,6 +170,97 @@
       }
     },
     {
+      "path": "pages/president/member/form",
+      "style": {
+        "navigationBarTitleText": "新增会员",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/member/detail",
+      "style": {
+        "navigationBarTitleText": "会员详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/member/recharge",
+      "style": {
+        "navigationBarTitleText": "会员充值",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/coach/list",
+      "style": {
+        "navigationBarTitleText": "教练管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/coach/detail",
+      "style": {
+        "navigationBarTitleText": "教练详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/coach/form",
+      "style": {
+        "navigationBarTitleText": "编辑教练",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/equipment/detail",
+      "style": {
+        "navigationBarTitleText": "器材详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/equipment/form",
+      "style": {
+        "navigationBarTitleText": "添加器材",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/equipment/stock",
+      "style": {
+        "navigationBarTitleText": "库存管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/course/form",
+      "style": {
+        "navigationBarTitleText": "新建课程",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/course/detail",
+      "style": {
+        "navigationBarTitleText": "课程详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/tournament/detail",
+      "style": {
+        "navigationBarTitleText": "赛事详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/tournament/form",
+      "style": {
+        "navigationBarTitleText": "配置赛事",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/tournament-registration/list",
       "style": {
         "navigationBarTitleText": "赛事报名管理",

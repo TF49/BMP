@@ -302,15 +302,15 @@ function handleSettings() {
 }
 
 function handleCreate() {
-  uni.showToast({ title: '创建赛事功能开发中', icon: 'none' })
+  uni.navigateTo({ url: PRESIDENT_PAGES.TOURNAMENT_FORM })
 }
 
 function handleCardClick(t: Tournament) {
-  uni.showToast({ title: `查看：${t.name}`, icon: 'none' })
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.TOURNAMENT_DETAIL}?tournamentId=${t.id}` })
 }
 
 function handleEdit(t: Tournament) {
-  uni.showToast({ title: `编辑：${t.name}`, icon: 'none' })
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.TOURNAMENT_FORM}?id=${t.id}` })
 }
 </script>
 

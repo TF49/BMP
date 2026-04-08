@@ -255,7 +255,7 @@ function handleBook() {
 }
 
 function handleEdit() {
-  uni.showToast({ title: '编辑功能开发中', icon: 'none' })
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COACH_FORM}?id=${coachId.value}` })
 }
 
 function handleDelete() {
