@@ -30,18 +30,18 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public Map<String, Object> getSummary(String startDate, String endDate) {
+        if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
+            throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问后台汇总数据");
+        }
+
         String start = (startDate != null && !startDate.isBlank()) ? startDate.trim() : LocalDate.now().format(ISO);
         String end = (endDate != null && !endDate.isBlank()) ? endDate.trim() : start;
 
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("member", memberService.getStatistics());
+        payload.put("member", SecurityUtils.isPresident() ? memberService.getStatistics() : null);
         payload.put("booking", bookingService.getStatistics());
         payload.put("court", courtService.getStatistics());
-        if (SecurityUtils.isPresident() || SecurityUtils.isVenueManager()) {
-            payload.put("finance", financeService.getStatistics(null, start, end));
-        } else {
-            payload.put("finance", null);
-        }
+        payload.put("finance", financeService.getStatistics(null, start, end));
         return payload;
     }
 }

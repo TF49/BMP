@@ -19,6 +19,7 @@
           <text class="title">预约列表（占位）</text>
           <text class="desc">用于会长端查看课程预约、核销/取消等。当前为占位页，避免路由跳转失败。</text>
           <view class="actions">
+            <button class="ghost-btn" @click="openDetailDemo">查看预约详情（示例）</button>
             <button class="primary-btn" @click="goBack">我知道了</button>
           </view>
         </view>
@@ -34,6 +35,12 @@ import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
+}
+
+function openDetailDemo() {
+  uni.navigateTo({
+    url: `${PRESIDENT_PAGES.COURSE_BOOKING_DETAIL}?id=demo`
+  })
 }
 </script>
 
@@ -104,6 +111,19 @@ function goBack() {
 }
 .actions {
   margin-top: 26rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+.ghost-btn {
+  width: 100%;
+  height: 92rpx;
+  border-radius: 9999px;
+  background: #f3f3f3;
+  color: #a33e00;
+  font-weight: 800;
+  font-size: 28rpx;
+  border: 2rpx solid rgba(163, 62, 0, 0.2);
 }
 .primary-btn {
   width: 100%;

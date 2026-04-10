@@ -170,7 +170,6 @@
           </el-table-column>
           <el-table-column prop="venueName" label="场馆" min-width="120" align="center" v-if="userRole === 'PRESIDENT'" />
           <el-table-column prop="operator" label="操作人" min-width="100" align="center" />
-          <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip align="center" />
           <el-table-column prop="createTime" label="创建时间" min-width="160" align="center">
             <template #default="scope">
               {{ formatDateTime(scope.row.createTime) }}
@@ -180,7 +179,23 @@
             <template #default="scope">
               <div class="operation-buttons">
                 <el-button type="primary" size="small" :icon="View" plain @click="handleView(scope.row)">查看</el-button>
-                <el-button type="success" size="small" :icon="Edit" plain @click="handleEdit(scope.row)">编辑</el-button>
+                <el-tooltip
+                  :content="isAutoFinanceRecord(scope.row) ? '自动生成的财务记录不允许编辑' : '编辑财务记录'"
+                  placement="top"
+                >
+                  <span class="operation-button-wrapper">
+                    <el-button
+                      type="success"
+                      size="small"
+                      :icon="Edit"
+                      plain
+                      :disabled="isAutoFinanceRecord(scope.row)"
+                      @click="handleEdit(scope.row)"
+                    >
+                      编辑
+                    </el-button>
+                  </span>
+                </el-tooltip>
                 <el-button v-if="userRole === 'PRESIDENT'" type="danger" size="small" :icon="Delete" plain @click="handleDelete(scope.row)">删除</el-button>
               </div>
             </template>
@@ -218,7 +233,7 @@
             <el-col :span="12">
               <el-form-item label="业务类型" prop="businessType" class="form-item-enhanced modern-form-item">
                 <el-select v-model="form.businessType" placeholder="请选择业务类型" class="form-input modern-form-input" style="width: 100%">
-                  <el-option v-for="item in businessTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
+                  <el-option v-for="item in manualBusinessTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
                 </el-select>
                 <span class="field-hint modern-field-hint">选择该财务记录关联的业务类型</span>
               </el-form-item>
@@ -340,8 +355,7 @@ import {
   getFinanceStatistics,
   getFinanceTrend,
   getFinanceRatio,
-  getFinanceVenues,
-  getBusinessTypes
+  getFinanceVenues
 } from '@/api/finance'
 
 // 用户角色
@@ -371,6 +385,9 @@ const statistics = ref({
   expenseChange: 0
 })
 const venueOptions = ref([])
+const manualBusinessTypeOptions = computed(() =>
+  businessTypeOptions.value.filter(item => item.value === 'OTHER')
+)
 const businessTypeOptions = ref([
   { value: 'BOOKING', label: '场地预约' },
   { value: 'COURSE', label: '课程预约' },
@@ -856,6 +873,10 @@ function handleAdd() {
 }
 
 function handleEdit(row) {
+  if (isAutoFinanceRecord(row)) {
+    ElMessage.warning('自动生成的财务记录不允许编辑')
+    return
+  }
   dialogTitle.value = '编辑财务记录'
   form.id = row.id
   form.businessType = row.businessType
@@ -945,6 +966,10 @@ function formatCurrency(value) {
 function formatDateTime(datetime) {
   if (!datetime) return ''
   return datetime.replace('T', ' ').substring(0, 19)
+}
+
+function isAutoFinanceRecord(row) {
+  return row?.recordSource === 'AUTO'
 }
 
 function getBusinessTypeName(type) {
@@ -1443,6 +1468,10 @@ function getPaymentMethodName(method) {
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.operation-button-wrapper {
+  display: inline-flex;
 }
 
 .search-btn,

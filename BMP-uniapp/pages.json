@@ -296,9 +296,23 @@
       }
     },
     {
+      "path": "pages/president/tournament-registration/detail",
+      "style": {
+        "navigationBarTitleText": "详情回顾",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/course-booking/list",
       "style": {
         "navigationBarTitleText": "课程预约管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/course-booking/detail",
+      "style": {
+        "navigationBarTitleText": "详情回顾",
         "navigationStyle": "custom"
       }
     },
@@ -310,9 +324,23 @@
       }
     },
     {
+      "path": "pages/president/equipment-rental/detail",
+      "style": {
+        "navigationBarTitleText": "详情回顾",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/stringing/list",
       "style": {
         "navigationBarTitleText": "穿线服务管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/stringing/detail",
+      "style": {
+        "navigationBarTitleText": "详情回顾",
         "navigationStyle": "custom"
       }
     },

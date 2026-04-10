@@ -680,7 +680,7 @@ const handleImageUpload = async (options) => {
   const { file, onSuccess, onError } = options
   imageUploading.value = true
   try {
-    const res = await uploadVenueImage(file)
+    const res = await uploadVenueImage(file, venueForm.id || null)
     // request.js 已保证 code===200 才会返回
     const imageData = res.data || res
     venueForm.venueImage = imageData.url || imageData
@@ -701,7 +701,7 @@ const handleMainImageUpload = async (options) => {
   const { file, onSuccess, onError } = options
   imageUploading.value = true
   try {
-    const res = await uploadVenueImage(file)
+    const res = await uploadVenueImage(file, venueForm.id || null)
     const imageData = res.data || res
     const url = imageData.url || imageData
     mainImageUrl.value = url

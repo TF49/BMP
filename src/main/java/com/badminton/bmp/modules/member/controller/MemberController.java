@@ -128,7 +128,7 @@ public class MemberController extends BaseController {
 
     @Operation(summary = "会员统计")
     @GetMapping("/statistics")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('PRESIDENT')")
     public Result<Object> statistics(@RequestParam(value = "period", required = false) String period) {
         try {
             Map<String, Object> stats = memberService.getStatistics();
@@ -248,7 +248,7 @@ public class MemberController extends BaseController {
      */
     @Operation(summary = "会员分布")
     @GetMapping("/distribution")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('PRESIDENT')")
     public Result<Object> distribution() {
         try {
             return success(memberService.getDistribution());
@@ -259,7 +259,7 @@ public class MemberController extends BaseController {
 
     @Operation(summary = "会员漏斗", description = "Dashboard 漏斗图")
     @GetMapping("/funnel")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('PRESIDENT')")
     public Result<Object> funnel() {
         try {
             return success(memberService.getFunnel());
@@ -270,7 +270,7 @@ public class MemberController extends BaseController {
 
     @Operation(summary = "即将到期会员", description = "Dashboard 预警，days 默认 30")
     @GetMapping("/expiring")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('PRESIDENT')")
     public Result<Object> expiring(@RequestParam(value = "days", defaultValue = "30") int days) {
         try {
             List<Map<String, Object>> list = memberService.getExpiringMembers(days);
@@ -282,7 +282,7 @@ public class MemberController extends BaseController {
 
     @Operation(summary = "会员来源分布", description = "Dashboard 饼图")
     @GetMapping("/source")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('PRESIDENT')")
     public Result<Object> source() {
         try {
             return success(memberService.getSource());

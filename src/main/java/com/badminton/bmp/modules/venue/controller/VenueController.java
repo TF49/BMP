@@ -90,10 +90,12 @@ public class VenueController extends BaseController {
     @Operation(summary = "上传场馆图片（单张）", description = "需管理员权限，返回图片 URL")
     @PostMapping(value = "/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> uploadVenueImage(@RequestParam("file") MultipartFile file) {
+    public Result<Object> uploadVenueImage(@RequestParam("file") MultipartFile file,
+                                           @RequestParam(value = "venueId", required = false) Long venueId) {
         try {
             // 权限验证：仅管理员可上传
-            if (!isAdmin()) {
+            if (!com.badminton.bmp.common.util.SecurityUtils.isPresident()
+                    && !com.badminton.bmp.common.util.SecurityUtils.isVenueManager()) {
                 return error("权限不足，仅管理员可执行此操作");
             }
 
@@ -114,6 +116,10 @@ public class VenueController extends BaseController {
                 if (dot >= 0 && dot < originalFilename.length() - 1) {
                     ext = originalFilename.substring(dot + 1).toLowerCase();
                 }
+            }
+
+            if (venueId != null && !canManageVenue(venueId)) {
+                return error("权限不足，无法为该场馆上传图片");
             }
 
             Set<String> allowedExt = new HashSet<>(Arrays.asList("jpg", "jpeg", "png", "webp"));
@@ -157,7 +163,8 @@ public class VenueController extends BaseController {
             @RequestParam(value = "imageType", required = false, defaultValue = "DETAIL") String imageType) {
         try {
             // 权限验证：仅管理员可上传
-            if (!isAdmin()) {
+            if (!com.badminton.bmp.common.util.SecurityUtils.isPresident()
+                    && !com.badminton.bmp.common.util.SecurityUtils.isVenueManager()) {
                 return error("权限不足，仅管理员可执行此操作");
             }
 
@@ -166,6 +173,9 @@ public class VenueController extends BaseController {
             }
 
             Set<String> allowedExt = new HashSet<>(Arrays.asList("jpg", "jpeg", "png", "webp"));
+            if (venueId != null && !canManageVenue(venueId)) {
+                return error("权限不足，无法为该场馆上传图片");
+            }
             List<Map<String, Object>> uploadedImages = new ArrayList<>();
             List<String> errors = new ArrayList<>();
 

@@ -187,7 +187,7 @@
         <el-col :xs="24" :lg="16">
           <RevenueBarChart class="chart-full-height" />
         </el-col>
-        <el-col :xs="24" :lg="8">
+        <el-col v-if="canViewMemberAnalytics" :xs="24" :lg="8">
           <MemberPieChart class="chart-full-height" />
         </el-col>
       </el-row>
@@ -301,7 +301,7 @@
 
       <!-- 新增：会员增长 + 收入仪表盘 -->
       <el-row :gutter="24" class="mb-24 charts-row-aligned">
-        <el-col :xs="24" :lg="16">
+        <el-col v-if="canViewMemberAnalytics" :xs="24" :lg="16">
           <MemberGrowthChart class="chart-full-height" />
         </el-col>
         <el-col :xs="24" :lg="8">
@@ -321,7 +321,7 @@
 
       <!-- 新增：会员漏斗图 + 场地使用率 -->
       <el-row :gutter="24" class="mb-24 charts-row-aligned">
-        <el-col :xs="24" :lg="12">
+        <el-col v-if="canViewMemberAnalytics" :xs="24" :lg="12">
           <MemberFunnelChart class="chart-full-height" />
         </el-col>
         <el-col :xs="24" :lg="12">
@@ -353,7 +353,7 @@
         <el-col :xs="24" :lg="12">
           <TournamentImpactChart class="chart-full-height" />
         </el-col>
-        <el-col :xs="24" :lg="12">
+        <el-col v-if="canViewMemberAnalytics" :xs="24" :lg="12">
           <MemberChurnChart class="chart-full-height" />
         </el-col>
       </el-row>
@@ -368,14 +368,14 @@
         </el-col>
       </el-row>
       <el-row :gutter="24" class="mb-24 charts-row-aligned">
-        <el-col :xs="24" :lg="24">
+        <el-col v-if="canViewMemberAnalytics" :xs="24" :lg="24">
           <MemberSourcePieChart class="chart-full-height" />
         </el-col>
       </el-row>
 
       <!-- 新增：预警与待办总览 -->
       <el-row :gutter="24" class="mb-24 charts-row-aligned">
-        <el-col :xs="24" :lg="8">
+        <el-col v-if="canViewMemberAnalytics" :xs="24" :lg="8">
           <ExpiringMemberAlertCard />
         </el-col>
         <el-col :xs="24" :lg="8">
@@ -818,6 +818,8 @@ const showAllBookingVenues = ref(false)
 
 // 场馆总数（统一从 dashboardStats 获取，避免数据不同步）
 const venueCount = computed(() => dashboardStats.value.venueTotal)
+const currentUserRole = computed(() => getUserInfo()?.role || '')
+const canViewMemberAnalytics = computed(() => currentUserRole.value === 'PRESIDENT')
 
 // 显示的收入趋势场馆列表（默认只显示前3个）
 const displayedRevenueVenues = computed(() => {
@@ -957,6 +959,11 @@ const applyDashboardStatsFromParts = (md, bd, fd, cd) => {
     dashboardStats.value.todayNewMembers = numOrZero(md.newToday)
     dashboardStats.value.memberGrowth = numOrZero(md.growthRate)
     dashboardStats.value.activeMembers = md.normal != null ? numOrZero(md.normal) : numOrZero(md.total)
+  } else {
+    dashboardStats.value.memberTotal = 0
+    dashboardStats.value.todayNewMembers = 0
+    dashboardStats.value.memberGrowth = 0
+    dashboardStats.value.activeMembers = 0
   }
 
   if (bd) {
@@ -996,7 +1003,7 @@ const applyDashboardStatsFromParts = (md, bd, fd, cd) => {
 const fetchDashboardStatsLegacy = async () => {
   const today = formatLocalDate()
   const [memberRes, bookingRes, financeRes, courtRes] = await Promise.all([
-    getMemberStatistics(),
+    canViewMemberAnalytics.value ? getMemberStatistics() : Promise.resolve({ code: 0, data: null }),
     getBookingStatistics(),
     getFinanceStatistics({ startDate: today, endDate: today }).catch(() => ({ code: 0, data: null })),
     getCourtStatistics()

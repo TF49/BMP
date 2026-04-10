@@ -68,9 +68,12 @@ export function deleteVenue(id) {
  * 上传场馆图片（管理员）- 单图片（向后兼容）
  * @param {File} file - 图片文件
  */
-export function uploadVenueImage(file) {
+export function uploadVenueImage(file, venueId) {
   const formData = new FormData()
   formData.append('file', file)
+  if (venueId) {
+    formData.append('venueId', venueId)
+  }
 
   return request({
     url: '/api/venue/upload-image',

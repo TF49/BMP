@@ -22,7 +22,7 @@ public class DashboardController extends BaseController {
 
     @Operation(summary = "Dashboard 统计汇总", description = "会员、预约、场地、财务（总裁/场馆经理可见财务）一次返回")
     @GetMapping("/summary")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
     public Result<Object> summary(
             @RequestParam(value = "startDate", required = false) String startDate,
             @RequestParam(value = "endDate", required = false) String endDate) {

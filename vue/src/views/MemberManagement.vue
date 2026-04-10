@@ -797,6 +797,16 @@ const loadMemberList = async () => {
 }
 
 const loadStatistics = async () => {
+  if (userRole.value !== 'PRESIDENT') {
+    Object.assign(statistics, {
+      total: 0,
+      normal: 0,
+      frozen: 0,
+      expired: 0
+    })
+    return
+  }
+
   try {
     const res = await getMemberStatistics()
     if (res.code === 200) {

@@ -32,6 +32,12 @@ public class MemberServiceImpl implements MemberService {
     @Autowired
     private MemberConsumeRecordMapper memberConsumeRecordMapper;
 
+    private void ensurePresidentAnalyticsAccess() {
+        if (!SecurityUtils.isPresident()) {
+            throw new org.springframework.security.access.AccessDeniedException("权限不足，仅会长可访问会员统计数据");
+        }
+    }
+
     @Override
     public Member findById(Long id) {
         Member member = memberMapper.findById(id);
@@ -230,6 +236,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public Map<String, Object> getStatistics() {
+        ensurePresidentAnalyticsAccess();
         Map<String, Object> map = new HashMap<>();
         int total = memberMapper.countAll();
         int normal = memberMapper.countByStatus(1);
@@ -261,6 +268,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<Map<String, Object>> getDistribution() {
+        ensurePresidentAnalyticsAccess();
         List<Map<String, Object>> result = new ArrayList<>();
 
         // 会员分布：按会员等级 member_level 统计（Lv.1~Lv.5；若存在 level=0/空，则显示 Lv.0）
@@ -317,6 +325,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<Map<String, Object>> getFunnel() {
+        ensurePresidentAnalyticsAccess();
         List<Map<String, Object>> result = new ArrayList<>();
         int total = memberMapper.countAll();
         int normal = memberMapper.countByStatus(1);
@@ -417,6 +426,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<Map<String, Object>> getExpiringMembers(int days) {
+        ensurePresidentAnalyticsAccess();
         int d = days <= 0 ? 30 : Math.min(days, 365);
         List<Map<String, Object>> rows = memberMapper.findExpiringWithinDays(d);
         if (rows == null) return new ArrayList<>();
@@ -456,6 +466,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<Map<String, Object>> getSource() {
+        ensurePresidentAnalyticsAccess();
         List<Map<String, Object>> typeLevel = memberMapper.countByTypeAndLevel();
         Map<String, Integer> byType = new HashMap<>();
         if (typeLevel != null) {
