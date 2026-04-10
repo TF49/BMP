@@ -1,35 +1,58 @@
 <template>
-  <view class="president-layout" :class="[backgroundColor, className]">
-    <!-- 渐变背景 -->
+  <view :class="rootClassList">
     <view class="president-layout-bg">
-      <view class="president-layout-gradient"></view>
+      <view class="president-layout-gradient" :style="gradientStyle" />
     </view>
-    <!-- 主要内容区域 -->
     <view class="president-layout-content">
       <slot></slot>
     </view>
-    <!-- 会长端 TabBar（仅 tabBar 页显示） -->
     <PresidentTabBar v-if="showTabBar" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import PresidentTabBar from './PresidentTabBar.vue'
 import { useUserStore } from '@/store/modules/user'
 import { isPresidentRole } from '@/utils/roleCheck'
 import { safeReLaunch } from '@/utils/safeRoute'
 
-interface Props {
-  showTabBar?: boolean
-  className?: string
-  backgroundColor?: string
+const props = withDefaults(
+  defineProps<{
+    showTabBar?: boolean
+    className?: string
+    backgroundColor?: string
+  }>(),
+  {
+    showTabBar: true,
+    className: '',
+    backgroundColor: 'bg-president'
+  }
+)
+
+function isCssBackgroundLiteral(s: string): boolean {
+  const t = s.trim()
+  if (!t) return false
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(t)) return true
+  if (/^rgb(a)?\(/i.test(t)) return true
+  if (/^linear-gradient\(/i.test(t)) return true
+  return false
 }
 
-withDefaults(defineProps<Props>(), {
-  showTabBar: true,
-  className: '',
-  backgroundColor: 'bg-president'
+const gradientStyle = computed(() => {
+  if (isCssBackgroundLiteral(props.backgroundColor)) {
+    return { background: props.backgroundColor.trim() }
+  }
+  return {}
+})
+
+const rootClassList = computed(() => {
+  const list = ['president-layout']
+  if (props.className) list.push(props.className)
+  if (!isCssBackgroundLiteral(props.backgroundColor) && props.backgroundColor) {
+    list.push(props.backgroundColor)
+  }
+  return list
 })
 
 onMounted(() => {
@@ -51,10 +74,7 @@ onMounted(() => {
 
 .president-layout-bg {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
 }
@@ -62,7 +82,9 @@ onMounted(() => {
 .president-layout-gradient {
   width: 100%;
   height: 100%;
-  background: linear-gradient(165deg, #f0fdf4 0%, #ecfdf5 20%, #f8fafc 50%, #f1f5f9 100%);
+  background:
+    radial-gradient(circle at top left, rgba(251, 146, 60, 0.18), transparent 36%),
+    linear-gradient(165deg, #fff7ef 0%, #ffedd5 24%, #faf6f1 58%, #f7f4ef 100%);
 }
 
 .president-layout-content {
@@ -70,10 +92,10 @@ onMounted(() => {
   overflow-y: auto;
   position: relative;
   z-index: 1;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 56px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 128rpx);
 }
 
 .bg-president {
-  /* 使用渐变背景 */
+  /* semantic marker */
 }
 </style>

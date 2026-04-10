@@ -1,45 +1,283 @@
 <template>
-  <PresidentLayout :showTabBar="false">
+  <PresidentLayout :showTabBar="false" backgroundColor="#f9f9f9">
     <view class="page">
       <view class="status-bar-placeholder" />
 
-      <view class="nav-header">
-        <view class="nav-row">
-          <view class="nav-left" @click="goBack">
-            <view class="back-btn">
-              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+      <!-- Mobile drawer -->
+      <view v-if="drawerOpen" class="drawer-root" @click="drawerOpen = false">
+        <view class="drawer-panel" @click.stop>
+          <view class="drawer-head">
+            <text class="drawer-brand">KINETIC LOGIC</text>
+            <view class="drawer-close" @click="drawerOpen = false">
+              <uni-icons type="closeempty" size="26" color="#5f5e5e" />
             </view>
-            <text class="nav-title">穿线服务（会长端）</text>
+          </view>
+          <view class="drawer-profile">
+            <image
+              class="drawer-avatar"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRJDmZyEZ3MvKOpkA9jt-NVsUd0_gFfEV6qksMhSEz2Xw6HsmLEjHOB23R9QFzemlN8du-qnKMmIr0_kXSlerETPf6R-6zxx_BRyBCs9EcmASY9Td4lrx_dmG09XrmTGPT3M6fnQrtKArXt7T7T1_eqkiOw8_fdAe7eZmWdZ9SoFN3Nnr_YUn1F9OgZCQEm2R8fLH7sBDVlUrC1DpAkRwLY110mXiXDHNEpB1PytCP8iuIRZCpC1eYDi4t8e11bZSjjlzNg1KvPnMQ"
+              mode="aspectFill"
+            />
+            <view class="drawer-profile-text">
+              <text class="drawer-name">校长办公室</text>
+              <text class="drawer-role">Kinetic Logic 管理员</text>
+            </view>
+          </view>
+          <view class="drawer-nav">
+            <view v-for="item in drawerNav" :key="item.label" class="drawer-nav-item" :class="{ active: item.active }" @click="onDrawerNav(item)">
+              <uni-icons :type="item.icon" size="22" :color="item.active ? '#ff6600' : '#5f5e5e'" />
+              <text class="drawer-nav-label" :class="{ 'nav-active': item.active }">{{ item.label }}</text>
+            </view>
+          </view>
+          <view class="drawer-footer-card">
+            <text class="drawer-foot-title">活跃工作台</text>
+            <text class="drawer-foot-desc">12号场地 穿线室</text>
           </view>
         </view>
       </view>
 
-      <view class="content">
-        <view class="card">
-          <text class="title">服务单列表（占位）</text>
-          <text class="desc">用户端已有穿线模块；会长端通常用于管理订单、价格策略与进度。当前为占位页，避免路由跳转失败。</text>
-          <view class="actions">
-            <button class="ghost-btn" @click="openDetailDemo">查看工单详情（示例）</button>
-            <button class="primary-btn" @click="goBack">我知道了</button>
+      <view class="top-bar">
+        <view class="top-bar-left">
+          <view class="icon-round" @click="drawerOpen = true">
+            <uni-icons type="bars" size="22" color="#5f5e5e" />
           </view>
+          <text class="screen-title">穿线管理</text>
+        </view>
+        <view class="top-bar-right">
+          <view class="icon-round">
+            <uni-icons type="search" size="22" color="#ff6600" />
+          </view>
+          <button class="cta-btn" @click="openForm">+ 新增穿线</button>
         </view>
       </view>
+
+      <scroll-view scroll-y class="scroll" :show-scrollbar="false">
+        <view class="content">
+          <!-- Summary -->
+          <view class="summary-block">
+            <view class="summary-hero">
+              <text class="summary-label">今日生产总量</text>
+              <text class="summary-hero-num">{{ summary.todayTotal }}</text>
+              <view class="trend-row">
+                <uni-icons type="arrow-up" size="16" color="#a33e00" />
+                <text class="trend-text">较昨日 +12%</text>
+              </view>
+            </view>
+            <view class="summary-grid">
+              <view class="mini-stat border-primary">
+                <text class="mini-label">待处理</text>
+                <text class="mini-num">{{ pad2(summary.pending) }}</text>
+                <text class="mini-sub">平均等待: 45分钟</text>
+              </view>
+              <view class="mini-stat border-tertiary">
+                <text class="mini-label">进行中</text>
+                <text class="mini-num">{{ pad2(summary.inProgress) }}</text>
+                <text class="mini-sub">所有工作台活跃</text>
+              </view>
+              <view class="mini-stat solid-orange">
+                <text class="mini-label light">已就绪</text>
+                <text class="mini-num light">{{ pad2(summary.ready) }}</text>
+                <text class="mini-sub light dim">等待取件</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- Work list -->
+          <view class="table-card">
+            <view class="table-head">
+              <text class="th th-customer">客户与球拍</text>
+              <text class="th th-string">球线型号</text>
+              <text class="th th-lbs">磅数 (lbs)</text>
+              <text class="th th-status">状态</text>
+              <text class="th th-actions">操作</text>
+            </view>
+            <view v-for="job in jobs" :key="job.id" class="table-row">
+              <view class="td-stack td-customer">
+                <text class="customer-name">{{ job.customerLabel }}</text>
+                <text class="racket-line">{{ job.racketLine }}</text>
+              </view>
+              <view class="td-string">
+                <view class="string-pill">
+                  <text class="string-pill-text">{{ job.stringModel }}</text>
+                </view>
+              </view>
+              <view class="td-tension">
+                <text class="tension-main">{{ job.tensionMain }}</text>
+                <text class="tension-cross">/ {{ job.tensionCross }}</text>
+              </view>
+              <view class="td-status">
+                <view class="status-pill" :class="`st-${job.status}`">
+                  <view v-if="job.status === 'in_progress'" class="dot dot-tertiary" />
+                  <view v-if="job.status === 'pending'" class="dot dot-secondary" />
+                  <uni-icons v-if="job.status === 'ready'" type="checkbox-filled" size="14" color="#561d00" />
+                  <text class="status-text">{{ statusLabel(job.status) }}</text>
+                </view>
+              </view>
+              <view class="td-actions">
+                <view v-if="job.status === 'in_progress'" class="act-btn" @click="onEdit(job)">
+                  <uni-icons type="compose" size="20" color="#5f5e5e" />
+                </view>
+                <view v-if="job.status === 'pending'" class="act-btn" @click="onStart(job)">
+                  <uni-icons type="right" size="20" color="#5f5e5e" />
+                </view>
+                <view v-if="job.status === 'ready'" class="act-btn" @click="onNotify(job)">
+                  <uni-icons type="notification" size="20" color="#a33e00" />
+                </view>
+                <view class="act-btn" @click="onMore(job)">
+                  <uni-icons type="more-filled" size="20" color="#5f5e5e" />
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- Inventory + maintenance -->
+          <view class="bottom-section">
+            <view class="inventory-block">
+              <text class="section-title">库存状态</text>
+              <view class="inv-grid">
+                <view v-for="inv in inventory" :key="inv.name" class="inv-row">
+                  <text class="inv-name">{{ inv.name }}</text>
+                  <view class="inv-bar-track">
+                    <view class="inv-bar-fill" :class="inv.low ? 'fill-error' : 'fill-primary'" :style="{ width: inv.pct + '%' }" />
+                  </view>
+                </view>
+              </view>
+            </view>
+            <view class="maint-card">
+              <image
+                class="maint-img"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB90WHZKFJmddP57snhO0vhMICK25jZwsUo1oHtKOESLdFySd33iXDOnU-_Yo29pNWLrVrd5rUi5XWKEQbznYA0ijlVbDLY-qPWe11KIeh4yUPziuHIUg6RQ_0vCyFfUrZsDsq2K5cLDqEI-QgmSRsGboZC66n67p8mek2fKi1peVuxkun1rgLTRzViUggZeUZBEQLFKx4iprCti4WezSMr5CIw5r0Y_S563hoLS8sh_j-ygM80pgeH-ruS02M9dNnHCK20baGfYhDJ"
+                mode="aspectFill"
+              />
+              <view class="maint-overlay">
+                <text class="maint-tag">维护笔记</text>
+                <text class="maint-body">明天早上校准 B 号机台。</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="bottom-space" />
+        </view>
+      </scroll-view>
     </view>
   </PresidentLayout>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
-function goBack() {
-  safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
+type JobStatus = 'in_progress' | 'pending' | 'ready'
+
+type Job = {
+  id: string
+  customerLabel: string
+  racketLine: string
+  stringModel: string
+  tensionMain: string
+  tensionCross: string
+  status: JobStatus
 }
 
-function openDetailDemo() {
-  uni.navigateTo({
-    url: `${PRESIDENT_PAGES.STRINGING_DETAIL}?id=demo`
+const drawerOpen = ref(false)
+
+const drawerNav = ref([
+  { label: '仪表盘', icon: 'home', active: false, action: 'dashboard' as const },
+  { label: '协会管理', icon: 'staff', active: true, action: 'assoc' as const },
+  { label: '赛事联盟', icon: 'flag', active: false, action: 'league' as const },
+  { label: '设置', icon: 'gear', active: false, action: 'settings' as const }
+])
+
+const summary = ref({
+  todayTotal: 24,
+  pending: 8,
+  inProgress: 3,
+  ready: 12
+})
+
+const jobs = ref<Job[]>([
+  {
+    id: '1',
+    customerLabel: '安赛龙 (Viktor Axelsen)',
+    racketLine: 'Yonex Astrox 100ZZ',
+    stringModel: 'BG80 Power',
+    tensionMain: '31',
+    tensionCross: '30',
+    status: 'in_progress'
+  },
+  {
+    id: '2',
+    customerLabel: '戴资颖 (Tai Tzu-ying)',
+    racketLine: 'Victor Thruster F Claw',
+    stringModel: 'VBS-66 Nano',
+    tensionMain: '29',
+    tensionCross: '29',
+    status: 'pending'
+  },
+  {
+    id: '3',
+    customerLabel: '吉德翁 (Marcus Gideon)',
+    racketLine: 'Yonex Astrox 88D Pro',
+    stringModel: 'Aerobite',
+    tensionMain: '32',
+    tensionCross: '32',
+    status: 'ready'
+  }
+])
+
+const inventory = ref([
+  { name: 'YONEX BG80 白色', pct: 80, low: false },
+  { name: 'EXBOLT 65 黄色', pct: 15, low: true }
+])
+
+function pad2(n: number) {
+  return n < 10 ? `0${n}` : String(n)
+}
+
+function statusLabel(s: JobStatus) {
+  if (s === 'in_progress') return '进行中'
+  if (s === 'pending') return '待处理'
+  return '已就绪'
+}
+
+function onDrawerNav(item: (typeof drawerNav.value)[0]) {
+  drawerOpen.value = false
+  if (item.action === 'dashboard') {
+    safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
+ } else {
+    uni.showToast({ title: `${item.label} 开发中`, icon: 'none' })
+  }
+}
+
+function openForm() {
+  uni.navigateTo({ url: PRESIDENT_PAGES.STRINGING_FORM })
+}
+
+function openDetail(job: Job) {
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.STRINGING_DETAIL}?id=${encodeURIComponent(job.id)}` })
+}
+
+function onEdit(job: Job) {
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.STRINGING_FORM}?id=${encodeURIComponent(job.id)}` })
+}
+
+function onStart(job: Job) {
+  uni.showToast({ title: `已开始：${job.customerLabel}`, icon: 'none' })
+}
+
+function onNotify(job: Job) {
+  uni.showToast({ title: '已发送取件提醒（示例）', icon: 'none' })
+}
+
+function onMore(job: Job) {
+  uni.showActionSheet({
+    itemList: ['查看详情', '编辑工单'],
+    success(res) {
+      if (res.tapIndex === 0) openDetail(job)
+      if (res.tapIndex === 1) onEdit(job)
+    }
   })
 }
 </script>
@@ -47,92 +285,554 @@ function openDetailDemo() {
 <style lang="scss" scoped>
 .page {
   min-height: 100vh;
-  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
 }
 .status-bar-placeholder {
   height: var(--status-bar-height);
-  background-color: #f8fafc;
+  background: #f9f9f9;
 }
-.nav-header {
-  position: sticky;
+
+.drawer-root {
+  position: fixed;
+  left: 0;
+  right: 0;
   top: 0;
-  z-index: 100;
-  background-color: rgba(248, 250, 252, 0.85);
-  backdrop-filter: blur(12px);
-  padding: 24rpx 48rpx;
-  border-bottom: 1rpx solid rgba(0, 0, 0, 0.04);
+  bottom: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.5);
 }
-.nav-row {
+.drawer-panel {
+  width: 576rpx;
+  max-width: 82vw;
+  height: 100%;
+  background: #f3f3f3;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  padding: 56rpx 40rpx 40rpx;
+  box-sizing: border-box;
+}
+.drawer-head {
+  display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 48rpx;
 }
-.nav-left {
+.drawer-brand {
+  font-size: 32rpx;
+  font-weight: 900;
+  color: #ff6600;
+  letter-spacing: -0.04em;
+}
+.drawer-close {
+  padding: 8rpx;
+}
+.drawer-profile {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 24rpx;
+  margin-bottom: 40rpx;
+}
+.drawer-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 16rpx;
+}
+.drawer-profile-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.drawer-name {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+.drawer-role {
+  font-size: 20rpx;
+  color: #5f5e5e;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  flex: 1;
+}
+.drawer-nav-item {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 20rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 16rpx;
 }
-.back-btn {
+.drawer-nav-item.active {
+  background: #ffffff;
+}
+.drawer-nav-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #5f5e5e;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.nav-active {
+  color: #ff6600;
+  font-weight: 800;
+}
+.drawer-footer-card {
+  margin-top: auto;
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 28rpx;
+}
+.drawer-foot-title {
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #a33e00;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.drawer-foot-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #5f5e5e;
+}
+
+.top-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 28rpx 20rpx;
+  background: rgba(249, 249, 249, 0.92);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1rpx solid rgba(0, 0, 0, 0.04);
+}
+.top-bar-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+}
+.top-bar-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+}
+.icon-round {
   width: 72rpx;
   height: 72rpx;
   border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  &:active {
-    background-color: rgba(0, 0, 0, 0.06);
-  }
 }
-.nav-title {
-  font-size: 34rpx;
+.icon-round:active {
+  background: rgba(0, 0, 0, 0.05);
+}
+.screen-title {
+  font-size: 36rpx;
   font-weight: 800;
-  color: #ea580c;
+  color: #1a1c1c;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cta-btn {
+  margin: 0;
+  padding: 0 24rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 24rpx;
+  font-weight: 800;
+  color: #561d00;
+  background: #ff6600;
+  border-radius: 16rpx;
+  border: none;
+  white-space: nowrap;
+}
+.cta-btn::after {
+  border: none;
+}
+
+.scroll {
+  flex: 1;
+  height: 0;
 }
 .content {
-  padding: 32rpx;
+  padding: 24rpx 28rpx 40rpx;
 }
-.card {
-  background: #fff;
-  border-radius: 28rpx;
-  padding: 28rpx;
-  box-shadow: 0 8rpx 24rpx rgba(2, 6, 23, 0.06);
+
+.summary-block {
+  margin-bottom: 32rpx;
 }
-.title {
-  font-size: 34rpx;
-  font-weight: 900;
-  color: #0f172a;
+.summary-hero {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 40rpx;
+  box-shadow: 0 4rpx 16rpx rgba(26, 28, 28, 0.06);
+  margin-bottom: 24rpx;
 }
-.desc {
+.summary-label {
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #5f5e5e;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.summary-hero-num {
   display: block;
-  margin-top: 12rpx;
-  color: #64748b;
-  line-height: 1.6;
-  font-size: 26rpx;
+  margin-top: 16rpx;
+  font-size: 88rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+  line-height: 1;
 }
-.actions {
-  margin-top: 26rpx;
+.trend-row {
+  margin-top: 28rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+}
+.trend-text {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: #a33e00;
+}
+
+.summary-grid {
   display: flex;
   flex-direction: column;
   gap: 20rpx;
 }
-.ghost-btn {
-  width: 100%;
-  height: 92rpx;
-  border-radius: 9999px;
+.mini-stat {
   background: #f3f3f3;
-  color: #a33e00;
-  font-weight: 800;
-  font-size: 28rpx;
-  border: 2rpx solid rgba(163, 62, 0, 0.2);
+  border-radius: 24rpx;
+  padding: 36rpx 32rpx;
+  border-bottom: 4rpx solid transparent;
 }
-.primary-btn {
-  width: 100%;
-  height: 92rpx;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #ea580c, #a33e00);
-  color: #fff;
+.mini-stat.border-primary {
+  border-bottom-color: #ff6600;
+}
+.mini-stat.border-tertiary {
+  border-bottom-color: #0062a1;
+}
+.mini-stat.solid-orange {
+  background: #ff6600;
+  border-bottom: none;
+}
+.mini-label {
+  font-size: 20rpx;
   font-weight: 800;
-  font-size: 30rpx;
+  color: #5f5e5e;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.mini-label.light {
+  color: #561d00;
+ opacity: 0.95;
+}
+.mini-num {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 48rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+.mini-num.light {
+  color: #ffffff;
+}
+.mini-sub {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  color: #5f5e5e;
+}
+.mini-sub.light {
+  color: #ffffff;
+}
+.mini-sub.light.dim {
+  opacity: 0.85;
+}
+
+.table-card {
+  background: #ffffff;
+  border-radius: 32rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(26, 28, 28, 0.06);
+}
+.table-head {
+  display: none;
+}
+.table-row {
+  padding: 32rpx 28rpx;
+  border-bottom: 1rpx solid rgba(226, 226, 226, 0.6);
+}
+.table-row:last-child {
+  border-bottom: none;
+}
+.td-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.customer-name {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+.racket-line {
+  font-size: 20rpx;
+  color: #5f5e5e;
+}
+.td-string {
+  margin-top: 20rpx;
+}
+.string-pill {
+  align-self: flex-start;
+  background: #e8e8e8;
+  border-radius: 8rpx;
+  padding: 8rpx 16rpx;
+}
+.string-pill-text {
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #1a1c1c;
+}
+.td-tension {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6rpx;
+}
+.tension-main {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+.tension-cross {
+  font-size: 20rpx;
+  color: #5f5e5e;
+}
+.td-status {
+  margin-top: 20rpx;
+}
+.status-pill {
+  align-self: flex-start;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+  padding: 10rpx 20rpx;
+  border-radius: 9999px;
+}
+.st-in_progress {
+  background: rgba(0, 156, 252, 0.1);
+}
+.st-in_progress .status-text {
+  color: #0062a1;
+}
+.st-pending {
+  background: rgba(227, 191, 177, 0.35);
+}
+.st-pending .status-text {
+  color: #5f5e5e;
+}
+.st-ready {
+  background: #ff6600;
+}
+.st-ready .status-text {
+  color: #561d00;
+  font-weight: 800;
+}
+.dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 9999px;
+}
+.dot-tertiary {
+  background: #0062a1;
+}
+.dot-secondary {
+  background: #5f5e5e;
+}
+.status-text {
+  font-size: 20rpx;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.td-actions {
+  margin-top: 24rpx;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 8rpx;
+}
+.act-btn {
+  padding: 12rpx;
+  border-radius: 12rpx;
+}
+.act-btn:active {
+  background: #e8e8e8;
+}
+
+.bottom-section {
+  margin-top: 48rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 40rpx;
+}
+.section-title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+  margin-bottom: 24rpx;
+}
+.inv-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+.inv-row {
+  background: #f3f3f3;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+.inv-name {
+  flex: 1;
+  font-size: 22rpx;
+  font-weight: 800;
+  color: #5f5e5e;
+  text-transform: uppercase;
+}
+.inv-bar-track {
+  width: 200rpx;
+  height: 8rpx;
+  background: #e2e2e2;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.inv-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+}
+.fill-primary {
+  background: #ff6600;
+}
+.fill-error {
+  background: #ba1a1a;
+}
+
+.maint-card {
+  position: relative;
+  border-radius: 32rpx;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+.maint-img {
+  width: 100%;
+  height: 100%;
+}
+.maint-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 28rpx;
+  background: linear-gradient(to top, rgba(26, 28, 28, 0.85), transparent);
+}
+.maint-tag {
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #ff6600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.maint-body {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #ffffff;
+  line-height: 1.45;
+}
+
+.bottom-space {
+  height: 48rpx;
+}
+
+/* Wide layout: table header + row grid */
+@media screen and (min-width: 768px) {
+  .summary-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .summary-grid .mini-stat {
+    flex: 1;
+    min-width: 200rpx;
+  }
+  .table-head {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1.3fr 1fr;
+    gap: 16rpx;
+    padding: 24rpx 32rpx;
+    background: #e8e8e8;
+    align-items: center;
+  }
+  .th {
+    font-size: 20rpx;
+    font-weight: 800;
+    color: #5f5e5e;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .th-actions {
+    text-align: right;
+  }
+  .table-row {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1.3fr 1fr;
+    gap: 16rpx;
+    align-items: center;
+    padding: 28rpx 32rpx;
+  }
+  .td-string,
+  .td-tension,
+  .td-status,
+  .td-actions {
+    margin-top: 0;
+  }
+  .bottom-section {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .inventory-block {
+    flex: 1;
+  }
+  .maint-card {
+    width: 38%;
+    flex-shrink: 0;
+  }
 }
 </style>
-

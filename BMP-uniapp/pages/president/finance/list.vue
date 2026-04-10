@@ -15,6 +15,7 @@
             </view>
           </view>
           <view class="nav-right">
+            <text class="audit-link" @click.stop="goAuditLog">审计日志</text>
             <view class="icon-btn" @click.stop="handleSearch">
               <uni-icons type="search" size="22" color="#71717a"></uni-icons>
             </view>
@@ -266,6 +267,10 @@ function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
 }
 
+function goAuditLog() {
+  uni.navigateTo({ url: PRESIDENT_PAGES.FINANCE_AUDIT_LOG })
+}
+
 function handleSearch() {
   uni.showToast({ title: '搜索功能开发中', icon: 'none' })
 }
@@ -298,6 +303,14 @@ function handleSettings() {
   backdrop-filter: blur(12px);
   padding: 24rpx 48rpx;
   border-bottom: 1rpx solid rgba(0, 0, 0, 0.04);
+}
+
+.audit-link {
+  font-size: 24rpx;
+  font-weight: 800;
+  color: #ff6600;
+  padding: 12rpx 16rpx;
+  margin-right: 8rpx;
 }
 
 .nav-row {

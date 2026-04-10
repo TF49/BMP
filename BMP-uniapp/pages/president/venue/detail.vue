@@ -1,184 +1,126 @@
 <template>
-  <view class="venue-detail-page">
-    <!-- Top Navigation -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="header-content">
-        <view class="back-btn" @click="handleBack">
-          <uni-icons type="left" size="20" color="#ff6600"></uni-icons>
-        </view>
-        <text class="header-title">场馆详情</text>
-        <view class="spacer"></view>
-      </view>
-    </view>
+  <PresidentLayout :showTabBar="false" backgroundColor="#f9f9f9">
+    <view class="page">
+      <view class="status-bar-placeholder" />
 
-    <view v-if="loading" class="loading-state">
-      <view class="spinner"></view>
-      <text>加载中...</text>
-    </view>
-
-    <scroll-view v-else-if="detail" class="main-scroll" scroll-y :style="{ height: scrollHeight }">
-      <!-- Hero Section -->
-      <view class="hero-section">
-        <image 
-          class="hero-image" 
-          :src="resolveImageUrl(detail.venueImage)" 
-          mode="aspectFill"
-          v-if="detail.venueImage"
-        ></image>
-        <view v-else class="hero-image-placeholder">
-          <uni-icons type="image" size="28" color="#999999"></uni-icons>
-        </view>
-        <view class="hero-gradient"></view>
-        <!-- Floating Status Chip -->
-        <view class="status-chip-wrap">
-          <text class="status-chip" :class="{ 'status-offline': detail.status !== 1 }">
-            {{ detail.status === 1 ? '营业中' : '已关闭' }}
-          </text>
-        </view>
-      </view>
-
-      <!-- Main Content -->
-      <view class="content-body">
-        <!-- Header Info -->
-        <view class="venue-header-info">
-          <view class="name-row">
-            <text class="venue-name">{{ detail.venueName }}</text>
-          </view>
-          <view class="rating-row">
-            <view class="rating-box">
-              <uni-icons type="star-filled" size="16" color="#ff6600"></uni-icons>
-              <text class="rating-text">PROFESSIONAL</text>
+      <view class="nav-header">
+        <view class="nav-row">
+          <view class="nav-left" @click="handleBack">
+            <view class="back-btn">
+              <uni-icons type="arrow-left" size="24" color="#1a1c1c" />
             </view>
-            <view class="dot-separator"></view>
-            <text class="grade-text">ID: {{ detail.id }}</text>
+            <view class="brand-wrap">
+              <text class="brand-name">场馆详情</text>
+            </view>
+          </view>
+          <view class="nav-right">
+            <view class="icon-btn" @click="handleShare">
+              <uni-icons type="paperplane" size="20" color="#71717a" />
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="loading" class="state-wrap">
+        <view class="spinner" />
+        <text class="state-text">加载中...</text>
+      </view>
+
+      <scroll-view v-else-if="detail" scroll-y class="main-content">
+        <view class="hero-card">
+          <image
+            v-if="detail.venueImage"
+            class="hero-image"
+            :src="resolveImageUrl(detail.venueImage)"
+            mode="aspectFill"
+          />
+          <view v-else class="hero-placeholder">
+            <uni-icons type="image" size="34" color="#a1a1aa" />
+          </view>
+          <view class="hero-overlay" />
+          <view class="hero-meta">
+            <view class="status-pill" :class="{ offline: detail.status !== 1 }">
+              <text>{{ detail.status === 1 ? '营业中' : '已停用' }}</text>
+            </view>
+            <text class="hero-title">{{ detail.venueName }}</text>
+            <text class="hero-subtitle">ID #{{ detail.id }}</text>
           </view>
         </view>
 
-        <!-- Bento Grid Info -->
         <view class="info-grid">
-          <!-- Address -->
           <view class="info-card">
-            <view class="card-icon-box">
-              <uni-icons type="location" size="18" color="#ff6600"></uni-icons>
-            </view>
-            <view class="card-content">
-              <text class="card-label">地址</text>
-              <text class="card-value">{{ detail.address || '暂无地址信息' }}</text>
-            </view>
+            <text class="info-label">地址</text>
+            <text class="info-value">{{ detail.address || '暂无地址信息' }}</text>
           </view>
-
-          <!-- Contact -->
           <view class="info-card">
-            <view class="card-icon-box">
-              <uni-icons type="person" size="18" color="#ff6600"></uni-icons>
-            </view>
-            <view class="card-content">
-              <text class="card-label">联系人 / 电话</text>
-              <view class="contact-row">
-                <view class="contact-info">
-                  <text class="contact-name">{{ detail.contactPerson || '管理员' }}</text>
-                  <text class="contact-phone">{{ detail.contactPhone || '暂无联系电话' }}</text>
-                </view>
-                <view v-if="detail.contactPhone" class="call-btn" @click="handleCall(detail.contactPhone)">
-                  <uni-icons type="phone" size="16" color="#ffffff"></uni-icons>
-                </view>
-              </view>
-            </view>
+            <text class="info-label">联系人</text>
+            <text class="info-value">{{ detail.contactPerson || '未设置' }}</text>
+            <text class="info-sub">{{ detail.contactPhone || '暂无联系电话' }}</text>
           </view>
-
-          <!-- Hours -->
           <view class="info-card">
-            <view class="card-icon-box">
-              <uni-icons type="calendar" size="18" color="#ff6600"></uni-icons>
-            </view>
-            <view class="card-content">
-              <text class="card-label">营业时间</text>
-              <text class="card-value-bold">{{ detail.businessHours || '08:00 - 22:30' }}</text>
-            </view>
+            <text class="info-label">营业时间</text>
+            <text class="info-value">{{ detail.businessHours || '08:00 - 22:30' }}</text>
           </view>
-
-          <!-- Status -->
           <view class="info-card">
-            <view class="card-icon-box">
-              <uni-icons type="auth" size="18" color="#ff6600"></uni-icons>
-            </view>
-            <view class="card-content">
-              <text class="card-label">运营状态</text>
-              <text class="card-value-bold" :style="{ color: detail.status === 1 ? '#0d9488' : '#ba1a1a' }">
-                {{ detail.status === 1 ? '正常营业' : '暂停服务' }}
-              </text>
-            </view>
-          </view>
-        </view>
-
-        <!-- Description Section -->
-        <view class="description-section">
-          <text class="section-title">场馆描述</text>
-          <view class="description-box">
-            <text class="description-text">
-              {{ detail.description || '暂无描述信息。' }}
+            <text class="info-label">运营状态</text>
+            <text class="info-value" :class="{ error: detail.status !== 1 }">
+              {{ detail.status === 1 ? '正常营业' : '暂停服务' }}
             </text>
           </view>
         </view>
 
-        <!-- Bottom Spacer -->
-        <view class="bottom-safe-spacer"></view>
-      </view>
-    </scroll-view>
-    <view v-else class="empty-state">
-      <text>场馆不存在</text>
-    </view>
+        <view class="description-card">
+          <text class="description-label">场馆描述</text>
+          <text class="description-text">{{ detail.description || '暂无描述信息。' }}</text>
+        </view>
 
-    <!-- Bottom Navigation -->
-    <view class="bottom-nav">
-      <view class="bottom-nav-glass"></view>
-      <view class="bottom-nav-content">
-        <view class="secondary-actions">
-          <view class="action-item delete-action" @click="onDelete">
-            <uni-icons type="trash" size="18" color="#94a3b8"></uni-icons>
-            <text class="action-label">DELETE</text>
+        <view class="action-bar">
+          <view class="action-secondary" @click="goEdit">
+            <uni-icons type="compose" size="18" color="#a33e00" />
+            <text>编辑</text>
           </view>
-          <view class="action-item edit-action" @click="goEdit">
-            <uni-icons type="compose" size="18" color="#94a3b8"></uni-icons>
-            <text class="action-label">EDIT</text>
+          <view class="action-secondary danger" @click="onDelete">
+            <uni-icons type="trash" size="18" color="#ba1a1a" />
+            <text>删除</text>
           </view>
-          <view class="action-item" @click="handleShare">
-            <uni-icons type="paperplane" size="18" color="#94a3b8"></uni-icons>
-            <text class="action-label">SHARE</text>
+          <view class="action-primary" @click="handleBook">
+            <text>立即预约</text>
+            <uni-icons type="right" size="16" color="#ffffff" />
           </view>
         </view>
-        <view class="primary-cta" @click="handleBook">
-          <text class="cta-text">立即预约</text>
-          <uni-icons type="right" size="16" color="#ffffff"></uni-icons>
-        </view>
+
+        <view class="bottom-space" />
+      </scroll-view>
+
+      <view v-else class="state-wrap">
+        <text class="state-text">场馆不存在</text>
       </view>
     </view>
-  </view>
+  </PresidentLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getVenueInfo, deleteVenue, type VenueItem } from '@/api/president/venue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
 import { safeNavigateBack } from '@/utils/navigation'
 
-// System info for custom header
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
-const scrollHeight = computed(() => `calc(100vh - ${statusBarHeight.value + 44}px)`)
-
 const id = computed(() => {
   const pages = getCurrentPages()
-  const p = pages[pages.length - 1] as any
-  return p?.options?.id ? Number(p.options.id) : 0
+  const page = pages[pages.length - 1] as any
+  return page?.options?.id ? Number(page.options.id) : 0
 })
 
 const loading = ref(true)
 const detail = ref<VenueItem | null>(null)
 
 async function load() {
-  if (!id.value) return
+  if (!id.value) {
+    loading.value = false
+    return
+  }
   loading.value = true
   try {
     const res = await getVenueInfo(id.value)
@@ -190,30 +132,26 @@ async function load() {
   }
 }
 
-const handleBack = () => {
+function handleBack() {
   safeNavigateBack(PRESIDENT_PAGES.VENUE_LIST)
-}
-
-const handleCall = (phone: string) => {
-  uni.makePhoneCall({
-    phoneNumber: phone
-  })
 }
 
 function goEdit() {
   uni.navigateTo({ url: `${PRESIDENT_PAGES.VENUE_FORM}?id=${id.value}` })
 }
 
-const handleBook = () => {
-  uni.navigateTo({
-    url: `/pages/venue/booking?venueId=${detail.value?.id}`
-  })
+function handleBook() {
+  uni.navigateTo({ url: `/pages/venue/booking?venueId=${detail.value?.id}` })
+}
+
+function handleShare() {
+  uni.showToast({ title: '分享功能开发中', icon: 'none' })
 }
 
 function onDelete() {
   uni.showModal({
     title: '确认删除',
-    content: `确定要删除场馆「${detail.value?.venueName}」吗？`,
+    content: `确定删除场馆“${detail.value?.venueName || ''}”吗？`,
     confirmColor: '#ba1a1a',
     success: async (res) => {
       if (!res.confirm) return
@@ -228,253 +166,252 @@ function onDelete() {
   })
 }
 
-const handleShare = () => {
-  uni.showToast({ title: '功能开发中', icon: 'none' })
-}
-
-onMounted(() => load())
+onMounted(() => {
+  load()
+})
 </script>
 
 <style lang="scss" scoped>
-.venue-detail-page {
+.page {
   min-height: 100vh;
-  background-color: #f9f9f9;
-  display: flex;
-  flex-direction: column;
+  background: #f9f9f9;
 }
 
-/* Header */
-.header {
-  position: fixed;
+.status-bar-placeholder {
+  height: var(--status-bar-height);
+  background: #f9f9f9;
+}
+
+.nav-header {
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background-color: rgba(249, 249, 249, 0.8);
-  backdrop-filter: blur(10px);
+  z-index: 40;
+  background: rgba(249, 249, 249, 0.92);
+  backdrop-filter: blur(12px);
 }
 
-.header-content {
-  height: 44px;
+.nav-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 16rpx 24rpx;
 }
 
-.back-btn {
-  width: 40px;
-  height: 40px;
+.nav-left,
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.back-btn,
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ff6600;
-  transition: transform 0.2s;
-  &:active { transform: scale(0.9); }
 }
 
-.header-title {
-  font-size: 18px;
+.brand-name {
+  font-size: 32rpx;
   font-weight: 700;
   color: #1a1c1c;
 }
 
-.spacer { width: 40px; }
-
-/* Scroll Area */
-.main-scroll {
-  flex: 1;
-  margin-top: calc(env(safe-area-inset-top) + 44px);
+.main-content {
+  height: calc(100vh - var(--status-bar-height) - 104rpx);
+  padding: 24rpx;
 }
 
-/* Hero Section */
-.hero-section {
+.hero-card,
+.info-card,
+.description-card,
+.action-bar {
+  background: #ffffff;
+  border-radius: 28rpx;
+  box-shadow: 0 10rpx 28rpx rgba(15, 23, 42, 0.06);
+}
+
+.hero-card {
   position: relative;
-  width: 100%;
-  height: 397px;
   overflow: hidden;
+  min-height: 360rpx;
 }
 
-.hero-image {
+.hero-image,
+.hero-placeholder {
   width: 100%;
-  height: 100%;
+  height: 360rpx;
 }
 
-.hero-image-placeholder {
-  width: 100%;
-  height: 100%;
-  background-color: #eeeeee;
+.hero-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  font-size: 48px;
+  background: #f3f4f6;
 }
 
-.hero-gradient {
+.hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(25, 26, 26, 0.2) 0%, rgba(25, 26, 26, 0) 40%, rgba(249, 249, 249, 1) 100%);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0.55) 100%);
 }
 
-.status-chip-wrap {
+.hero-meta {
   position: absolute;
-  bottom: 32px;
-  left: 24px;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 24rpx;
 }
 
-.status-chip {
-  background-color: #0d9488;
-  color: #fff;
-  padding: 6px 16px;
-  border-radius: 999px;
-  font-size: 10px;
+.status-pill {
+  display: inline-flex;
+  padding: 10rpx 16rpx;
+  margin-bottom: 16rpx;
+  border-radius: 999rpx;
+  background: rgba(22, 163, 74, 0.92);
+  color: #ffffff;
+  font-size: 22rpx;
   font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
-  
-  &.status-offline {
-    background-color: #ba1a1a;
-    box-shadow: 0 4px 12px rgba(186, 26, 26, 0.3);
-  }
 }
 
-/* Content Body */
-.content-body {
-  padding: 0 24px;
-  position: relative;
-  z-index: 10;
-  margin-top: -20px;
+.status-pill.offline {
+  background: rgba(186, 26, 26, 0.92);
 }
 
-.venue-header-info {
-  margin-bottom: 32px;
+.hero-title,
+.hero-subtitle {
+  display: block;
+  color: #ffffff;
 }
 
-.name-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
+.hero-title {
+  font-size: 44rpx;
+  font-weight: 800;
 }
 
-.venue-name {
-  font-size: 28px;
+.hero-subtitle {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  opacity: 0.9;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.info-card,
+.description-card {
+  padding: 24rpx;
+}
+
+.info-label,
+.description-label {
+  display: block;
+  font-size: 22rpx;
+  color: #71717a;
+}
+
+.info-value,
+.info-sub,
+.description-text {
+  display: block;
+  margin-top: 10rpx;
+}
+
+.info-value {
+  font-size: 30rpx;
   font-weight: 700;
   color: #1a1c1c;
-  line-height: 1.2;
 }
 
-.rating-row {
+.info-value.error {
+  color: #ba1a1a;
+}
+
+.info-sub,
+.description-text {
+  font-size: 24rpx;
+  color: #5f5e5e;
+}
+
+.description-card {
+  margin-top: 16rpx;
+}
+
+.action-bar {
   display: flex;
   align-items: center;
+  gap: 16rpx;
+  margin-top: 16rpx;
+  padding: 16rpx;
 }
 
-.rating-box {
+.action-secondary,
+.action-primary {
+  height: 88rpx;
+  border-radius: 22rpx;
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: #ff6600;
+  justify-content: center;
+  gap: 10rpx;
+  font-size: 28rpx;
+  font-weight: 700;
 }
 
-.rating-text { font-size: 14px; font-weight: 700; }
-
-.dot-separator {
-  width: 4px;
-  height: 4px;
-  background-color: #e2e2e2;
-  border-radius: 50%;
-  margin: 0 16px;
+.action-secondary {
+  flex: 1;
+  background: #fff1e6;
+  color: #a33e00;
 }
 
-.grade-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: #636262;
-  text-transform: uppercase;
+.action-secondary.danger {
+  background: #fff1f2;
+  color: #ba1a1a;
 }
 
-/* Bento Grid */
-.info-grid {
+.action-primary {
+  flex: 1.4;
+  background: linear-gradient(135deg, #c2410c, #ea580c);
+  color: #ffffff;
+}
+
+.state-wrap {
+  min-height: calc(100vh - var(--status-bar-height) - 104rpx);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.info-card {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-}
-
-.card-icon-box {
-  background-color: #f3f3f3;
-  padding: 12px;
-  border-radius: 12px;
-  color: #ff6600;
-  display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.card-content { flex: 1; }
-.card-label { font-size: 10px; font-weight: 700; color: #636262; text-transform: uppercase; margin-bottom: 4px; display: block; }
-.card-value { font-size: 14px; font-weight: 500; color: #1a1c1c; line-height: 1.5; }
-.card-value-bold { font-size: 14px; font-weight: 700; color: #1a1c1c; }
-
-.contact-row { display: flex; justify-content: space-between; align-items: center; }
-.contact-info { display: flex; flex-direction: column; }
-.contact-name { font-size: 14px; font-weight: 700; color: #1a1c1c; }
-.contact-phone { font-size: 14px; font-weight: 500; color: #636262; }
-
-.call-btn {
-  width: 36px;
-  height: 36px;
-  background-color: #ff6600;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
+.spinner {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  border: 6rpx solid #e5e7eb;
+  border-top-color: #ea580c;
+  animation: spin 1s linear infinite;
 }
 
-/* Description */
-.description-section { margin-bottom: 32px; }
-.section-title { font-size: 10px; font-weight: 700; color: #636262; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 16px; display: block; }
-.description-box { background-color: #f3f3f3; padding: 24px; border-radius: 20px; border-left: 4px solid #ff6600; }
-.description-text { font-size: 14px; color: #5a4136; line-height: 1.6; font-weight: 500; }
-
-.bottom-safe-spacer { height: 120px; }
-
-/* Bottom Nav */
-.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
-.bottom-nav-glass { position: absolute; inset: 0; background-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border-top-left-radius: 40px; border-top-right-radius: 40px; box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.05); }
-.bottom-nav-content { position: relative; display: flex; justify-content: space-between; align-items: center; padding: 24px 32px 10px; }
-
-.secondary-actions { display: flex; gap: 16px; }
-.action-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; padding: 12px; }
-.action-label { font-size: 8px; font-weight: 700; margin-top: 4px; }
-.delete-action { &:active { color: #ba1a1a; } }
-.edit-action { &:active { color: #ff6600; } }
-
-.primary-cta {
-  background: linear-gradient(45deg, #a33e00 0%, #ff6600 100%);
-  padding: 16px 32px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 8px 16px rgba(163, 62, 0, 0.2);
-  &:active { transform: scale(0.95); }
+.state-text {
+  margin-top: 20rpx;
+  color: #6b7280;
 }
-.cta-text { color: #ffffff; font-size: 14px; font-weight: 700; }
-.loading-state, .empty-state { padding: 100px 0; text-align: center; color: #636262; }
-.spinner { width: 40px; height: 40px; border: 4px solid #eee; border-top-color: #ff6600; border-radius: 50%; animation: rotate 1s linear infinite; margin: 0 auto 20px; }
-@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.bottom-space {
+  height: 80rpx;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

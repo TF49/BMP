@@ -132,10 +132,12 @@ async function handleSubmit() {
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  background: linear-gradient(135deg, #3cc51f, #4ade80);
+  background: linear-gradient(135deg, #a33e00, #ff6600);
   color: #fff;
   border-radius: 16rpx;
   font-size: 32rpx;
+  font-weight: 600;
+  box-shadow: 0 12rpx 28rpx rgba(163, 62, 0, 0.22);
 }
 .btn-submit.loading {
   opacity: 0.8;

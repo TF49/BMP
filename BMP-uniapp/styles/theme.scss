@@ -3,9 +3,9 @@
 
 /* #ifdef H5 */
 :root {
-  --color-primary: #3cc51f; /* 主色 - 品牌绿 */
-  --color-primary-light: #4ade80;
-  --color-primary-dark: #2ea816;
+  --color-primary: #ea580c; /* 主色 - 会长端橙 */
+  --color-primary-light: #fb923c;
+  --color-primary-dark: #c2410c;
   --color-primary-foreground: #ffffff;
   --color-secondary: #6366f1;
   --color-background: #F8FAFC; /* slate-50, ui-ux-pro-max */
@@ -25,7 +25,7 @@
   --galaxy-bg-start: #0a0e27;
   --galaxy-bg-end: #1a1a2e;
   --galaxy-star-color: #ffffff;
-  --galaxy-glow-color: rgba(60, 197, 31, 0.3);
+  --galaxy-glow-color: rgba(234, 88, 12, 0.22);
   
   /* 玻璃态效果 - 浅色模式提高不透明度，保证可读性 */
   --glass-bg: rgba(255, 255, 255, 0.85);
@@ -35,9 +35,9 @@
 
 /* 暗色主题 */
 [data-theme="dark"] {
-  --color-primary: #4ade80;
-  --color-primary-light: #6ee7b7;
-  --color-primary-dark: #22c55e;
+  --color-primary: #fb923c;
+  --color-primary-light: #fdba74;
+  --color-primary-dark: #ea580c;
   --color-secondary: #818cf8;
   --color-background: #0f172a;
   --color-surface: #1e293b;
@@ -52,7 +52,7 @@
   --galaxy-bg-start: #0a0e27;
   --galaxy-bg-end: #1a1a2e;
   --galaxy-star-color: #ffffff;
-  --galaxy-glow-color: rgba(74, 222, 128, 0.3);
+  --galaxy-glow-color: rgba(251, 146, 60, 0.24);
   
   --glass-bg: rgba(30, 41, 59, 0.3);
   --glass-border: rgba(255, 255, 255, 0.1);
@@ -78,8 +78,8 @@
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(circle at 20% 50%, var(--galaxy-glow-color, rgba(60, 197, 31, 0.3)) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, var(--galaxy-glow-color, rgba(60, 197, 31, 0.3)) 0%, transparent 50%);
+      radial-gradient(circle at 20% 50%, var(--galaxy-glow-color, rgba(234, 88, 12, 0.22)) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, var(--galaxy-glow-color, rgba(234, 88, 12, 0.22)) 0%, transparent 50%);
     animation: galaxy-shift 20s ease-in-out infinite;
     pointer-events: none;
   }
@@ -109,23 +109,23 @@
 /* 发光效果 */
 .glow-effect {
   box-shadow: 
-    0 0 20rpx var(--color-primary, #3cc51f),
-    0 0 40rpx var(--color-primary, #3cc51f),
-    0 0 60rpx var(--color-primary, #3cc51f);
+    0 0 20rpx var(--color-primary, #ea580c),
+    0 0 40rpx var(--color-primary, #ea580c),
+    0 0 60rpx var(--color-primary, #ea580c);
 }
 
 .glow-text {
   text-shadow: 
-    0 0 10rpx var(--color-primary, #3cc51f),
-    0 0 20rpx var(--color-primary, #3cc51f),
-    0 0 30rpx var(--color-primary, #3cc51f);
+    0 0 10rpx var(--color-primary, #ea580c),
+    0 0 20rpx var(--color-primary, #ea580c),
+    0 0 30rpx var(--color-primary, #ea580c);
 }
 
 /* 渐变文字 */
 .gradient-text {
   background: linear-gradient(
     135deg,
-    var(--color-primary, #3cc51f) 0%,
+    var(--color-primary, #ea580c) 0%,
     var(--color-secondary, #6366f1) 100%
   );
   -webkit-background-clip: text;

@@ -1,5 +1,5 @@
 <template>
-  <PresidentLayout :showTabBar="false" backgroundColor="#f9f9f9">
+  <PresidentLayout :showTabBar="false">
     <view class="course-form-page">
       <view class="status-bar-placeholder" />
 

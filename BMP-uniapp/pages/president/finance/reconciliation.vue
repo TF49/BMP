@@ -46,7 +46,7 @@ async function runRecon() {
 .tip { padding: 24rpx; margin-bottom: 32rpx; border-radius: 20rpx; font-size: 28rpx; color: #475569; }
 .btn-wrap { margin-bottom: 32rpx; }
 .btn-run {
-  width: 100%; padding: 28rpx; text-align: center; background: linear-gradient(135deg, #3cc51f, #4ade80);
+  width: 100%; padding: 28rpx; text-align: center; background: linear-gradient(135deg, #c2410c, #ea580c);
   color: #fff; border-radius: 16rpx; font-size: 30rpx;
 }
 .btn-run.loading { opacity: 0.8; }

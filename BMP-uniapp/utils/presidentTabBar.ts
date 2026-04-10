@@ -1,8 +1,3 @@
-/**
- * 协会会长端 tabBar 配置
- * 与 pages.json 中用户端 tabBar 分离，运行时根据角色切换
- */
-
 export interface PresidentTabBarItem {
   pagePath: string
   text: string
@@ -15,15 +10,15 @@ export const PRESIDENT_TAB_BAR_LIST: PresidentTabBarItem[] = [
   {
     pagePath: 'pages/index/index',
     text: '工作台',
-    iconPath: '⊞',
-    selectedIconPath: '⊞',
+    iconPath: '□',
+    selectedIconPath: '■',
     extraIconType: 'grid'
   },
   {
     pagePath: 'pages/president/venue/list',
     text: '场馆',
-    iconPath: '🏋️',
-    selectedIconPath: '🏋️',
+    iconPath: '📍',
+    selectedIconPath: '📍',
     extraIconType: 'location'
   },
   {
@@ -36,8 +31,8 @@ export const PRESIDENT_TAB_BAR_LIST: PresidentTabBarItem[] = [
   {
     pagePath: 'pages/president/finance/list',
     text: '财务',
-    iconPath: '💵',
-    selectedIconPath: '💵',
+    iconPath: '💼',
+    selectedIconPath: '💼',
     extraIconType: 'wallet'
   },
   {
@@ -50,8 +45,8 @@ export const PRESIDENT_TAB_BAR_LIST: PresidentTabBarItem[] = [
 ]
 
 export const PRESIDENT_TAB_BAR_STYLE = {
-  color: '#475569',
-  selectedColor: '#3cc51f',
+  color: '#6b7280',
+  selectedColor: '#ea580c',
   backgroundColor: '#ffffff',
   borderStyle: 'black' as const
 }
@@ -68,7 +63,7 @@ export function isPresidentTabActive(pagePath: string, currentPath: string): boo
   }
 
   if (path.includes('venue/list')) {
-    return cur.includes('president/venue')
+    return cur.includes('president/venue') || cur.includes('president/court')
   }
 
   if (path.includes('user/list')) {

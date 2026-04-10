@@ -135,6 +135,13 @@
       }
     },
     {
+      "path": "pages/president/court/detail",
+      "style": {
+        "navigationBarTitleText": "场地详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/finance/list",
       "style": {
         "navigationBarTitleText": "财务列表",
@@ -152,6 +159,13 @@
       "path": "pages/president/finance/reconciliation",
       "style": {
         "navigationBarTitleText": "全面对账",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/finance/audit-log",
+      "style": {
+        "navigationBarTitleText": "财务审计日志",
         "navigationStyle": "custom"
       }
     },
@@ -331,6 +345,13 @@
       }
     },
     {
+      "path": "pages/president/equipment-rental/form",
+      "style": {
+        "navigationBarTitleText": "手动录入租借",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/stringing/list",
       "style": {
         "navigationBarTitleText": "穿线服务管理",
@@ -345,6 +366,13 @@
       }
     },
     {
+      "path": "pages/president/stringing/form",
+      "style": {
+        "navigationBarTitleText": "新增穿线工单",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/notification/list",
       "style": {
         "navigationBarTitleText": "通知管理",
@@ -354,7 +382,14 @@
     {
       "path": "pages/president/notification/form",
       "style": {
-        "navigationBarTitleText": "发布通知",
+        "navigationBarTitleText": "发布通知公告",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/notification/detail",
+      "style": {
+        "navigationBarTitleText": "通知详情",
         "navigationStyle": "custom"
       }
     },

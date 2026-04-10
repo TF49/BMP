@@ -1,5 +1,5 @@
 <template>
-  <PresidentLayout :showTabBar="false" backgroundColor="#f9f9f9">
+  <PresidentLayout :showTabBar="false">
     <view class="kinetic-header">
       <view class="back-btn" @click="onBack">
         <uni-icons type="left" size="24" color="#ff6600"></uni-icons>

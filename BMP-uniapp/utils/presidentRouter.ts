@@ -15,7 +15,10 @@ export const PRESIDENT_PAGES = {
   FINANCE_LIST: '/pages/president/finance/list',
   FINANCE_DETAIL: '/pages/president/finance/detail',
   FINANCE_RECONCILIATION: '/pages/president/finance/reconciliation',
+  FINANCE_AUDIT_LOG: '/pages/president/finance/audit-log',
   COURT_LIST: '/pages/president/court/list',
+  COURT_DETAIL: '/pages/president/court/detail',
+  COURT_FORM: '/pages/president/court/form',
   MEMBER_LIST: '/pages/president/member/list',
   MEMBER_FORM: '/pages/president/member/form',
   MEMBER_DETAIL: '/pages/president/member/detail',
@@ -26,6 +29,7 @@ export const PRESIDENT_PAGES = {
   EQUIPMENT_STOCK: '/pages/president/equipment/stock',
   EQUIPMENT_RENTAL_LIST: '/pages/president/equipment-rental/list',
   EQUIPMENT_RENTAL_DETAIL: '/pages/president/equipment-rental/detail',
+  EQUIPMENT_RENTAL_FORM: '/pages/president/equipment-rental/form',
   COACH_LIST: '/pages/president/coach/list',
   COACH_DETAIL: '/pages/president/coach/detail',
   COACH_FORM: '/pages/president/coach/form',
@@ -41,8 +45,10 @@ export const PRESIDENT_PAGES = {
   TOURNAMENT_REGISTRATION_DETAIL: '/pages/president/tournament-registration/detail',
   STRINGING_LIST: '/pages/president/stringing/list',
   STRINGING_DETAIL: '/pages/president/stringing/detail',
+  STRINGING_FORM: '/pages/president/stringing/form',
   NOTIFICATION_LIST: '/pages/president/notification/list',
   NOTIFICATION_FORM: '/pages/president/notification/form',
+  NOTIFICATION_DETAIL: '/pages/president/notification/detail',
   PROFILE: '/pages/president/profile/index'
 } as const
 

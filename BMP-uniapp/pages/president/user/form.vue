@@ -240,7 +240,7 @@ onMounted(() => {
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  background: linear-gradient(135deg, #3cc51f, #4ade80);
+  background: linear-gradient(135deg, #c2410c, #ea580c);
   color: #fff;
   border-radius: 16rpx;
   font-size: 32rpx;

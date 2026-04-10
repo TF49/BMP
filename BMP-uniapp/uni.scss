@@ -1,4 +1,4 @@
-$u-primary: #3cc51f;
+$u-primary: #ea580c;
 $u-success: #16a34a;
 $u-warning: #f59e0b;
 $u-error: #ef4444;
@@ -9,9 +9,9 @@ $u-border-radius: 12rpx;
 $u-border-radius-lg: 20rpx;
 
 /* BMP 高级版 UI tokens */
-$bmp-brand-primary: #34c924;
-$bmp-brand-primary-dark: #24a148;
-$bmp-brand-primary-soft: #eaf9ec;
+$bmp-brand-primary: #ea580c;
+$bmp-brand-primary-dark: #c2410c;
+$bmp-brand-primary-soft: #fff1e6;
 
 $bmp-success: #22c55e;
 $bmp-warning: #f59e0b;
@@ -35,7 +35,7 @@ $bmp-text-inverse: #ffffff;
 $bmp-border-default: #e5e7eb;
 $bmp-border-soft: #e6ece8;
 $bmp-border-input: #dce3e8;
-$bmp-border-focus: #5acb4a;
+$bmp-border-focus: #fb923c;
 $bmp-border-error: #fecaca;
 $bmp-border-success: #bbf7d0;
 
@@ -69,8 +69,8 @@ $bmp-radius-xl: 22rpx;
 $bmp-radius-pill: 999rpx;
 
 $bmp-shadow-card: 0 10rpx 30rpx rgba(15, 23, 42, 0.08);
-$bmp-shadow-button: 0 8rpx 22rpx rgba(36, 180, 63, 0.3);
-$bmp-shadow-logo: 0 8rpx 18rpx rgba(25, 165, 61, 0.2);
+$bmp-shadow-button: 0 8rpx 22rpx rgba(234, 88, 12, 0.28);
+$bmp-shadow-logo: 0 8rpx 18rpx rgba(234, 88, 12, 0.22);
 $bmp-shadow-soft: 0 4rpx 10rpx rgba(15, 23, 42, 0.07);
 
 @import "uview-plus/theme.scss";

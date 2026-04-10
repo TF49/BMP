@@ -4,7 +4,7 @@
       <PresidentBrandLogo floating />
       <view class="header glass-card">
         <view class="avatar-wrap">
-          <uni-icons type="person-filled" size="48" color="#3cc51f"></uni-icons>
+          <uni-icons type="person-filled" size="48" color="#ffffff"></uni-icons>
         </view>
         <text class="name">{{ userInfo?.username || '协会会长' }}</text>
         <text class="role">协会会长</text>
@@ -62,11 +62,12 @@ function logout() {
 .avatar-wrap {
   width: 120rpx; height: 120rpx;
   margin: 0 auto 24rpx;
-  background: linear-gradient(135deg, #3cc51f, #4ade80);
+  background: linear-gradient(135deg, #a33e00, #ff6600);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 12rpx 32rpx rgba(163, 62, 0, 0.28);
 }
 .name { display: block; font-size: 36rpx; font-weight: 600; color: #1E293B; margin-bottom: 8rpx; }
 .role { font-size: 26rpx; color: #475569; }
