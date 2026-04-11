@@ -148,7 +148,7 @@ const allBookings = ref<Booking[]>([
     id: '1',
     name: 'Julian Schmidt',
     avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDMqFxCTjXMb77Hl4zbbmaXcKYbuHi2ApUj0bxy5u_rHZQWlGzfgiBCb6JKHd24CFLWKyj_pKYU_nxmHiJcboU1mS5wjJ_vXDutuk0kY8MuV39816nJm2L6UIiLRmJiD44ZuXpguOz8s9VSJTXgfPoS3MVpI4_VSEUFBUXnn_Pu7EPW4MlDbxbOxc3vwWia-5QzhSHz1nSsFFLk1TbTjoOt1em9n00FRWnhpPGZ8PZnmSh-9rBmQNmEGT7LLLnR6enIVnrGdKg-4gwd',
+      '/static/placeholders/hero.svg',
     memberTier: 'pro',
     email: 'julian.s@kinetic.com',
     courseName: '高级扣杀动力学',
@@ -159,7 +159,7 @@ const allBookings = ref<Booking[]>([
     id: '2',
     name: 'Mila Laurent',
     avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAwbpGcjz64Vk8stM7J6F7cfwPoX1JdeDXjLCEddUbfri6cIB6asK3KIdUXMQTAEoTZf8BzSW3QgHBdDvQ1lC0yHbpWWyhSop-bj8ju36z15iHNueEg7QDXJuCrlrO-89eYmRPVO30JAaltRlupCTz7_brS2UsQCqo9VmAPWFmJmA499Bivfwkz3bH7X1yhJc1VhCi-8bbVoZyAe0DmFxxdKtZoKJiuGWidCt53-wUfs4NOqFWianzkj-PEIMiiTEtplDV5ykfWEfqw',
+      '/static/placeholders/hero.svg',
     memberTier: 'normal',
     email: 'mila.l@web.fr',
     courseName: '耐力蓝图 II 级',
@@ -170,7 +170,7 @@ const allBookings = ref<Booking[]>([
     id: '3',
     name: 'Daisuke Ken',
     avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDY8hsvMeLMoEpmJMK9hyNMixru8vVJRngIYXn257tql1d3pqnebxFmOaOUAVuOt7Kh2YHj0vWTqb5MPHaZWNlrWjWVuBNIEQxZrikJ5axyETsFxT-laD2-l2cIyU3KAUSsiXTBvnkVrF-h9XPrLlRdjuJwIUg5x5UB0kh7dFtkdTj0TJUX_Uzbfd0oP0RpIe3lDdGMpsDIp7UIwZUz8gaue2W2L6EDlOt5QvPauVP5fRyivcygsAycA-RwcCleDFudNFytu7Oh0pIc',
+      '/static/placeholders/hero.svg',
     memberTier: 'pro',
     email: 'd.ken@tokyo-bad.jp',
     courseName: '心理战：半职业预备',
@@ -181,7 +181,7 @@ const allBookings = ref<Booking[]>([
     id: '4',
     name: 'Sarah Williams',
     avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCx8ijekdkmJ_CCviDFGNsqwSLbiWxFoClqroK4qzGrDuPJPu8aQ8Xh2y1iQJOGtAzPNKW0FwzljUeS4aKQyk6OCpFxw5Au23N_ZQwaDVTtjedO_mkKzxzyRV9aH60-WhSWcHUe_SaIjXQdEQiueDzsVOHDjrS5FHfJNmw8FwlZ_oBG5Bi91RWt0lxICDbW4zV8odF14t5OSaiGguelD83so0heoNj7QNUGRlXf38OpB9OD_kuMWVIxRU9AZOp4HBTMt86awxbAEVvM',
+      '/static/placeholders/hero.svg',
     memberTier: 'normal',
     email: 'sarah.w@uk-athletics.co.uk',
     courseName: '敏捷与步法大师课',

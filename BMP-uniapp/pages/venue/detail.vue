@@ -1,169 +1,161 @@
 <template>
   <view class="venue-detail-page">
-    <!-- Top Navigation -->
+    <!-- HTML 原型：fixed header bg-neutral-50/70 backdrop-blur-md px-6 py-4 -->
     <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="header-content">
+      <view class="header-inner">
         <view class="back-btn" @click="handleBack">
-          <uni-icons type="left" size="20" color="#a33e00"></uni-icons>
+          <uni-icons type="left" size="22" color="#ea580c"></uni-icons>
         </view>
-        <text class="header-title">场馆详情</text>
-        <view class="spacer"></view>
+        <text class="header-title">Venue Details</text>
+        <view class="header-spacer"></view>
       </view>
     </view>
 
-    <scroll-view class="main-scroll" scroll-y :style="{ height: scrollHeight }">
-      <!-- Hero Section -->
-      <view class="hero-section">
-        <image 
-          class="hero-image" 
-          :src="resolveImageUrl(venue.venueImage)" 
-          mode="aspectFill"
+    <scroll-view
+      class="main-scroll"
+      scroll-y
+      :style="{
+        marginTop: headerOffsetPx + 'px',
+        height: scrollAreaHeight
+      }"
+      :show-scrollbar="false"
+    >
+      <!-- Hero：h-[397px] full-bleed，hero-gradient，底部左侧橙色营业胶囊 -->
+      <view class="hero-wrap">
+        <image
           v-if="venue.venueImage"
-        ></image>
-        <view v-else class="hero-image-placeholder">
-          <uni-icons type="image" size="28" color="#999999"></uni-icons>
+          class="hero-img"
+          :src="resolveImageUrl(venue.venueImage)"
+          mode="aspectFill"
+        />
+        <view v-else class="hero-placeholder">
+          <uni-icons type="image" size="32" color="#999999"></uni-icons>
         </view>
-        <view class="hero-gradient"></view>
-        <!-- Floating Status Chip -->
-        <view class="status-chip-wrap">
+        <view class="hero-gradient" />
+        <view class="hero-chip-wrap">
           <text class="status-chip" :class="{ 'status-offline': venue.status !== 1 }">
             {{ venue.status === 1 ? '营业中' : '已关闭' }}
           </text>
         </view>
       </view>
 
-      <!-- Main Content -->
-      <view class="content-body">
-        <!-- Header Info -->
-        <view class="venue-header-info">
-          <view class="name-row">
-            <text class="venue-name">{{ venue.name }}</text>
-            <view class="venue-price-tag">
-              <text class="price-symbol">¥</text>
-              <text class="price-value">{{ venue.price }}</text>
-              <text class="price-unit">/小时</text>
-            </view>
-          </view>
+      <!-- article.px-6 -mt-4 -->
+      <view class="article">
+        <view class="venue-head">
+          <text class="venue-name">{{ venue.name }}</text>
           <view class="rating-row">
-            <view class="rating-box">
-              <uni-icons type="star-filled" size="16" color="#a33e00"></uni-icons>
-              <text class="rating-text">4.9</text>
-              <text class="reviews-text">(120+ Reviews)</text>
+            <view class="rating-left">
+              <uni-icons type="star-filled" size="14" color="#a33e00"></uni-icons>
+              <text class="rating-num">4.9</text>
+              <text class="rating-reviews">(120+ Reviews)</text>
             </view>
-            <view class="dot-separator"></view>
-            <text class="grade-text">PROFESSIONAL GRADE</text>
+            <view class="rating-dot"></view>
+            <text class="rating-grade">Professional Grade</text>
           </view>
         </view>
 
-        <!-- Bento Grid Info -->
-        <view class="info-grid">
-          <!-- Address -->
-          <view class="info-card">
-            <view class="card-icon-box">
-              <uni-icons type="location" size="18" color="#a33e00"></uni-icons>
-            </view>
-            <view class="card-content">
-              <text class="card-label">地址</text>
-              <text class="card-value">{{ venue.location || '暂无地址信息' }}</text>
+        <!-- grid gap-4：移动端单列，与 tailwind grid-cols-1 一致 -->
+        <view class="detail-grid">
+          <view class="surface-card">
+            <view class="card-row">
+              <view class="icon-tile">
+                <uni-icons type="location" size="22" color="#a33e00"></uni-icons>
+              </view>
+              <view class="card-main">
+                <text class="card-label">地址</text>
+                <text class="card-text">{{ venue.location || '暂无地址信息' }}</text>
+              </view>
             </view>
           </view>
 
-          <!-- Contact -->
-          <view class="info-card">
-            <view class="card-icon-box">
-              <uni-icons type="person" size="18" color="#a33e00"></uni-icons>
-            </view>
-            <view class="card-content">
-              <text class="card-label">联系人 / 电话</text>
-              <view class="contact-row">
-                <view class="contact-info">
-                  <text class="contact-name">管理员</text>
-                  <text class="contact-phone">{{ venue.contactPhone || '暂无联系电话' }}</text>
-                </view>
-                <view v-if="venue.contactPhone" class="call-btn" @click="handleCall(venue.contactPhone)">
-                  <uni-icons type="phone" size="16" color="#ffffff"></uni-icons>
+          <view class="surface-card">
+            <view class="card-row">
+              <view class="icon-tile">
+                <uni-icons type="person" size="22" color="#a33e00"></uni-icons>
+              </view>
+              <view class="card-main">
+                <text class="card-label">联系人 / 电话</text>
+                <view class="contact-line">
+                  <view>
+                    <text class="contact-name">{{ venue.contactPerson || '管理员' }}</text>
+                    <text class="contact-phone">{{ venue.contactPhone || '暂无联系电话' }}</text>
+                  </view>
+                  <view v-if="venue.contactPhone" class="call-btn" @click="handleCall(venue.contactPhone)">
+                    <uni-icons type="phone" size="16" color="#ffffff"></uni-icons>
+                  </view>
                 </view>
               </view>
             </view>
           </view>
 
-          <!-- Hours -->
-          <view class="info-card">
-            <view class="card-icon-box">
-              <uni-icons type="calendar" size="18" color="#a33e00"></uni-icons>
-            </view>
-            <view class="card-content">
-              <text class="card-label">营业时间</text>
-              <text class="card-value-bold">{{ venue.businessHours || '08:00 - 22:30' }}</text>
-              <text class="card-subtext">周一至周日 (含法定节假日)</text>
+          <view class="surface-card">
+            <view class="card-row">
+              <view class="icon-tile">
+                <uni-icons type="refreshtime" size="22" color="#a33e00"></uni-icons>
+              </view>
+              <view class="card-main">
+                <text class="card-label">营业时间</text>
+                <text class="card-strong">{{ venue.businessHours || '08:00 - 22:30' }}</text>
+                <text class="card-muted">周一至周日 (含法定节假日)</text>
+              </view>
             </view>
           </view>
 
-          <!-- Specs -->
-          <view class="info-card">
-            <view class="card-icon-box">
-              <uni-icons type="flag" size="18" color="#a33e00"></uni-icons>
-            </view>
-            <view class="card-content">
-              <text class="card-label">场地规格</text>
-              <text class="card-value-bold">专业级标准场地</text>
-              <text class="card-subtext">官方认证垫层</text>
+          <view class="surface-card">
+            <view class="card-row">
+              <view class="icon-tile">
+                <uni-icons type="medal" size="22" color="#a33e00"></uni-icons>
+              </view>
+              <view class="card-main">
+                <text class="card-label">场地规格</text>
+                <text class="card-strong">24 片标准塑胶场地</text>
+                <text class="card-muted">YONEX 官方认证垫层</text>
+              </view>
             </view>
           </view>
         </view>
 
-        <!-- Description Section -->
-        <view class="description-section">
-          <text class="section-title">场馆描述</text>
-          <view class="description-box">
-            <text class="description-text">
-              {{ venue.description || '暂无描述信息。本场馆提供专业级的运动体验，配备先进的灯光与通风系统，为运动爱好者提供舒适的竞技环境。' }}
+        <view class="desc-block">
+          <text class="desc-heading">场馆描述</text>
+          <view class="desc-box">
+            <text class="desc-body">
+              {{
+                venue.description ||
+                  '奥林匹克羽毛球中心是亚洲领先的羽毛球运动综合体。我们提供符合世界羽联（BWF）标准的专业灯光与地胶系统，有效减少运动员关节冲击。馆内常年保持 24℃ 恒温，并配备专业淋浴间、能量补给站及顶级器材租赁服务。无论是职业训练还是业余休闲，这里都是您挥洒汗水的首选之地。'
+              }}
             </text>
           </view>
         </view>
 
-        <!-- Amenities Chips -->
-        <view class="amenities-chips">
-          <view class="amenity-chip">
-            <uni-icons type="info" size="16" color="#1a1c1c"></uni-icons>
-            <text class="amenity-text">FREE WIFI</text>
-          </view>
-          <view class="amenity-chip">
-            <uni-icons type="info" size="16" color="#1a1c1c"></uni-icons>
-            <text class="amenity-text">PARKING</text>
-          </view>
-          <view class="amenity-chip">
-            <uni-icons type="info" size="16" color="#1a1c1c"></uni-icons>
-            <text class="amenity-text">SHOWERS</text>
-          </view>
-          <view class="amenity-chip">
-            <uni-icons type="info" size="16" color="#1a1c1c"></uni-icons>
-            <text class="amenity-text">A/C</text>
+        <view class="amenities">
+          <view v-for="(item, idx) in amenityList" :key="idx" class="amenity-pill">
+            <uni-icons :type="item.icon" size="18" color="#1a1c1c"></uni-icons>
+            <text class="amenity-label">{{ item.label }}</text>
           </view>
         </view>
-        
-        <!-- Bottom Spacer -->
-        <view class="bottom-safe-spacer"></view>
+
+        <!-- 对应 HTML main.pb-32，避免内容被底部 nav 遮挡 -->
+        <view class="main-pad-bottom"></view>
       </view>
     </scroll-view>
 
-    <!-- Bottom Navigation -->
-    <view class="bottom-nav">
-      <view class="bottom-nav-glass"></view>
-      <view class="bottom-nav-content">
-        <view class="secondary-actions">
-          <view class="action-item" @click="handleShare">
-            <uni-icons type="paperplane" size="18" color="#94a3b8"></uni-icons>
-            <text class="action-label">SHARE</text>
+    <!-- fixed bottom nav：白/80 blur、大圆角顶、Share / History / CTA -->
+    <view class="bottom-shell">
+      <view class="bottom-glass"></view>
+      <view class="bottom-inner">
+        <view class="bottom-secondary">
+          <view class="sec-btn" @click="handleShare">
+            <uni-icons type="paperplane" size="22" color="#a3a3a3"></uni-icons>
+            <text class="sec-label">Share</text>
           </view>
-          <view class="action-item" @click="handleHistory">
-            <uni-icons type="calendar" size="18" color="#94a3b8"></uni-icons>
-            <text class="action-label">HISTORY</text>
+          <view class="sec-btn" @click="handleHistory">
+            <uni-icons type="calendar" size="22" color="#a3a3a3"></uni-icons>
+            <text class="sec-label">History</text>
           </view>
         </view>
-        <view class="primary-cta" @click="handleBook">
-          <text class="cta-text">立即预约</text>
-          <uni-icons type="right" size="16" color="#ffffff"></uni-icons>
+        <view class="cta-btn" @click="handleBook">
+          <text class="cta-label">立即预约</text>
+          <uni-icons type="right" size="18" color="#ffffff"></uni-icons>
         </view>
       </view>
     </view>
@@ -171,497 +163,525 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import { getVenueDetail } from '@/api/venue'
+import type { VenueItem } from '@/api/venue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
 
-// System info for custom header
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
-const scrollHeight = computed(() => `calc(100vh - ${statusBarHeight.value + 44}px)`)
+/* 顶栏：状态栏下约 52px（含 py-16px 与标题行） */
+const headerBarPx = 52
 
-const venueId = ref<number>(0)
-const venue = ref<any>({
+const headerOffsetPx = computed(() => statusBarHeight.value + headerBarPx)
+
+const scrollAreaHeight = computed(() => {
+  const h = systemInfo.windowHeight || systemInfo.screenHeight
+  return `${h - headerOffsetPx.value}px`
+})
+
+const venueId = ref(0)
+
+type VenueDetailVm = {
+  id: number
+  name: string
+  venueImage: string
+  location: string
+  contactPhone: string
+  contactPerson: string
+  businessHours: string
+  description: string
+  status: number
+}
+
+const venue = ref<VenueDetailVm>({
   id: 0,
   name: '',
   venueImage: '',
   location: '',
-  price: 0,
   contactPhone: '',
+  contactPerson: '',
   businessHours: '',
   description: '',
   status: 1
 })
+
+const amenityList = [
+  { icon: 'sound', label: 'Free Wifi' },
+  { icon: 'location', label: 'Parking' },
+  { icon: 'loop', label: 'Showers' },
+  { icon: 'bolt', label: 'A/C' }
+] as const
+
 const userStore = useUserStore()
 
-onLoad((options: any) => {
-  if (options && options.id) {
-    venueId.value = Number(options.id)
+function mapVenue(result: VenueItem): VenueDetailVm {
+  return {
+    id: result.id,
+    name: result.venueName,
+    venueImage: result.venueImage || '',
+    location: result.address || '',
+    contactPhone: result.contactPhone || '',
+    contactPerson: result.contactPerson || '',
+    businessHours: result.businessHours || '',
+    description: result.description || '',
+    status: result.status ?? 1
   }
-})
+}
 
-const loadVenueDetail = async () => {
+async function loadVenueDetail() {
+  if (!venueId.value) return
   try {
     const result = await getVenueDetail(venueId.value)
-    venue.value = {
-      id: result.id,
-      name: result.venueName,
-      venueImage: result.venueImage || '',
-      location: result.address || '',
-      price: result.hourlyPrice ?? 0,
-      contactPhone: result.contactPhone || '',
-      businessHours: result.businessHours || '',
-      description: result.description || '',
-      status: result.status ?? 1
-    }
+    venue.value = mapVenue(result)
   } catch (error) {
     console.error('加载场馆详情失败:', error)
-    uni.showToast({
-      title: '加载场馆详情失败',
-      icon: 'none'
-    })
+    uni.showToast({ title: '加载场馆详情失败', icon: 'none' })
   }
 }
 
-const handleBack = () => {
-  safeNavigateBack()
-}
-
-const handleCall = (phone: string) => {
-  uni.makePhoneCall({
-    phoneNumber: phone
-  })
-}
-
-const handleBook = () => {
-  uni.navigateTo({
-    url: `/pages/venue/booking?venueId=${venue.value.id}`
-  })
-}
-
-const handleShare = () => {
-  uni.showToast({ title: '分享功能开发中', icon: 'none' })
-}
-
-const handleHistory = () => {
-  uni.navigateTo({ url: '/pages/booking/list' })
-}
-
-onMounted(async () => {
+onLoad(async (options: Record<string, string> | undefined) => {
+  if (options?.id) venueId.value = Number(options.id)
   if (!userStore.isLoggedIn) {
     uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  if (venueId.value) {
-    await loadVenueDetail()
-  }
+  await loadVenueDetail()
 })
+
+const handleBack = () => safeNavigateBack()
+
+const handleCall = (phone: string) => {
+  uni.makePhoneCall({ phoneNumber: phone })
+}
+
+const handleBook = () => {
+  uni.navigateTo({ url: `/pages/venue/booking?venueId=${venue.value.id}` })
+}
+
+const handleShare = () => uni.showToast({ title: '分享功能开发中', icon: 'none' })
+const handleHistory = () => uni.navigateTo({ url: '/pages/booking/list' })
 </script>
 
 <style lang="scss" scoped>
+/* Design tokens — 与 tailwind 配置一致 */
+$bg-surface: #f9f9f9;
+$on-surface: #1a1c1c;
+$primary: #a33e00;
+$on-secondary-container: #636262;
+$surface-container-lowest: #ffffff;
+$surface-container-low: #f3f3f3;
+$secondary-container: #e2dfde;
+$on-surface-variant: #5a4136;
+$primary-container: #ff6600;
+$on-primary-container: #561d00;
+
 .venue-detail-page {
   min-height: 100vh;
-  background-color: #f9f9f9;
-  display: flex;
-  flex-direction: column;
+  background-color: $bg-surface;
+  color: $on-surface;
+  font-family: 'Lexend', 'PingFang SC', 'Helvetica Neue', system-ui, sans-serif;
 }
 
-/* Header */
 .header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
-  background-color: rgba(249, 249, 249, 0.8);
-  backdrop-filter: blur(10px);
+  z-index: 50;
+  background-color: rgba(250, 250, 250, 0.7);
+  backdrop-filter: blur(12px);
 }
 
-.header-content {
-  height: 44px;
+.header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 16px 24px;
+  box-sizing: border-box;
 }
 
 .back-btn {
-  width: 40px;
+  width: 24px;
   height: 40px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #a33e00;
-  transition: transform 0.2s;
-  &:active { transform: scale(0.9); }
+  justify-content: flex-start;
+  &:active {
+    transform: scale(0.96);
+  }
 }
 
 .header-title {
   font-size: 18px;
   font-weight: 700;
-  color: #1a1c1c;
+  letter-spacing: -0.02em;
+  color: $on-surface;
 }
 
-.spacer { width: 40px; }
+.header-spacer {
+  width: 24px;
+  height: 1px;
+}
 
-/* Scroll Area */
 .main-scroll {
-  flex: 1;
-  margin-top: calc(env(safe-area-inset-top) + 44px);
+  box-sizing: border-box;
 }
 
-/* Hero Section */
-.hero-section {
+.hero-wrap {
   position: relative;
   width: 100%;
   height: 397px;
   overflow: hidden;
 }
 
-.hero-image {
+.hero-img,
+.hero-placeholder {
   width: 100%;
   height: 100%;
 }
 
-.hero-image-placeholder {
-  width: 100%;
-  height: 100%;
-  background-color: #eeeeee;
+.hero-placeholder {
+  background: #eeeeee;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  font-size: 48px;
 }
 
 .hero-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(25, 26, 26, 0.2) 0%, rgba(25, 26, 26, 0) 40%, rgba(249, 249, 249, 1) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(25, 26, 26, 0.4) 0%,
+    rgba(25, 26, 26, 0) 40%,
+    rgba(249, 249, 249, 1) 100%
+  );
+  pointer-events: none;
 }
 
-.status-chip-wrap {
+/* bottom-8 left-6 */
+.hero-chip-wrap {
   position: absolute;
   bottom: 32px;
   left: 24px;
+  z-index: 2;
 }
 
 .status-chip {
-  background-color: #ff6600;
-  color: #561d00;
+  background-color: $primary-container;
+  color: $on-primary-container;
   padding: 6px 16px;
   border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
-  
+  letter-spacing: 0.2em;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
   &.status-offline {
     background-color: #e2e2e2;
-    color: #5a4136;
+    color: $on-surface-variant;
     box-shadow: none;
   }
 }
 
-/* Content Body */
-.content-body {
+.article {
   padding: 0 24px;
+  margin-top: -16px;
   position: relative;
   z-index: 10;
-  margin-top: -20px;
 }
 
-.venue-header-info {
+.venue-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 32px;
 }
 
-.name-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-
 .venue-name {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
-  color: #1a1c1c;
-  line-height: 1.2;
-  flex: 1;
-  margin-right: 16px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: $on-surface;
 }
-
-.venue-price-tag {
-  display: flex;
-  align-items: baseline;
-  color: #a33e00;
-}
-
-.price-symbol { font-size: 14px; font-weight: 700; margin-right: 2px; }
-.price-value { font-size: 24px; font-weight: 700; }
-.price-unit { font-size: 12px; color: #636262; margin-left: 4px; }
 
 .rating-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.rating-box {
+.rating-left {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #a33e00;
+  color: $primary;
 }
 
-.rating-text { font-size: 14px; font-weight: 700; }
-.reviews-text { font-size: 12px; color: #636262; margin-left: 4px; }
+.rating-num {
+  font-size: 14px;
+  font-weight: 700;
+}
 
-.dot-separator {
+.rating-reviews {
+  font-size: 12px;
+  color: $on-secondary-container;
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+.rating-dot {
   width: 4px;
   height: 4px;
-  background-color: #e2e2e2;
   border-radius: 50%;
-  margin: 0 16px;
+  background: #e2e2e2;
 }
 
-.grade-text {
+.rating-grade {
   font-size: 12px;
-  font-weight: 600;
-  color: #636262;
+  font-weight: 500;
+  color: $on-secondary-container;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.06em;
 }
 
-/* Bento Grid */
-.info-grid {
+.detail-grid {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-bottom: 32px;
 }
 
-.info-card {
-  background-color: #ffffff;
+.surface-card {
+  background: $surface-container-lowest;
+  border-radius: 12px;
   padding: 20px;
-  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+.card-row {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s;
-  &:active { transform: scale(1.01); }
 }
 
-.card-icon-box {
-  background-color: #f3f3f3;
+.icon-tile {
   padding: 12px;
-  border-radius: 12px;
-  color: #a33e00;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: $surface-container-low;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
-.card-content {
+.card-main {
   flex: 1;
+  min-width: 0;
 }
 
 .card-label {
+  display: block;
   font-size: 10px;
   font-weight: 700;
-  color: #636262;
+  color: $on-secondary-container;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.1em;
   margin-bottom: 4px;
-  display: block;
 }
 
-.card-value {
+.card-text {
   font-size: 14px;
   font-weight: 500;
-  color: #1a1c1c;
-  line-height: 1.5;
+  line-height: 1.6;
+  color: $on-surface;
 }
 
-.card-value-bold {
+.card-strong {
+  display: block;
   font-size: 14px;
   font-weight: 700;
-  color: #1a1c1c;
+  color: $on-surface;
 }
 
-.card-subtext {
-  font-size: 12px;
-  color: #636262;
-  margin-top: 4px;
+.card-muted {
   display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: $on-secondary-container;
 }
 
-.contact-row {
+.contact-line {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
-.contact-info {
-  display: flex;
-  flex-direction: column;
+.contact-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: $on-surface;
 }
 
-.contact-name { font-size: 14px; font-weight: 700; color: #1a1c1c; }
-.contact-phone { font-size: 14px; font-weight: 500; color: #636262; }
+.contact-phone {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: $on-secondary-container;
+}
 
 .call-btn {
   width: 36px;
   height: 36px;
-  background-color: #a33e00;
   border-radius: 50%;
+  background: $primary;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  &:active { transform: scale(1.1); }
+  flex-shrink: 0;
+  &:active {
+    transform: scale(1.05);
+  }
 }
 
-/* Description */
-.description-section {
-  margin-bottom: 32px;
+.desc-block {
+  margin-top: 32px;
 }
 
-.section-title {
+.desc-heading {
+  display: block;
   font-size: 10px;
   font-weight: 700;
-  color: #636262;
+  color: $on-secondary-container;
   text-transform: uppercase;
-  letter-spacing: 3px;
+  letter-spacing: 0.2em;
   margin-bottom: 16px;
-  display: block;
 }
 
-.description-box {
-  background-color: #f3f3f3;
+.desc-box {
+  background: $surface-container-low;
   padding: 24px;
-  border-radius: 20px;
-  border-left: 4px solid #a33e00;
+  border-radius: 16px;
+  border-left: 4px solid $primary;
+  box-sizing: border-box;
 }
 
-.description-text {
+.desc-body {
   font-size: 14px;
-  color: #5a4136;
-  line-height: 1.6;
+  line-height: 1.75;
   font-weight: 500;
   font-style: italic;
+  color: $on-surface-variant;
 }
 
-/* Amenities */
-.amenities-chips {
+.amenities {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 40px;
+  margin-top: 32px;
 }
 
-.amenity-chip {
-  background-color: #e2dfde;
-  padding: 8px 16px;
-  border-radius: 999px;
+.amenity-pill {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: transform 0.2s;
-  &:active { transform: scale(1.05); }
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: $secondary-container;
+  &:active {
+    transform: scale(1.02);
+  }
 }
 
-.amenity-text {
-  font-size: 10px;
+.amenity-label {
+  font-size: 12px;
   font-weight: 700;
-  color: #1a1c1c;
-  letter-spacing: 1px;
+  text-transform: capitalize;
+  letter-spacing: 0.06em;
+  color: $on-surface;
 }
 
-.bottom-safe-spacer { height: 120px; }
+/* pb-32 ≈ 128px + 安全区 */
+.main-pad-bottom {
+  height: calc(128px + env(safe-area-inset-bottom));
+}
 
-/* Bottom Nav */
-.bottom-nav {
+.bottom-shell {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  bottom: 0;
+  z-index: 50;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.bottom-nav-glass {
+.bottom-glass {
   position: absolute;
   inset: 0;
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(24px);
   border-top-left-radius: 40px;
   border-top-right-radius: 40px;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.05);
 }
 
-.bottom-nav-content {
+.bottom-inner {
   position: relative;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 24px 32px 10px;
+  justify-content: space-between;
+  padding: 24px 32px 40px;
+  box-sizing: border-box;
 }
 
-.secondary-actions {
+.bottom-secondary {
   display: flex;
   gap: 16px;
 }
 
-.action-item {
+.sec-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
   padding: 12px;
-  transition: all 0.2s;
-  &:active { background-color: #f1f5f9; border-radius: 12px; }
+  border-radius: 12px;
+  color: #a3a3a3;
+  &:active {
+    background: #f5f5f5;
+  }
 }
 
-.action-label {
+.sec-label {
+  margin-top: 4px;
   font-size: 8px;
   font-weight: 700;
-  margin-top: 4px;
-  letter-spacing: 1px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 
-.primary-cta {
-  background: linear-gradient(45deg, #a33e00 0%, #ff6600 100%);
-  padding: 16px 32px;
-  border-radius: 16px;
+.cta-btn {
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 8px 16px rgba(163, 62, 0, 0.2);
-  transition: all 0.2s;
-  &:active { transform: scale(0.95); opacity: 0.9; }
+  padding: 16px 32px;
+  border-radius: 16px;
+  background: linear-gradient(45deg, #a33e00 0%, #ff6600 100%);
+  box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.2);
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.95;
+  }
 }
 
-.cta-text {
-  color: #ffffff;
+.cta-label {
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 2px;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.content-body {
-  animation: fadeIn 0.6s ease-out forwards;
+  letter-spacing: 0.2em;
+  color: #ffffff;
 }
 </style>
-

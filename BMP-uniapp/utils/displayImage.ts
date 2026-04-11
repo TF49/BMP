@@ -1,12 +1,15 @@
 const DEFAULT_AVATAR = '/static/placeholders/avatar.svg'
 const DEFAULT_COVER = '/static/placeholders/hero.svg'
 
-const BLOCKED_REMOTE_HOSTS = ['lh3.googleusercontent.com']
+/** Google 用户内容图床（lh3/lh4 等子域）在无 Google 访问时不可用 */
+function isGoogleUserContentHost(hostname: string): boolean {
+  const h = hostname.toLowerCase()
+  return h === 'googleusercontent.com' || h.endsWith('.googleusercontent.com')
+}
 
 function isBlockedRemoteHost(url: string) {
   try {
-    const parsed = new URL(url)
-    return BLOCKED_REMOTE_HOSTS.includes(parsed.hostname)
+    return isGoogleUserContentHost(new URL(url).hostname)
   } catch {
     return false
   }

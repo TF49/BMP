@@ -158,7 +158,7 @@ const regs = ref<TournamentRegistrationItem[]>([])
 const keyword = ref('')
 
 const heroImg =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuAy0L0OiSg9ofIxSZNDqjE5BeIWilvGapz_RH4XPk1LcwO3mW0j7XTw2kVIrIEfjulZpAx1KFfLi7Rk2zO_wDAPs6J4K20nyKpZWtzNYhqb6e7MkJPMpwUp6ytWAXs2DGiLxvridFa3MYzsQyAAxpYU-8TPISHUhoXEUhfD8uCCz8VFeEXOkKY3S3cRJ7gkIULzE8Bs1WjsQxJH4tJ7PXT8_suYAIiHmG0jglZyykc5Ox9OAvQ2CtRJosj5nsgXJr47Tfer0u-cKERu'
+  '/static/placeholders/hero.svg'
 
 const revenue = computed(() => {
   // 原型：总营收。后端字段暂未提供，先以报名费*人数推导展示。

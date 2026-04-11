@@ -8,7 +8,7 @@
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
             <view class="back-btn">
-              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+              <uni-icons type="arrow-left" size="24" color="#ff6600"></uni-icons>
             </view>
             <view class="brand-wrap">
               <text class="brand-name">Kinetic Logic</text>
@@ -141,7 +141,7 @@ const equipments = ref([
     id: 1,
     name: 'YONEX 天斧 100ZZ',
     sku: 'EQ-AX100-001',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCbs7NTSzoRg-3waVvp6CrZnd4mclQc8I0Jl7iQ06gr2cPnFhoBtRfg-370C8XMkX8cXHaWV3QeOYKbBQd3tP9TqhP9J_cBcq9zF1u_nPV5TxwUXd_KTheA3aGDEXDsrcCb54Fe9YKGCo3b6Cs-9w3TRp7wQmcEKnFc6u6_9n7kW5z5WaIlKuvm8R0rvwjpnHlnrow0ueNnxN31wUvf0bZX1zhs8tUKb83Mz7kuPV_PNzcGT56j3Zd-uplsATKGKyNiAPSb5tYNUcox',
+    image: '/static/placeholders/hero.svg',
     status: '库存充足',
     total: 48,
     available: 32,
@@ -152,7 +152,7 @@ const equipments = ref([
     id: 2,
     name: 'VICTOR 龙牙之刃 II',
     sku: 'EQ-TKRY-II',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB3M_FVGpI4tmJ6OoKObl8a_nQ096KkQktJc34n9gTBxhS6pPdqw3v8zUCUgNY_KNyBRgeCkdXYRXug4xWKVy8tBXgKyDGDHn3Yd5PxE3Hn2DwvbDLj7GyExsiGOAo6z_8TzWcxmLqpIwkh03zLdGERkeKjT8Qf103QOS2D16_-yjtpluDbJ_T68sz39ZRtjIi2OiSvooHMnsmck4xk6nMJdoBqy0BtLiTnrKwiJn6zsKqEN5NDgVB7jF_Xezd_Bnr2ae5gzqnjc8Ti',
+    image: '/static/placeholders/hero.svg',
     status: '低库存预警',
     total: 12,
     available: 3,
@@ -163,7 +163,7 @@ const equipments = ref([
     id: 3,
     name: 'LI-NING 战戟 8000',
     sku: 'EQ-LN-HAL-8K',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA74NS1ELe_eyUAI4R3fjGIczZIAJEM5a2V4uvw4_ihrUMoaUmGXcjEQx5lGtgKyes0KC_OEILmgjAlOTQDthznKg7S1aOUyc7_ucyVmTiypnBDlgdp1DrGTKkqUCY6pJkLIHnt8zlwmNhy3Lf4hq7F5v9NqicnHnNrsAWukbHEcjHeECiqVM5a6dAygYRTMIXQCPlLnGHjj5LkCnznWrv8ktIJOUOwguApE9plPav8pSL33KwfhHzIbpxGcrbyBESYQKrRTjB-bZ7d',
+    image: '/static/placeholders/hero.svg',
     status: '库存充足',
     total: 24,
     available: 18,
@@ -174,7 +174,7 @@ const equipments = ref([
     id: 4,
     name: 'YONEX 疾光 800 Pro',
     sku: 'EQ-NF-800P',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB74lSBIqpoXMd9MNzrncw8hRKmmPHvwXPPWGfpY0nB6ydlZBdY12zKBWUU-Ybtm4VGU7l4bztDI77oWcXjMcTva2jh_UXuFnWldQksmwTgG3CkwL4qWOM_-JHPYDBZ9MXNltnp3gaJ0q5-xwccUuZyv6Ew70pM4TLbklvhiEVq860acyAVjdZd8Y1rbH1Aq6AtCTOxapAe-dfHDFdTLDD6t9yBHWtjkLjzbS9W1HFgFDA_oiFmTwKHYfx83ywjb09hnrWyfJn9yUoc',
+    image: '/static/placeholders/hero.svg',
     status: '库存充足',
     total: 15,
     available: 9,

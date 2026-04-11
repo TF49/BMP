@@ -1,5 +1,6 @@
 package com.badminton.bmp.modules.finance.service;
 
+import com.badminton.bmp.common.util.ErrorMessageSanitizer;
 import lombok.Data;
 import org.springframework.stereotype.Service;
 
@@ -97,7 +98,7 @@ public class ExportTaskService {
     public void setTaskError(String taskId, String errorMessage) {
         TaskInfo taskInfo = taskMap.get(taskId);
         if (taskInfo != null) {
-            taskInfo.setErrorMessage(errorMessage);
+            taskInfo.setErrorMessage(ErrorMessageSanitizer.sanitize(errorMessage));
             taskInfo.setStatus(TaskStatus.FAILED);
             taskInfo.setCompleteTime(LocalDateTime.now());
         }

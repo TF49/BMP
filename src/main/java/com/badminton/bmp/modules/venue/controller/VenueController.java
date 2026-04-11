@@ -249,7 +249,7 @@ public class VenueController extends BaseController {
                         imageInfo.put("imageType", imageType);
                     }
                 } catch (Exception e) {
-                    errors.add(file.getOriginalFilename() + ": " + e.getMessage());
+                    errors.add(file.getOriginalFilename() + ": " + userFriendlyErrorText("上传图片", e));
                 }
             }
 

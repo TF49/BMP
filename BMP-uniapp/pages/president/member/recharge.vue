@@ -138,7 +138,7 @@ import { useUserStore } from '@/store/modules/user'
 const userStore = useUserStore()
 
 const defaultAvatar =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCIkTg4fJHgovCw5I_s1Udd9P8tyxSzOVQ4pVyR6DTAiJD8aTmraUC3yaeezD5Lt7saepUYDjAJtDX892bZ5Do1r3d6bV7MCXKraHxl5OYXwUVPtq5vPXmrfU7DrY_EdCyra2sVAurZjE27FrQwiMs2B3fvTySrguc26vvyhv_ncC0YMIU_sD3L_TBWIbswPKOwpx1cPRLfndmfVeendBpnC2Dn6GSAYtl2wMnE5ZkFodkazr-LgAjB7Wp9_um7alkp3V01ok-XatyG'
+  '/static/placeholders/hero.svg'
 
 const presidentAvatar = computed(() => userStore.userInfo?.avatar || defaultAvatar)
 

@@ -142,7 +142,7 @@ import { addCourse, getCoachList, getCourseDetail, updateCourse } from '@/api/co
 import { getCourtList } from '@/api/court'
 
 const heroImg =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuAgxWi20Lu-lp7vjRcRfqmKSpWy9EPej34fpIuVIjsJ-Vjhcz309hk16LLkDuJktDDUVeJmaly4_OV9mJgSXrSJIU0jBnqlyVLGMmj9W9Ly5Widfc1ulWHfFQNB9UTOQqvKpgeC76D2zFePHgi-6uTvmV4KBpIarZO97pzdDe6E6qGmkzU4-CmZqnN9nqNyNlZpF2MebRcnDqm3AUpJAsrv77AUYnYWiCp3jizpb0Jy4YOb8LT-HOWHVFyVrkIsGyfQnKV8oReU04fN'
+  '/static/placeholders/hero.svg'
 
 const isEdit = ref(false)
 const courseId = ref<number | null>(null)

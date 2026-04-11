@@ -1,6 +1,7 @@
 package com.badminton.bmp.modules.finance.controller;
 
 import com.badminton.bmp.common.Result;
+import com.badminton.bmp.common.util.ErrorMessageSanitizer;
 import com.badminton.bmp.modules.finance.entity.FinanceAuditLog;
 import com.badminton.bmp.modules.finance.service.ExportTaskService;
 import com.badminton.bmp.modules.finance.service.FinanceAuditExportAsyncService;
@@ -144,7 +145,7 @@ public class FinanceAuditLogController {
         Map<String, Object> result = new HashMap<>();
         result.put("taskId", taskInfo.getTaskId());
         result.put("status", taskInfo.getStatus().name());
-        result.put("errorMessage", taskInfo.getErrorMessage());
+        result.put("errorMessage", ErrorMessageSanitizer.sanitize(taskInfo.getErrorMessage()));
         result.put("createTime", taskInfo.getCreateTime());
         result.put("completeTime", taskInfo.getCompleteTime());
         return Result.success(result);

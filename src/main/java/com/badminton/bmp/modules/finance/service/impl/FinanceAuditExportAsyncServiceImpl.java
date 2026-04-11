@@ -32,7 +32,7 @@ public class FinanceAuditExportAsyncServiceImpl implements FinanceAuditExportAsy
             exportTaskService.setTaskFilePath(taskId, filePath);
             exportTaskService.updateTaskStatus(taskId, ExportTaskService.TaskStatus.COMPLETED);
         } catch (Exception e) {
-            exportTaskService.setTaskError(taskId, e.getMessage());
+            exportTaskService.setTaskError(taskId, "导出失败，请稍后重试");
         }
     }
 }

@@ -7,7 +7,7 @@
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
             <view class="nav-icon-btn">
-              <uni-icons type="arrow-left" size="22" color="#1a1c1c" />
+              <uni-icons type="arrow-left" size="22" color="#ff6600" />
             </view>
             <text class="nav-title">手动录入租借</text>
           </view>
@@ -162,7 +162,7 @@ interface MemberPick {
 }
 
 const operatorAvatar =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuC6UTWC-_KSKkFEO-vnzDrMug4JnqbxBd3pPmTrdUMQbRAVUlnXoll9E__4cN7qKEbJbtl7JjaSN32teg6TR45Ce1_WbALsuA8URhLdWzIYaCNflyzMix3YQ-nbzG3MyvwBjE5a2Zpr1FzMEYun7p7caBNSyMlE5GK6i7QhXVI2tkJobMtDll7CEGZgXPs-mb1Xz_1gycCoKo-RRC7jzIIE_yx10NbIVpGYyhz-yz9gONNaXMPpaRDMTjAdgr54KqDXrEc7JuggJ3ex'
+  '/static/placeholders/hero.svg'
 
 const members: MemberPick[] = [
   {
@@ -170,7 +170,7 @@ const members: MemberPick[] = [
     name: '陈伟 (高级会员)',
     balance: '1,240.50',
     avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCprtdCCd4KabyWMUPQ5ycCtmyJIVSnMauKsPpDxLu6uzOspp67lE1xzQ-ClXj021BLkXBHkRR7FdwOmQM7fb1Ftc3bYNLu89nx7jw2NDoHcMRJxxWXH1EGZIuZTMIeMfRVhvYGsfcC9HOiEucY33ek5tIBO9IenosmPPwI52U0beVp5kPntUGoHULVxqGQ99keADyQM2XuLmtW1BLadhzR-y-TPp9tO_sLn8tN11VrwLGkRC5lzr6iObcPTaX6LdP0OBDT_K87b86o'
+      '/static/placeholders/hero.svg'
   },
   {
     id: 'm2',

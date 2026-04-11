@@ -1,6 +1,13 @@
 <template>
   <PresidentLayout :showTabBar="false">
     <view class="form-content">
+      <view class="status-bar-placeholder" />
+      <view class="form-toolbar">
+        <view class="back-wrap" @click="onBack">
+          <uni-icons type="arrow-left" size="24" color="#ff6600" />
+        </view>
+        <text class="toolbar-title">{{ isEdit ? '编辑用户' : '新增用户' }}</text>
+      </view>
       <view class="form-card glass-card">
         <view class="form-item">
           <text class="form-label">用户名</text>
@@ -139,6 +146,10 @@ function onStatusChange(e: any) {
   form.value.status = e.detail?.value === '0' ? 1 : 0
 }
 
+function onBack() {
+  safeNavigateBack(PRESIDENT_PAGES.USER_LIST)
+}
+
 async function loadDetail() {
   if (!id.value) return
   try {
@@ -203,6 +214,31 @@ onMounted(() => {
 <style lang="scss" scoped>
 .form-content {
   padding: 24rpx;
+}
+.status-bar-placeholder {
+  height: var(--status-bar-height);
+}
+.form-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+.back-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.back-wrap:active {
+  background: rgba(255, 102, 0, 0.12);
+}
+.toolbar-title {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #1e293b;
 }
 .form-card {
   padding: 32rpx;

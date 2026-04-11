@@ -6,7 +6,7 @@
       <view class="header">
         <view class="header-left">
           <view class="hit" @click="onBack">
-            <uni-icons type="arrow-left" size="22" color="#1a1c1c" />
+            <uni-icons type="arrow-left" size="22" color="#ff6600" />
           </view>
           <text class="header-title">{{ pageTitle }}</text>
         </view>
@@ -164,7 +164,7 @@ import { resolveImageUrl } from '@/utils/resolveImageUrl'
 import { addCoach, getCoachDetail, getCoachVenueOptions, updateCoach, type CoachDto, type CoachVenueOption } from '@/api/coach'
 
 const HERO_AVATAR =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCTguqN8hnBjJEkaT5bq0Mkzq60LR0M--aNulfuRUi4AfqH1e4vxQ1sgK_KqLN2WYY1yeK5syOPON4FoYTPjAP4cm2PgGozl7Ycv3Co-H8Y8icgYWheBPAj504KPB03LxTLbQU5UwohQiMzJiJYpMJIfZ45LOi91vpbn408kVhadpP1K0UhicS4jGOmFZOUgTRdrm1xC3toUmVOx7eFnepKoOlSS7K-qU8dqXCPisZAC_xXI7JXSCIcwkSq2PSGa1I6k6I8PL5f4RpL'
+  '/static/placeholders/hero.svg'
 
 const genderLabels = ['男 / MALE', '女 / FEMALE']
 const genderValues = [1, 0]

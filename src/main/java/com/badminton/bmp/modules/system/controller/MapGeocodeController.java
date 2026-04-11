@@ -43,7 +43,7 @@ public class MapGeocodeController extends BaseController {
             @RequestParam("lat") double lat,
             @RequestParam("lng") double lng) {
         if (tencentMapKey == null || tencentMapKey.isBlank()) {
-            return error("服务器未配置地图密钥（bmp.map.tencent.key），无法解析地址");
+            return error("地图服务暂时不可用，请稍后重试");
         }
         if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
             return error("经纬度参数不合法");
@@ -77,8 +77,7 @@ public class MapGeocodeController extends BaseController {
             JsonNode root = objectMapper.readTree(body);
             int status = root.path("status").asInt(-1);
             if (status != 0) {
-                String msg = root.path("message").asText("地图服务返回错误");
-                return error(msg);
+                return error("地址解析失败，请稍后重试");
             }
             JsonNode result = root.path("result");
             String recommend = result.path("formatted_addresses").path("recommend").asText("");

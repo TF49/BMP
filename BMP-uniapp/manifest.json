@@ -89,7 +89,11 @@
             "chooseLocation",
             "getLocation"
         ],
-        "lazyCodeLoading" : "requiredComponents"
+        "lazyCodeLoading" : "requiredComponents",
+        "networkTimeout" : {
+            "request" : 60000,
+            "downloadFile" : 60000
+        }
     },
     "mp-alipay" : {
         "usingComponents" : true

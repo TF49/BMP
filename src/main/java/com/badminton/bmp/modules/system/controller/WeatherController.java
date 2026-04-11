@@ -165,7 +165,7 @@ public class WeatherController extends BaseController {
                 
                 return success(result);
             } else {
-                return error("天气服务暂时不可用，HTTP状态码：" + responseCode);
+                return error("天气服务暂时不可用，请稍后重试");
             }
         } catch (java.net.SocketTimeoutException e) {
             // 超时异常
@@ -191,7 +191,7 @@ public class WeatherController extends BaseController {
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getWeatherByQWeather(@RequestParam(required = false, defaultValue = "北京") String city) {
         if (qweatherKey == null || qweatherKey.trim().isEmpty()) {
-            return error("天气服务未配置：缺少 QWEATHER_API_KEY");
+            return error("天气服务暂时不可用，请稍后重试");
         }
 
         try {
@@ -224,12 +224,12 @@ public class WeatherController extends BaseController {
             }
             JsonNode weatherJson = objectMapper.readTree(weatherRaw);
             if (!"200".equals(weatherJson.path("code").asText())) {
-                return error("获取天气失败：和风接口返回异常，code=" + weatherJson.path("code").asText());
+                return error("天气服务暂时不可用，请稍后重试");
             }
 
             JsonNode now = weatherJson.path("now");
             if (now.isMissingNode() || now.isNull()) {
-                return error("获取天气失败：和风接口返回缺少 now");
+                return error("天气数据暂时不可用，请稍后重试");
             }
 
             String temp = now.path("temp").asText();

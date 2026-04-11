@@ -8,7 +8,7 @@
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
             <view class="back-btn">
-              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+              <uni-icons type="arrow-left" size="24" color="#ff6600"></uni-icons>
             </view>
             <view class="brand-wrap">
               <text class="brand-name">Kinetic Logic</text>

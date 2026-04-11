@@ -15,7 +15,7 @@
 
       <scroll-view scroll-y class="scroll" :show-scrollbar="false">
         <view class="breadcrumb" @click="onBack">
-          <uni-icons type="arrow-left" size="18" color="#a33e00" />
+          <uni-icons type="arrow-left" size="18" color="#ff6600" />
           <text>返回列表 / 器材详情</text>
         </view>
 
@@ -161,7 +161,7 @@ const equipmentId = ref(0)
 const activeImageIndex = ref(0)
 
 const defaultImage =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuAxOSdCf6cI8832j9J0k9DgF_cjJrM64Ifoins0161pbKcwhhs5rE4Xee_e8_o3pWLVRIUBLtPNDvCryqn667Y6Zq01ioiN2GHM1RnQVZvTtuUZ0S70U7tdXYDPTupco-WItI-krMRSQ_MQcedz_g1McobS30Wntm5-4yy_-4Rpj3lUkkq4JQLXHwq5oreSaJjJx4ZBJRj4QBaNOD8aUivYmIgsvjBjxrAhJnPBl7vEzNhRhuzM1myfAM4C6Zg-4gk6qLmmUgspmlm5'
+  '/static/placeholders/hero.svg'
 const presidentAvatar = computed(() => userStore.userInfo?.avatar || '/static/placeholders/avatar.svg')
 
 const images = computed(() => {

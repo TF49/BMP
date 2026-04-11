@@ -1,6 +1,11 @@
 <template>
   <PresidentLayout :showTabBar="false">
     <view class="change-password-page">
+      <view class="status-bar-placeholder" />
+      <view class="pwd-nav" @click="onBack">
+        <uni-icons type="arrow-left" size="24" color="#ff6600" />
+        <text class="pwd-nav-title">修改密码</text>
+      </view>
       <view class="form-card glass-card">
         <view class="form-item">
           <text class="form-label">旧密码</text>
@@ -50,6 +55,12 @@ import { ref } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { updatePassword } from '@/api/auth'
 import { safeReLaunch } from '@/utils/safeRoute'
+import { safeNavigateBack } from '@/utils/navigation'
+import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+
+function onBack() {
+  safeNavigateBack(PRESIDENT_PAGES.PROFILE)
+}
 
 const loading = ref(false)
 const form = ref({
@@ -101,6 +112,20 @@ async function handleSubmit() {
 <style lang="scss" scoped>
 .change-password-page {
   padding: 24rpx;
+}
+.status-bar-placeholder {
+  height: var(--status-bar-height);
+}
+.pwd-nav {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+.pwd-nav-title {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #1e293b;
 }
 .form-card {
   padding: 32rpx;

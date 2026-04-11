@@ -8,7 +8,7 @@
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
             <view class="back-btn">
-              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+              <uni-icons type="arrow-left" size="24" color="#ff6600"></uni-icons>
             </view>
             <text class="nav-title">课程管理</text>
           </view>
@@ -63,7 +63,7 @@
           <!-- Course Card 1: 零基础新手入门班 -->
           <view class="course-card">
             <view class="card-img-wrap">
-              <image class="card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaz7cdhkujT3alxalKpRLEmy8PuEUZQTbizYx78bO_Fv43w2CuDfFKloXnj_IJaax_1f07aoUHsZ-6biT6hlV11tgU6eBWekw43gYS-c8IFMwvejUdQmt6xTAN3zLfNCv1fv-er6er_fWada2ym-NhYJWQ3RAqHFuCZlPA_AM9nF9akG3Lak4dIgs60-hntxuPuHFQsGDgYtxFswG8XdSWtm_1f1M-0S-AJ-u6Dlhdk77XHg6aZgnyodcbv6i-AuaT3LAvzhOwdjXB" mode="aspectFill"></image>
+              <image class="card-img" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
               <view class="status-badge status-active">报名中</view>
             </view>
             <view class="card-content">
@@ -109,7 +109,7 @@
           <!-- Course Card 2: 高阶杀球专项私教 -->
           <view class="course-card">
             <view class="card-img-wrap">
-              <image class="card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCd7lY1jKQfOQ9NMWEMlhCkRIK85cBA2zNZSOxp19-XWaCpDw4JXhVyCB7uGZY7GjM_cUFrocjzkCa3aBPMAE5jkD2DWDkeAij04csPSf5bpOylWUqY1BSHglEVOYShbZqcleAcaOwwZJc3h50gAZ51R7hJP9RYTDBKle1caQ3HP_rBBwugwvAu23D2ui6zMq9iH278gGDSzuGn6eAB6s9S88T4d72HrYsEkAxLkq19nV33Y7pMJGkWEToYbQP2WRNGR2pQXKm-M3aE" mode="aspectFill"></image>
+              <image class="card-img" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
               <view class="status-badge status-progress">进行中</view>
             </view>
             <view class="card-content">
@@ -155,7 +155,7 @@
           <!-- Course Card 3: 暑期少年集训营 (Ended) -->
           <view class="course-card ended">
             <view class="card-img-wrap">
-              <image class="card-img grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuXUU1z6WL6qzQlxbHhKOqK9PkfpwvYCw5vcjq-pYkOJ154jnDt_NEarkoF9lRl0SxcPGR-aKFP0cXnT_PCWennXDRvmub3I3MPYafu8-iwZOnckK5PF8TzFXctR8pjkBG4yyaAJVIb9-GjDnhO1x7DjUnML5wLtKL9F9gRCkY0BpXelmlMO8ikPSKOmnvgOWxByMo-yE7gIX5v6V3xWGjJOqZYALvVkzuehshxCNCRrllgmvV6MtbGwd4Kybv8EtxqFVUlxLgQhox" mode="aspectFill"></image>
+              <image class="card-img grayscale" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
               <view class="status-badge status-ended">已结束</view>
             </view>
             <view class="card-content">
@@ -197,7 +197,7 @@
           <!-- Course Card 4: 步伐专项：球场飞行艺术 -->
           <view class="course-card feature-card">
             <view class="card-img-wrap">
-              <image class="card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKVAC6fWIwoAIJDadWI5ic0LEJ43-3u3_khK0-1PdQRRndx5wmIl3VU9nrgjxwpSqgbmXbwC9zLCsoElhlPdSTRUDjtjUqEGVFL6YpTn9kb_JdfBjOq-FkkG2h7qwl9iM_J7HvKrE2UEjkVP83JlNsXM2ZHB0eLvCkK64xSAuUAaYdF1yctiJTWkeHPOWTKdZ0QRmX05EEBLlrA8-feJ64pSpsYvz9RU5ut6CNhUTZxl7eWO4VWOdKeuuhyfv1Z6d6KBstvVmdaCWn" mode="aspectFill"></image>
+              <image class="card-img" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
               <view class="status-badge status-active">热抢中</view>
             </view>
             <view class="card-content pd-extra">
@@ -224,9 +224,9 @@
               
               <view class="enrollment-status">
                 <view class="avatars">
-                  <image class="avatar-small" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDP4I9QST4TCZBmcQGQ3l6MjU_AaZcxj9SPS9mBPjWY1UC5MQfDY8Q0lnVEKzFycX8UDS-apK76dn9U_VfUKlSa5-xvksfdmrvotfMtVxCTQe-XQz44Vis3QkXkwaijK9IZ2kku505LfHdRssG07tjeW21nGuis2iviaDRIlyBVwBSfBx-kSrftoaTvl2QJidaiEBVe_DFopuY3rJlJUPzAjxXqwj_Am5NOr1bGTDHk_v84QyxhgwWX5wroXViMwbZ4j9lyrENxG5rs" mode="aspectFill"></image>
-                  <image class="avatar-small" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnrO1yFljBCEY2VAF6wzc6ujt0ukXnrlo0d65qIbMA_DhXrajIJSL6NAM2sosE9Pl4SaMi6Tk77fPnSIsW8vGPRM-SLk-26zwv9snt_KP_6__qEBs7b9hpqLwhIMRPjjZ5RqxBGU3zByC6O-eRSJiQt6SvXq0ufxuoik19GM652SYoEUIJDy3ZWwjZalpf117JozqkdwvsAOZoJt028SkGL5gJxKVNYxic30xhM7rGUDFAlOoXYEuXCvelKxL45nj-kCjsEBlzp7SA" mode="aspectFill"></image>
-                  <image class="avatar-small" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCivsQ42mc6CCA7IxjovCx1Oal9f421sj_SQHIWyKHil5hpgKxWkBUtzd3dwkLw8LEBmEE0nqdN7j4SPtc-4SEY1Oix9AYv0RiDk0bHkA_hEjJQQS00P16-ZyswK-6k4zZUauErNvSMqQquyWrBOD7Zh3aYs8PpzX7nEh_K1YfULRnA7yECuuvzijIeAO8CNtojpWVt1CHzmXDITArC7Xl7PcKbq-IzMmDOkOSYIlMk3WUI2F4Y8KPt92Iyai9pFLGGr89FHVA5jovg" mode="aspectFill"></image>
+                  <image class="avatar-small" src="/static/placeholders/avatar.svg" mode="aspectFill"></image>
+                  <image class="avatar-small" src="/static/placeholders/avatar.svg" mode="aspectFill"></image>
+                  <image class="avatar-small" src="/static/placeholders/avatar.svg" mode="aspectFill"></image>
                   <view class="avatar-more">+12</view>
                 </view>
                 <text class="remaining-spots">剩余 5 个名额</text>

@@ -1,5 +1,5 @@
 import { useUserStore } from '../store/modules/user'
-import { API_BASE_URL } from '../config/api'
+import { API_BASE_URL, REQUEST_TIMEOUT } from '../config/api'
 
 interface RequestOptions {
   url: string
@@ -62,6 +62,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
       method: options.method || 'GET',
       data: sanitizeRequestData(options.data),
       header,
+      timeout: REQUEST_TIMEOUT,
       success: (res) => {
         const { statusCode, data } = res
 

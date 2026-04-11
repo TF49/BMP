@@ -182,7 +182,7 @@ const isEdit = computed(() => Boolean(editId.value))
 const pageTitle = computed(() => (isEdit.value ? '编辑会员' : '新增会员'))
 
 const defaultAvatar =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuC9N3HCVl_ghNA66MSGEYwWYFt9IoNidmahM3qHLo7hnPTEznOjRo2JsWVx7VLgkv3HR8V5_y7iPcsTZ7_y2X_qoYLYgLeUHaUw8qlnnkn0-UtyYvTfn0WRJsP7bgKRd9HxA6XkQc7gvBvpk_066TtuXxs1P4Z2uH3aXkAGCJzqq44P4ZrS0hhc2msKDYksWnlI13wuE-z8NGnNvn4LzY0itoMiFUzX5mm5e03EwDRd_EJxFQUdUwMQujbdUOphRp2T7dr9a1Waz0KR'
+  '/static/placeholders/hero.svg'
 
 const presidentAvatar = computed(() => userStore.userInfo?.avatar || defaultAvatar)
 

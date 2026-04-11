@@ -4,6 +4,7 @@
  * - 列表接口返回格式兼容：{ data: [], total } 或 { data: { data: [], total } }
  */
 export * from './dashboard'
+export * from './audit'
 export * from './user'
 export * from './venue'
 export * from './finance'

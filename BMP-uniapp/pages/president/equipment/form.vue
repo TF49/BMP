@@ -4,9 +4,14 @@
       <view class="status-bar-placeholder" />
 
       <view class="top-shell">
-        <view class="brand-left">
-          <image class="president-avatar" :src="presidentAvatar" mode="aspectFill" />
-          <text class="brand-title">KINETIC LOGIC</text>
+        <view class="top-shell-left">
+          <view class="back-hit" @click="onCancel">
+            <uni-icons type="arrow-left" size="24" color="#ff6600" />
+          </view>
+          <view class="brand-left">
+            <image class="president-avatar" :src="presidentAvatar" mode="aspectFill" />
+            <text class="brand-title">KINETIC LOGIC</text>
+          </view>
         </view>
         <view class="notify-btn">
           <uni-icons type="notification" size="20" color="#71717a" />
@@ -245,7 +250,10 @@ onLoad(async (q?: Record<string, string | undefined>) => {
 .equipment-form-page { min-height: 100vh; background: #f9f9f9; color: #1a1c1c; }
 .status-bar-placeholder { height: var(--status-bar-height); background: #f8fafc; }
 .top-shell { display: flex; justify-content: space-between; align-items: center; padding: 16rpx 24rpx 8rpx; }
-.brand-left { display: flex; align-items: center; gap: 12rpx; }
+.top-shell-left { display: flex; align-items: center; gap: 16rpx; min-width: 0; }
+.back-hit { width: 56rpx; height: 56rpx; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.back-hit:active { background: rgba(255, 102, 0, 0.12); }
+.brand-left { display: flex; align-items: center; gap: 12rpx; min-width: 0; }
 .president-avatar { width: 48rpx; height: 48rpx; border-radius: 9999px; }
 .brand-title { font-size: 34rpx; color: #ea580c; font-weight: 800; letter-spacing: -0.02em; }
 .notify-btn { width: 52rpx; height: 52rpx; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }

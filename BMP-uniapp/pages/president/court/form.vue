@@ -236,10 +236,10 @@ const form = reactive({
 
 const preview = reactive({
   imageUrl:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuClfSy7hWQhefYELpX-RMkZ_AWKF-I2-QEZM426zkFmeQOSZFHuB1PfkRxLZnqIC9T5U5PhmIbqO3TOZjhdmeCmIrz8IO47yR8JhG284FuAQEixzhogpaj8XD0p9eDu8jB3YFNFRNPbN065fWncjlOGdFl1u3nYN1JR7bE1VrPy4f_qZHhL-6Ox_L1KR5jKS0a3pfCn02fZgeNviIftSlKoCdrhNbknIYxnG6KTwWVq_avsBrfdyteHmqFB337Cd6Sjl8045kDvHxvL',
+    '/static/placeholders/hero.svg',
   avatars: [
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAouKyGgzOZBw8Nj0jjVXpTNra4AYzZWynqMvHeRc655FerCpHpQpi3uMuvpCbVIWg6L7b6QkxaxG6Q9_cuj6WBpiHH09OMQECuOQldpkHyl0AjUSXJ0tJEiocWXznkjELwQM8x_NGt6y83EySwS4A5hEDvFKHF_Ap8r9HkVux70fKY6e3LyHziIBKUd3r_D1NMWGPic4EWwLbuGhbX4dgjes1-tdPcxPqSrFRCaduzhV8vUVlgVmcYd9THTq2uxqS2PpNXNzpzQy65',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAijmIUYTbvhr_-tY_nNy7Vj_lH1H3M6y-5O29xKZ97BmbiSp_YYhk9F9NRmCc3yqULtjd2xL623i90-vdFc4atZXBW10gJ395xwU2sy2xu5-Bth-H3k9ancz2o9Td1a8Aa1p1MyAuABG_Sjmhrxfsz-bmhHSGyUWKMhhyJZ8sp0in5A0yuiD5eo5dMHZuBfKOUetpXX7lh_TWIR-MAAimHj1cjFsu7lfWEhFMJ3zhVYPJhG0L01A6RJH7_oYEX9koIKU8LUzIn7gS_'
+    '/static/placeholders/hero.svg',
+    '/static/placeholders/hero.svg'
   ],
   occupancyPct: 85,
   venueName: '中央场馆',

@@ -218,7 +218,7 @@ function mockDetail(): CourtDetailMock {
       }
     ],
     bannerImage:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDmwMqyDdA0m-xn1bW719EiGRqEOYOexOzm77bAFXTlq7mA2KIxAUW7oPpFuM-L4A4VnOmRHX-b6iIvHyUvjYrjmXJBDqLut53W1eAb9ghOLY_rN_KReV2b03cLjB5tTse4m7UivzXHi1OOnPwpPwyOWmBUc4u5BIALZN3hZ_pd_wn9lBzGSxXGdlc7RfsZZmsdycNcC-TsFeAyMH_6W08gxYXvol_e5ZXj5DXxHzYkfPUUzHva48cJE3ZuPAG2wDALag-CIvs1YIym'
+      '/static/placeholders/hero.svg'
   }
 }
 

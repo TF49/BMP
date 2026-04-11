@@ -6,7 +6,7 @@
       <view class="nav-header">
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
-            <uni-icons type="flag" size="28" color="#ff6600" class="nav-left-icon"></uni-icons>
+            <uni-icons type="arrow-left" size="28" color="#ff6600" class="nav-left-icon"></uni-icons>
             <text class="nav-title">Kinetic Venues</text>
           </view>
           <view class="nav-right">

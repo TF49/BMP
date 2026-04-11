@@ -8,7 +8,7 @@
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
             <view class="back-btn">
-              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+              <uni-icons type="arrow-left" size="24" color="#ff6600"></uni-icons>
             </view>
             <text class="nav-title">教练管理</text>
           </view>
@@ -122,7 +122,7 @@ const coaches = ref([
   {
     id: 1,
     name: '张立明',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBPA3GHUJavioGZPQrcNH2rJ7GX8BHoGQM684sF4Zu6bpyzMgTs_lecSqypfsP6TR_JzwBCp1amyVrDmQxfBYQMS80Ye6PKMDMW8w9Distdq-ecUQn40ZZ0hvzNZmELfxhy5f6Y4gFmKQ47auJ2nwqiAheR8pPWc80S7te6XOoiLpjg1Gsr9zaTu-TGWwBXYbNNrTp6U0t1W3FHlNVKVMnXqRNtNHMrL9-qjWNTjPhSD7p9WhFIks58TdGjVXtDgSFl83e8Zb6V2l-1',
+    avatar: '/static/placeholders/avatar.svg',
     status: 'active',
     rating: 4.9,
     title: '国家一级运动员',
@@ -133,7 +133,7 @@ const coaches = ref([
   {
     id: 2,
     name: '李小雅',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBmogNMXK0enTWBupOqtA9MpT6HNw7dxxqmzZyOn9Gy_PocUBZLuWx9WTqCDrFs4rwJtmJMUmy4iPUWqmAI7duRa0eA_yhnvBN7CylhCkmomHnGBL99iQm9Ktykijq04FQzfkTyzmAL45nxU_4gXpytDzudNQDiN7xzdlcWlmhiLLUqhMqcrjef53Tj818gMgGqjtS6IWaHk92zIA6beSVxg4tQ6DEqPCzDuBQ_8LFE0jY1xQ0ZjFEyu7umEMF-7wU2vg0hCyQXRx01',
+    avatar: '/static/placeholders/avatar.svg',
     status: 'resting',
     rating: 4.8,
     title: '青少年培训专家',
@@ -144,7 +144,7 @@ const coaches = ref([
   {
     id: 3,
     name: '王志强',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA0hGBXqY_DSGK4IX9jewjiG0g9m8Sv_PY-S1tY3r5QZ_j8elN2eyOXu1ntdzETnjDmQrSIQf6MyyK8hNT4K_QBbqndTGEoYG5L3vyvulreYzhJtl5fE0MgVqM8lWTQwdG0zAccfF8vZs5xYjqQQoJd9MPXiarL8ucHK3oqWfPyvxib3f2p97bKCdK2Ba2i0D0Bc19oduFnfuxYUp4RbU5W8i-uDIjCR9QomQ0H4GTxpMZ38dLsVWLfRx1OwcLWZBEWEPpWCeknqmho',
+    avatar: '/static/placeholders/avatar.svg',
     status: 'active',
     rating: 5.0,
     title: '前省队主教练',

@@ -147,7 +147,7 @@ const bookingList = ref<CourseBookingItem[]>([])
 const courseId = ref(0)
 
 const heroImg =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuAglNLSw9IYcf7SwcpSWamDYotDelz_MbLA0waKv9H4LXvo9i0rb6fklywWKHdJrII_mD9VvW0TvMFGQIaTUD53qd6qBaLUr3w3FUx8bqTG6LLCBzmGtE__IUWz9fQ-RH3vko3IEf-f9w_Ip9BaXM33QC79F_cyltV5mELWEWkjavd2GSinSw4PwJJIZu_gg-ZNnjNd7cqQLDJYmk59qHadYTcqifvnUJ_UK3WrxpqRD2AgdAyVJUqfMTsVa7jX5F48Gcu1Kxcu6Wig'
+  '/static/placeholders/hero.svg'
 
 const progress = computed(() => {
   const max = Number(course.value?.maxStudents || 0)

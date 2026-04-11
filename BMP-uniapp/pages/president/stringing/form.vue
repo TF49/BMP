@@ -7,7 +7,7 @@
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
             <view class="nav-icon-btn">
-              <uni-icons type="arrow-left" size="22" color="#5f5e5e" />
+              <uni-icons type="arrow-left" size="22" color="#ff6600" />
             </view>
             <text class="nav-title">新增穿线工单</text>
           </view>
@@ -208,10 +208,10 @@ const TENSION_MIN = 18
 const TENSION_MAX = 35
 
 const operatorAvatar =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCqcSOo_xDMtKXETdjb5XfQv9m3pTOtbcguBf6s_3qcw7yewAFE81vd-ftuAog5l8MzPIpwhNL9Rkrd0x3NaD2g0HxT-2xCr4DySi8gSWY5cA8VYiIj-4_RFClD9KpBUtsBkQtl4Rwt82864rK-PWZCb2XvlXZ909o_wHMmUzmkVE1VmiqtODJz3eAk3bBi2i5hYgyFEGJxZWcXRbXn-B0f8658wrFMOghA0lV0Ealt3sevOiO7BOSZhiKKP1uigJ-zy8AhM81uj8T5'
+  '/static/placeholders/hero.svg'
 
 const workloadBg =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCWKePGDbPaOB9TBC01JcPk7yrBoLpR8UaK6PaquG_m5JaJraHDAB3_mOh-AUOmMHJjDUutGd4YjxJ-iHVUUmSRxoN_ot2kHlGMICI4qI-EahkRydrfBiCnTwdVxzf5rPwaTzuGcM7b7IB2d4HPNV9pCaB2Hp32MTEl6fWyHRpKpb2kVdyCW6oEk135Q6hd4D2f7DfeXTXaNbRGL8f99xAX4LUf8vFxp_NaxecgGFQ38SAETXKqYxaZrU-xL-K1jgYNHHpd8nsoOy3T'
+  '/static/placeholders/hero.svg'
 
 const stringOptions = [
   { id: 'bg65', label: 'BG65 (耐用型)', cost: 55 },

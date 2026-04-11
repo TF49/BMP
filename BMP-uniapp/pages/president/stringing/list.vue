@@ -15,7 +15,7 @@
           <view class="drawer-profile">
             <image
               class="drawer-avatar"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRJDmZyEZ3MvKOpkA9jt-NVsUd0_gFfEV6qksMhSEz2Xw6HsmLEjHOB23R9QFzemlN8du-qnKMmIr0_kXSlerETPf6R-6zxx_BRyBCs9EcmASY9Td4lrx_dmG09XrmTGPT3M6fnQrtKArXt7T7T1_eqkiOw8_fdAe7eZmWdZ9SoFN3Nnr_YUn1F9OgZCQEm2R8fLH7sBDVlUrC1DpAkRwLY110mXiXDHNEpB1PytCP8iuIRZCpC1eYDi4t8e11bZSjjlzNg1KvPnMQ"
+              src="/static/placeholders/hero.svg"
               mode="aspectFill"
             />
             <view class="drawer-profile-text">
@@ -38,8 +38,11 @@
 
       <view class="top-bar">
         <view class="top-bar-left">
+          <view class="icon-round" @click="goBack">
+            <uni-icons type="arrow-left" size="22" color="#ff6600" />
+          </view>
           <view class="icon-round" @click="drawerOpen = true">
-            <uni-icons type="bars" size="22" color="#5f5e5e" />
+            <uni-icons type="bars" size="22" color="#ff6600" />
           </view>
           <text class="screen-title">穿线管理</text>
         </view>
@@ -146,7 +149,7 @@
             <view class="maint-card">
               <image
                 class="maint-img"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB90WHZKFJmddP57snhO0vhMICK25jZwsUo1oHtKOESLdFySd33iXDOnU-_Yo29pNWLrVrd5rUi5XWKEQbznYA0ijlVbDLY-qPWe11KIeh4yUPziuHIUg6RQ_0vCyFfUrZsDsq2K5cLDqEI-QgmSRsGboZC66n67p8mek2fKi1peVuxkun1rgLTRzViUggZeUZBEQLFKx4iprCti4WezSMr5CIw5r0Y_S563hoLS8sh_j-ygM80pgeH-ruS02M9dNnHCK20baGfYhDJ"
+                src="/static/placeholders/hero.svg"
                 mode="aspectFill"
               />
               <view class="maint-overlay">
@@ -182,6 +185,10 @@ type Job = {
 }
 
 const drawerOpen = ref(false)
+
+function goBack() {
+  safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
+}
 
 const drawerNav = ref([
   { label: '仪表盘', icon: 'home', active: false, action: 'dashboard' as const },

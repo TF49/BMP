@@ -1,6 +1,11 @@
 <template>
   <PresidentLayout :showTabBar="false">
     <view class="detail-content">
+      <view class="status-bar-placeholder" />
+      <view class="detail-nav" @click="onBack">
+        <uni-icons type="arrow-left" size="24" color="#ff6600" />
+        <text class="detail-nav-title">财务详情</text>
+      </view>
       <view v-if="loading" class="loading-wrap">加载中...</view>
       <view v-else-if="detail" class="detail-card glass-card">
         <view class="detail-row"><text class="label">业务类型</text><text class="value">{{ detail.businessType || '—' }}</text></view>
@@ -25,6 +30,7 @@ import { ref, computed, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getFinanceInfo, deleteFinance, type FinanceItem } from '@/api/president/finance'
 import { safeNavigateBack } from '@/utils/navigation'
+import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 const id = computed(() => {
   const pages = getCurrentPages()
@@ -37,6 +43,10 @@ const detail = ref<FinanceItem | null>(null)
 function formatNum(v: unknown) {
   const n = Number(v)
   return Number.isFinite(n) ? n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '0'
+}
+
+function onBack() {
+  safeNavigateBack(PRESIDENT_PAGES.FINANCE_LIST)
 }
 
 async function load() {
@@ -57,7 +67,7 @@ function onDelete() {
       try {
         await deleteFinance(id.value)
         uni.showToast({ title: '删除成功', icon: 'success' })
-        setTimeout(() => safeNavigateBack('/pages/president/finance/list'), 800)
+        setTimeout(() => safeNavigateBack(PRESIDENT_PAGES.FINANCE_LIST), 800)
       } catch (e: any) {
         uni.showToast({ title: e?.message || '删除失败', icon: 'none' })
       }
@@ -70,6 +80,9 @@ onMounted(() => load())
 
 <style lang="scss" scoped>
 .detail-content { padding: 24rpx; }
+.status-bar-placeholder { height: var(--status-bar-height); }
+.detail-nav { display: flex; align-items: center; gap: 12rpx; margin-bottom: 20rpx; }
+.detail-nav-title { font-size: 32rpx; font-weight: 800; color: #1e293b; }
 .detail-card { padding: 32rpx; border-radius: 24rpx; }
 .detail-row { display: flex; justify-content: space-between; padding: 24rpx 0; border-bottom: 1rpx solid #E2E8F0; }
 .label { font-size: 28rpx; color: #475569; }

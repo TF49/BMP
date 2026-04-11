@@ -15,9 +15,8 @@ const themeStore = useThemeStore()
 onLaunch(async () => {
   console.log('App Launch')
 
-  // 加载全局字体
-  // - 小程序端可能受域名白名单/网络影响导致加载失败并产生噪声报错，P0 默认禁用外链字体。
-  // - H5/App 端可继续加载以获得一致的品牌字体。
+  // 全局自定义字体：不再请求 Google（fonts.gstatic.com），避免无外网/受限网络失败。
+  // 小程序端对远程字体域名也更敏感；如需品牌字体请将 .ttf/.woff2 放入 /static/fonts/ 并在 loadGlobalFonts 中注册本地路径。
   // #ifndef MP-WEIXIN
   loadGlobalFonts()
   // #endif
@@ -33,18 +32,11 @@ onLaunch(async () => {
 })
 
 /**
- * 加载系统所需字体
+ * 加载系统所需字体（仅本地路径；不使用 Google Fonts）
  */
 function loadGlobalFonts() {
-  const fonts = [
-    {
-      family: 'Lexend',
-      source: 'https://fonts.gstatic.com/s/lexend/v26/wlptgwvFAVdoq2_F94zlCfv0bz1WCzsW_LA.ttf'
-    },
-    {
-      family: 'Material Symbols Outlined',
-      source: 'https://fonts.gstatic.com/s/materialsymbolsoutlined/v322/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oDMzByHX9rA6RzaxHMPdY43zj-jCxv3fzvRNU22ZXGJpEpjC_1v-p_4MrImHCIJIZrDCvHOem.ttf'
-    }
+  const fonts: { family: string; source: string }[] = [
+    // 示例：{ family: 'Lexend', source: '/static/fonts/Lexend-Regular.ttf' },
   ]
 
   fonts.forEach(font => {

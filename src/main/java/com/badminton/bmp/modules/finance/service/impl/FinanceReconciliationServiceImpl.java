@@ -98,7 +98,7 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
 
         } catch (Exception e) {
             result.put("passed", false);
-            result.put("message", "对账失败：" + e.getMessage());
+            result.put("message", "对账失败，请稍后重试");
         }
 
         return result;
@@ -145,7 +145,7 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
 
         } catch (Exception e) {
             result.put("passed", false);
-            result.put("message", "对账失败：" + e.getMessage());
+            result.put("message", "对账失败，请稍后重试");
         }
 
         return result;
@@ -192,7 +192,7 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
 
         } catch (Exception e) {
             result.put("passed", false);
-            result.put("message", "对账失败：" + e.getMessage());
+            result.put("message", "对账失败，请稍后重试");
         }
 
         return result;
@@ -239,7 +239,7 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
 
         } catch (Exception e) {
             result.put("passed", false);
-            result.put("message", "对账失败：" + e.getMessage());
+            result.put("message", "对账失败，请稍后重试");
         }
 
         return result;
@@ -286,7 +286,7 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
 
         } catch (Exception e) {
             result.put("passed", false);
-            result.put("message", "对账失败：" + e.getMessage());
+            result.put("message", "对账失败，请稍后重试");
         }
 
         return result;
@@ -333,7 +333,7 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
 
         } catch (Exception e) {
             result.put("passed", false);
-            result.put("message", "对账失败：" + e.getMessage());
+            result.put("message", "对账失败，请稍后重试");
         }
 
         return result;

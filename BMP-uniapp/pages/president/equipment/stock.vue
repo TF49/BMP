@@ -5,8 +5,8 @@
 
       <view class="top-bar">
         <view class="top-left">
-          <view class="menu-btn">
-            <uni-icons type="bars" size="20" color="#5f5e5e" />
+          <view class="menu-btn" @click="onCancel">
+            <uni-icons type="arrow-left" size="22" color="#ff6600" />
           </view>
           <text class="top-title">库存管理</text>
         </view>
@@ -118,9 +118,9 @@ const userStore = useUserStore()
 const presidentAvatar = computed(() => userStore.userInfo?.avatar || '/static/placeholders/avatar.svg')
 
 const items = reactive([
-  { id: 1, name: 'Yonex Astrox 88D Pro', sku: 'KL-YN-88D-01', type: '球拍', delta: '0', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBepTMwPZQnCR9c8DUN9DoRK58eOe3F65Gt-AiElEkjdWwzGaBiCmvGfSC-JsxJ7aCvnwLoGPyVf1F-2A4KBekX0vALR64SJ-UlYULpeJnSUOeJRUTm4AOWm6Rb6Za-QHXMOUg1EqHDYUgpkKm0ELidcBcU-Qw0jbze_oPitwzLVT8jlStEVM1FLGnckr80F-S-_phwjK6W0oBfh0xtaEY0LHw_yu7nEdPCTnPPb58gsiiM0ANJHQRR8tH4wzevuSMkqQy06wJG7xCR' },
-  { id: 2, name: 'Aerosensa 50 (Dozen)', sku: 'KL-YN-AS50', type: '耗材', delta: '12', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCsxyaL0Lp0-rIA3f0IpqAS7vEFDLARPEBI6PB7lxonsrKOMo8dEZxmPrGOuxKtLYLBInbxKnzezVn8U3Hk0UUnAQKQT79d7UOflh_56l_f6O2SZMVW9RSLMYgJoIh0bEzuozr8kIottulmOMTaANPt8I8OA286FkohBNkFOYGqsLfpB-_gw5FBvAsoeUmYsgdwoxI8qHh9lHZ9pKfQjomPX_n06TQRvzZJfNTcgmew8NR122p1LRo6evhyxY7Xx7Efqt7kN17ZfYRJ' },
-  { id: 3, name: 'BG80 Power Roll (200m)', sku: 'KL-YN-BG80P', type: '球线', delta: '0', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGDJ708fVvXT_3IDdMZR3kWTNFCs85Ln2xPwobyMospAzXqKfE6i_cLk0ZO_7cPT4ULFVYM7BHrGAL2CM4_fXYlIJPlJ7GWQIfTe_xCGLMpheSwLAD7vbI2zuxhAA_rSfX8vuHYcO2IyyUih8_Xjk1M4AjuUZ0BJFQ8jUALRnI0Pbbt67C08OmaPAXZKSdTnj53LxqNkVIOM29-Jc7ZtI3hW_0WXoeZ5R82sS8-jnLVXUDRwvM-3HwbG2dfFsNUJbS3wPOuEYgpE1M' }
+  { id: 1, name: 'Yonex Astrox 88D Pro', sku: 'KL-YN-88D-01', type: '球拍', delta: '0', image: '/static/placeholders/hero.svg' },
+  { id: 2, name: 'Aerosensa 50 (Dozen)', sku: 'KL-YN-AS50', type: '耗材', delta: '12', image: '/static/placeholders/hero.svg' },
+  { id: 3, name: 'BG80 Power Roll (200m)', sku: 'KL-YN-BG80P', type: '球线', delta: '0', image: '/static/placeholders/hero.svg' }
 ])
 
 const logs = [

@@ -6,7 +6,7 @@
       <view class="top-bar">
         <view class="top-inner">
           <view class="top-left" @click="onBack">
-            <uni-icons type="arrow-left" size="22" color="#1a1c1c" />
+            <uni-icons type="arrow-left" size="22" color="#ff6600" />
             <text class="top-title">会员详情</text>
           </view>
           <view class="top-right">
@@ -178,7 +178,7 @@ const userStore = useUserStore()
 
 const defaultAvatar = '/static/placeholders/avatar.svg'
 const defaultPresidentAvatar =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuC6v0O3tcBJyNxTHvUszTu_9R0fSrXcU9z5quzpFNqKh4YSfx9PK4KInVfTLfUHi3YQs0N519YJ7pkVkyLhcSSXX4T2WQvQsCIa3KAyvdol9pc4KSL4AMOOsuW_fo8A-lALNNAxo2GBHx3M4BFqExe9cQJRO9P9bJOhe3ZeK4GcStMzYETFI0GjCgg1GDHwbWZGf75GFFqQtKTXfq0FD4pLlFkU7z8ZER9WSvjk0f9w9zZXhhcE3bOBGxMFq9EZKih16Vg6D-alm9iP'
+  '/static/placeholders/hero.svg'
 
 const memberId = ref(0)
 const member = ref<MemberInfo | null>(null)

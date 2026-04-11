@@ -152,7 +152,7 @@ const allRows = ref<RentalRow[]>([
     memberId: 'KL-2024-0091',
     initials: 'TC',
     avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBfnM59B0JOAi4YETvcYuXA05mBTWdhW8LTqqV4vCBf_nRiGlE-nladJmKI2D8gx8nczHd77Q_qKLOZbIMwJDpeC4J3ZBW67A6WNUPvlg_S5zfoQY6dKG-eZPsKOdzglwHkDjj7S12QDrR1b-w4Yhff6tp8Y_x-IevfdQTVPFpl1Jxzko258m01L2eTO4hJ3f9fL8RBApC4HzWzDFmaxOAtEQJkZpP5NfGZiJkKtmfuTvFj3D1PhhXQmTtsrqS0c8x9sjvjrejBmcx0',
+      '/static/placeholders/hero.svg',
     equipmentName: '练习装备 (全套)',
     tag: '#EQU-B002',
     dateRange: '10月21日 — 10月28日',

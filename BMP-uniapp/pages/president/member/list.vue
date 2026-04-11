@@ -8,7 +8,7 @@
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
             <view class="back-btn">
-              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+              <uni-icons type="arrow-left" size="24" color="#ff6600"></uni-icons>
             </view>
             <view class="brand-wrap">
               <text class="brand-name">Kinetic Logic</text>
@@ -281,7 +281,7 @@ function getMockList(): any[] {
       memberLevel: 3,
       phone: '13800138000',
       balance: 1280.50,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBh2ogW-OxpgmbvEdVpbq_wi3trd4SxhjHZ8JPFtVBzOJN1Ebw9lzj-n6KisX4WzxZec3s5UlM2TaXYHGfkQvx2QmADNidEBQCk3dxfQx5f0M2M9M-9v3LuUE-PnDq0FOOeb1AJJnj9KMVm3cnI5ej7WXzPYI3cRKl78fKJsSK8T6d10F3r2BwuiAtwROmNVJossRWYs0XRqRcxuRVVEHgci56rYlyQ2IeoWhbpUnLaWHpwm78nsAZV9_noAsv3elxwStsg0H0cCZjk'
+      avatar: '/static/placeholders/avatar.svg'
     },
     {
       id: 2,
@@ -290,7 +290,7 @@ function getMockList(): any[] {
       memberLevel: 5,
       phone: '13912345678',
       balance: 4920.00,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCvBOGWHxAGrTNuQdf2GK_SCSoKTZL23lQuHRb_ncBtOhVOYk92MxoHa1g1XbYurpwOvGc5Ifs-4lwfneIBL-DLHC9K1RP2r8NSkOLRgv6M2Gl8uvZVTkG3LpncLMCKPpckpcrcCYAuwF-beIm6AZ8RMXsyrPmfr1V1z_KwO1R0bb6GkpcMTjVtxDCa43uX8lUyruL1pyjjyghLcz3JgwZzLwfWhQ3rlvvrgOhgW-4NZd4mKFFIf2vU4CnBwHiECGHrvA8MOGZkvZaS'
+      avatar: '/static/placeholders/avatar.svg'
     },
     {
       id: 3,
@@ -299,7 +299,7 @@ function getMockList(): any[] {
       memberLevel: 1,
       phone: '13799887766',
       balance: 85.00,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCS9_98WcoGMlmYaiiYERWds-DL_9-NHr5fzksqGSgyqf0tVlgFoL18cQqZ3LDPQf-ORV68p8zJKPHS7Vvp2abZWsIemG2_3ustJg8h_hJqkgBe2x-wCY22lORQGwZKDhOe300kJtYWQEvlRf6F9mMG2sF3it44RP5D10CT33iB0ptbSS4bYLWu9I4UH-n2NzsTqPUw_3O8UCqYigb1jdpVdh0ixd1j57GjsWHNCoNa639mNRyaWgCkRKx_ja51Z_repMxWUEOq0GiC'
+      avatar: '/static/placeholders/avatar.svg'
     },
     {
       id: 4,
@@ -308,7 +308,7 @@ function getMockList(): any[] {
       memberLevel: 2,
       phone: '13566778899',
       balance: 640.20,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnT9bpnFRR1D0506vT-eKi7SxRXr92iy7UgRZGvIYUmAM7I3GCtlREjcelUdaJZiocQIHntjXuU0_9EooGvG-gdnxGeHhILyYrYon9U4w1tvZIxFOpkmz0CdYaiKSmJ8YeqEnfVjcnuVXfz3nrAepZo7xKCv_yAnd6h3YSqJYh5Xf_EXVn8CyMIsEdOVj9oP2Au7mSEZCWj0LCD_1akiVnzlj9k1Z68PP2XYLoyynsKPmlsLnAw2uryjgCHQHs03TFSeOohFfjn5-s'
+      avatar: '/static/placeholders/avatar.svg'
     }
   ]
 }

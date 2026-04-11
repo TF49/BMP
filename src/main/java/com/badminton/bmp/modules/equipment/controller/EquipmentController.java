@@ -167,7 +167,7 @@ public class EquipmentController extends BaseController {
                     if (msg != null && msg.contains("equipment_code")) {
                         return error("器材编号已存在，请更换编号");
                     }
-                    return error("数据重复：" + cause.getMessage());
+                    return error("数据已存在，请检查后重试");
                 }
                 cause = cause.getCause();
             }
@@ -210,7 +210,7 @@ public class EquipmentController extends BaseController {
                     if (msg != null && msg.contains("equipment_code")) {
                         return error("器材编号已存在，请更换编号");
                     }
-                    return error("数据重复：" + cause.getMessage());
+                    return error("数据已存在，请检查后重试");
                 }
                 cause = cause.getCause();
             }
@@ -479,7 +479,7 @@ public class EquipmentController extends BaseController {
                         equipmentImageService.add(equipmentImage);
                     }
                 } catch (Exception e) {
-                    errors.add(file.getOriginalFilename() + ": " + e.getMessage());
+                    errors.add(file.getOriginalFilename() + ": " + userFriendlyErrorText("上传图片", e));
                 }
             }
 

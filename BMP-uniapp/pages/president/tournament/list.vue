@@ -8,7 +8,7 @@
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
             <view class="back-btn">
-              <uni-icons type="arrow-left" size="24" color="#1a1c1c"></uni-icons>
+              <uni-icons type="arrow-left" size="24" color="#ff6600"></uni-icons>
             </view>
             <view class="brand-wrap">
               <text class="brand-name">Kinetic Logic</text>
@@ -231,7 +231,7 @@ const tournaments = ref<Tournament[]>([
     status: 'registration',
     category: '单打 / 双打',
     location: '北京国家体育馆',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAHQBMrX2QDYyNvqY7NrBMKlxFnAYAuoMimCSR6WyksMH7or8Kcgr2lhXj2SyNQvPPYyXSztlwJlJFrRJ7kedKYHNG1ncMwJdenvsmfflsdk-KGad0NKZ3y-A7-M5lN4WGeD7lr0NB4IFAPf9K13l3McVI5Jrd3BPCtc8Zi4QPGS5Rvq1BG5TBtQwrQH30Oq5CfqLHSxnj1wVtR1aYTWQm342E1DMQgeVk2Fl4bjJoasg2kAeJFlw1JoZ7jlIe80kNBobNjffMJIeNV',
+    image: '/static/placeholders/hero.svg',
     registered: 24,
     capacity: 32,
     deadline: '08月20日'
@@ -242,7 +242,7 @@ const tournaments = ref<Tournament[]>([
     status: 'ongoing',
     category: '混合双打',
     location: '上海旗忠网球中心',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBBEkDdXmV58bCfN0gbZNYuZdWCxEoaczgrl9Gy4yJbLFEmEWNlEF-EWkk03Ztj8rhGlLySGz4ssr5UUY-f83XiLaFMveeVeR2nezXzORa-gNAsudGxF75CWx0DC9rxVCNcEKOW6t2HnS4-WY1bzANv7JTk1nl_XJ53Uc1zKKUDC8w_yYLbQ7Qj9kp9MIUZTS6mcnKVsapkJ9_TNRkUL9dNRnu6Z9eX0Z8PqCptdCfKeT5I6XyMKKKn2P7u-bdGEIl_Gw1rELFEA5Kh',
+    image: '/static/placeholders/hero.svg',
     currentRound: '1/4 决赛',
     totalPlayers: 64,
     endTime: '今日 18:00'
@@ -253,7 +253,7 @@ const tournaments = ref<Tournament[]>([
     status: 'ended',
     category: '单打',
     location: '深圳大运中心',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCPIa6Tremvwe2ekZVPBJ_4yHMA1RJT6ChZ_vCUe99gQ-e5Dg50xgd5kbi8795oYtjJ4lP2P-miGQSePX3mq4kDJu1P9Mkd9_tM0cU-ur_oOajR6ydg1H9ZkJOkUD7Ki2wrGuD6o_CXnNQrBgU2eCwx6THGVIuDjsVA6PbzrdhEO4jt8Vrc0DAs_MlILVAP9ITT81dwR3Wh-SijhQEYTjOUsKMu21RyAJ-TwbUctdpYvY_4mx9V9S75IL3QOf9bETPn3XBcLYwA_U9',
+    image: '/static/placeholders/hero.svg',
     champion: '陈伟宏'
   },
   {
@@ -262,7 +262,7 @@ const tournaments = ref<Tournament[]>([
     status: 'draft',
     category: '全项目',
     location: '广州天河体育中心',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-MnG0ZxNrGvdnmBVE_ctrZLk1ENMBlb3szH4IuHVNX1mA_aRLcFgOxkivj2fWaspIzqu3hc8Tf3RJn0YfAZ0sIRn83fK8KLlOSuic3A-dwGMx_DgXTzlt8q01iZTYTiKAUC8kHK20tRIQWTUbQ5Gm6rHBjnY2et9nxvyatPHsK4yhZ9BKX5rjcKmIhPxS-fdiDoggUIMz5aTOdkDTPx-YHkel6pwsCEFfeMkzNeU0mO8Msnz47Jx68t1UKh6aI-LEzvMs18IC_U62',
+    image: '/static/placeholders/hero.svg',
     plannedDate: '12月15日'
   }
 ])

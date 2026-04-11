@@ -113,8 +113,8 @@ export const API_PATHS = {
   }
 }
 
-// 请求超时时间（毫秒）
-export const REQUEST_TIMEOUT = 10000
+// 请求超时时间（毫秒）；与微信小程序 request 常见上限对齐，避免慢网/冷启动鉴权等误杀
+export const REQUEST_TIMEOUT = 60000
 
 // Token存储key
 export const TOKEN_KEY = 'token'
