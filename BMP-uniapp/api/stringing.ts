@@ -4,35 +4,52 @@ import { API_PATHS } from '../config/api'
 export interface StringingService {
   id: number
   serviceNo: string
-  memberId: number
+  memberId?: number
   memberName?: string
+  memberPhone?: string
+  userId?: number
+  userName?: string
+  venueId?: number
+  venueName?: string
   racketBrand: string
   racketModel: string
+  racketDescription?: string
   stringId?: number
   stringName?: string
-  stringBrand?: string
-  stringGauge?: string
-  stringPrice?: number
-  tension: number
-  ownString: boolean
-  servicePrice: number
-  totalPrice: number
-  paymentMethod: string
+  stringEquipmentName?: string
+  pound?: number | string
+  isOwnString?: number
+  stringingMethod?: 'TWO_SECTION' | 'FOUR_SECTION' | 'AUTO' | string
+  hasBreakage?: number
+  hasCollapse?: number
+  servicePrice?: number
+  totalPrice?: number
+  paymentStatus?: number
+  paymentMethod?: string
   status: number
   remark?: string
   createTime: string
   updateTime: string
+  startTime?: string
 }
 
 export interface StringInfo {
   id: number
-  stringName: string
-  brand: string
-  gauge: string
+  equipmentName?: string
+  equipmentCode?: string
   price: number
-  stock: number
-  status: number
 }
+
+export interface StringingListParams {
+  memberId?: number
+  status?: number
+  keyword?: string
+  page?: number
+  size?: number
+}
+
+export type StringingMethod = 'TWO_SECTION' | 'FOUR_SECTION' | 'AUTO'
+export type StringingPaymentMethod = 'CASH' | 'ALIPAY' | 'WECHAT' | 'BALANCE'
 
 /**
  * 线材信息（带显示名称）
@@ -43,12 +60,25 @@ export interface StringInfoWithDisplay extends StringInfo {
 }
 
 export interface CreateStringingParams {
+  memberId?: number
+  memberPhone?: string
+  userId: number
+  userName?: string
+  venueId: number
   racketBrand: string
   racketModel: string
+  racketDescription?: string
   stringId?: number
-  tension: number
-  ownString: boolean
-  paymentMethod: string
+  stringName?: string
+  isOwnString: 0 | 1
+  pound: number
+  stringingMethod: StringingMethod
+  hasBreakage?: 0 | 1
+  hasCollapse?: 0 | 1
+  status?: number
+  servicePrice: number
+  paymentMethod?: StringingPaymentMethod
+  paymentStatus?: number
   remark?: string
 }
 
@@ -66,13 +96,7 @@ export interface PriceCalculation {
 /**
  * 获取穿线服务列表
  */
-export function getStringingList(params?: {
-  memberId?: number
-  status?: number
-  keyword?: string
-  page?: number
-  size?: number
-}) {
+export function getStringingList(params?: StringingListParams) {
   return request<{
     data: StringingService[]
     total: number
@@ -110,10 +134,18 @@ export function getStringingByNo(serviceNo: string) {
  * 创建穿线服务
  */
 export function createStringing(params: CreateStringingParams) {
-  return request<StringingService>({
+  return request<{ id?: number; serviceNo?: string; servicePrice?: number }>({
     url: API_PATHS.STRINGING.ADD,
     method: 'POST',
     data: params
+  })
+}
+
+export function processStringingPayment(serviceId: number, paymentMethod: StringingPaymentMethod) {
+  return request<null>({
+    url: `/api/stringing/payment?serviceId=${serviceId}&paymentMethod=${paymentMethod}`,
+    method: 'POST',
+    data: undefined
   })
 }
 
@@ -122,9 +154,9 @@ export function createStringing(params: CreateStringingParams) {
  */
 export function updateStringingStatus(id: number, status: number) {
   return request<string>({
-    url: API_PATHS.STRINGING.STATUS,
+    url: `${API_PATHS.STRINGING.STATUS}?id=${id}&status=${status}`,
     method: 'PUT',
-    data: { id, status }
+    data: undefined
   })
 }
 

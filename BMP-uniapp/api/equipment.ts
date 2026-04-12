@@ -37,8 +37,15 @@ export interface EquipmentRentalParams {
   equipmentId: number
   quantity: number
   rentalDate: string
+  expectedReturnDate: string
   rentalAmount: number
   paymentMethod: string
+  unitPrice?: number
+  depositAmount?: number
+  durationHours?: number
+  paymentStatus?: number
+  status?: number
+  remark?: string
 }
 
 export interface EquipmentRentalItem {
@@ -118,6 +125,7 @@ export function getEquipmentRentalList(params?: {
   memberId?: number
   equipmentId?: number
   status?: number
+  keyword?: string
   page?: number
   size?: number
 }) {

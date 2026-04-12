@@ -30,7 +30,14 @@ export const API_PATHS = {
   },
   // 场地相关
   COURT: {
-    LIST: '/court/list'
+    LIST: '/court/list',
+    DETAIL: '/court/info',
+    ADD: '/court/add',
+    UPDATE: '/court/update',
+    DELETE: '/court',
+    STATUS: '/court/status',
+    VENUES: '/court/venues',
+    TODAY_BOOKINGS: '/court'
   },
   // 预约相关
   BOOKING: {

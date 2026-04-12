@@ -17,7 +17,6 @@
 
       <scroll-view scroll-y class="main-scroll" :show-scrollbar="false" enable-flex>
         <view class="scroll-inner">
-          <!-- 客户基本信息 -->
           <view class="card">
             <view class="section-head">
               <uni-icons type="person" size="22" color="#a33e00" />
@@ -47,7 +46,6 @@
             </view>
           </view>
 
-          <!-- 球拍与线材配置 -->
           <view class="card">
             <view class="section-head">
               <uni-icons type="settings" size="22" color="#a33e00" />
@@ -61,7 +59,7 @@
                     v-model="racketModel"
                     class="field-input pad-r"
                     type="text"
-                    placeholder="例如: Yonex Astrox 100ZZ"
+                    placeholder="例如 Yonex Astrox 100ZZ"
                     placeholder-class="ph"
                   />
                   <uni-icons type="search" size="18" color="rgba(95,94,94,0.45)" class="abs-icon" />
@@ -71,7 +69,7 @@
                 <text class="mini-label">羽线型号</text>
                 <picker mode="selector" :range="stringLabels" :value="stringIndex" @change="onStringPick">
                   <view class="picker-display">
-                    <text class="picker-text">{{ stringOptions[stringIndex].label }}</text>
+                    <text class="picker-text">{{ currentStringLabel }}</text>
                     <uni-icons type="arrowdown" size="14" color="#5f5e5e" />
                   </view>
                 </picker>
@@ -120,7 +118,6 @@
             </view>
           </view>
 
-          <!-- 结算明细 -->
           <view class="card settle-card">
             <view class="section-head">
               <uni-icons type="wallet" size="22" color="#a33e00" />
@@ -130,7 +127,7 @@
               <view class="settle-row">
                 <text class="settle-lab">服务费</text>
                 <view class="fee-input-wrap">
-                  <text class="yen">¥</text>
+                  <text class="yen">￥</text>
                   <input
                     class="fee-input"
                     type="digit"
@@ -141,11 +138,11 @@
               </view>
               <view class="settle-row">
                 <text class="settle-lab">线材费用</text>
-                <text class="settle-strong">¥ {{ stringCostFormatted }}</text>
+                <text class="settle-strong">￥ {{ stringCostFormatted }}</text>
               </view>
               <view class="settle-row total-row">
                 <text class="total-lab">总计金额</text>
-                <text class="total-num">¥ {{ totalFormatted }}</text>
+                <text class="total-num">￥ {{ totalFormatted }}</text>
               </view>
             </view>
 
@@ -179,14 +176,13 @@
             </button>
           </view>
 
-          <!-- 当前工作量 -->
           <view class="workload-card">
             <image class="workload-img" :src="workloadBg" mode="aspectFill" />
             <view class="workload-mask">
               <text class="workload-k">当前工作量</text>
               <view class="workload-line">
                 <view class="pulse-dot" />
-                <text class="workload-val">{{ pendingCount }} 待处理工单</text>
+                <text class="workload-val">{{ pendingCount }} 个待处理工单</text>
               </view>
             </view>
           </view>
@@ -200,57 +196,139 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import { useUserStore } from '@/store/modules/user'
+import {
+  calculatePrice,
+  createStringing,
+  getStringList,
+  getStringingList,
+  processStringingPayment,
+  type CreateStringingParams,
+  type StringInfo,
+  type StringingPaymentMethod
+} from '@/api/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 const TENSION_MIN = 18
 const TENSION_MAX = 35
+const DEFAULT_PAYMENT_METHOD: StringingPaymentMethod = 'CASH'
 
-const operatorAvatar =
-  '/static/placeholders/hero.svg'
+type StringOption = {
+  id?: number
+  label: string
+  cost: number
+  name?: string
+}
 
-const workloadBg =
-  '/static/placeholders/hero.svg'
+const userStore = useUserStore()
+const operatorAvatar = '/static/placeholders/hero.svg'
+const workloadBg = '/static/placeholders/hero.svg'
 
-const stringOptions = [
-  { id: 'bg65', label: 'BG65 (耐用型)', cost: 55 },
-  { id: 'bg80', label: 'BG80 (进攻型)', cost: 62 },
-  { id: 'exbolt', label: 'Exbolt 65 (弹性型)', cost: 58 },
-  { id: 'aerobite', label: 'Aerobite (控制型)', cost: 68 }
-] as const
-
-const stringLabels = stringOptions.map((o) => o.label)
+const stringOptions = ref<StringOption[]>([
+  { label: '加载线材中...', cost: 0 }
+])
 const stringIndex = ref(0)
-
 const customerName = ref('')
 const customerPhone = ref('')
 const racketModel = ref('')
 const tensionLbs = ref(26)
 const specialNotes = ref('')
-const serviceFee = ref(30)
-const serviceFeeInput = ref('30')
+const serviceFee = ref(0)
+const serviceFeeInput = ref('0.00')
 const paymentStatus = ref<'paid' | 'pending'>('paid')
-const pendingCount = ref(3)
+const pendingCount = ref(0)
+const submitting = ref(false)
 
-const stringCost = computed(() => stringOptions[stringIndex.value].cost)
-
+const stringLabels = computed(() => stringOptions.value.map((o) => o.label))
+const currentString = computed(() => stringOptions.value[stringIndex.value] || stringOptions.value[0])
+const currentStringLabel = computed(() => currentString.value?.label || '请选择线材')
+const stringCost = computed(() => Number(currentString.value?.cost || 0))
 const stringCostFormatted = computed(() => stringCost.value.toFixed(2))
-
 const totalAmount = computed(() => {
   const fee = Number(serviceFee.value)
-  const safe = Number.isFinite(fee) && fee >= 0 ? fee : 0
-  return safe + stringCost.value
+  return (Number.isFinite(fee) ? fee : 0) + stringCost.value
 })
-
 const totalFormatted = computed(() => totalAmount.value.toFixed(2))
-
-function onStringPick(e: { detail: { value: string } }) {
-  stringIndex.value = Number(e.detail.value) || 0
-}
 
 function clampTension(n: number) {
   return Math.min(TENSION_MAX, Math.max(TENSION_MIN, Math.round(n)))
+}
+
+function splitRacketLabel(input: string) {
+  const text = input.trim()
+  if (!text) {
+    return { brand: '', model: '' }
+  }
+  const parts = text.split(/\s+/).filter(Boolean)
+  if (parts.length === 1) {
+    return { brand: parts[0], model: parts[0] }
+  }
+  return {
+    brand: parts[0],
+    model: parts.slice(1).join(' ')
+  }
+}
+
+async function syncPrice() {
+  const current = currentString.value
+  if (!current?.id) {
+    serviceFee.value = 0
+    serviceFeeInput.value = '0.00'
+    return
+  }
+  try {
+    const result = await calculatePrice({
+      stringId: current.id,
+      ownString: false
+    })
+    const total = Number(result.totalPrice || 0)
+    const fee = Math.max(0, total - stringCost.value)
+    serviceFee.value = fee
+    serviceFeeInput.value = fee.toFixed(2)
+  } catch (error) {
+    console.error('Failed to calculate stringing price:', error)
+  }
+}
+
+async function loadStringOptions() {
+  try {
+    const result = await getStringList()
+    const list = (Array.isArray(result) ? result : []).map((item: StringInfo) => ({
+      id: item.id,
+      label: item.equipmentName || item.equipmentCode || `线材 #${item.id}`,
+      cost: Number(item.price || 0),
+      name: item.equipmentName || item.equipmentCode || ''
+    }))
+    stringOptions.value = list.length > 0 ? list : [{ label: '暂无线材', cost: 0 }]
+    stringIndex.value = 0
+    await syncPrice()
+  } catch (error) {
+    console.error('Failed to load string options:', error)
+    stringOptions.value = [{ label: '线材加载失败', cost: 0 }]
+    stringIndex.value = 0
+  }
+}
+
+async function loadPendingCount() {
+  try {
+    const result = await getStringingList({
+      page: 1,
+      size: 1,
+      status: 1
+    })
+    pendingCount.value = Number(result.total || 0)
+  } catch (error) {
+    console.error('Failed to load pending stringing count:', error)
+    pendingCount.value = 0
+  }
+}
+
+function onStringPick(e: { detail: { value: string } }) {
+  stringIndex.value = Number(e.detail.value) || 0
+  void syncPrice()
 }
 
 function onTensionInput(e: { detail?: { value?: string } }) {
@@ -286,13 +364,79 @@ function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.STRINGING_LIST)
 }
 
-function onConfirm() {
-  // TODO: POST 创建穿线工单
-  uni.showToast({
-    title: '工单已创建（示例）',
-    icon: 'success'
-  })
+async function onConfirm() {
+  if (submitting.value) return
+  if (!customerName.value.trim()) {
+    uni.showToast({ title: '请输入客户姓名', icon: 'none' })
+    return
+  }
+  if (!racketModel.value.trim()) {
+    uni.showToast({ title: '请输入球拍型号', icon: 'none' })
+    return
+  }
+  if (!currentString.value?.id) {
+    uni.showToast({ title: '请选择线材', icon: 'none' })
+    return
+  }
+  const venueId = Number(userStore.userInfo?.venueId || 0)
+  if (!userStore.userId || !venueId) {
+    uni.showToast({ title: '当前账号缺少场馆信息', icon: 'none' })
+    return
+  }
+
+  const { brand, model } = splitRacketLabel(racketModel.value)
+  if (!brand || !model) {
+    uni.showToast({ title: '球拍信息不完整', icon: 'none' })
+    return
+  }
+
+  const payload: CreateStringingParams = {
+    userId: userStore.userId,
+    userName: customerName.value.trim(),
+    memberPhone: customerPhone.value.trim() || undefined,
+    venueId,
+    racketBrand: brand,
+    racketModel: model,
+    stringId: currentString.value.id,
+    stringName: currentString.value.name || currentString.value.label,
+    isOwnString: 0,
+    pound: tensionLbs.value,
+    stringingMethod: 'AUTO',
+    status: 1,
+    servicePrice: Number(serviceFee.value || 0),
+    paymentMethod: DEFAULT_PAYMENT_METHOD,
+    paymentStatus: paymentStatus.value === 'paid' ? 1 : 0,
+    remark: specialNotes.value.trim() || undefined
+  }
+
+  try {
+    submitting.value = true
+    const res = await createStringing(payload)
+    const serviceId = Number(res?.id || 0)
+    if (!serviceId) {
+      uni.showToast({ title: '创建成功但未返回工单ID', icon: 'none' })
+      return
+    }
+
+    if (paymentStatus.value === 'paid') {
+      await processStringingPayment(serviceId, DEFAULT_PAYMENT_METHOD)
+    }
+
+    uni.showToast({ title: '创建成功', icon: 'success' })
+    setTimeout(() => {
+      uni.navigateTo({ url: `${PRESIDENT_PAGES.STRINGING_DETAIL}?id=${serviceId}` })
+    }, 500)
+  } catch (error) {
+    console.error('Failed to create stringing order:', error)
+  } finally {
+    submitting.value = false
+  }
 }
+
+onShow(() => {
+  void loadStringOptions()
+  void loadPendingCount()
+})
 </script>
 
 <style lang="scss" scoped>

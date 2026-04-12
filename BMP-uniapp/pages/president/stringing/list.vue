@@ -19,19 +19,25 @@
               mode="aspectFill"
             />
             <view class="drawer-profile-text">
-              <text class="drawer-name">校长办公室</text>
+              <text class="drawer-name">会长办公室</text>
               <text class="drawer-role">Kinetic Logic 管理员</text>
             </view>
           </view>
           <view class="drawer-nav">
-            <view v-for="item in drawerNav" :key="item.label" class="drawer-nav-item" :class="{ active: item.active }" @click="onDrawerNav(item)">
+            <view
+              v-for="item in drawerNav"
+              :key="item.label"
+              class="drawer-nav-item"
+              :class="{ active: item.active }"
+              @click="onDrawerNav(item)"
+            >
               <uni-icons :type="item.icon" size="22" :color="item.active ? '#ff6600' : '#5f5e5e'" />
               <text class="drawer-nav-label" :class="{ 'nav-active': item.active }">{{ item.label }}</text>
             </view>
           </view>
           <view class="drawer-footer-card">
             <text class="drawer-foot-title">活跃工作台</text>
-            <text class="drawer-foot-desc">12号场地 穿线室</text>
+            <text class="drawer-foot-desc">{{ inventoryHint }}</text>
           </view>
         </view>
       </view>
@@ -56,43 +62,47 @@
 
       <scroll-view scroll-y class="scroll" :show-scrollbar="false">
         <view class="content">
-          <!-- Summary -->
           <view class="summary-block">
             <view class="summary-hero">
-              <text class="summary-label">今日生产总量</text>
+              <text class="summary-label">今日工单总量</text>
               <text class="summary-hero-num">{{ summary.todayTotal }}</text>
               <view class="trend-row">
                 <uni-icons type="arrow-up" size="16" color="#a33e00" />
-                <text class="trend-text">较昨日 +12%</text>
+                <text class="trend-text">真实工单数据</text>
               </view>
             </view>
             <view class="summary-grid">
               <view class="mini-stat border-primary">
                 <text class="mini-label">待处理</text>
                 <text class="mini-num">{{ pad2(summary.pending) }}</text>
-                <text class="mini-sub">平均等待: 45分钟</text>
+                <text class="mini-sub">等待开始穿线</text>
               </view>
               <view class="mini-stat border-tertiary">
                 <text class="mini-label">进行中</text>
                 <text class="mini-num">{{ pad2(summary.inProgress) }}</text>
-                <text class="mini-sub">所有工作台活跃</text>
+                <text class="mini-sub">正在穿线中</text>
               </view>
               <view class="mini-stat solid-orange">
-                <text class="mini-label light">已就绪</text>
+                <text class="mini-label light">已完成</text>
                 <text class="mini-num light">{{ pad2(summary.ready) }}</text>
-                <text class="mini-sub light dim">等待取件</text>
+                <text class="mini-sub light dim">已完成工单</text>
               </view>
             </view>
           </view>
 
-          <!-- Work list -->
           <view class="table-card">
             <view class="table-head">
               <text class="th th-customer">客户与球拍</text>
-              <text class="th th-string">球线型号</text>
+              <text class="th th-string">线材型号</text>
               <text class="th th-lbs">磅数 (lbs)</text>
               <text class="th th-status">状态</text>
               <text class="th th-actions">操作</text>
+            </view>
+            <view v-if="jobs.length === 0" class="table-row">
+              <view class="td-stack td-customer">
+                <text class="customer-name">{{ loading ? '加载中...' : '暂无穿线工单' }}</text>
+                <text class="racket-line">{{ loading ? '正在同步真实数据' : '当前没有可展示记录' }}</text>
+              </view>
             </view>
             <view v-for="job in jobs" :key="job.id" class="table-row">
               <view class="td-stack td-customer">
@@ -113,18 +123,16 @@
                   <view v-if="job.status === 'in_progress'" class="dot dot-tertiary" />
                   <view v-if="job.status === 'pending'" class="dot dot-secondary" />
                   <uni-icons v-if="job.status === 'ready'" type="checkbox-filled" size="14" color="#561d00" />
+                  <uni-icons v-if="job.status === 'cancelled'" type="closeempty" size="14" color="#666666" />
                   <text class="status-text">{{ statusLabel(job.status) }}</text>
                 </view>
               </view>
               <view class="td-actions">
-                <view v-if="job.status === 'in_progress'" class="act-btn" @click="onEdit(job)">
+                <view v-if="job.status === 'in_progress'" class="act-btn" @click="onComplete(job)">
                   <uni-icons type="compose" size="20" color="#5f5e5e" />
                 </view>
                 <view v-if="job.status === 'pending'" class="act-btn" @click="onStart(job)">
                   <uni-icons type="right" size="20" color="#5f5e5e" />
-                </view>
-                <view v-if="job.status === 'ready'" class="act-btn" @click="onNotify(job)">
-                  <uni-icons type="notification" size="20" color="#a33e00" />
                 </view>
                 <view class="act-btn" @click="onMore(job)">
                   <uni-icons type="more-filled" size="20" color="#5f5e5e" />
@@ -133,15 +141,20 @@
             </view>
           </view>
 
-          <!-- Inventory + maintenance -->
           <view class="bottom-section">
             <view class="inventory-block">
-              <text class="section-title">库存状态</text>
+              <text class="section-title">线材热度</text>
               <view class="inv-grid">
                 <view v-for="inv in inventory" :key="inv.name" class="inv-row">
                   <text class="inv-name">{{ inv.name }}</text>
                   <view class="inv-bar-track">
                     <view class="inv-bar-fill" :class="inv.low ? 'fill-error' : 'fill-primary'" :style="{ width: inv.pct + '%' }" />
+                  </view>
+                </view>
+                <view v-if="inventory.length === 0" class="inv-row">
+                  <text class="inv-name">暂无线材使用数据</text>
+                  <view class="inv-bar-track">
+                    <view class="inv-bar-fill fill-primary" :style="{ width: '8%' }" />
                   </view>
                 </view>
               </view>
@@ -154,7 +167,7 @@
               />
               <view class="maint-overlay">
                 <text class="maint-tag">维护笔记</text>
-                <text class="maint-body">明天早上校准 B 号机台。</text>
+                <text class="maint-body">当前列表已切换为真实工单数据，首版仅保留真实可联调的工单能力。</text>
               </view>
             </view>
           </view>
@@ -167,15 +180,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import { getStringingList, updateStringingStatus, type StringingService } from '@/api/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
+import { STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
-type JobStatus = 'in_progress' | 'pending' | 'ready'
+type JobStatus = 'in_progress' | 'pending' | 'ready' | 'cancelled'
 
 type Job = {
-  id: string
+  id: number
   customerLabel: string
   racketLine: string
   stringModel: string
@@ -184,78 +200,136 @@ type Job = {
   status: JobStatus
 }
 
+type InventoryItem = {
+  name: string
+  pct: number
+  low: boolean
+}
+
 const drawerOpen = ref(false)
+const loading = ref(false)
+const records = ref<StringingService[]>([])
+
+const drawerNav = ref([
+  { label: '仪表盘', icon: 'home', active: false, action: 'dashboard' as const },
+  { label: '协会管理', icon: 'staff', active: true, action: 'assoc' as const },
+  { label: '赛事联赛', icon: 'flag', active: false, action: 'league' as const },
+  { label: '设置', icon: 'gear', active: false, action: 'settings' as const }
+])
+
+const summary = ref({
+  todayTotal: 0,
+  pending: 0,
+  inProgress: 0,
+  ready: 0
+})
+
+const jobs = computed<Job[]>(() =>
+  records.value.map((item) => {
+    const tension = formatPound(item.pound)
+    return {
+      id: item.id,
+      customerLabel: item.memberName || item.userName || `客户 #${item.userId || item.id}`,
+      racketLine: [item.racketBrand, item.racketModel].filter(Boolean).join(' ') || '未知球拍',
+      stringModel: resolveStringModel(item),
+      tensionMain: tension,
+      tensionCross: tension,
+      status: mapJobStatus(item.status)
+    }
+  })
+)
+
+const inventory = computed<InventoryItem[]>(() => {
+  const counts = new Map<string, number>()
+  jobs.value.forEach((item) => {
+    counts.set(item.stringModel, (counts.get(item.stringModel) || 0) + 1)
+  })
+  const totalCount = jobs.value.length || 1
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([name, count]) => ({
+      name,
+      pct: Math.max(8, Math.min(100, Math.round((count / totalCount) * 100))),
+      low: count / totalCount < 0.2
+    }))
+})
+
+const inventoryHint = computed(() => {
+  if (inventory.value.length === 0) return '暂无线材使用记录'
+  return inventory.value.map((item) => item.name).slice(0, 2).join(' / ')
+})
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
 }
 
-const drawerNav = ref([
-  { label: '仪表盘', icon: 'home', active: false, action: 'dashboard' as const },
-  { label: '协会管理', icon: 'staff', active: true, action: 'assoc' as const },
-  { label: '赛事联盟', icon: 'flag', active: false, action: 'league' as const },
-  { label: '设置', icon: 'gear', active: false, action: 'settings' as const }
-])
-
-const summary = ref({
-  todayTotal: 24,
-  pending: 8,
-  inProgress: 3,
-  ready: 12
-})
-
-const jobs = ref<Job[]>([
-  {
-    id: '1',
-    customerLabel: '安赛龙 (Viktor Axelsen)',
-    racketLine: 'Yonex Astrox 100ZZ',
-    stringModel: 'BG80 Power',
-    tensionMain: '31',
-    tensionCross: '30',
-    status: 'in_progress'
-  },
-  {
-    id: '2',
-    customerLabel: '戴资颖 (Tai Tzu-ying)',
-    racketLine: 'Victor Thruster F Claw',
-    stringModel: 'VBS-66 Nano',
-    tensionMain: '29',
-    tensionCross: '29',
-    status: 'pending'
-  },
-  {
-    id: '3',
-    customerLabel: '吉德翁 (Marcus Gideon)',
-    racketLine: 'Yonex Astrox 88D Pro',
-    stringModel: 'Aerobite',
-    tensionMain: '32',
-    tensionCross: '32',
-    status: 'ready'
-  }
-])
-
-const inventory = ref([
-  { name: 'YONEX BG80 白色', pct: 80, low: false },
-  { name: 'EXBOLT 65 黄色', pct: 15, low: true }
-])
-
 function pad2(n: number) {
   return n < 10 ? `0${n}` : String(n)
 }
 
-function statusLabel(s: JobStatus) {
-  if (s === 'in_progress') return '进行中'
-  if (s === 'pending') return '待处理'
+function formatPound(value?: number | string) {
+  if (value === undefined || value === null || value === '') return '--'
+  return String(value).replace(/\.0$/, '')
+}
+
+function mapJobStatus(status?: number): JobStatus {
+  if (status === STRINGING_STATUS.IN_PROGRESS) return 'in_progress'
+  if (status === STRINGING_STATUS.COMPLETED) return 'ready'
+  if (status === STRINGING_STATUS.CANCELLED) return 'cancelled'
+  return 'pending'
+}
+
+function resolveStringModel(item: StringingService) {
+  if (item.isOwnString === 1) return item.stringName || '自带线材'
+  return item.stringName || item.stringEquipmentName || '未选择线材'
+}
+
+function statusLabel(status: JobStatus) {
+  if (status === 'in_progress') return '进行中'
+  if (status === 'pending') return '待处理'
+  if (status === 'cancelled') return '已取消'
   return '已就绪'
+}
+
+async function loadRecords() {
+  loading.value = true
+  try {
+    const [allRes, pendingRes, progressRes, readyRes] = await Promise.all([
+      getStringingList({ page: 1, size: 100 }),
+      getStringingList({ page: 1, size: 1, status: STRINGING_STATUS.WAITING }),
+      getStringingList({ page: 1, size: 1, status: STRINGING_STATUS.IN_PROGRESS }),
+      getStringingList({ page: 1, size: 1, status: STRINGING_STATUS.COMPLETED })
+    ])
+
+    records.value = Array.isArray(allRes.data) ? allRes.data : []
+    summary.value = {
+      todayTotal: Number(allRes.total || records.value.length),
+      pending: Number(pendingRes.total || 0),
+      inProgress: Number(progressRes.total || 0),
+      ready: Number(readyRes.total || 0)
+    }
+  } catch (error) {
+    console.error('Failed to load stringing records:', error)
+    records.value = []
+    summary.value = {
+      todayTotal: 0,
+      pending: 0,
+      inProgress: 0,
+      ready: 0
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 function onDrawerNav(item: (typeof drawerNav.value)[0]) {
   drawerOpen.value = false
   if (item.action === 'dashboard') {
     safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
- } else {
-    uni.showToast({ title: `${item.label} 开发中`, icon: 'none' })
+    return
   }
+  uni.showToast({ title: `${item.label} 开发中`, icon: 'none' })
 }
 
 function openForm() {
@@ -266,27 +340,53 @@ function openDetail(job: Job) {
   uni.navigateTo({ url: `${PRESIDENT_PAGES.STRINGING_DETAIL}?id=${encodeURIComponent(job.id)}` })
 }
 
-function onEdit(job: Job) {
-  uni.navigateTo({ url: `${PRESIDENT_PAGES.STRINGING_FORM}?id=${encodeURIComponent(job.id)}` })
+async function updateJobStatus(id: number, status: number, title: string) {
+  try {
+    await updateStringingStatus(id, status)
+    uni.showToast({ title, icon: 'success' })
+    await loadRecords()
+  } catch (error) {
+    console.error('Failed to update stringing status:', error)
+  }
 }
 
 function onStart(job: Job) {
-  uni.showToast({ title: `已开始：${job.customerLabel}`, icon: 'none' })
+  void updateJobStatus(job.id, STRINGING_STATUS.IN_PROGRESS, '已开始穿线')
 }
 
-function onNotify(job: Job) {
-  uni.showToast({ title: '已发送取件提醒（示例）', icon: 'none' })
+function onComplete(job: Job) {
+  void updateJobStatus(job.id, STRINGING_STATUS.COMPLETED, '已标记完成')
 }
 
 function onMore(job: Job) {
+  const itemList =
+    job.status === 'pending'
+      ? ['查看详情', '开始穿线']
+      : job.status === 'in_progress'
+        ? ['查看详情', '标记完成']
+        : ['查看详情']
   uni.showActionSheet({
-    itemList: ['查看详情', '编辑工单'],
+    itemList,
     success(res) {
-      if (res.tapIndex === 0) openDetail(job)
-      if (res.tapIndex === 1) onEdit(job)
+      if (res.tapIndex === 0) {
+        openDetail(job)
+      }
+      if (res.tapIndex === 1) {
+        if (job.status === 'pending') {
+          onStart(job)
+          return
+        }
+        if (job.status === 'in_progress') {
+          onComplete(job)
+        }
+      }
     }
   })
 }
+
+onShow(() => {
+  void loadRecords()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -552,7 +652,7 @@ function onMore(job: Job) {
 }
 .mini-label.light {
   color: #561d00;
- opacity: 0.95;
+  opacity: 0.95;
 }
 .mini-num {
   display: block;
@@ -667,6 +767,12 @@ function onMore(job: Job) {
 .st-ready .status-text {
   color: #561d00;
   font-weight: 800;
+}
+.st-cancelled {
+  background: rgba(0, 0, 0, 0.08);
+}
+.st-cancelled .status-text {
+  color: #666666;
 }
 .dot {
   width: 10rpx;
@@ -789,7 +895,6 @@ function onMore(job: Job) {
   height: 48rpx;
 }
 
-/* Wide layout: table header + row grid */
 @media screen and (min-width: 768px) {
   .summary-grid {
     flex-direction: row;

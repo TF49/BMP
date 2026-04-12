@@ -31,6 +31,7 @@ export function getFinanceList(params?: {
   incomeExpenseType?: string
   startDate?: string
   endDate?: string
+  keyword?: string
   page?: number
   size?: number
 }) {

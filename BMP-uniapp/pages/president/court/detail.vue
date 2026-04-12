@@ -1,131 +1,116 @@
 <template>
-  <PresidentLayout :showTabBar="false" className="president-court-detail-layout">
+  <PresidentLayout :showTabBar="false" backgroundColor="#f9f9f9">
     <view class="page">
       <view class="status-bar-placeholder" />
 
       <view class="nav-header">
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
-            <uni-icons type="arrow-left" size="24" color="#ff6600" />
-            <text class="nav-sub">场地详情</text>
+            <view class="icon-btn">
+              <uni-icons type="arrow-left" size="22" color="#ff6600" />
+            </view>
+            <text class="nav-title">场地详情</text>
           </view>
-          <view class="nav-right">
-            <text class="brand">BMP Executive</text>
-            <view class="icon-btn" @click="onSettings">
-              <uni-icons type="gear" size="22" color="#ff6600" />
+          <view class="nav-actions">
+            <view class="icon-btn" @click="loadDetail">
+              <uni-icons type="refresh" size="20" color="#71717a" />
+            </view>
+            <view class="primary-btn" @click="goEdit">
+              <uni-icons type="compose" size="16" color="#ffffff" />
+              <text class="primary-btn-text">编辑</text>
             </view>
           </view>
         </view>
-        <view class="nav-divider" />
       </view>
 
-      <scroll-view scroll-y class="main-scroll" :show-scrollbar="false" enable-flex>
-        <view class="scroll-inner">
-          <view class="hero-block">
-            <view class="hero-text">
-              <view class="hero-badges">
-                <text class="status-pill">{{ detail.statusLabel }}</text>
-                <text class="tier-label">{{ detail.tierLabel }}</text>
-              </view>
-              <text class="court-title">{{ detail.courtTitle }}</text>
-            </view>
-            <button class="btn-maint" @click="onMaintenanceRegister">
-              <uni-icons type="compose" size="20" color="#ffffff" />
-              <text>维护登记</text>
-            </button>
+      <scroll-view scroll-y class="main-scroll" :show-scrollbar="false">
+        <view class="content">
+          <view v-if="loading" class="state-card">
+            <text class="state-text">正在加载场地详情...</text>
           </view>
 
-          <view class="config-card">
-            <view class="config-head">
-              <text class="config-title">场地配置</text>
-              <uni-icons type="info" size="22" color="#e3bfb1" />
-            </view>
-            <view class="config-grid">
+          <view v-else-if="loadError" class="state-card error">
+            <text class="state-text">{{ loadError }}</text>
+            <button class="retry-btn" @click="loadDetail">重新加载</button>
+          </view>
+
+          <template v-else-if="detail">
+            <view class="hero-card">
               <view>
-                <text class="cfg-k">BILLING TYPE</text>
-                <text class="cfg-v">{{ detail.billingType }}</text>
-              </view>
-              <view>
-                <text class="cfg-k">PRICE RATE</text>
-                <view class="price-row">
-                  <text class="price-num">{{ detail.priceRate }}</text>
-                  <text class="price-unit">/ 小时</text>
+                <view class="hero-tags">
+                  <text class="status-badge" :class="statusMeta.className">{{ statusMeta.label }}</text>
+                  <text class="code-badge">{{ detail.courtCode || `#${detail.id}` }}</text>
                 </view>
+                <text class="hero-title">{{ detail.courtName || '未命名场地' }}</text>
+                <text class="hero-subtitle">{{ detail.venueName || '未关联场馆' }}</text>
+              </view>
+              <view class="hero-price">
+                <text class="hero-price-label">{{ billingTypeLabel }}</text>
+                <text class="hero-price-value">¥{{ priceLabel }}</text>
               </view>
             </view>
-            <view class="equip-block">
-              <text class="cfg-k equip-k">EQUIPMENT STATUS</text>
-              <view class="equip-tags">
-                <view class="equip-tag" v-for="tag in detail.equipmentTags" :key="tag.label">
-                  <uni-icons :type="tag.icon" size="18" color="#a33e00" />
-                  <text class="equip-t">{{ tag.label }}</text>
-                </view>
-              </view>
-            </view>
-          </view>
 
-          <view class="stats-col">
-            <view class="revenue-card">
-              <view class="rev-inner">
-                <text class="rev-k">TODAY'S REVENUE</text>
-                <text class="rev-val">{{ detail.todayRevenue }}</text>
-                <view class="rev-trend">
-                  <uni-icons type="arrow-up" size="16" color="#ff6600" />
-                  <text class="rev-trend-t">{{ detail.revenueTrend }}</text>
+            <view class="card">
+              <text class="card-title">基础信息</text>
+              <view class="info-grid">
+                <view class="info-item">
+                  <text class="info-label">场地 ID</text>
+                  <text class="info-value">{{ detail.id }}</text>
+                </view>
+                <view class="info-item">
+                  <text class="info-label">状态</text>
+                  <text class="info-value">{{ statusMeta.label }}</text>
+                </view>
+                <view class="info-item">
+                  <text class="info-label">计费方式</text>
+                  <text class="info-value">{{ billingTypeLabel }}</text>
+                </view>
+                <view class="info-item">
+                  <text class="info-label">单价</text>
+                  <text class="info-value">¥{{ priceLabel }}</text>
+                </view>
+                <view class="info-item">
+                  <text class="info-label">创建时间</text>
+                  <text class="info-value">{{ formatDateTime(detail.createTime) || '-' }}</text>
+                </view>
+                <view class="info-item">
+                  <text class="info-label">更新时间</text>
+                  <text class="info-value">{{ formatDateTime(detail.updateTime) || '-' }}</text>
                 </view>
               </view>
-              <uni-icons type="wallet" size="120" color="#ffffff" class="rev-watermark" />
             </view>
-            <view class="bookings-card">
-              <text class="bk-k">TOTAL BOOKINGS</text>
-              <view class="bk-row">
-                <text class="bk-num">{{ detail.totalBookings }}</text>
-                <text class="bk-unit">次预订</text>
-              </view>
-              <view class="bk-track">
-                <view class="bk-fill" :style="{ width: detail.loadPercent + '%' }" />
-              </view>
-              <text class="bk-sub">今日负荷率 {{ detail.loadPercent }}%</text>
-            </view>
-          </view>
 
-          <view class="log-card">
-            <view class="log-head">
-              <text class="log-title">维护日志</text>
-              <text class="log-all" @click="onViewAllLogs">查看全部</text>
-            </view>
-            <view class="log-list">
-              <view class="log-item" v-for="log in detail.maintenanceLogs" :key="log.id">
-                <view class="log-left">
-                  <view class="log-ico">
-                    <uni-icons :type="log.icon" size="22" color="#a33e00" />
-                  </view>
+            <view class="card">
+              <view class="card-head">
+                <text class="card-title">今日预约概览</text>
+                <text class="card-subtitle">真实接口数据</text>
+              </view>
+
+              <view class="booking-summary">
+                <view class="summary-item">
+                  <text class="summary-label">预约单数</text>
+                  <text class="summary-value">{{ todayBookings.length }}</text>
+                </view>
+                <view class="summary-item">
+                  <text class="summary-label">最近更新时间</text>
+                  <text class="summary-value">{{ formatDateTime(detail.updateTime, 'MM-DD HH:mm') || '-' }}</text>
+                </view>
+              </view>
+
+              <view v-if="bookingLoading" class="sub-state">正在加载今日预约...</view>
+              <view v-else-if="bookingError" class="sub-state">{{ bookingError }}</view>
+              <view v-else-if="todayBookings.length === 0" class="sub-state">今日暂无预约记录</view>
+              <view v-else class="booking-list">
+                <view v-for="(item, index) in todayBookings" :key="`${item.bookingUserName || 'user'}-${index}`" class="booking-item">
                   <view>
-                    <text class="log-name">{{ log.title }}</text>
-                    <text class="log-op">操作人: {{ log.operator }}</text>
+                    <text class="booking-name">{{ item.bookingUserName || '未命名预约人' }}</text>
+                    <text class="booking-time">{{ item.bookingTime || '时间待确认' }}</text>
                   </view>
-                </view>
-                <view class="log-right">
-                  <text class="log-date">{{ log.date }}</text>
-                  <text class="log-done">{{ log.statusLabel }}</text>
+                  <uni-icons type="calendar" size="18" color="#ff6600" />
                 </view>
               </view>
             </view>
-          </view>
-
-          <view class="visual-footer">
-            <image
-              v-if="!bannerFailed"
-              class="visual-img"
-              :src="detail.bannerImage"
-              mode="aspectFill"
-              @error="bannerFailed = true"
-            />
-            <view class="visual-fade" />
-            <text class="visual-caption">COURT {{ detail.courtCode }}</text>
-          </view>
-
-          <view class="bottom-pad" />
+          </template>
         </view>
       </scroll-view>
     </view>
@@ -133,141 +118,95 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import { getCourtDetail, getTodayCourtBookings, type CourtItem } from '@/api/court'
+import { formatAmount, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getCourtStatusMeta } from '@/utils/presidentStatus'
 
-interface EquipTag {
-  icon: string
-  label: string
+type TodayBooking = {
+  bookingUserName?: string
+  bookingTime?: string
 }
 
-interface MaintLog {
-  id: string
-  icon: string
-  title: string
-  operator: string
-  date: string
-  statusLabel: string
-}
+const courtId = ref<number | null>(null)
+const detail = ref<CourtItem | null>(null)
+const todayBookings = ref<TodayBooking[]>([])
+const loading = ref(false)
+const loadError = ref('')
+const bookingLoading = ref(false)
+const bookingError = ref('')
 
-interface CourtDetailMock {
-  courtId: string
-  courtCode: string
-  statusLabel: string
-  tierLabel: string
-  courtTitle: string
-  billingType: string
-  priceRate: string
-  equipmentTags: EquipTag[]
-  todayRevenue: string
-  revenueTrend: string
-  totalBookings: string
-  loadPercent: number
-  maintenanceLogs: MaintLog[]
-  bannerImage: string
-}
+const statusMeta = computed(() => getCourtStatusMeta(detail.value?.status))
+const billingTypeLabel = computed(() =>
+  detail.value?.billingType === 'TIME' ? '按次计费' : '按小时计费'
+)
+const priceLabel = computed(() =>
+  formatAmount(Number(detail.value?.pricePerHour || detail.value?.pricePerTime || 0))
+)
 
-const courtId = ref('')
-const bannerFailed = ref(false)
-
-function mockDetail(): CourtDetailMock {
-  const id = courtId.value || 'demo'
-  return {
-    courtId: id,
-    courtCode: '#A1',
-    statusLabel: '使用中',
-    tierLabel: 'PREMIUM COURT',
-    courtTitle: '#A1 VIP 场地',
-    billingType: '按小时计费',
-    priceRate: '¥80',
-    equipmentTags: [
-      { icon: 'star-filled', label: '灯光正常' },
-      { icon: 'checkbox-filled', label: '地面防滑良好' }
-    ],
-    todayRevenue: '¥640',
-    revenueTrend: '较昨日上涨 12%',
-    totalBookings: '8',
-    loadPercent: 75,
-    maintenanceLogs: [
-      {
-        id: '1',
-        icon: 'settings',
-        title: '灯管更换',
-        operator: '管理员张三',
-        date: '2026-02-10',
-        statusLabel: '已完成'
-      },
-      {
-        id: '2',
-        icon: 'loop',
-        title: '地板深度清洁与防滑维护',
-        operator: '外包保洁服务',
-        date: '2026-01-25',
-        statusLabel: '已完成'
-      },
-      {
-        id: '3',
-        icon: 'compose',
-        title: '网架稳固性检查',
-        operator: '巡检组',
-        date: '2026-01-12',
-        statusLabel: '已完成'
-      }
-    ],
-    bannerImage:
-      '/static/placeholders/hero.svg'
+async function loadBookings(id: number) {
+  bookingLoading.value = true
+  bookingError.value = ''
+  try {
+    const res = await getTodayCourtBookings(id)
+    todayBookings.value = Array.isArray(res) ? res : []
+  } catch (error) {
+    console.error('Failed to load today bookings:', error)
+    todayBookings.value = []
+    bookingError.value = '今日预约概览加载失败'
+  } finally {
+    bookingLoading.value = false
   }
 }
 
-const detail = ref<CourtDetailMock>(mockDetail())
-
-onLoad((options) => {
-  if (options?.id) {
-    courtId.value = decodeURIComponent(String(options.id))
-    detail.value = mockDetail()
-    // TODO: 按 courtId 拉取场地详情
+async function loadDetail() {
+  if (!courtId.value) {
+    loadError.value = '缺少有效的场地 ID'
+    return
   }
-})
+  loading.value = true
+  loadError.value = ''
+  try {
+    detail.value = await getCourtDetail(courtId.value)
+    await loadBookings(courtId.value)
+  } catch (error) {
+    console.error('Failed to load court detail:', error)
+    detail.value = null
+    todayBookings.value = []
+    loadError.value = '场地详情加载失败'
+  } finally {
+    loading.value = false
+  }
+}
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.COURT_LIST)
 }
 
-function onSettings() {
-  uni.showToast({ title: '场地设置开发中', icon: 'none' })
+function goEdit() {
+  if (!detail.value?.id) return
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURT_FORM}?id=${detail.value.id}` })
 }
 
-function onMaintenanceRegister() {
-  uni.navigateTo({
-    url: `${PRESIDENT_PAGES.COURT_FORM}?id=${encodeURIComponent(detail.value.courtId)}&from=detail`
-  })
-}
-
-function onViewAllLogs() {
-  uni.showToast({ title: '维护日志列表开发中', icon: 'none' })
-}
+onLoad((options) => {
+  const rawId = Number(options?.id)
+  if (!Number.isFinite(rawId) || rawId <= 0) {
+    loadError.value = '缺少有效的场地 ID'
+    return
+  }
+  courtId.value = rawId
+  loadDetail()
+})
 </script>
 
 <style lang="scss" scoped>
-.president-court-detail-layout {
-  :deep(.president-layout-content) {
-    padding-bottom: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-}
-
 .page {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background: #f9f9f9;
-  font-family: Lexend, 'PingFang SC', system-ui, sans-serif;
 }
 
 .status-bar-placeholder {
@@ -276,468 +215,230 @@ function onViewAllLogs() {
 }
 
 .nav-header {
-  flex-shrink: 0;
-  background: #f9f9f9;
-  z-index: 50;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 16rpx 24rpx;
+  background: rgba(249, 249, 249, 0.92);
+  backdrop-filter: blur(12px);
 }
 
-.nav-row {
+.nav-row,
+.nav-left,
+.nav-actions,
+.hero-tags,
+.card-head,
+.booking-item {
   display: flex;
   align-items: center;
+}
+
+.nav-row,
+.card-head,
+.booking-item {
   justify-content: space-between;
-  padding: 24rpx 48rpx 20rpx;
 }
 
-.nav-left {
-  display: flex;
-  align-items: center;
+.nav-left,
+.nav-actions,
+.hero-tags {
   gap: 16rpx;
-}
-
-.nav-sub {
-  font-size: 24rpx;
-  font-weight: 800;
-  color: #5f5e5e;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.brand {
-  font-size: 32rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-  letter-spacing: -0.02em;
 }
 
 .icon-btn {
   width: 72rpx;
   height: 72rpx;
-  border-radius: 9999px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  &:active {
-    background: rgba(0, 0, 0, 0.06);
-  }
 }
 
-.nav-divider {
-  height: 2rpx;
-  background: #f3f3f3;
-  margin: 0 48rpx;
+.nav-title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+
+.primary-btn {
+  height: 72rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: #ff6600;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.primary-btn-text {
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 
 .main-scroll {
-  flex: 1;
-  height: 0;
-  min-height: 200rpx;
+  height: calc(100vh - var(--status-bar-height) - 104rpx);
 }
 
-.scroll-inner {
-  padding: 32rpx 48rpx 48rpx;
-}
-
-.hero-block {
+.content {
+  padding: 12rpx 24rpx 40rpx;
   display: flex;
   flex-direction: column;
-  gap: 32rpx;
-  margin-bottom: 40rpx;
-}
-
-.hero-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16rpx;
-  margin-bottom: 12rpx;
-}
-
-.status-pill {
-  padding: 10rpx 24rpx;
-  border-radius: 9999px;
-  background: #ff6600;
-  color: #ffffff;
-  font-size: 20rpx;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-}
-
-.tier-label {
-  font-size: 22rpx;
-  font-weight: 700;
-  color: #5f5e5e;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.court-title {
-  display: block;
-  font-size: 72rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-}
-
-.btn-maint {
-  width: 100%;
-  height: 100rpx;
-  border-radius: 16rpx;
-  background: linear-gradient(90deg, #a33e00 0%, #ff6600 100%);
-  color: #ffffff;
-  font-size: 30rpx;
-  font-weight: 800;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  box-shadow: 0 12rpx 32rpx rgba(255, 102, 0, 0.25);
-  margin: 0;
-  padding: 0;
-  &::after {
-    border: none;
-  }
-}
-
-.config-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 48rpx;
-  margin-bottom: 32rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
-}
-
-.config-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40rpx;
-}
-
-.config-title {
-  font-size: 34rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-}
-
-.config-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 40rpx;
-}
-
-.cfg-k {
-  display: block;
-  font-size: 20rpx;
-  font-weight: 800;
-  color: #5f5e5e;
-  letter-spacing: 0.1em;
-}
-
-.cfg-v {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #1a1c1c;
-}
-
-.price-row {
-  margin-top: 8rpx;
-  display: flex;
-  align-items: baseline;
-  gap: 8rpx;
-}
-
-.price-num {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #a33e00;
-}
-
-.price-unit {
-  font-size: 26rpx;
-  color: #5f5e5e;
-}
-
-.equip-block {
-  margin-top: 40rpx;
-  padding-top: 40rpx;
-  border-top: 2rpx solid #eeeeee;
-}
-
-.equip-k {
-  margin-bottom: 24rpx;
-}
-
-.equip-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24rpx;
-}
-
-.equip-tag {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 20rpx 28rpx;
-  background: #eeeeee;
-  border-radius: 16rpx;
-}
-
-.equip-t {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #1a1c1c;
-}
-
-.stats-col {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-  margin-bottom: 32rpx;
-}
-
-.revenue-card {
-  position: relative;
-  overflow: hidden;
-  background: #1a1c1c;
-  border-radius: 24rpx;
-  padding: 48rpx;
-}
-
-.rev-inner {
-  position: relative;
-  z-index: 2;
-}
-
-.rev-k {
-  display: block;
-  font-size: 20rpx;
-  font-weight: 800;
-  color: rgba(249, 249, 249, 0.7);
-  letter-spacing: 0.1em;
-}
-
-.rev-val {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 72rpx;
-  font-weight: 800;
-  color: #f9f9f9;
-  letter-spacing: -0.03em;
-}
-
-.rev-trend {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  margin-top: 28rpx;
-}
-
-.rev-trend-t {
-  font-size: 26rpx;
-  color: #f9f9f9;
-}
-
-.rev-watermark {
-  position: absolute;
-  right: -16rpx;
-  bottom: -16rpx;
-  opacity: 0.1;
-  pointer-events: none;
-}
-
-.bookings-card {
-  background: #f3f3f3;
-  border-radius: 24rpx;
-  padding: 48rpx;
-}
-
-.bk-k {
-  display: block;
-  font-size: 20rpx;
-  font-weight: 800;
-  color: #5f5e5e;
-  letter-spacing: 0.1em;
-}
-
-.bk-row {
-  display: flex;
-  align-items: baseline;
-  gap: 12rpx;
-  margin-top: 8rpx;
-}
-
-.bk-num {
-  font-size: 56rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-}
-
-.bk-unit {
-  font-size: 26rpx;
-  color: #5f5e5e;
-}
-
-.bk-track {
-  margin-top: 24rpx;
-  height: 8rpx;
-  background: #e8e8e8;
-  border-radius: 9999px;
-  overflow: hidden;
-}
-
-.bk-fill {
-  height: 100%;
-  background: #ff6600;
-  border-radius: 9999px;
-}
-
-.bk-sub {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 20rpx;
-  color: #5f5e5e;
-}
-
-.log-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 48rpx;
-  margin-bottom: 32rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
-}
-
-.log-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16rpx;
-}
-
-.log-title {
-  font-size: 34rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-}
-
-.log-all {
-  font-size: 26rpx;
-  font-weight: 800;
-  color: #a33e00;
-}
-
-.log-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 20rpx;
-  padding: 32rpx 0;
-  border-bottom: 2rpx solid #f3f3f3;
 }
 
-.log-item:last-child {
-  border-bottom: none;
-}
-
-.log-left {
-  display: flex;
-  align-items: center;
-  gap: 28rpx;
-  flex: 1;
-  min-width: 0;
-}
-
-.log-ico {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 16rpx;
-  background: #eeeeee;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.log-name {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-}
-
-.log-op {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  color: #5f5e5e;
-}
-
-.log-right {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.log-date {
-  display: block;
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #1a1c1c;
-}
-
-.log-done {
-  display: inline-block;
-  margin-top: 8rpx;
-  padding: 6rpx 12rpx;
-  background: #e2dfde;
-  color: #636262;
-  font-size: 18rpx;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  border-radius: 6rpx;
-}
-
-.visual-footer {
-  position: relative;
-  height: 320rpx;
+.hero-card,
+.card,
+.state-card {
+  padding: 32rpx;
   border-radius: 24rpx;
-  overflow: hidden;
-  background: #e5e5e5;
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
 }
 
-.visual-img {
-  width: 100%;
-  height: 100%;
-  opacity: 0.35;
-  filter: grayscale(100%);
+.hero-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  background: linear-gradient(135deg, #fff3eb 0%, #ffffff 100%);
 }
 
-.visual-fade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, #f9f9f9, transparent 55%);
+.status-badge,
+.code-badge {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
 }
 
-.visual-caption {
-  position: absolute;
-  left: 32rpx;
-  bottom: 32rpx;
-  font-size: 48rpx;
-  font-weight: 900;
+.status-badge {
+  color: #ffffff;
+}
+
+.status-badge.available {
+  background: #16a34a;
+}
+
+.status-badge.inuse {
+  background: #ea580c;
+}
+
+.status-badge.booked {
+  background: #2563eb;
+}
+
+.status-badge.maintenance,
+.status-badge.unknown {
+  background: #6b7280;
+}
+
+.code-badge {
+  background: rgba(255, 102, 0, 0.12);
+  color: #a33e00;
+}
+
+.hero-title {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 44rpx;
+  font-weight: 800;
   color: #1a1c1c;
-  opacity: 0.1;
-  letter-spacing: -0.02em;
 }
 
-.bottom-pad {
-  height: 32rpx;
+.hero-subtitle,
+.hero-price-label,
+.info-label,
+.card-subtitle,
+.sub-state,
+.booking-time,
+.state-text {
+  color: #71717a;
+  font-size: 24rpx;
+}
+
+.hero-subtitle {
+  display: block;
+  margin-top: 10rpx;
+}
+
+.hero-price {
+  min-width: 180rpx;
+  text-align: right;
+}
+
+.hero-price-value {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #ff6600;
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.info-grid,
+.booking-summary {
+  display: grid;
+  gap: 16rpx;
+}
+
+.info-grid {
+  margin-top: 24rpx;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.info-item,
+.summary-item {
+  padding: 20rpx 24rpx;
+  border-radius: 18rpx;
+  background: #f8fafc;
+}
+
+.info-label,
+.summary-label {
+  display: block;
+}
+
+.info-value,
+.summary-value,
+.booking-name {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 28rpx;
+  color: #1a1c1c;
+  font-weight: 600;
+}
+
+.booking-summary {
+  margin: 20rpx 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.booking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.booking-item {
+  padding: 24rpx 0;
+  border-top: 1rpx solid #f1f5f9;
+}
+
+.retry-btn {
+  margin-top: 20rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  background: #ff6600;
+  color: #ffffff;
+  font-size: 26rpx;
+}
+
+.error .state-text {
+  color: #b91c1c;
 }
 </style>

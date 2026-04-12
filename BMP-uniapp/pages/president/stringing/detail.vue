@@ -36,8 +36,8 @@
                 <text class="field-value">{{ formatDateTime(detail.createTime) || '未知时间' }}</text>
               </view>
               <view class="field-row">
-                <text class="field-label">会员</text>
-                <text class="field-value">{{ detail.memberName || `会员 #${detail.memberId || '-'}` }}</text>
+                <text class="field-label">客户</text>
+                <text class="field-value">{{ detail.memberName || detail.userName || `会员 #${detail.memberId || '-'}` }}</text>
               </view>
               <view class="field-row">
                 <text class="field-label">手机号</text>
@@ -53,7 +53,7 @@
               </view>
               <view class="field-row">
                 <text class="field-label">线材</text>
-                <text class="field-value">{{ detail.stringName || '自带线材' }}</text>
+                <text class="field-value">{{ stringLabel }}</text>
               </view>
               <view class="field-row">
                 <text class="field-label">磅数</text>
@@ -61,11 +61,11 @@
               </view>
               <view class="field-row">
                 <text class="field-label">穿线方式</text>
-                <text class="field-value">{{ detail.stringingMethod || '未知方式' }}</text>
+                <text class="field-value">{{ methodLabel }}</text>
               </view>
               <view class="field-row">
                 <text class="field-label">服务费用</text>
-                <text class="field-value amount">¥{{ formatAmount(detail.totalPrice || detail.servicePrice || 0) }}</text>
+                <text class="field-value amount">￥{{ formatAmount(detail.totalPrice || detail.servicePrice || 0) }}</text>
               </view>
               <view class="field-row multiline">
                 <text class="field-label">备注</text>
@@ -86,24 +86,19 @@ import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getStringingDetail, type StringingService } from '@/api/stringing'
 import { formatAmount, formatDateTime, formatPhone } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
+import { STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
-type StringingDetail = StringingService & {
-  memberPhone?: string
-  stringingMethod?: string
-  totalPrice?: number
-}
-
-const detail = ref<StringingDetail | null>(null)
+const detail = ref<StringingService | null>(null)
 const loading = ref(false)
 const loadError = ref('')
 
 const statusLabel = computed(() => {
   const status = detail.value?.status
-  if (status === 0) return '待取拍'
-  if (status === 1) return '穿线中'
-  if (status === 2) return '待领取'
-  if (status === 3) return '已完成'
+  if (status === STRINGING_STATUS.CANCELLED) return '已取消'
+  if (status === STRINGING_STATUS.WAITING) return '等待穿线'
+  if (status === STRINGING_STATUS.IN_PROGRESS) return '正在穿线'
+  if (status === STRINGING_STATUS.COMPLETED) return '已完成'
   return '未知状态'
 })
 
@@ -114,20 +109,35 @@ const racketLabel = computed(() => {
 })
 
 const tensionLabel = computed(() => {
-  const tension = detail.value?.tension
-  if (tension === undefined || tension === null) return '未知磅数'
-  return `${tension} lbs`
+  const tension = detail.value?.pound
+  if (tension === undefined || tension === null || tension === '') return '未知磅数'
+  return `${String(tension).replace(/\.0$/, '')} lbs`
+})
+
+const stringLabel = computed(() => {
+  const current = detail.value
+  if (!current) return '未知线材'
+  if (current.isOwnString === 1) return current.stringName || '自带线材'
+  return current.stringName || current.stringEquipmentName || '未知线材'
+})
+
+const methodLabel = computed(() => {
+  const method = detail.value?.stringingMethod
+  if (method === 'TWO_SECTION') return '两结'
+  if (method === 'FOUR_SECTION') return '四结'
+  if (method === 'AUTO') return '自动判断'
+  return method || '未知方式'
 })
 
 async function loadDetail(id: number) {
   loading.value = true
   loadError.value = ''
   try {
-    detail.value = (await getStringingDetail(id)) as StringingDetail
+    detail.value = await getStringingDetail(id)
   } catch (error) {
     console.error('Failed to load stringing detail:', error)
     detail.value = null
-    loadError.value = '工单详情加载失败'
+    loadError.value = '详情加载失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -143,7 +153,7 @@ onLoad((options) => {
     loadError.value = '缺少有效的工单 ID'
     return
   }
-  loadDetail(rawId)
+  void loadDetail(rawId)
 })
 </script>
 

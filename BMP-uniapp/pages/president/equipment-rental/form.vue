@@ -1,270 +1,368 @@
 <template>
-  <PresidentLayout :showTabBar="false" className="president-equipment-rental-form-layout">
+  <PresidentLayout :showTabBar="false" backgroundColor="#f9f9f9">
     <view class="page">
       <view class="status-bar-placeholder" />
 
       <view class="nav-header">
         <view class="nav-row">
           <view class="nav-left" @click="goBack">
-            <view class="nav-icon-btn">
+            <view class="icon-btn">
               <uni-icons type="arrow-left" size="22" color="#ff6600" />
             </view>
-            <text class="nav-title">手动录入租借</text>
+            <text class="nav-title">新增租借</text>
           </view>
-          <image class="nav-avatar" :src="operatorAvatar" mode="aspectFill" />
+          <view class="nav-actions">
+            <view class="icon-btn" @click="loadOptions">
+              <uni-icons type="refresh" size="20" color="#71717a" />
+            </view>
+          </view>
         </view>
       </view>
 
-      <scroll-view scroll-y class="main-scroll" :show-scrollbar="false" enable-flex>
-        <view class="scroll-inner">
-          <!-- 会员检索 -->
-          <view class="card section-card">
-            <view class="section-head">
-              <text class="section-label">会员检索</text>
-              <uni-icons type="search" size="16" color="#a33e00" />
+      <scroll-view scroll-y class="main-scroll" :show-scrollbar="false">
+        <view class="content">
+          <view class="hero-card">
+            <view>
+              <text class="hero-label">真实租借录入</text>
+              <text class="hero-title">创建器材租借单</text>
+              <text class="hero-subtitle">会员和器材候选数据均来自真实接口</text>
             </view>
-            <input
-              v-model="memberKeyword"
-              class="search-input"
-              type="text"
-              placeholder="输入会员ID、手机或姓名"
-              placeholder-class="ph"
-            />
-            <view class="member-pick">
-              <image class="mem-avatar" :src="currentMember.avatar" mode="aspectFill" />
-              <view class="mem-info">
-                <text class="mem-name">{{ currentMember.name }}</text>
-                <text class="mem-bal">余额: ¥{{ currentMember.balance }}</text>
-              </view>
-              <text class="mem-switch" @click="switchMember">切换</text>
+            <view class="hero-amount">
+              <text class="hero-amount-label">预估金额</text>
+              <text class="hero-amount-value">¥{{ rentalAmountLabel }}</text>
             </view>
           </view>
 
-          <!-- 器材选择 -->
-          <view class="card section-card">
-            <view class="section-head">
-              <text class="section-label">器材选择</text>
-              <uni-icons type="shop" size="16" color="#a33e00" />
+          <view v-if="loadError" class="state-card error">
+            <text class="state-text">{{ loadError }}</text>
+            <button class="retry-btn" @click="loadOptions">重新加载</button>
+          </view>
+
+          <view class="card">
+            <view class="card-head">
+              <text class="card-title">选择会员</text>
+              <text class="card-tip">搜索后从真实会员列表中选择</text>
             </view>
-            <view class="equip-grid">
+            <view class="search-row">
+              <input
+                v-model.trim="memberKeyword"
+                class="search-input"
+                type="text"
+                placeholder="输入会员姓名或手机号"
+                confirm-type="search"
+                @confirm="searchMembers"
+              />
+              <button class="mini-btn" :disabled="memberLoading" @click="searchMembers">搜索</button>
+            </view>
+            <view v-if="memberLoading" class="sub-state">正在加载会员...</view>
+            <view v-else-if="memberOptions.length === 0" class="sub-state">暂无可选会员</view>
+            <view v-else class="option-list">
               <view
-                v-for="eq in equipments"
-                :key="eq.id"
-                class="equip-cell"
-                :class="{ selected: selectedEquipId === eq.id }"
-                @click="selectedEquipId = eq.id"
+                v-for="item in memberOptions"
+                :key="item.id"
+                class="option-item"
+                :class="{ active: form.memberId === item.id }"
+                @click="selectMember(item)"
               >
-                <uni-icons :type="eq.icon" size="28" :color="selectedEquipId === eq.id ? '#a33e00' : '#5f5e5e'" />
-                <text class="equip-name" :class="{ on: selectedEquipId === eq.id }">{{ eq.name }}</text>
-                <text class="equip-price" :class="{ on: selectedEquipId === eq.id }">¥{{ eq.price }}/小时</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- 数量 + 租金预估 -->
-          <view class="row-2">
-            <view class="card half-card">
-              <text class="mini-label">数量</text>
-              <view class="stepper">
-                <view class="step-btn" @click="decQty">
-                  <text class="step-sym">−</text>
+                <view>
+                  <text class="option-title">{{ item.memberName || `会员 #${item.id}` }}</text>
+                  <text class="option-subtitle">{{ item.phone || '未登记手机号' }}</text>
                 </view>
-                <text class="qty-val">{{ quantity }}</text>
-                <view class="step-btn" @click="incQty">
-                  <text class="step-sym">+</text>
-                </view>
+                <uni-icons v-if="form.memberId === item.id" type="checkmarkempty" size="20" color="#ff6600" />
               </view>
-            </view>
-            <view class="card half-card highlight-b">
-              <text class="mini-label">租金预估 (¥)</text>
-              <text class="estimate-val">{{ rentEstimate }}</text>
             </view>
           </view>
 
-          <!-- 日期 -->
-          <view class="card section-card">
-            <text class="mini-label mb">租借日期与时段</text>
-            <picker mode="date" :value="rentDate" @change="onDateChange">
-              <view class="date-row">
-                <uni-icons type="calendar" size="20" color="#5f5e5e" />
-                <text class="date-text">{{ displayDate }}</text>
-                <uni-icons type="calendar" size="20" color="#5f5e5e" />
-              </view>
-            </picker>
-          </view>
-
-          <!-- 支付方式 -->
-          <view class="card section-card">
-            <text class="mini-label mb">支付方式</text>
-            <view class="pay-grid">
+          <view class="card">
+            <view class="card-head">
+              <text class="card-title">选择器材</text>
+              <text class="card-tip">按名称加载真实器材库存</text>
+            </view>
+            <view class="search-row">
+              <input
+                v-model.trim="equipmentKeyword"
+                class="search-input"
+                type="text"
+                placeholder="输入器材名称"
+                confirm-type="search"
+                @confirm="searchEquipment"
+              />
+              <button class="mini-btn" :disabled="equipmentLoading" @click="searchEquipment">搜索</button>
+            </view>
+            <view v-if="equipmentLoading" class="sub-state">正在加载器材...</view>
+            <view v-else-if="equipmentOptions.length === 0" class="sub-state">暂无可选器材</view>
+            <view v-else class="option-list">
               <view
-                v-for="p in payOptions"
-                :key="p.key"
-                class="pay-cell"
-                :class="{ selected: payMethod === p.key }"
-                @click="payMethod = p.key"
+                v-for="item in equipmentOptions"
+                :key="item.id"
+                class="option-item"
+                :class="{ active: form.equipmentId === item.id }"
+                @click="selectEquipment(item)"
               >
-                <uni-icons :type="p.icon" size="18" :color="payMethod === p.key ? '#a33e00' : '#5f5e5e'" />
-                <text class="pay-lab" :class="{ on: payMethod === p.key }">{{ p.label }}</text>
+                <view>
+                  <text class="option-title">{{ item.equipmentName || `器材 #${item.id}` }}</text>
+                  <text class="option-subtitle">
+                    可用 {{ item.availableQuantity ?? 0 }} / 租金 ¥{{ formatAmount(Number(item.rentalPrice || item.price || 0)) }}
+                  </text>
+                </view>
+                <uni-icons v-if="form.equipmentId === item.id" type="checkmarkempty" size="20" color="#ff6600" />
               </view>
             </view>
           </view>
 
-          <!-- 备注 -->
-          <view class="card section-card">
-            <text class="mini-label mb">备注说明</text>
-            <textarea
-              v-model="remarks"
-              class="remarks"
-              placeholder="输入其他备注信息..."
-              placeholder-class="ph"
-              :maxlength="500"
-            />
-          </view>
-
-          <!-- 订单总额 -->
-          <view class="card total-card">
-            <uni-icons type="list" size="140" color="#a33e00" class="total-watermark" />
-            <view class="total-row">
-              <view>
-                <text class="total-k">订单总额</text>
-                <text class="total-num">¥{{ orderTotal }}</text>
+          <view class="card">
+            <text class="card-title">租借信息</text>
+            <view class="field-list">
+              <view class="field-item">
+                <text class="field-label">数量</text>
+                <input v-model.trim="form.quantity" class="field-input" type="number" placeholder="请输入数量" />
               </view>
-              <text class="total-sub">{{ quantity }}件 x 1小时</text>
+              <view class="field-item">
+                <text class="field-label">租借日期</text>
+                <picker mode="date" :value="form.rentalDate" @change="onRentalDateChange">
+                  <view class="picker-field">
+                    <text class="picker-value">{{ form.rentalDate || '请选择租借日期' }}</text>
+                    <uni-icons type="calendar" size="16" color="#71717a" />
+                  </view>
+                </picker>
+              </view>
+              <view class="field-item">
+                <text class="field-label">预计归还日期</text>
+                <picker mode="date" :value="form.expectedReturnDate" @change="onExpectedDateChange">
+                  <view class="picker-field">
+                    <text class="picker-value">{{ form.expectedReturnDate || '请选择归还日期' }}</text>
+                    <uni-icons type="calendar" size="16" color="#71717a" />
+                  </view>
+                </picker>
+              </view>
+              <view class="field-item">
+                <text class="field-label">支付方式</text>
+                <picker mode="selector" :range="paymentLabels" :value="paymentIndex" @change="onPaymentChange">
+                  <view class="picker-field">
+                    <text class="picker-value">{{ paymentLabels[paymentIndex] }}</text>
+                    <uni-icons type="bottom" size="14" color="#71717a" />
+                  </view>
+                </picker>
+              </view>
+              <view class="field-item">
+                <text class="field-label">备注</text>
+                <textarea
+                  v-model.trim="form.remark"
+                  class="textarea"
+                  maxlength="300"
+                  placeholder="填写备注信息"
+                />
+              </view>
             </view>
           </view>
 
-          <view class="scroll-pad" />
+          <view class="summary-card">
+            <view class="summary-item">
+              <text class="summary-label">单价</text>
+              <text class="summary-value">¥{{ unitPriceLabel }}</text>
+            </view>
+            <view class="summary-item">
+              <text class="summary-label">数量</text>
+              <text class="summary-value">{{ safeQuantity }}</text>
+            </view>
+            <view class="summary-item">
+              <text class="summary-label">预计金额</text>
+              <text class="summary-value">¥{{ rentalAmountLabel }}</text>
+            </view>
+          </view>
+
+          <view class="footer-actions">
+            <button class="secondary-btn" :disabled="submitting" @click="goBack">取消</button>
+            <button class="primary-btn" :disabled="submitting" @click="submitForm">
+              {{ submitting ? '提交中...' : '确认创建' }}
+            </button>
+          </view>
         </view>
       </scroll-view>
-
-      <view class="footer-actions">
-        <button class="btn-cancel" @click="goBack">取消</button>
-        <button class="btn-submit" @click="onConfirm">确认租借</button>
-      </view>
     </view>
   </PresidentLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import {
+  createEquipmentRental,
+  getEquipmentList,
+  type EquipmentItem
+} from '@/api/equipment'
+import { getMemberList, type MemberListItem } from '@/api/president/member'
+import { formatAmount, formatDate } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
-type PayMethod = 'cash' | 'alipay' | 'wechat' | 'balance'
-
-interface MemberPick {
-  id: string
-  name: string
-  balance: string
-  avatar: string
-}
-
-const operatorAvatar =
-  '/static/placeholders/hero.svg'
-
-const members: MemberPick[] = [
-  {
-    id: 'm1',
-    name: '陈伟 (高级会员)',
-    balance: '1,240.50',
-    avatar:
-      '/static/placeholders/hero.svg'
-  },
-  {
-    id: 'm2',
-    name: '林悦 (普通会员)',
-    balance: '320.00',
-    avatar: '/static/placeholders/avatar.svg'
-  }
-]
-
+const memberOptions = ref<MemberListItem[]>([])
+const equipmentOptions = ref<EquipmentItem[]>([])
 const memberKeyword = ref('')
-const memberIndex = ref(0)
-const currentMember = computed(() => members[memberIndex.value % members.length])
+const equipmentKeyword = ref('')
+const memberLoading = ref(false)
+const equipmentLoading = ref(false)
+const loadError = ref('')
+const submitting = ref(false)
+const paymentIndex = ref(0)
 
-const equipments = [
-  { id: 'racket', name: '专业球拍', price: 45, icon: 'shop' as const },
-  { id: 'shoes', name: '专业球鞋', price: 20, icon: 'cart' as const }
-]
-const selectedEquipId = ref('racket')
-const quantity = ref(1)
-const rentDate = ref('2023-11-24')
-const payMethod = ref<PayMethod>('balance')
-const remarks = ref('')
+const paymentValues = ['CASH', 'ALIPAY', 'WECHAT', 'BALANCE']
+const paymentLabels = ['现金', '支付宝', '微信支付', '余额支付']
 
-const payOptions = [
-  { key: 'cash' as const, label: '现金', icon: 'wallet' as const },
-  { key: 'alipay' as const, label: '支付宝', icon: 'image' as const },
-  { key: 'wechat' as const, label: '微信支付', icon: 'chatbubble' as const },
-  { key: 'balance' as const, label: '余额支付', icon: 'contact' as const }
-]
-
-const hourlyRate = computed(() => {
-  const eq = equipments.find((e) => e.id === selectedEquipId.value)
-  return eq?.price ?? 45
+const form = reactive({
+  memberId: 0,
+  equipmentId: 0,
+  quantity: '1',
+  rentalDate: '',
+  expectedReturnDate: '',
+  remark: ''
 })
 
-const rentEstimate = computed(() => {
-  const v = quantity.value * hourlyRate.value
-  return v.toFixed(2)
+const selectedEquipment = computed(() =>
+  equipmentOptions.value.find((item) => item.id === form.equipmentId) || null
+)
+const safeQuantity = computed(() => {
+  const value = Number(form.quantity)
+  return Number.isFinite(value) && value > 0 ? value : 0
 })
+const unitPrice = computed(() => Number(selectedEquipment.value?.rentalPrice || selectedEquipment.value?.price || 0))
+const rentalAmount = computed(() => safeQuantity.value * unitPrice.value)
+const unitPriceLabel = computed(() => formatAmount(unitPrice.value))
+const rentalAmountLabel = computed(() => formatAmount(rentalAmount.value))
 
-const orderTotal = computed(() => rentEstimate.value)
-
-const displayDate = computed(() => {
-  const [y, m, d] = rentDate.value.split('-')
-  if (!y) return rentDate.value
-  return `${m}/${d}/${y}`
-})
-
-function onDateChange(e: { detail: { value: string } }) {
-  rentDate.value = e.detail.value
+function setDefaultDates() {
+  const today = formatDate(new Date())
+  form.rentalDate = form.rentalDate || today
+  form.expectedReturnDate = form.expectedReturnDate || today
 }
 
-function decQty() {
-  if (quantity.value > 1) quantity.value -= 1
+async function searchMembers() {
+  memberLoading.value = true
+  try {
+    const res = await getMemberList({
+      memberName: memberKeyword.value || undefined,
+      page: 1,
+      size: 10
+    })
+    memberOptions.value = Array.isArray(res?.data) ? res.data : []
+  } catch (error) {
+    console.error('Failed to search members:', error)
+    memberOptions.value = []
+    loadError.value = '会员数据加载失败'
+  } finally {
+    memberLoading.value = false
+  }
 }
 
-function incQty() {
-  if (quantity.value < 99) quantity.value += 1
+async function searchEquipment() {
+  equipmentLoading.value = true
+  try {
+    const res = await getEquipmentList({
+      equipmentName: equipmentKeyword.value || undefined,
+      page: 1,
+      size: 10,
+      status: 1
+    })
+    equipmentOptions.value = Array.isArray(res?.data) ? res.data : []
+  } catch (error) {
+    console.error('Failed to search equipment:', error)
+    equipmentOptions.value = []
+    loadError.value = '器材数据加载失败'
+  } finally {
+    equipmentLoading.value = false
+  }
 }
 
-function switchMember() {
-  memberIndex.value = (memberIndex.value + 1) % members.length
+async function loadOptions() {
+  loadError.value = ''
+  setDefaultDates()
+  await Promise.all([searchMembers(), searchEquipment()])
+}
+
+function selectMember(item: MemberListItem) {
+  form.memberId = Number(item.id || 0)
+}
+
+function selectEquipment(item: EquipmentItem) {
+  form.equipmentId = Number(item.id || 0)
+}
+
+function onRentalDateChange(e: { detail?: { value?: string } }) {
+  form.rentalDate = String(e.detail?.value || '')
+}
+
+function onExpectedDateChange(e: { detail?: { value?: string } }) {
+  form.expectedReturnDate = String(e.detail?.value || '')
+}
+
+function onPaymentChange(e: { detail?: { value?: string } }) {
+  paymentIndex.value = Number(e.detail?.value ?? 0)
+}
+
+function validateForm() {
+  if (!form.memberId) return '请选择会员'
+  if (!form.equipmentId) return '请选择器材'
+  if (!safeQuantity.value) return '请输入有效数量'
+  if (!form.rentalDate) return '请选择租借日期'
+  if (!form.expectedReturnDate) return '请选择预计归还日期'
+  return ''
+}
+
+async function submitForm() {
+  if (submitting.value) return
+
+  const errorText = validateForm()
+  if (errorText) {
+    uni.showToast({ title: errorText, icon: 'none' })
+    return
+  }
+
+  submitting.value = true
+  try {
+    const result = await createEquipmentRental({
+      memberId: form.memberId,
+      equipmentId: form.equipmentId,
+      quantity: safeQuantity.value,
+      rentalDate: form.rentalDate,
+      expectedReturnDate: form.expectedReturnDate,
+      rentalAmount: rentalAmount.value,
+      unitPrice: unitPrice.value,
+      depositAmount: 0,
+      durationHours: 24,
+      paymentMethod: paymentValues[paymentIndex.value],
+      paymentStatus: 1,
+      status: 1,
+      remark: form.remark || undefined
+    })
+    uni.showToast({ title: '创建成功', icon: 'success' })
+    setTimeout(() => {
+      if (result?.id) {
+        uni.redirectTo({ url: `${PRESIDENT_PAGES.EQUIPMENT_RENTAL_DETAIL}?id=${result.id}` })
+      } else {
+        goBack()
+      }
+    }, 400)
+  } catch (error) {
+    console.error('Failed to create equipment rental:', error)
+  } finally {
+    submitting.value = false
+  }
 }
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.EQUIPMENT_RENTAL_LIST)
 }
 
-function onConfirm() {
-  // TODO: POST 手动录入租借
-  uni.showToast({
-    title: '租借已创建（示例）',
-    icon: 'success'
-  })
-}
+onLoad(() => {
+  loadOptions()
+})
 </script>
 
 <style lang="scss" scoped>
-.president-equipment-rental-form-layout {
-  :deep(.president-layout-content) {
-    padding-bottom: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-}
-
 .page {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background: #f9f9f9;
-  font-family: Lexend, 'PingFang SC', system-ui, sans-serif;
 }
 
 .status-bar-placeholder {
@@ -273,419 +371,262 @@ function onConfirm() {
 }
 
 .nav-header {
-  flex-shrink: 0;
-  background: #f9f9f9;
-  padding: 20rpx 32rpx 16rpx;
-  z-index: 50;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 16rpx 24rpx;
+  background: rgba(249, 249, 249, 0.92);
+  backdrop-filter: blur(12px);
 }
 
-.nav-row {
+.nav-row,
+.nav-left,
+.nav-actions,
+.card-head,
+.search-row,
+.picker-field,
+.footer-actions {
   display: flex;
   align-items: center;
+}
+
+.nav-row,
+.card-head,
+.footer-actions {
   justify-content: space-between;
 }
 
 .nav-left {
-  display: flex;
-  align-items: center;
   gap: 16rpx;
 }
 
-.nav-icon-btn {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 16rpx;
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  &:active {
-    background: #e8e8e8;
-  }
 }
 
 .nav-title {
   font-size: 36rpx;
   font-weight: 800;
   color: #1a1c1c;
-  letter-spacing: -0.02em;
-}
-
-.nav-avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  border: 4rpx solid #ff6600;
 }
 
 .main-scroll {
-  flex: 1;
-  height: 0;
-  min-height: 200rpx;
+  height: calc(100vh - var(--status-bar-height) - 104rpx);
 }
 
-.scroll-inner {
-  padding: 16rpx 32rpx 32rpx;
-  padding-bottom: 200rpx;
-}
-
-.card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  padding: 36rpx 32rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-}
-
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24rpx;
-}
-
-.section-label {
-  font-size: 22rpx;
-  font-weight: 700;
-  color: #5f5e5e;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.search-input {
-  width: 100%;
-  height: 88rpx;
-  padding: 0 28rpx;
-  background: #f3f3f3;
-  border-radius: 16rpx;
-  font-size: 28rpx;
-  color: #1a1c1c;
-  box-sizing: border-box;
-}
-
-.ph {
-  color: rgba(95, 94, 94, 0.45);
-  font-size: 26rpx;
-}
-
-.member-pick {
-  margin-top: 24rpx;
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  padding: 20rpx;
-  background: #e8e8e8;
-  border-radius: 16rpx;
-  border-left: 8rpx solid #ff6600;
-}
-
-.mem-avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  background: #ddd;
-}
-
-.mem-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.mem-name {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-}
-
-.mem-bal {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: #5f5e5e;
-}
-
-.mem-switch {
-  font-size: 22rpx;
-  font-weight: 800;
-  color: #a33e00;
-  text-transform: uppercase;
-}
-
-.equip-grid {
-  display: flex;
-  gap: 24rpx;
-}
-
-.equip-cell {
-  flex: 1;
+.content {
+  padding: 12rpx 24rpx 40rpx;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 28rpx 16rpx;
-  border-radius: 16rpx;
-  background: #f3f3f3;
-  border: 4rpx solid transparent;
+  gap: 20rpx;
 }
 
-.equip-cell.selected {
-  background: rgba(255, 102, 0, 0.1);
-  border-color: #ff6600;
+.hero-card,
+.card,
+.summary-card,
+.state-card {
+  padding: 32rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
 }
 
-.equip-name {
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-}
-
-.equip-name.on {
-  color: #1a1c1c;
-}
-
-.equip-price {
-  margin-top: 6rpx;
-  font-size: 20rpx;
-  color: #5f5e5e;
-}
-
-.equip-price.on {
-  color: #a33e00;
-  font-weight: 700;
-}
-
-.row-2 {
+.hero-card {
   display: flex;
+  justify-content: space-between;
   gap: 24rpx;
-  margin-bottom: 24rpx;
+  background: linear-gradient(135deg, #fff3eb 0%, #ffffff 100%);
 }
 
-.half-card {
-  flex: 1;
-  margin-bottom: 0;
+.hero-label,
+.hero-amount-label,
+.card-tip,
+.field-label,
+.summary-label,
+.sub-state,
+.state-text,
+.option-subtitle {
+  color: #71717a;
+  font-size: 24rpx;
 }
 
-.highlight-b {
-  border-bottom: 6rpx solid #ff6600;
-}
-
-.mini-label {
+.hero-title {
   display: block;
-  font-size: 20rpx;
-  font-weight: 700;
-  color: #5f5e5e;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 16rpx;
-}
-
-.mini-label.mb {
-  margin-bottom: 20rpx;
-}
-
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 28rpx;
-}
-
-.step-btn {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
-  background: #e8e8e8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  &:active {
-    background: #ff6600;
-  }
-}
-
-.step-sym {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1a1c1c;
-  line-height: 1;
-}
-
-.step-btn:active .step-sym {
-  color: #fff;
-}
-
-.qty-val {
-  font-size: 40rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-  min-width: 48rpx;
-  text-align: center;
-}
-
-.estimate-val {
-  font-size: 40rpx;
+  margin-top: 12rpx;
+  font-size: 42rpx;
   font-weight: 800;
   color: #1a1c1c;
 }
 
-.date-row {
+.hero-subtitle {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #71717a;
+}
+
+.hero-amount {
+  min-width: 180rpx;
+  text-align: right;
+}
+
+.hero-amount-value {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #ff6600;
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.search-row {
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.search-input,
+.field-input,
+.picker-field,
+.textarea {
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 18rpx;
+}
+
+.search-input,
+.field-input,
+.picker-field {
+  min-height: 80rpx;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+  font-size: 28rpx;
+}
+
+.picker-field {
+  justify-content: space-between;
+}
+
+.mini-btn {
+  min-width: 120rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 18rpx;
+  background: #fff7ed;
+  color: #a33e00;
+  font-size: 24rpx;
+}
+
+.option-list,
+.field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.option-item,
+.field-item {
+  padding: 22rpx 24rpx;
+  border-radius: 18rpx;
+  background: #f8fafc;
+}
+
+.option-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 24rpx;
-  background: #f3f3f3;
-  border-radius: 16rpx;
-}
-
-.date-text {
-  flex: 1;
-  text-align: center;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1a1c1c;
-}
-
-.pay-grid {
-  display: flex;
-  flex-wrap: wrap;
   gap: 16rpx;
 }
 
-.pay-cell {
-  width: calc(50% - 8rpx);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 20rpx 16rpx;
-  border-radius: 16rpx;
-  background: #f3f3f3;
-  border: 4rpx solid transparent;
+.option-item.active {
+  background: #fff7ed;
+  border: 1rpx solid #fed7aa;
 }
 
-.pay-cell.selected {
-  background: rgba(255, 102, 0, 0.1);
-  border-color: #ff6600;
-}
-
-.pay-lab {
-  font-size: 22rpx;
-  font-weight: 800;
+.option-title,
+.summary-value {
+  font-size: 28rpx;
+  font-weight: 700;
   color: #1a1c1c;
 }
 
-.pay-lab.on {
+.field-label {
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.picker-value {
+  font-size: 28rpx;
+  color: #1a1c1c;
+}
+
+.textarea {
+  min-height: 160rpx;
+  padding: 20rpx 24rpx;
+  box-sizing: border-box;
+  font-size: 28rpx;
+}
+
+.summary-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.summary-item {
+  padding: 20rpx;
+  border-radius: 18rpx;
+  background: #fff7ed;
+}
+
+.summary-value {
+  display: block;
+  margin-top: 10rpx;
   color: #a33e00;
 }
 
-.remarks {
-  width: 100%;
-  min-height: 160rpx;
-  padding: 20rpx;
-  background: #f3f3f3;
-  border-radius: 16rpx;
-  font-size: 26rpx;
-  color: #1a1c1c;
-  box-sizing: border-box;
-}
-
-.total-card {
-  position: relative;
-  overflow: hidden;
-  background: #e8e8e8;
-  border: 4rpx solid #ff6600;
-}
-
-.total-watermark {
-  position: absolute;
-  right: -20rpx;
-  top: -20rpx;
-  opacity: 0.06;
-  pointer-events: none;
-}
-
-.total-row {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.total-k {
-  display: block;
-  font-size: 20rpx;
-  font-weight: 700;
-  color: #5f5e5e;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.total-num {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 48rpx;
-  font-weight: 900;
-  color: #1a1c1c;
-}
-
-.total-sub {
-  font-size: 20rpx;
-  font-style: italic;
-  color: #5a4136;
-}
-
-.scroll-pad {
-  height: 24rpx;
-}
-
 .footer-actions {
-  flex-shrink: 0;
-  display: flex;
-  gap: 24rpx;
-  padding: 20rpx 32rpx;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  background: rgba(249, 249, 249, 0.95);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.04);
+  gap: 16rpx;
 }
 
-.btn-cancel {
+.primary-btn,
+.secondary-btn,
+.retry-btn {
   flex: 1;
-  height: 96rpx;
-  line-height: 96rpx;
-  border-radius: 16rpx;
-  background: #e2e2e2;
-  font-size: 26rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: none;
-  margin: 0;
-  padding: 0;
-  &::after {
-    border: none;
-  }
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 999rpx;
+  font-size: 28rpx;
 }
 
-.btn-submit {
-  flex: 1.4;
-  height: 96rpx;
-  line-height: 96rpx;
-  border-radius: 16rpx;
-  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
-  font-size: 26rpx;
-  font-weight: 800;
+.primary-btn {
+  background: #ff6600;
   color: #ffffff;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: none;
-  margin: 0;
-  padding: 0;
-  box-shadow: 0 12rpx 32rpx rgba(255, 102, 0, 0.22);
-  &::after {
-    border: none;
-  }
+}
+
+.secondary-btn {
+  background: #ffffff;
+  color: #1a1c1c;
+  border: 1rpx solid #e5e7eb;
+}
+
+.retry-btn {
+  margin-top: 20rpx;
+  background: #ff6600;
+  color: #ffffff;
+}
+
+.error .state-text {
+  color: #b91c1c;
 }
 </style>
