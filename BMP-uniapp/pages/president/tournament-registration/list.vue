@@ -46,25 +46,29 @@
             <view class="table-head">
               <text class="th th-name">申请人姓名</text>
               <text class="th th-event">赛事名称</text>
-              <text class="th th-score">技术评分</text>
               <text class="th th-date">注册日期</text>
               <text class="th th-status">状态</text>
               <text class="th th-actions">操作</text>
             </view>
 
-            <view v-for="row in pagedRows" :key="row.id" class="data-row" @click="openDetail(row)">
+            <view v-if="loading" class="loading-state">
+              <text class="loading-text">加载中...</text>
+            </view>
+
+            <view v-else-if="pagedRows.length === 0" class="empty-state">
+              <text class="empty-text">暂无报名数据</text>
+            </view>
+
+            <template v-else>
+              <view v-for="row in pagedRows" :key="row.id" class="data-row" @click="openDetail(row)">
               <view class="td td-name">
                 <view class="avatar">{{ row.initials }}</view>
                 <view class="name-block">
                   <text class="applicant-name">{{ row.name }}</text>
-                  <text class="applicant-id">ID: {{ row.memberId }}</text>
+                  <text class="applicant-id">{{ row.memberId }}</text>
                 </view>
               </view>
               <text class="td td-event">{{ row.tournament }}</text>
-              <view class="td td-score">
-                <text class="score-val">{{ row.score }}</text>
-                <text class="score-tier">{{ row.tier }}</text>
-              </view>
               <text class="td td-date">{{ row.date }}</text>
               <view class="td td-status">
                 <view class="status-pill" :class="`pill-${row.status}`">
@@ -88,6 +92,7 @@
                 </view>
               </view>
             </view>
+            </template>
 
             <view class="table-footer">
               <text class="footer-hint">{{ footerHint }}</text>
@@ -116,10 +121,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getTournamentRegistrationList, type TournamentRegistrationItem } from '@/api/tournament'
+import { parsePagedList } from '@/utils/parsePagedList'
 
 type RegStatus = 'pending' | 'approved' | 'rejected'
 type FilterKey = 'all' | RegStatus
@@ -130,69 +137,102 @@ type RegRow = {
   name: string
   memberId: string
   tournament: string
-  score: string
-  tier: string
   date: string
   status: RegStatus
 }
 
-const stats = {
-  totalApplicants: '1,284',
-  pending: 42,
-  approved: '1,192',
-  rejected: '50'
-}
-
+const loading = ref(false)
 const activeFilter = ref<FilterKey>('pending')
 const currentPage = ref(1)
-const pageSize = 4
+const pageSize = 10
 
-const allRows = ref<RegRow[]>([
-  {
-    id: '918',
-    initials: 'ML',
-    name: 'Marcus Løvberg',
-    memberId: 'KL-2024-918',
-    tournament: 'Nordic Smash Masters',
-    score: '2,450',
-    tier: '精英',
-    date: '2023年10月12日',
-    status: 'pending'
-  },
-  {
-    id: '042',
-    initials: 'ST',
-    name: 'Sarah Tan',
-    memberId: 'KL-2024-042',
-    tournament: 'East Asia Invitational',
-    score: '2,120',
-    tier: '职业',
-    date: '2023年10月11日',
-    status: 'approved'
-  },
-  {
-    id: '115',
-    initials: 'DK',
-    name: 'David Kim',
-    memberId: 'KL-2024-115',
-    tournament: 'World Junior Qualifiers',
-    score: '1,890',
-    tier: '挑战者',
-    date: '2023年10月10日',
-    status: 'rejected'
-  },
-  {
-    id: '882',
-    initials: 'AV',
-    name: 'Amara Vance',
-    memberId: 'KL-2024-882',
-    tournament: 'Nordic Smash Masters',
-    score: '2,310',
-    tier: '精英',
-    date: '2023年10月10日',
-    status: 'pending'
+const allRows = ref<RegRow[]>([])
+
+// 生成首字母缩写
+function getInitials(name?: string): string {
+  if (!name) return 'U'
+  const trimmed = name.trim()
+  if (/[\u4e00-\u9fa5]/.test(trimmed)) {
+    return trimmed.slice(0, 1)
   }
-])
+  const parts = trimmed.split(/\s+/).filter(Boolean)
+  const first = parts[0]?.[0] || 'U'
+  const second = parts[1]?.[0] || ''
+  return (first + second).toUpperCase()
+}
+
+// 格式化日期
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return '—'
+  try {
+    const date = new Date(dateStr)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    return `${year}年${month}月${day}日`
+  } catch {
+    return dateStr
+  }
+}
+
+// 状态映射：后端 status 字段映射
+// 根据 TournamentRegistrationItem 接口，status 为 number
+// 假设：0=已取消, 1=待审核, 2=已通过, 3=已拒绝
+function mapRegistrationStatus(status?: number): RegStatus {
+  if (status === 1) return 'pending'
+  if (status === 2) return 'approved'
+  if (status === 3) return 'rejected'
+  return 'pending' // 默认待审核
+}
+
+// 数据转换函数
+function transformRegistration(item: TournamentRegistrationItem): RegRow {
+  return {
+    id: String(item.id),
+    initials: getInitials(item.memberName),
+    name: item.memberName || '未知会员',
+    memberId: `ID-${item.memberId || '—'}`,
+    tournament: item.tournamentName || '未知赛事',
+    date: formatDate(item.createTime),
+    status: mapRegistrationStatus(item.status)
+  }
+}
+
+// 加载报名列表
+async function loadRegistrations() {
+  loading.value = true
+  try {
+    const res = await getTournamentRegistrationList({
+      page: 1,
+      size: 100
+    })
+    const { list } = parsePagedList<TournamentRegistrationItem>(res)
+    allRows.value = list.map(transformRegistration)
+  } catch (error) {
+    console.error('加载报名列表失败:', error)
+    uni.showToast({ 
+      title: '加载失败，请重试', 
+      icon: 'none' 
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 统计数据
+const stats = computed(() => {
+  const total = allRows.value.length
+  const pending = allRows.value.filter(r => r.status === 'pending').length
+  const approved = allRows.value.filter(r => r.status === 'approved').length
+  const rejected = allRows.value.filter(r => r.status === 'rejected').length
+  
+  return {
+    totalApplicants: total.toLocaleString(),
+    pending,
+    approved: approved.toLocaleString(),
+    rejected: rejected.toLocaleString()
+  }
+})
 
 const metricItems = computed(() => [
   { key: 'all' as const, label: '总申请人数', value: stats.totalApplicants },
@@ -277,6 +317,11 @@ function onMore(row: RegRow) {
 function nextPage() {
   if (currentPage.value < totalPages.value) currentPage.value += 1
 }
+
+// 页面加载时获取数据
+onMounted(() => {
+  loadRegistrations()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -427,6 +472,19 @@ function nextPage() {
 .table-head {
   display: none;
 }
+.loading-state,
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80rpx 28rpx;
+}
+.loading-text,
+.empty-text {
+  font-size: 26rpx;
+  color: #71717a;
+  font-weight: 600;
+}
 .data-row {
   padding: 28rpx;
   border-bottom: 1rpx solid #f3f3f3;
@@ -477,25 +535,6 @@ function nextPage() {
   font-size: 28rpx;
   font-weight: 600;
   color: #1a1c1c;
-}
-.td-score {
-  margin-top: 16rpx;
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 10rpx;
-}
-.score-val {
-  font-size: 30rpx;
-  font-weight: 800;
-  color: #a33e00;
-}
-.score-tier {
-  font-size: 18rpx;
-  font-weight: 800;
-  color: #5f5e5e;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 .td-date {
   display: block;
@@ -622,7 +661,7 @@ function nextPage() {
   }
   .table-head {
     display: grid;
-    grid-template-columns: 1.4fr 1.2fr 0.9fr 0.9fr 0.7fr 0.75fr;
+    grid-template-columns: 1.4fr 1.2fr 0.9fr 0.7fr 0.75fr;
     gap: 12rpx;
     padding: 24rpx 28rpx;
     background: #f3f3f3;
@@ -639,22 +678,16 @@ function nextPage() {
   }
   .data-row {
     display: grid;
-    grid-template-columns: 1.4fr 1.2fr 0.9fr 0.9fr 0.7fr 0.75fr;
+    grid-template-columns: 1.4fr 1.2fr 0.9fr 0.7fr 0.75fr;
     gap: 12rpx;
     align-items: center;
     padding: 28rpx;
   }
   .td-event,
-  .td-score,
   .td-date,
   .td-status,
   .td-actions {
     margin-top: 0;
-  }
-  .td-score {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4rpx;
   }
   .table-footer {
     flex-direction: row;

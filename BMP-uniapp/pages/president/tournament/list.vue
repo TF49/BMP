@@ -40,11 +40,11 @@
           <view class="stat-card primary-border">
             <view class="stat-card-top">
               <text class="stat-icon-text">进行中</text>
-              <view class="stat-badge active-badge">
+              <view class="stat-badge active-badge" v-if="stats.ongoing !== '00'">
                 <text class="stat-badge-text">活跃</text>
               </view>
             </view>
-            <text class="stat-number">04</text>
+            <text class="stat-number">{{ stats.ongoing }}</text>
             <text class="stat-label">进行中的赛事</text>
           </view>
 
@@ -53,7 +53,7 @@
             <view class="stat-card-top">
               <text class="stat-icon-text tertiary-icon">参赛</text>
             </view>
-            <text class="stat-number">1,284</text>
+            <text class="stat-number">{{ stats.totalParticipants }}</text>
             <text class="stat-label">总参赛人数</text>
           </view>
 
@@ -62,7 +62,7 @@
             <view class="stat-card-top">
               <text class="stat-icon-text secondary-icon">完赛</text>
             </view>
-            <text class="stat-number">12</text>
+            <text class="stat-number">{{ stats.completed }}</text>
             <text class="stat-label">本年度已完成</text>
             <text class="deco-icon material-icon">workspace_premium</text>
           </view>
@@ -93,7 +93,15 @@
         </view>
 
         <!-- Tournament Cards List -->
-        <view class="cards-list">
+        <view v-if="loading" class="loading-state">
+          <text class="loading-text">加载中...</text>
+        </view>
+        
+        <view v-else-if="filteredTournaments.length === 0" class="empty-state">
+          <text class="empty-text">暂无赛事</text>
+        </view>
+        
+        <view v-else class="cards-list">
           <view
             v-for="(t, index) in filteredTournaments"
             :key="t.id"
@@ -198,14 +206,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getTournamentList, type TournamentItem } from '@/api/tournament'
+import { getTournamentStatusMeta } from '@/utils/presidentStatus'
+import { parsePagedList } from '@/utils/parsePagedList'
 
 const currentTab = ref(0)
+const loading = ref(false)
 
-type TournamentStatus = 'registration' | 'ongoing' | 'ended' | 'draft'
+type TournamentStatus = 'registration' | 'ongoing' | 'ended' | 'draft' | 'cancelled'
 
 interface Tournament {
   id: number
@@ -224,49 +236,92 @@ interface Tournament {
   plannedDate?: string
 }
 
-const tournaments = ref<Tournament[]>([
-  {
-    id: 1,
-    name: '2024 夏季精英挑战赛',
-    status: 'registration',
-    category: '单打 / 双打',
-    location: '北京国家体育馆',
-    image: '/static/placeholders/hero.svg',
-    registered: 24,
-    capacity: 32,
-    deadline: '08月20日'
-  },
-  {
-    id: 2,
-    name: '城市之光锦标赛',
-    status: 'ongoing',
-    category: '混合双打',
-    location: '上海旗忠网球中心',
-    image: '/static/placeholders/hero.svg',
-    currentRound: '1/4 决赛',
-    totalPlayers: 64,
-    endTime: '今日 18:00'
-  },
-  {
-    id: 3,
-    name: '春季公开赛',
-    status: 'ended',
-    category: '单打',
-    location: '深圳大运中心',
-    image: '/static/placeholders/hero.svg',
-    champion: '陈伟宏'
-  },
-  {
-    id: 4,
-    name: '年度总决赛',
-    status: 'draft',
-    category: '全项目',
-    location: '广州天河体育中心',
-    image: '/static/placeholders/hero.svg',
-    plannedDate: '12月15日'
-  }
-])
+const tournaments = ref<Tournament[]>([])
 
+// 日期格式化工具函数
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return '待定'
+  try {
+    const date = new Date(dateStr)
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    return `${month}月${day}日`
+  } catch {
+    return dateStr
+  }
+}
+
+// 状态映射函数
+function mapTournamentStatus(status?: number): TournamentStatus {
+  const meta = getTournamentStatusMeta(status)
+  return meta.key
+}
+
+// 数据转换函数
+function transformTournament(item: TournamentItem): Tournament {
+  const status = mapTournamentStatus(item.status)
+  
+  return {
+    id: item.id,
+    name: item.tournamentName || '未命名赛事',
+    status,
+    category: item.tournamentType || '未分类',
+    location: item.venueName || '待定',
+    image: '/static/placeholders/hero.svg',
+    
+    // 报名中状态字段
+    registered: item.currentParticipants || 0,
+    capacity: item.maxParticipants || 0,
+    deadline: formatDate(item.registrationEnd),
+    
+    // 进行中状态字段
+    currentRound: '进行中',
+    totalPlayers: item.currentParticipants || 0,
+    endTime: formatDate(item.tournamentEnd),
+    
+    // 已结束状态字段
+    champion: '待公布',
+    
+    // 筹备中状态字段
+    plannedDate: formatDate(item.tournamentStart)
+  }
+}
+
+// 加载赛事列表
+async function loadTournaments() {
+  loading.value = true
+  try {
+    const res = await getTournamentList({
+      page: 1,
+      size: 100
+    })
+    const { list } = parsePagedList<TournamentItem>(res)
+    tournaments.value = list.map(transformTournament)
+  } catch (error) {
+    console.error('加载赛事列表失败:', error)
+    uni.showToast({ 
+      title: '加载失败，请重试', 
+      icon: 'none' 
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 统计数据
+const stats = computed(() => {
+  const ongoing = tournaments.value.filter(t => t.status === 'ongoing').length
+  const totalParticipants = tournaments.value.reduce((sum, t) => sum + (t.registered || 0), 0)
+  const completed = tournaments.value.filter(t => t.status === 'ended').length
+  
+  return {
+    ongoing: String(ongoing).padStart(2, '0'),
+    totalParticipants: totalParticipants.toLocaleString(),
+    completed: String(completed)
+  }
+})
+
+// 筛选后的赛事列表
 const filteredTournaments = computed(() => {
   if (currentTab.value === 0) return tournaments.value
   const map: Record<number, TournamentStatus> = {
@@ -284,7 +339,8 @@ function statusLabel(status: TournamentStatus) {
     registration: '报名中',
     ongoing: '进行中',
     ended: '已结束',
-    draft: '筹备中'
+    draft: '筹备中',
+    cancelled: '已取消'
   }
   return map[status] || status
 }
@@ -312,6 +368,11 @@ function handleCardClick(t: Tournament) {
 function handleEdit(t: Tournament) {
   uni.navigateTo({ url: `${PRESIDENT_PAGES.TOURNAMENT_FORM}?id=${t.id}` })
 }
+
+// 页面加载时获取数据
+onMounted(() => {
+  loadTournaments()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -556,6 +617,21 @@ function handleEdit(t: Tournament) {
 }
 
 /* ── Cards ── */
+.loading-state,
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 120rpx 48rpx;
+}
+
+.loading-text,
+.empty-text {
+  font-size: 28rpx;
+  color: #71717a;
+  font-weight: 500;
+}
+
 .cards-list {
   display: flex;
   flex-direction: column;

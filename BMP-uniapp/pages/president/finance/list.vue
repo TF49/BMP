@@ -50,10 +50,10 @@
               <uni-icons type="wallet" size="20" color="#a33e00"></uni-icons>
               <text class="card-label">总收入</text>
             </view>
-            <text class="card-value">$142,580</text>
+            <text class="card-value">{{ formatAmount(totalIncome) }}</text>
             <view class="card-trend up">
               <uni-icons type="arrow-up" size="14" color="#059669"></uni-icons>
-              <text class="trend-text">+12.4% vs last month</text>
+              <text class="trend-text">实时数据</text>
             </view>
           </view>
           
@@ -63,10 +63,10 @@
               <uni-icons type="shop" size="20" color="#ba1a1a"></uni-icons>
               <text class="card-label">总支出</text>
             </view>
-            <text class="card-value">$84,210</text>
+            <text class="card-value">{{ formatAmount(totalExpense) }}</text>
             <view class="card-trend down">
               <uni-icons type="arrow-up" size="14" color="#ba1a1a"></uni-icons>
-              <text class="trend-text">+5.2% vs last month</text>
+              <text class="trend-text">实时数据</text>
             </view>
           </view>
 
@@ -76,20 +76,20 @@
               <uni-icons type="medal" size="20" color="#ffffff"></uni-icons>
               <text class="card-label light">净利润</text>
             </view>
-            <text class="card-value light">$58,370</text>
-            <view class="goal-badge">目标: $50,000 已达成目标</view>
+            <text class="card-value light">{{ formatAmount(netIncome) }}</text>
+            <view class="goal-badge">当前净利润</view>
           </view>
 
           <!-- Monthly Growth -->
           <view class="metric-card group-hover-tertiary">
             <view class="card-header">
               <uni-icons type="settings-filled" size="20" color="#0062a1"></uni-icons>
-              <text class="card-label">增长率</text>
+              <text class="card-label">利润率</text>
             </view>
-            <text class="card-value">18.2%</text>
+            <text class="card-value">{{ growthRate.toFixed(1) }}%</text>
             <view class="card-trend up">
               <uni-icons type="paperplane" size="14" color="#059669"></uni-icons>
-              <text class="trend-text">Outperforming Q3</text>
+              <text class="trend-text">收支比率</text>
             </view>
           </view>
         </view>
@@ -176,12 +176,23 @@
           <view class="table-header">
             <view>
               <text class="table-title">最近交易</text>
-              <text class="table-desc">过去30个工作日的审计日志</text>
+              <text class="table-desc">最近的财务记录</text>
             </view>
-            <text class="export-btn">导出数据</text>
+            <text class="export-btn" @click="handleExport">导出数据</text>
           </view>
           
-          <scroll-view class="table-scroll" scroll-x="true">
+          <!-- Loading State -->
+          <view v-if="loading" class="loading-container">
+            <text class="loading-text">加载中...</text>
+          </view>
+          
+          <!-- Empty State -->
+          <view v-else-if="transactions.length === 0" class="empty-container">
+            <text class="empty-text">暂无财务记录</text>
+          </view>
+          
+          <!-- Data Table -->
+          <scroll-view v-else class="table-scroll" scroll-x="true">
             <view class="table-container">
               <view class="table-head">
                 <text class="th w-date">日期</text>
@@ -191,60 +202,31 @@
                 <text class="th w-status">状态</text>
               </view>
               <view class="table-body">
-                <!-- Row 1 -->
-                <view class="tr hover-bg">
+                <view 
+                  v-for="item in transactions" 
+                  :key="item.id" 
+                  class="tr hover-bg"
+                >
                   <view class="td w-date">
-                    <text class="date-b">Oct 24, 2023</text>
-                    <text class="tx-id">ID: #TX-9021</text>
+                    <text class="date-b">{{ formatDate(item.createTime) }}</text>
+                    <text class="tx-id">ID: #{{ item.id }}</text>
                   </view>
                   <view class="td w-type flex-row">
-                    <view class="icon-box primary-bg">
-                      <uni-icons type="calendar" size="20" color="#a33e00"></uni-icons>
+                    <view :class="['icon-box', getBusinessStyle(item.businessType)]">
+                      <uni-icons :type="getBusinessIcon(item.businessType)" size="20" color="#a33e00"></uni-icons>
                     </view>
-                    <text class="type-text">场地预约 - 西区</text>
+                    <text class="type-text">{{ item.businessType || '其他' }}</text>
                   </view>
-                  <view class="td w-channel">预约系统</view>
-                  <view class="td w-amount right amt-plus">+$1,240.00</view>
+                  <view class="td w-channel">{{ item.paymentMethod || '-' }}</view>
+                  <view 
+                    :class="['td', 'w-amount', 'right', item.incomeExpenseType === 'income' ? 'amt-plus' : 'amt-minus']"
+                  >
+                    {{ item.incomeExpenseType === 'income' ? '+' : '-' }}{{ formatAmount(item.amount) }}
+                  </view>
                   <view class="td w-status">
-                    <text class="status-tag success">已完成</text>
-                  </view>
-                </view>
-
-                <!-- Row 2 -->
-                <view class="tr hover-bg">
-                  <view class="td w-date">
-                    <text class="date-b">Oct 23, 2023</text>
-                    <text class="tx-id">ID: #TX-8945</text>
-                  </view>
-                  <view class="td w-type flex-row">
-                    <view class="icon-box secondary-bg">
-                      <uni-icons type="flag" size="20" color="#5f5e5e"></uni-icons>
-                    </view>
-                    <text class="type-text">进阶职业课程</text>
-                  </view>
-                  <view class="td w-channel">教务台</view>
-                  <view class="td w-amount right amt-plus">+$4,500.00</view>
-                  <view class="td w-status">
-                    <text class="status-tag success">已完成</text>
-                  </view>
-                </view>
-
-                <!-- Row 3 -->
-                <view class="tr hover-bg">
-                  <view class="td w-date">
-                    <text class="date-b">Oct 22, 2023</text>
-                    <text class="tx-id">ID: #TX-8812</text>
-                  </view>
-                  <view class="td w-type flex-row">
-                    <view class="icon-box error-bg">
-                      <uni-icons type="settings" size="20" color="#ba1a1a"></uni-icons>
-                    </view>
-                    <text class="type-text">设备维护</text>
-                  </view>
-                  <view class="td w-channel">采购部</view>
-                  <view class="td w-amount right amt-minus">-$890.50</view>
-                  <view class="td w-status">
-                    <text class="status-tag warning">处理中</text>
+                    <text :class="['status-tag', getStatusTag(item).class]">
+                      {{ getStatusTag(item).text }}
+                    </text>
                   </view>
                 </view>
               </view>
@@ -258,10 +240,106 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getFinanceList, type FinanceItem } from '@/api/president/finance'
+
+// 数据状态
+const loading = ref(false)
+const transactions = ref<FinanceItem[]>([])
+const totalIncome = ref(0)
+const totalExpense = ref(0)
+const netIncome = ref(0)
+const growthRate = ref(0)
+
+// 加载财务数据
+async function loadFinanceData() {
+  loading.value = true
+  try {
+    const res = await getFinanceList({
+      page: 1,
+      size: 10
+    })
+    
+    if (res.data) {
+      transactions.value = res.data
+      
+      // 计算统计数据
+      let income = 0
+      let expense = 0
+      
+      res.data.forEach(item => {
+        const amount = item.amount || 0
+        if (item.incomeExpenseType === 'income') {
+          income += amount
+        } else if (item.incomeExpenseType === 'expense') {
+          expense += amount
+        }
+      })
+      
+      totalIncome.value = income
+      totalExpense.value = expense
+      netIncome.value = income - expense
+      
+      // 简单计算增长率（实际应该从后端获取）
+      if (expense > 0) {
+        growthRate.value = ((income - expense) / expense * 100)
+      }
+    }
+  } catch (error) {
+    console.error('加载财务数据失败:', error)
+    uni.showToast({ title: '加载失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 格式化金额
+function formatAmount(amount?: number): string {
+  if (!amount) return '$0.00'
+  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+// 格式化日期
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// 获取业务类型图标
+function getBusinessIcon(type?: string): string {
+  const iconMap: Record<string, string> = {
+    'court_booking': 'calendar',
+    'course_booking': 'flag',
+    'equipment_rental': 'shop',
+    'tournament': 'medal',
+    'maintenance': 'settings'
+  }
+  return iconMap[type || ''] || 'wallet'
+}
+
+// 获取业务类型样式
+function getBusinessStyle(type?: string): string {
+  const styleMap: Record<string, string> = {
+    'court_booking': 'primary-bg',
+    'course_booking': 'secondary-bg',
+    'equipment_rental': 'tertiary-bg',
+    'maintenance': 'error-bg'
+  }
+  return styleMap[type || ''] || 'primary-bg'
+}
+
+// 获取状态标签
+function getStatusTag(item: FinanceItem): { text: string; class: string } {
+  // 根据实际业务逻辑判断状态
+  if (item.remark?.includes('处理中')) {
+    return { text: '处理中', class: 'warning' }
+  }
+  return { text: '已完成', class: 'success' }
+}
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
@@ -278,6 +356,14 @@ function handleSearch() {
 function handleSettings() {
   uni.showToast({ title: '设置功能开发中', icon: 'none' })
 }
+
+function handleExport() {
+  uni.showToast({ title: '导出功能开发中', icon: 'none' })
+}
+
+onMounted(() => {
+  loadFinanceData()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -816,6 +902,19 @@ function handleSettings() {
   }
 }
 
+.loading-container,
+.empty-container {
+  padding: 96rpx 48rpx;
+  text-align: center;
+}
+
+.loading-text,
+.empty-text {
+  font-size: 28rpx;
+  color: #5f5e5e;
+  font-weight: 500;
+}
+
 .table-scroll {
   width: 100%;
 }
@@ -894,6 +993,7 @@ function handleSettings() {
   
   &.primary-bg { background-color: rgba(163, 62, 0, 0.1); }
   &.secondary-bg { background-color: rgba(95, 94, 94, 0.1); }
+  &.tertiary-bg { background-color: rgba(0, 98, 161, 0.1); }
   &.error-bg { background-color: rgba(186, 26, 26, 0.1); }
 }
 
