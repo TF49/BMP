@@ -8,6 +8,8 @@ export interface MemberListItem {
   id: number
   userId?: number
   memberName?: string
+  avatar?: string
+  gender?: number
   phone?: string
   memberType?: string
   memberLevel?: number

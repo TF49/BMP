@@ -54,10 +54,6 @@
               <text class="stat-label">会员总数</text>
               <text class="stat-value">{{ total }}</text>
             </view>
-            <view class="stat-card active-today">
-              <text class="stat-label">今日活跃</text>
-              <text class="stat-value">{{ activeToday }}</text>
-            </view>
           </view>
         </view>
 
@@ -78,6 +74,11 @@
         <view v-if="loading && list.length === 0" class="state-wrap">
           <view class="spinner"></view>
           <text>正在加载会员...</text>
+        </view>
+
+        <view v-else-if="errorText" class="state-wrap">
+          <text>{{ errorText }}</text>
+          <view class="retry-btn" @click="reloadList">重新加载</view>
         </view>
 
         <!-- Empty State -->
@@ -139,7 +140,7 @@ import { safeNavigateBack } from '@/utils/navigation'
 const loading = ref(false)
 const list = ref<MemberListItem[]>([])
 const total = ref(0)
-const activeToday = ref(156) // Mock static number for visual
+const errorText = ref('')
 const currentTab = ref(0)
 
 const tabs = [
@@ -170,20 +171,15 @@ async function loadList(append = false) {
   if (!append) {
     queryParams.page = 1
     list.value = []
+    errorText.value = ''
   }
   
   loading.value = true
   try {
-    const res = await getMemberList(queryParams) as any
+    const res = await getMemberList(queryParams)
     const parsed = parsePagedList<MemberListItem>(res)
     total.value = parsed.total
-    
-    // Process backend data or populate mock if no real data to match prototype
-    let newList = parsed.list;
-    if (newList.length === 0 && !append && !queryParams.memberName) {
-        newList = getMockList();
-        total.value = 1402;
-    }
+    const newList = parsed.list
 
     if (append) {
       list.value = list.value.concat(newList)
@@ -192,12 +188,24 @@ async function loadList(append = false) {
     }
   } catch (e) {
     console.error('Fetch error:', e)
+    if (!append) {
+      errorText.value = e instanceof Error ? e.message : '会员列表加载失败，请稍后重试'
+      list.value = []
+      total.value = 0
+    } else {
+      queryParams.page = Math.max(1, queryParams.page - 1)
+      uni.showToast({ title: '加载更多失败，请稍后重试', icon: 'none' })
+    }
   } finally {
     loading.value = false
   }
 }
 
 function handleSearch() {
+  loadList()
+}
+
+function reloadList() {
   loadList()
 }
 
@@ -234,7 +242,7 @@ function handleNavSearch() {
 }
 
 function handleNavSettings() {
-  uni.showToast({ title: '设置功能开发中', icon: 'none' })
+  uni.navigateTo({ url: '/pages/settings/index' })
 }
 
 function handleDetail(item: MemberListItem) {
@@ -262,55 +270,13 @@ function handleAdd() {
 }
 
 function formatPhone(phone?: string) {
-  if (!phone) return '—'
+  if (!phone) return '-'
   return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1 **** $2')
 }
 
 function formatMoney(amount?: number) {
   if (amount == null) return '0.00'
   return Number(amount).toFixed(2)
-}
-
-// Ensure visual mapping from Prototype when API is unpopulated
-function getMockList(): any[] {
-  return [
-    {
-      id: 1,
-      memberName: '张伟明',
-      gender: 1,
-      memberLevel: 3,
-      phone: '13800138000',
-      balance: 1280.50,
-      avatar: '/static/placeholders/avatar.svg'
-    },
-    {
-      id: 2,
-      memberName: '李芳',
-      gender: 2,
-      memberLevel: 5,
-      phone: '13912345678',
-      balance: 4920.00,
-      avatar: '/static/placeholders/avatar.svg'
-    },
-    {
-      id: 3,
-      memberName: '王少杰',
-      gender: 1,
-      memberLevel: 1,
-      phone: '13799887766',
-      balance: 85.00,
-      avatar: '/static/placeholders/avatar.svg'
-    },
-    {
-      id: 4,
-      memberName: '陈雨欣',
-      gender: 2,
-      memberLevel: 2,
-      phone: '13566778899',
-      balance: 640.20,
-      avatar: '/static/placeholders/avatar.svg'
-    }
-  ]
 }
 
 onMounted(() => {
@@ -561,6 +527,20 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 20rpx;
+}
+
+.retry-btn {
+  min-width: 220rpx;
+  height: 72rpx;
+  padding: 0 32rpx;
+  border-radius: 999rpx;
+  background: #ff6600;
+  color: #fff7ed;
+  font-size: 26rpx;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .spinner {

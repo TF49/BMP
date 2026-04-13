@@ -12,6 +12,9 @@ export interface MemberInfo {
   balance: number
   status: number
   createTime: string
+  avatar?: string
+  totalRecharge?: number
+  totalConsumption?: number
 }
 
 export interface ConsumeRecord {

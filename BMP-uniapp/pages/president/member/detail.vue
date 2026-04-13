@@ -26,6 +26,7 @@
 
         <view v-else-if="!member" class="state-wrap">
           <text>会员信息不存在或已删除</text>
+          <view class="retry-btn" @click="reloadPage">重新加载</view>
         </view>
 
         <template v-else>
@@ -51,30 +52,9 @@
                 <text class="meta-v">{{ maskPhone(member.phone) }}</text>
               </view>
               <view class="meta-row">
-                <text class="meta-k">累计签到</text>
-                <text class="meta-v">{{ mockSignDays }} 天</text>
+                <text class="meta-k">会员类型</text>
+                <text class="meta-v">{{ memberTypeLabel(member.memberType) }}</text>
               </view>
-            </view>
-          </view>
-
-          <view class="quick-panel">
-            <view class="quick-item">
-              <view class="quick-left">
-                <view class="quick-icon">
-                  <uni-icons type="flag" size="16" color="#ea580c" />
-                </view>
-                <text class="quick-text">消费偏好</text>
-              </view>
-              <uni-icons type="right" size="16" color="#d4d4d8" />
-            </view>
-            <view class="quick-item">
-              <view class="quick-left">
-                <view class="quick-icon">
-                  <uni-icons type="medal" size="16" color="#ea580c" />
-                </view>
-                <text class="quick-text">获得勋章</text>
-              </view>
-              <uni-icons type="right" size="16" color="#d4d4d8" />
             </view>
           </view>
 
@@ -109,11 +89,11 @@
             <view class="tabs">
               <view class="tab" :class="{ active: activeTab === 'consume' }" @click="activeTab = 'consume'">最近消费</view>
               <view class="tab" :class="{ active: activeTab === 'recharge' }" @click="activeTab = 'recharge'">充值流水</view>
-              <view class="tab" :class="{ active: activeTab === 'booking' }" @click="activeTab = 'booking'">约球记录</view>
             </view>
 
             <view class="records" v-if="activeTab === 'consume'">
               <view v-if="consumeLoading" class="records-state">加载中…</view>
+              <view v-else-if="consumeError" class="records-state">{{ consumeError }}</view>
               <view v-else-if="consumeList.length === 0" class="records-state">暂无消费记录</view>
               <view v-else class="record-item" v-for="item in consumeList" :key="`c-${item.id}`">
                 <view class="item-left">
@@ -134,6 +114,7 @@
 
             <view class="records" v-else-if="activeTab === 'recharge'">
               <view v-if="rechargeLoading" class="records-state">加载中…</view>
+              <view v-else-if="rechargeError" class="records-state">{{ rechargeError }}</view>
               <view v-else-if="rechargeList.length === 0" class="records-state">暂无充值流水</view>
               <view v-else class="record-item" v-for="item in rechargeList" :key="`r-${item.id}`">
                 <view class="item-left">
@@ -152,9 +133,6 @@
               </view>
             </view>
 
-            <view class="records" v-else>
-              <view class="records-state">约球记录模块开发中</view>
-            </view>
           </view>
         </template>
 
@@ -184,16 +162,21 @@ const memberId = ref(0)
 const member = ref<MemberInfo | null>(null)
 const loading = ref(true)
 
-const activeTab = ref<'consume' | 'recharge' | 'booking'>('consume')
+const activeTab = ref<'consume' | 'recharge'>('consume')
 const consumeLoading = ref(false)
 const rechargeLoading = ref(false)
+const consumeError = ref('')
+const rechargeError = ref('')
 const consumeList = ref<ConsumeRecord[]>([])
 const rechargeList = ref<RechargeRecord[]>([])
-const mockSignDays = 142
 
 const presidentAvatar = computed(() => userStore.userInfo?.avatar || defaultPresidentAvatar)
-const memberAvatar = computed(() => defaultAvatar)
-const totalConsumption = computed(() => consumeList.value.reduce((sum, i) => sum + Number(i.amount || 0), 0))
+const memberAvatar = computed(() => member.value?.avatar || defaultAvatar)
+const totalConsumption = computed(() => {
+  const apiValue = Number(member.value?.totalConsumption)
+  if (Number.isFinite(apiValue) && apiValue > 0) return apiValue
+  return consumeList.value.reduce((sum, i) => sum + Number(i.amount || 0), 0)
+})
 
 /** 简化展示：根据等级映射 25/50/75/90/100 */
 const levelProgress = computed(() => {
@@ -216,7 +199,12 @@ function goRecharge() {
 }
 
 function onAdjust() {
-  uni.showToast({ title: '余额调整功能开发中', icon: 'none' })
+  goRecharge()
+}
+
+function reloadPage() {
+  if (!memberId.value) return
+  Promise.all([loadDetail(), loadConsume(), loadRecharge()])
 }
 
 function money(v?: number) {
@@ -252,6 +240,12 @@ function statusLabel(status?: number) {
   return '活跃中'
 }
 
+function memberTypeLabel(type?: string) {
+  if (type === 'MEMBER') return '正式会员'
+  if (type === 'NORMAL') return '普通用户'
+  return type || '未知'
+}
+
 function consumeTitle(item: ConsumeRecord) {
   return item.remark || item.businessNo || '会员消费'
 }
@@ -268,7 +262,8 @@ async function loadDetail() {
   loading.value = true
   try {
     member.value = await getMemberInfo(memberId.value)
-  } catch {
+  } catch (error) {
+    console.error('Failed to load member detail:', error)
     member.value = null
   } finally {
     loading.value = false
@@ -277,11 +272,14 @@ async function loadDetail() {
 
 async function loadConsume() {
   consumeLoading.value = true
+  consumeError.value = ''
   try {
     const res = await getMemberConsumeRecords(memberId.value, { page: 1, size: 20 })
     consumeList.value = res.data || []
-  } catch {
+  } catch (error) {
+    console.error('Failed to load member consume records:', error)
     consumeList.value = []
+    consumeError.value = '消费记录加载失败，请稍后重试'
   } finally {
     consumeLoading.value = false
   }
@@ -289,11 +287,14 @@ async function loadConsume() {
 
 async function loadRecharge() {
   rechargeLoading.value = true
+  rechargeError.value = ''
   try {
     const res = await getRechargeRecordsByMemberId(memberId.value, { page: 1, size: 20 })
     rechargeList.value = res.data || []
-  } catch {
+  } catch (error) {
+    console.error('Failed to load member recharge records:', error)
     rechargeList.value = []
+    rechargeError.value = '充值流水加载失败，请稍后重试'
   } finally {
     rechargeLoading.value = false
   }
@@ -387,6 +388,20 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   justify-content: center;
   align-items: center;
   color: #71717a;
+}
+
+.retry-btn {
+  min-width: 220rpx;
+  height: 72rpx;
+  padding: 0 32rpx;
+  border-radius: 9999px;
+  background: #ea580c;
+  color: #fff7ed;
+  font-size: 26rpx;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .spinner {
