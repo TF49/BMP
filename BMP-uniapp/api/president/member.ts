@@ -2,7 +2,7 @@
  * 会长端 - 会员管理 API
  * 后端 Member 实体：id, userId, memberName, phone, memberType, memberLevel, balance, status, registerTime, expireTime 等
  */
-import { get, post } from '@/utils/request'
+import { get, post, put } from '@/utils/request'
 
 export interface MemberListItem {
   id: number
@@ -47,6 +47,10 @@ export function getMemberList(params?: {
   return get<MemberListResult>('/member/list', sanitizedParams)
 }
 
+export function getMemberInfo(id: number) {
+  return get<MemberListItem>(`/member/info/${id}`)
+}
+
 /** 新增会员（会长/场馆管理员），字段与后端 `Member` 校验一致 */
 export function addMember(data: {
   memberName: string
@@ -58,4 +62,22 @@ export function addMember(data: {
   status?: number
 }) {
   return post<MemberListItem>('/member/add', data)
+}
+
+export function updateMember(data: {
+  id: number
+  userId?: number
+  memberName: string
+  gender?: 0 | 1
+  phone: string
+  idCard?: string
+  memberType: 'NORMAL' | 'MEMBER'
+  memberLevel?: number | null
+  registerTime?: string
+  expireTime?: string | null
+  status?: number
+  totalConsumption?: number
+  balance?: number
+}) {
+  return put<null>('/member/update', data)
 }

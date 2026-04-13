@@ -121,6 +121,13 @@ export function updateCourse(data: CoursePayload) {
   })
 }
 
+export function updateCourseStatus(id: number, status: number) {
+  return request<null>({
+    url: `${API_PATHS.COURSE.STATUS}?id=${id}&status=${status}`,
+    method: 'PUT'
+  })
+}
+
 /**
  * 课程预约列表
  */

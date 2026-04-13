@@ -57,6 +57,7 @@ export const API_PATHS = {
   COURSE: {
     LIST: '/course/list',
     DETAIL: '/course/info',
+    STATUS: '/course/status',
     BOOKING: {
       LIST: '/course/booking/list',
       ADD: '/course/booking/add',

@@ -29,7 +29,7 @@
           </view>
           <view class="hero-badge">
             <view class="hero-dot" />
-            <text class="hero-badge-text">统一会长端视图</text>
+            <text class="hero-badge-text">真实接口数据</text>
           </view>
         </view>
 
@@ -51,7 +51,7 @@
         <view class="stats-row">
           <view class="stat-card">
             <text class="stat-label">场地总数</text>
-            <text class="stat-value">{{ filteredCourts.length }}</text>
+            <text class="stat-value">{{ total }}</text>
           </view>
           <view class="stat-card accent">
             <text class="stat-label">可立即预订</text>
@@ -59,18 +59,32 @@
           </view>
         </view>
 
-        <view class="court-grid">
+        <view v-if="loading" class="state-wrap">
+          <view class="spinner" />
+          <text>加载场地列表中...</text>
+        </view>
+
+        <view v-else-if="errorText" class="state-wrap">
+          <text>{{ errorText }}</text>
+          <view class="retry-btn" @click="loadList">重试</view>
+        </view>
+
+        <view v-else-if="courts.length === 0" class="state-wrap">
+          <text>暂无符合条件的场地</text>
+        </view>
+
+        <view v-else class="court-grid">
           <view
-            v-for="court in filteredCourts"
+            v-for="court in courts"
             :key="court.id"
             class="court-card"
             @click="openDetail(court)"
           >
             <view class="card-top">
               <view>
-                <text class="court-id">{{ court.id }}</text>
-                <text class="court-name">#{{ court.name }} 场地</text>
-                <text class="court-location">{{ court.venue }} · {{ court.zone }}</text>
+                <text class="court-id">ID: {{ court.id }}</text>
+                <text class="court-name">{{ court.name }}</text>
+                <text class="court-location">{{ court.venue }}</text>
               </view>
               <view class="status-badge" :class="court.statusClass">
                 <text>{{ court.statusName }}</text>
@@ -106,73 +120,142 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getCourtList, getCourtVenueOptions, deleteCourt as deleteCourtApi, type CourtItem } from '@/api/court'
+import { parsePagedList } from '@/utils/parsePagedList'
+import { getCourtStatusMeta } from '@/utils/presidentStatus'
+import { formatAmount } from '@/utils/format'
 
-type CourtRow = {
-  id: string
+type CourtCard = {
+  id: number
   name: string
   venue: string
-  zone: string
   statusName: string
   statusClass: string
   metricLabel: string
   metricValue: string
 }
 
-const venues = ['全部场馆', '中心体育馆', '奥体中心', '动力羽毛球馆']
-const statuses = ['全部状态', '空闲', '使用中', '已预订', '维护中']
+type VenueOption = {
+  id: number
+  venueName: string
+}
 
+const loading = ref(false)
+const errorText = ref('')
+const courts = ref<CourtCard[]>([])
+const total = ref(0)
+
+const venueOptions = ref<VenueOption[]>([])
 const venueIndex = ref(0)
 const statusIndex = ref(0)
 
-const courts = ref<CourtRow[]>([
-  { id: 'CRT-001', name: '01', venue: '中心体育馆', zone: 'A区', statusName: '空闲', statusClass: 'available', metricLabel: '计费标准', metricValue: '￥80/小时' },
-  { id: 'CRT-002', name: '02', venue: '中心体育馆', zone: 'A区', statusName: '使用中', statusClass: 'inuse', metricLabel: '当前用时', metricValue: '45 分钟' },
-  { id: 'CRT-003', name: '03', venue: '中心体育馆', zone: 'B区', statusName: '已预订', statusClass: 'booked', metricLabel: '下一场次', metricValue: '14:00 - 16:00' },
-  { id: 'CRT-004', name: '04', venue: '奥体中心', zone: '训练区', statusName: '维护中', statusClass: 'maintenance', metricLabel: '维护说明', metricValue: '地板修整中' },
-  { id: 'CRT-005', name: '05', venue: '奥体中心', zone: 'VIP区', statusName: '空闲', statusClass: 'available', metricLabel: '计费标准', metricValue: '￥120/小时' }
-])
+const venues = computed(() => ['全部场馆', ...venueOptions.value.map(v => v.venueName)])
+const statuses = ['全部状态', '可预约', '使用中', '已预约', '维护中']
 
-const filteredCourts = computed(() => {
-  return courts.value.filter(court => {
-    const venueOk = venueIndex.value === 0 || court.venue === venues[venueIndex.value]
-    const statusOk = statusIndex.value === 0 || court.statusName === statuses[statusIndex.value]
-    return venueOk && statusOk
-  })
-})
+const filteredCourts = computed(() => courts.value)
+const availableCount = computed(() => courts.value.filter(item => item.statusClass === 'available').length)
 
-const availableCount = computed(() => filteredCourts.value.filter(item => item.statusClass === 'available').length)
+function mapCourt(item: CourtItem): CourtCard {
+  const statusMeta = getCourtStatusMeta(item.status)
+  const price = item.pricePerHour || item.pricePerTime || 0
+  const billingType = item.billingType === 'TIME' ? '按次' : '按小时'
+  
+  return {
+    id: Number(item.id || 0),
+    name: item.courtName || item.courtCode || `场地#${item.id}`,
+    venue: item.venueName || '未关联场馆',
+    statusName: statusMeta.label,
+    statusClass: statusMeta.className,
+    metricLabel: '计费标准',
+    metricValue: `¥${formatAmount(price)}/${billingType}`
+  }
+}
+
+async function loadVenues() {
+  try {
+    const res = await getCourtVenueOptions()
+    venueOptions.value = Array.isArray(res) ? res.filter(v => v.id && v.venueName) : []
+  } catch (error) {
+    console.error('加载场馆选项失败:', error)
+    venueOptions.value = []
+  }
+}
+
+async function loadList() {
+  loading.value = true
+  errorText.value = ''
+  
+  try {
+    const selectedVenueId = venueIndex.value > 0 ? venueOptions.value[venueIndex.value - 1]?.id : undefined
+    const selectedStatus = statusIndex.value > 0 ? statusIndex.value : undefined
+    
+    const res = await getCourtList({
+      venueId: selectedVenueId,
+      status: selectedStatus,
+      page: 1,
+      size: 100
+    })
+    
+    const parsed = parsePagedList<CourtItem>(res)
+    courts.value = parsed.list.map(mapCourt).filter(item => item.id > 0)
+    total.value = parsed.total
+  } catch (error) {
+    console.error('加载场地列表失败:', error)
+    errorText.value = error instanceof Error ? error.message : '加载失败，请稍后重试'
+    courts.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
+}
 
 function onVenueChange(e: any) {
   venueIndex.value = Number(e.detail?.value ?? 0)
+  loadList()
 }
 
 function onStatusChange(e: any) {
   statusIndex.value = Number(e.detail?.value ?? 0)
+  loadList()
 }
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.VENUE_LIST)
 }
 
-function openDetail(court: CourtRow) {
-  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURT_DETAIL}?id=${encodeURIComponent(court.id)}` })
+function openDetail(court: CourtCard) {
+  if (!court.id) return
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURT_DETAIL}?id=${court.id}` })
 }
 
-function editCourt(court: CourtRow) {
-  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURT_FORM}?id=${encodeURIComponent(court.id)}` })
+function editCourt(court: CourtCard) {
+  if (!court.id) return
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURT_FORM}?id=${court.id}` })
 }
 
-function deleteCourt(court: CourtRow) {
+function deleteCourt(court: CourtCard) {
   uni.showModal({
     title: '确认删除',
-    content: `确定删除 ${court.id} 吗？`,
+    content: `确定删除场地"${court.name}"吗？`,
     confirmColor: '#ba1a1a',
-    success: (res) => {
+    success: async (res) => {
       if (!res.confirm) return
-      courts.value = courts.value.filter(item => item.id !== court.id)
+      
+      try {
+        await deleteCourtApi(court.id)
+        uni.showToast({ title: '删除成功', icon: 'success' })
+        loadList()
+      } catch (error) {
+        console.error('删除场地失败:', error)
+        uni.showToast({ 
+          title: error instanceof Error ? error.message : '删除失败', 
+          icon: 'none' 
+        })
+      }
     }
   })
 }
@@ -180,6 +263,11 @@ function deleteCourt(court: CourtRow) {
 function goAdd() {
   uni.navigateTo({ url: PRESIDENT_PAGES.COURT_FORM })
 }
+
+onShow(() => {
+  loadVenues()
+  loadList()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -336,6 +424,43 @@ function goAdd() {
 
 .stat-card.accent {
   background: linear-gradient(135deg, #fff1e6, #ffedd5);
+}
+
+.state-wrap {
+  min-height: 420rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  color: #6b7280;
+  font-size: 26rpx;
+}
+
+.spinner {
+  width: 44rpx;
+  height: 44rpx;
+  border: 4rpx solid #e5e7eb;
+  border-top-color: #ea580c;
+  border-radius: 9999px;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.retry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 72rpx;
+  padding: 0 32rpx;
+  border-radius: 16rpx;
+  background: #ea580c;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 26rpx;
 }
 
 .court-grid {
