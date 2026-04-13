@@ -233,7 +233,7 @@ function onVenuePick(e: { detail: { value: string } }) {
   venueIndex.value = Number(e.detail.value)
 }
 
-function onStatusChange(e: { detail: { value: boolean } }) {
+function onStatusChange(e: any) {
   form.status = e.detail.value ? 1 : 0
 }
 
@@ -457,13 +457,13 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e8e8e8;
+  background: #ffffff;
+  box-shadow: 0 4rpx 12rpx rgba(15, 23, 42, 0.06);
 }
 .header-title {
   font-size: 34rpx;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 .save-top {
   color: #ff6600;
@@ -473,7 +473,7 @@ onLoad(async (q?: Record<string, string | undefined>) => {
 }
 .scroll {
   height: calc(100vh - var(--status-bar-height) - 100rpx);
-  padding: 24rpx 28rpx 48rpx;
+  padding: 20rpx 28rpx 56rpx;
   box-sizing: border-box;
 }
 .loading {
@@ -486,10 +486,10 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   display: flex;
   align-items: flex-end;
   gap: 12rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
 }
 .sec-head.m-top {
-  margin-top: 40rpx;
+  margin-top: 36rpx;
 }
 .sec-label {
   font-size: 20rpx;
@@ -502,7 +502,7 @@ onLoad(async (q?: Record<string, string | undefined>) => {
 .sec-line {
   flex: 1;
   height: 2rpx;
-  background: rgba(227, 191, 177, 0.35);
+  background: rgba(227, 191, 177, 0.42);
 }
 .grid-basic {
   display: flex;
@@ -527,8 +527,8 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   height: 240rpx;
   border-radius: 24rpx;
   overflow: hidden;
-  border: 4rpx dashed rgba(142, 113, 100, 0.45);
-  background: #e8e8e8;
+  border: 3rpx dashed rgba(142, 113, 100, 0.4);
+  background: #edf0f3;
 }
 .avatar-img {
   width: 100%;
@@ -592,6 +592,7 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   padding: 20rpx 22rpx;
   font-size: 26rpx;
   font-weight: 600;
+  border: 1rpx solid #f1f5f9;
 }
 .inp.ro {
   background: #f3f3f3;
@@ -611,6 +612,12 @@ onLoad(async (q?: Record<string, string | undefined>) => {
 .venue-row {
   margin-top: 12rpx;
 }
+.field .tags,
+.field .tag-input-row,
+.row-2.venue-row,
+.field .area {
+  background: #ffffff;
+}
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -621,8 +628,8 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   display: flex;
   align-items: center;
   gap: 6rpx;
-  background: #ff6600;
-  color: #561d00;
+  background: #ff6a00;
+  color: #3a1300;
   padding: 10rpx 20rpx;
   border-radius: 9999px;
   font-size: 22rpx;
@@ -651,7 +658,7 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   font-weight: 800;
 }
 .mini-btn.ghost {
-  background: #e5e5e5;
+  background: #e2e8f0;
   color: #1a1c1c;
 }
 .area {
@@ -661,6 +668,7 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   min-height: 160rpx;
   font-size: 26rpx;
   line-height: 1.5;
+  border: 1rpx solid #f1f5f9;
 }
 .pricing-card {
   background: #ffffff;
@@ -669,6 +677,7 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   display: flex;
   flex-direction: column;
   gap: 24rpx;
+  box-shadow: none;
 }
 .price-block {
   width: 100%;
@@ -703,6 +712,9 @@ onLoad(async (q?: Record<string, string | undefined>) => {
 .rate-box,
 .stat-box {
   flex: 1;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 .rate-val {
   display: flex;
@@ -736,7 +748,7 @@ onLoad(async (q?: Record<string, string | undefined>) => {
   padding: 32rpx;
   border-radius: 16rpx;
   background: linear-gradient(90deg, #a33e00, #ff6600);
-  color: #561d00;
+  color: #3c1700;
   font-size: 30rpx;
   font-weight: 900;
   text-align: center;

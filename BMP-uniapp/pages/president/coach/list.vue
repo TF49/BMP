@@ -11,11 +11,12 @@
           <text class="title">教练管理</text>
         </view>
         <view class="icon-btn add-btn" @click="goAdd">
-          <uni-icons type="plusempty" size="22" color="#ffffff" />
+          <uni-icons type="plusempty" size="22" color="#ea580c" />
         </view>
       </view>
 
       <view class="toolbar">
+        <text class="search-label">搜索教练</text>
         <view class="search-box">
           <uni-icons type="search" size="18" color="#71717a" />
           <input
@@ -29,7 +30,7 @@
         <view class="tabs">
           <view class="tab" :class="{ active: statusFilter === -1 }" @click="setStatus(-1)">全部</view>
           <view class="tab" :class="{ active: statusFilter === 1 }" @click="setStatus(1)">在职</view>
-          <view class="tab" :class="{ active: statusFilter === 0 }" @click="setStatus(0)">停用</view>
+          <view class="tab" :class="{ active: statusFilter === 0 }" @click="setStatus(0)">休息中</view>
         </view>
       </view>
 
@@ -49,31 +50,46 @@
         </view>
 
         <view v-else class="list">
-          <view class="summary">
-            <text>共 {{ total }} 位教练</text>
-            <text>当前展示 {{ coachList.length }} 位</text>
-          </view>
-
           <view v-for="item in coachList" :key="item.id" class="card" @click="goDetail(item.id)">
-            <image class="avatar" :src="item.avatar" mode="aspectFill" />
+            <view class="card-head">
+              <view class="avatar-wrap">
+                <image class="avatar" :src="item.avatar" mode="aspectFill" />
+                <view class="status-dot" :class="item.statusMeta.key" />
+              </view>
+              <view class="main">
+                <view class="row">
+                  <text class="name">{{ item.name }}</text>
+                  <view class="score-pill">
+                    <uni-icons type="star-filled" size="12" color="#ea580c" />
+                    <text class="score-text">{{ item.ratingText }}</text>
+                  </view>
+                </view>
 
-            <view class="main">
-              <view class="row">
-                <text class="name">{{ item.name }}</text>
-                <view class="status-pill" :class="item.statusMeta.key">
-                  {{ item.statusMeta.label }}
+                <text class="sub">{{ item.venueName || '未绑定场馆' }}</text>
+                <view class="tag-wrap">
+                  <text v-for="(tag, idx) in getCoachTags(item)" :key="`${item.id}-${idx}`" class="tag">{{ tag }}</text>
                 </view>
               </view>
+            </view>
 
-              <text class="sub">{{ item.venueName || '未绑定场馆' }}</text>
-              <text class="sub">{{ item.specialty || '未填写专长' }}</text>
-
-              <view class="meta-row">
-                <text>评分 {{ item.ratingText }}</text>
-                <text>课时费 ¥{{ item.priceText }}/小时</text>
-                <text>学员 {{ item.totalStudents }}</text>
+            <view class="meta-row">
+              <view>
+                <text class="meta-label">价格</text>
+                <view class="price-line">
+                  <text class="price">¥{{ item.priceText }}</text>
+                  <text class="unit">/ 小时</text>
+                </view>
+              </view>
+              <view class="meta-right">
+                <text class="meta-label">活跃度</text>
+                <text class="meta-value">累计 {{ item.totalStudents }}+ 学员</text>
               </view>
             </view>
+          </view>
+
+          <view class="add-card" @click="goAdd">
+            <uni-icons type="plusempty" size="30" color="#9ca3af" />
+            <text>添加新教练</text>
           </view>
 
           <view v-if="hasMore" class="more-btn" @click="loadMore">
@@ -83,6 +99,10 @@
 
         <view class="bottom-space" />
       </scroll-view>
+
+      <view class="fab" @click="goAdd">
+        <uni-icons type="plusempty" size="30" color="#ffffff" />
+      </view>
     </view>
   </PresidentLayout>
 </template>
@@ -193,42 +213,66 @@ function goDetail(id: number) {
   uni.navigateTo({ url: `${PRESIDENT_PAGES.COACH_DETAIL}?id=${id}` })
 }
 
+function getCoachTags(item: CoachCard) {
+  const raw = (item.specialty || '')
+    .split(/[，,、/|；;\s]+/)
+    .map(v => v.trim())
+    .filter(Boolean)
+  if (raw.length >= 2) return raw.slice(0, 2)
+  if (raw.length === 1) return [raw[0], `${item.totalStudents || 0}名学员`]
+  return ['专业教练', `${item.totalStudents || 0}名学员`]
+}
+
 onShow(() => {
   reloadList()
 })
 </script>
 
 <style lang="scss" scoped>
-.page { min-height: 100vh; background: #f8fafc; color: #111827; }
-.status-bar-placeholder { height: var(--status-bar-height); background: #f8fafc; }
+.page { min-height: 100vh; background: #f9f9f9; color: #111827; position: relative; }
+.status-bar-placeholder { height: var(--status-bar-height); background: #f9f9f9; }
 .top-bar { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 24rpx; }
 .top-left { display: flex; align-items: center; gap: 12rpx; }
-.icon-btn { width: 72rpx; height: 72rpx; border-radius: 20rpx; background: #ffffff; display: flex; align-items: center; justify-content: center; }
-.add-btn { background: #ea580c; }
-.title { font-size: 38rpx; font-weight: 800; }
+.icon-btn { width: 72rpx; height: 72rpx; border-radius: 20rpx; background: #f3f4f6; display: flex; align-items: center; justify-content: center; }
+.add-btn { background: #ffedd5; }
+.title { font-size: 42rpx; font-weight: 800; }
 .toolbar { padding: 0 24rpx 24rpx; display: flex; flex-direction: column; gap: 16rpx; }
-.search-box { display: flex; align-items: center; gap: 12rpx; padding: 0 24rpx; height: 88rpx; border-radius: 20rpx; background: #ffffff; }
+.search-label { color: #6b7280; font-size: 18rpx; letter-spacing: 2rpx; font-weight: 700; text-transform: uppercase; }
+.search-box { display: flex; align-items: center; gap: 12rpx; padding: 0 24rpx; height: 88rpx; border-radius: 20rpx; background: #ffffff; border: 1rpx solid #f1f5f9; }
 .search-input { flex: 1; font-size: 26rpx; }
-.tabs { display: flex; gap: 12rpx; }
-.tab { padding: 14rpx 28rpx; border-radius: 9999px; background: #e5e7eb; color: #4b5563; font-size: 24rpx; font-weight: 700; }
-.tab.active { background: #ffedd5; color: #c2410c; }
-.scroll { height: calc(100vh - var(--status-bar-height) - 232rpx); padding: 0 24rpx; box-sizing: border-box; }
+.tabs { display: flex; gap: 8rpx; padding: 8rpx; background: #ececec; border-radius: 20rpx; }
+.tab { flex: 1; text-align: center; padding: 12rpx 12rpx; border-radius: 14rpx; color: #4b5563; font-size: 24rpx; font-weight: 700; }
+.tab.active { background: #ffffff; color: #c2410c; box-shadow: 0 4rpx 12rpx rgba(15, 23, 42, 0.06); }
+.scroll { height: calc(100vh - var(--status-bar-height) - 248rpx); padding: 0 24rpx; box-sizing: border-box; }
 .state-wrap { min-height: 420rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16rpx; color: #6b7280; }
 .spinner { width: 44rpx; height: 44rpx; border: 4rpx solid #e5e7eb; border-top-color: #ea580c; border-radius: 9999px; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .retry-btn, .more-btn { display: inline-flex; align-items: center; justify-content: center; height: 72rpx; padding: 0 32rpx; border-radius: 16rpx; background: #ea580c; color: #ffffff; font-weight: 700; }
-.summary { display: flex; justify-content: space-between; color: #6b7280; font-size: 22rpx; margin-bottom: 20rpx; }
 .list { display: flex; flex-direction: column; gap: 18rpx; }
-.card { display: flex; gap: 20rpx; padding: 24rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05); }
-.avatar { width: 120rpx; height: 120rpx; border-radius: 24rpx; background: #e5e7eb; flex-shrink: 0; }
+.card { display: flex; flex-direction: column; gap: 18rpx; padding: 28rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.04); }
+.card-head { display: flex; gap: 20rpx; align-items: flex-start; }
+.avatar-wrap { position: relative; }
+.avatar { width: 120rpx; height: 120rpx; border-radius: 24rpx; background: #e5e7eb; flex-shrink: 0; border: 4rpx solid #fff7ed; }
+.status-dot { position: absolute; right: -6rpx; bottom: -6rpx; width: 24rpx; height: 24rpx; border-radius: 9999rpx; border: 4rpx solid #ffffff; background: #9ca3af; }
+.status-dot.active { background: #22c55e; }
+.status-dot.inactive { background: #9ca3af; }
+.status-dot.unknown { background: #d1d5db; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8rpx; }
 .row { display: flex; justify-content: space-between; gap: 12rpx; align-items: center; }
 .name { font-size: 32rpx; font-weight: 800; color: #111827; }
 .sub { font-size: 22rpx; color: #6b7280; }
-.meta-row { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 8rpx; font-size: 20rpx; color: #4b5563; }
-.status-pill { padding: 8rpx 16rpx; border-radius: 9999px; font-size: 18rpx; font-weight: 800; }
-.status-pill.active { background: #dcfce7; color: #166534; }
-.status-pill.inactive { background: #fee2e2; color: #b91c1c; }
-.status-pill.unknown { background: #e5e7eb; color: #4b5563; }
-.bottom-space { height: 36rpx; }
+.score-pill { display: flex; align-items: center; gap: 4rpx; background: #fff7ed; padding: 4rpx 10rpx; border-radius: 10rpx; }
+.score-text { font-size: 20rpx; color: #c2410c; font-weight: 700; }
+.tag-wrap { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 6rpx; }
+.tag { font-size: 18rpx; color: #52525b; background: #f1f5f9; border-radius: 9999rpx; padding: 6rpx 12rpx; font-weight: 600; }
+.meta-row { display: flex; justify-content: space-between; gap: 16rpx; margin-top: 2rpx; padding-top: 14rpx; border-top: 1rpx solid #f5f5f5; }
+.meta-label { display: block; font-size: 16rpx; color: #a1a1aa; font-weight: 700; text-transform: uppercase; letter-spacing: 1rpx; margin-bottom: 8rpx; }
+.price-line { display: flex; align-items: baseline; gap: 6rpx; }
+.price { font-size: 34rpx; font-weight: 900; color: #ea580c; }
+.unit { font-size: 18rpx; color: #9ca3af; }
+.meta-right { text-align: right; }
+.meta-value { font-size: 28rpx; color: #111827; font-weight: 800; }
+.add-card { height: 148rpx; border-radius: 24rpx; border: 2rpx dashed #d1d5db; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6rpx; color: #9ca3af; background: #f9fafb; font-size: 24rpx; font-weight: 700; }
+.fab { position: fixed; right: 28rpx; bottom: calc(150rpx + env(safe-area-inset-bottom)); width: 96rpx; height: 96rpx; border-radius: 24rpx; background: linear-gradient(135deg, #ff7a00, #ff5a00); box-shadow: 0 12rpx 24rpx rgba(255, 106, 0, 0.3); display: flex; align-items: center; justify-content: center; z-index: 30; }
+.bottom-space { height: 168rpx; }
 </style>

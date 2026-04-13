@@ -53,19 +53,28 @@ export const PRESIDENT_PAGES = {
 } as const
 
 /** 会长端 tabBar 页面路径（用于判断当前是否在 tabBar 页） */
-export const PRESIDENT_TAB_PATHS = [
-  'pages/index/index',
-  'pages/president/user/list',
-  'pages/president/venue/list',
-  'pages/president/finance/list',
-  'pages/president/profile/index'
-] as const
+function normalizePath(path: string): string {
+  return path.replace(/^\//, '').split('?')[0]
+}
+
+function getNativeTabBarPaths(): string[] {
+  const globalConfig = globalThis as {
+    __uniConfig?: { tabBar?: { list?: Array<{ pagePath?: string }> } }
+    __wxConfig?: { tabBar?: { list?: Array<{ pagePath?: string }> } }
+  }
+  const tabBarList =
+    globalConfig.__uniConfig?.tabBar?.list || globalConfig.__wxConfig?.tabBar?.list || []
+
+  return tabBarList
+    .map((item) => normalizePath(item?.pagePath || ''))
+    .filter(Boolean)
+}
 
 /**
  * 判断路径是否为会长端 tabBar 页面
  */
 export function isPresidentTabPage(path: string): boolean {
-  return PRESIDENT_TAB_PATHS.some(p => path.includes(p))
+  return getNativeTabBarPaths().includes(normalizePath(path))
 }
 
 /**

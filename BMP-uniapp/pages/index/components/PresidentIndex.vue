@@ -251,7 +251,8 @@ async function loadSummary() {
 
 function navigateTo(path: string) {
   if (!path) return
-  if (isPresidentTabPage(path)) {
+  const shouldSwitchTab = isPresidentTabPage(path)
+  if (shouldSwitchTab) {
     uni.switchTab({ url: path })
     return
   }

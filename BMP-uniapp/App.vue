@@ -12,7 +12,7 @@ import { useThemeStore } from './store/modules/theme'
 const userStore = useUserStore()
 const themeStore = useThemeStore()
 
-onLaunch(async () => {
+onLaunch(() => {
   console.log('App Launch')
 
   // 全局自定义字体：不再请求 Google（fonts.gstatic.com），避免无外网/受限网络失败。
@@ -24,8 +24,10 @@ onLaunch(async () => {
   // 初始化主题
   themeStore.initTheme()
 
-  // 检查登录状态（等待完成）
-  await userStore.checkLogin()
+  // 启动阶段不要阻塞在网络请求上，避免小程序生命周期超时。
+  void userStore.checkLogin().catch((error) => {
+    console.warn('checkLogin during launch failed:', error)
+  })
 
   // 可以在这里初始化WebSocket连接（如果需要）
   // initWebSocket()
@@ -59,6 +61,15 @@ function loadGlobalFonts() {
 // #ifdef MP-WEIXIN
 function filterWeChatErrors() {
   try {
+    const wxAny = (globalThis as any).wx
+    const uniAny = (globalThis as any).uni
+
+    if (wxAny && typeof wxAny.onUnhandledRejection === 'function') {
+      wxAny.onUnhandledRejection((event: any) => {
+        console.error('[wx.onUnhandledRejection]', event?.reason || event)
+      })
+    }
+
     // 保存原始的 console.error
     const originalError = console.error
     
@@ -90,7 +101,6 @@ function filterWeChatErrors() {
 
     // 修复：微信要求 closeSocket code 只能是 1000 或 3000-4999。
     // 某些开发环境/框架内部会错误地传入 1006（异常关闭码，不能主动传）。这里做兜底转换。
-    const wxAny = (globalThis as any).wx
     if (wxAny && typeof wxAny.closeSocket === 'function') {
       const originalCloseSocket = wxAny.closeSocket
       wxAny.closeSocket = function(options: any = {}) {
@@ -102,7 +112,6 @@ function filterWeChatErrors() {
     }
 
     // 同时兜底 uni.closeSocket（有些栈走的是 uni 而不是 wx）
-    const uniAny = (globalThis as any).uni
     if (uniAny && typeof uniAny.closeSocket === 'function') {
       const originalUniCloseSocket = uniAny.closeSocket
       uniAny.closeSocket = function(options: any = {}) {
