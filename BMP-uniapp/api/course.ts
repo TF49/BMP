@@ -8,6 +8,7 @@ export interface CourseItem {
   coachName: string
   courtId: number
   courtName: string
+  courseContent?: string
   coursePrice: number
   courseDuration: number
   courseDate: string
@@ -48,9 +49,15 @@ export interface CourseBookingItem {
   memberName: string
   courseId: number
   courseName: string
+  coachName?: string
+  courseDate?: string
+  courseStartTime?: string
+  courseEndTime?: string
   orderAmount: number
   paymentMethod: string
+  paymentStatus?: number
   status: number
+  remark?: string
   createTime: string
 }
 
@@ -59,6 +66,7 @@ export interface CourseBookingItem {
  */
 export function getCourseList(params?: {
   courseName?: string
+  keyword?: string
   coachId?: number
   courtId?: number
   status?: number
@@ -74,7 +82,10 @@ export function getCourseList(params?: {
   }>({
     url: API_PATHS.COURSE.LIST,
     method: 'GET',
-    data: params
+    data: {
+      ...params,
+      keyword: params?.keyword ?? params?.courseName
+    }
   })
 }
 
@@ -117,6 +128,7 @@ export function getCourseBookingList(params?: {
   memberId?: number
   courseId?: number
   status?: number
+  keyword?: string
   page?: number
   size?: number
 }) {
@@ -159,6 +171,7 @@ export function getCourseBookingDetail(id: number) {
  */
 export function getCoachList(params?: {
   status?: number
+  keyword?: string
   page?: number
   size?: number
 }) {

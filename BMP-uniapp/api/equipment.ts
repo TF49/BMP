@@ -4,6 +4,7 @@ import { API_PATHS } from '../config/api'
 export interface EquipmentItem {
   id: number
   equipmentCode: string
+  equipmentImage?: string
   equipmentName: string
   equipmentType: string
   brand: string
@@ -14,6 +15,7 @@ export interface EquipmentItem {
   status: number
   description: string
   createTime: string
+  venueName?: string
 }
 
 export interface EquipmentPayload {
@@ -68,6 +70,7 @@ export interface EquipmentRentalItem {
  */
 export function getEquipmentList(params?: {
   equipmentName?: string
+  keyword?: string
   equipmentType?: string
   status?: number
   page?: number

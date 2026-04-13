@@ -1,132 +1,112 @@
 <template>
   <PresidentLayout :showTabBar="false">
-    <view class="course-detail-page">
+    <view class="page">
       <view class="status-bar-placeholder" />
 
       <view class="top-bar">
-        <view class="top-inner">
-          <view class="left" @click="onBack">
-            <view class="hit">
-              <uni-icons type="arrow-left" size="22" color="#ea580c" />
-            </view>
-            <text class="title">课程详情</text>
+        <view class="top-left" @click="goBack">
+          <view class="icon-btn">
+            <uni-icons type="arrow-left" size="22" color="#ea580c" />
           </view>
-          <view class="hit" @click="onShare">
-            <uni-icons type="redo" size="18" color="#71717a" />
-          </view>
+          <text class="title">课程详情</text>
         </view>
       </view>
 
       <scroll-view scroll-y class="scroll" :show-scrollbar="false">
-        <view v-if="loading && !course" class="state-wrap">
+        <view v-if="loading" class="state-wrap">
           <view class="spinner" />
-          <text>加载课程详情中…</text>
+          <text>加载课程详情中...</text>
         </view>
+
+        <view v-else-if="errorText" class="state-wrap">
+          <text>{{ errorText }}</text>
+          <view class="retry-btn" @click="loadData">重试</view>
+        </view>
+
         <view v-else-if="!course" class="state-wrap">
-          <text>课程不存在或已删除</text>
+          <text>未找到课程信息</text>
         </view>
+
         <template v-else>
           <view class="hero">
-            <image class="hero-img" :src="heroImg" mode="aspectFill" />
-            <view class="badge">报名中</view>
+            <image class="hero-img" src="/static/placeholders/hero.svg" mode="aspectFill" />
+            <view class="badge" :class="statusMeta.key">{{ statusMeta.label }}</view>
           </view>
 
-          <view class="head-info">
+          <view class="headline">
             <view>
               <text class="name">{{ course.courseName }}</text>
-              <text class="code">课程编号: KL-{{ String(course.id).padStart(4, '0') }}-{{ dateCode }}</text>
+              <text class="sub">课程编号 KL-{{ String(course.id).padStart(4, '0') }}-{{ dateCode }}</text>
             </view>
-            <view class="price-pill">
-              <text class="k">课程费用</text>
-              <text class="v">¥ {{ money(course.coursePrice) }}</text>
+            <view class="price-card">
+              <text class="price-label">课程费用</text>
+              <text class="price-value">¥{{ amountText }}</text>
             </view>
           </view>
 
-          <view class="progress-card">
-            <view class="row">
-              <text class="k">报名进度</text>
-              <text class="v">{{ course.currentStudents }} / {{ course.maxStudents }} 人</text>
+          <view class="panel">
+            <view class="panel-head">
+              <text class="panel-title">报名进度</text>
+              <text class="panel-value">{{ course.currentStudents || 0 }}/{{ course.maxStudents || 0 }}</text>
             </view>
-            <view class="track"><view class="fill" :style="{ width: `${progress}%` }" /></view>
-            <text class="tip">目前已有 {{ progress }}% 的名额被锁定</text>
+            <view class="progress-track">
+              <view class="progress-fill" :style="{ width: `${progress}%` }" />
+            </view>
+            <text class="panel-tip">当前报名完成度 {{ progress }}%</text>
           </view>
 
           <view class="grid">
-            <view class="info-item">
-              <view class="icon"><uni-icons type="person" size="16" color="#a33e00" /></view>
-              <view>
-                <text class="k">授课教练</text>
-                <text class="v2">{{ course.coachName || '未指定教练' }}</text>
-              </view>
+            <view class="info-card">
+              <text class="label">教练</text>
+              <text class="value">{{ course.coachName || '未指定教练' }}</text>
             </view>
-            <view class="info-item">
-              <view class="icon"><uni-icons type="location" size="16" color="#a33e00" /></view>
-              <view>
-                <text class="k">场地位置</text>
-                <text class="v2">{{ course.courtName || '未指定场地' }}</text>
-              </view>
+            <view class="info-card">
+              <text class="label">场地</text>
+              <text class="value">{{ course.courtName || '未指定场地' }}</text>
             </view>
-            <view class="info-item">
-              <view class="icon"><uni-icons type="calendar" size="16" color="#a33e00" /></view>
-              <view>
-                <text class="k">排期时间</text>
-                <text class="v2">{{ weekLine }}</text>
-              </view>
+            <view class="info-card">
+              <text class="label">时间</text>
+              <text class="value">{{ scheduleText }}</text>
             </view>
-            <view class="info-item">
-              <view class="icon"><uni-icons type="timer" size="16" color="#a33e00" /></view>
-              <view>
-                <text class="k">课程周期</text>
-                <text class="v2">共 {{ mockLessons }} 课时 ({{ totalHours }} 小时)</text>
-              </view>
+            <view class="info-card">
+              <text class="label">时长</text>
+              <text class="value">{{ durationText }}</text>
             </view>
           </view>
 
-          <view class="member-card">
-            <view class="m-head">
-              <text>已报名会员</text>
-              <text class="all" @click="goBookings">全部</text>
+          <view class="panel">
+            <view class="panel-head">
+              <text class="panel-title">已报名会员</text>
+              <text class="panel-link" @click="goBookings">查看全部</text>
             </view>
-            <view v-if="bookingLoading" class="m-empty">加载中…</view>
-            <view v-else-if="bookingList.length === 0" class="m-empty">暂无报名会员</view>
-            <view v-else class="m-list">
-              <view class="m-row" v-for="item in bookingList.slice(0, 3)" :key="item.id">
-                <view class="avatar">{{ initials(item.memberName) }}</view>
-                <view class="meta">
-                  <text class="n">{{ item.memberName }}</text>
-                  <text class="t">报名时间: {{ formatDateTime(item.createTime) }}</text>
+            <view v-if="bookingLoading" class="empty-text">加载中...</view>
+            <view v-else-if="bookingList.length === 0" class="empty-text">暂无报名会员</view>
+            <view v-else class="member-list">
+              <view v-for="item in bookingList.slice(0, 5)" :key="item.id" class="member-row">
+                <view class="member-avatar">{{ initials(item.memberName) }}</view>
+                <view class="member-main">
+                  <text class="member-name">{{ item.memberName }}</text>
+                  <text class="member-sub">报名时间 {{ bookingTime(item.createTime) }}</text>
                 </view>
-                <view class="dot" />
-              </view>
-              <view class="m-row more" v-if="bookingList.length > 3">
-                <view class="avatar soft">+{{ bookingList.length - 3 }}</view>
-                <text class="t2">其他会员已报名</text>
+                <view class="member-status" :class="bookingStatus(item.status).key">
+                  {{ bookingStatus(item.status).label }}
+                </view>
               </view>
             </view>
           </view>
 
-          <view class="desc-wrap">
-            <text class="d-title">课程简介</text>
-            <view class="desc">
-              <text>
-                {{ courseDesc }}
-              </text>
-            </view>
+          <view class="panel">
+            <text class="panel-title">课程简介</text>
+            <text class="desc">{{ contentText }}</text>
           </view>
         </template>
 
-        <view class="spacer" />
+        <view class="bottom-space" />
       </scroll-view>
 
       <view v-if="course" class="footer">
-        <view class="btn ghost" @click="onCancelCourse">
-          <uni-icons type="close" size="16" color="#1a1c1c" />
-          <text>取消课程</text>
-        </view>
-        <view class="btn primary" @click="onEditCourse">
-          <uni-icons type="compose" size="16" color="#561d00" />
-          <text>编辑课程</text>
-        </view>
+        <view class="footer-btn ghost" @click="showUnsupported('当前版本暂未接入课程状态变更')">状态操作</view>
+        <view class="footer-btn primary" @click="goEdit">编辑课程</view>
       </view>
     </view>
   </PresidentLayout>
@@ -139,90 +119,83 @@ import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { getCourseBookingList, getCourseDetail, type CourseBookingItem, type CourseItem } from '@/api/course'
+import { parsePagedList } from '@/utils/parsePagedList'
+import { formatDate, formatDateTime, formatTime } from '@/utils/format'
+import { getCourseBookingStatusMeta, getCourseStatusMeta } from '@/utils/presidentStatus'
 
-const loading = ref(true)
-const bookingLoading = ref(true)
-const course = ref<CourseItem | null>(null)
-const bookingList = ref<CourseBookingItem[]>([])
 const courseId = ref(0)
+const loading = ref(true)
+const bookingLoading = ref(false)
+const errorText = ref('')
+const course = ref<(CourseItem & { courseContent?: string }) | null>(null)
+const bookingList = ref<CourseBookingItem[]>([])
 
-const heroImg =
-  '/static/placeholders/hero.svg'
-
+const statusMeta = computed(() => getCourseStatusMeta(course.value?.status))
 const progress = computed(() => {
-  const max = Number(course.value?.maxStudents || 0)
-  const cur = Number(course.value?.currentStudents || 0)
-  if (max <= 0) return 0
-  return Math.max(0, Math.min(100, Math.round((cur / max) * 100)))
+  const total = Number(course.value?.maxStudents || 0)
+  const current = Number(course.value?.currentStudents || 0)
+  return total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0
 })
-const totalHours = computed(() => {
-  const mins = Number(course.value?.courseDuration || 0)
-  const lessons = mockLessons.value
-  return ((mins * lessons) / 60).toFixed(0)
+const amountText = computed(() => Number(course.value?.coursePrice || 0).toFixed(2))
+const scheduleText = computed(() => {
+  if (!course.value) return '-'
+  const date = formatDate(course.value.courseDate, 'YYYY.MM.DD')
+  const start = formatTime(course.value.startTime, 'HH:mm')
+  const end = formatTime(course.value.endTime, 'HH:mm')
+  return date && start && end ? `${date} ${start}-${end}` : '-'
 })
-const weekLine = computed(() => {
-  if (!course.value) return '—'
-  return `${fmtDate(course.value.courseDate)} ${course.value.startTime} - ${course.value.endTime}`
+const durationText = computed(() => {
+  const minutes = Number(course.value?.courseDuration || 0)
+  if (!minutes) return '-'
+  const hours = minutes / 60
+  return `${hours % 1 === 0 ? hours.toFixed(0) : hours.toFixed(1)} 小时`
 })
-const mockLessons = computed(() => 10)
-const dateCode = computed(() => (course.value?.courseDate || '').replace(/-/g, '').slice(2))
-const courseDesc = computed(() => {
+const dateCode = computed(() => String(course.value?.courseDate || '').replace(/-/g, '').slice(2))
+const contentText = computed(() => {
+  if (course.value?.courseContent) return course.value.courseContent
   if (!course.value?.courseName) return '暂无课程简介。'
-  return `本课程围绕「${course.value.courseName}」进行系统训练，重点强化步法、击球与实战配合。课程采用小班制，确保每位学员获得充分指导。`
+  return `本课程围绕“${course.value.courseName}”开展训练，重点提升实战能力、动作稳定性与训练节奏。`
 })
 
-function onBack() {
-  safeNavigateBack(PRESIDENT_PAGES.COURSE_LIST)
-}
-function onShare() {
-  uni.showToast({ title: '分享功能开发中', icon: 'none' })
-}
-function onCancelCourse() {
-  uni.showToast({ title: '取消课程功能开发中', icon: 'none' })
-}
-function onEditCourse() {
-  if (!courseId.value) return
-  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURSE_FORM}?id=${courseId.value}` })
-}
-function goBookings() {
-  uni.navigateTo({ url: PRESIDENT_PAGES.COURSE_BOOKING_LIST })
+function bookingStatus(status?: number) {
+  return getCourseBookingStatusMeta(status)
 }
 
-function money(v?: number) {
-  if (v == null || Number.isNaN(Number(v))) return '0.00'
-  return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+function bookingTime(value?: string) {
+  return formatDateTime(value, 'YYYY-MM-DD HH:mm') || '-'
 }
-function fmtDate(v?: string) {
-  if (!v) return '—'
-  return v.slice(0, 10).replace(/-/g, '.')
-}
-function formatDateTime(v?: string) {
-  if (!v) return '-'
-  return v.replace('T', ' ').slice(5, 16)
-}
+
 function initials(name?: string) {
-  const n = (name || '').trim()
-  if (!n) return 'U'
-  if (/[\u4e00-\u9fa5]/.test(n)) return n.slice(0, 1)
-  const parts = n.split(/\s+/).filter(Boolean)
+  const text = (name || '').trim()
+  if (!text) return 'U'
+  if (/[\u4e00-\u9fa5]/.test(text)) return text.slice(0, 1)
+  const parts = text.split(/\s+/).filter(Boolean)
   return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || 'U'
 }
 
-async function loadDetail(id: number) {
-  loading.value = true
-  try {
-    course.value = await getCourseDetail(id)
-  } catch {
-    course.value = null
-  } finally {
-    loading.value = false
-  }
+function showUnsupported(text: string) {
+  uni.showToast({ title: text, icon: 'none' })
 }
-async function loadBookings(id: number) {
+
+function goBack() {
+  safeNavigateBack(PRESIDENT_PAGES.COURSE_LIST)
+}
+
+function goEdit() {
+  if (!courseId.value) return
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURSE_FORM}?id=${courseId.value}` })
+}
+
+function goBookings() {
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURSE_BOOKING_LIST}?courseId=${courseId.value}` })
+}
+
+async function loadBookings() {
+  if (!courseId.value) return
   bookingLoading.value = true
   try {
-    const res = await getCourseBookingList({ courseId: id, page: 1, size: 50 })
-    bookingList.value = res.data || []
+    const res = await getCourseBookingList({ courseId: courseId.value, page: 1, size: 50 })
+    bookingList.value = parsePagedList<CourseBookingItem>(res).list
   } catch {
     bookingList.value = []
   } finally {
@@ -230,81 +203,89 @@ async function loadBookings(id: number) {
   }
 }
 
-onLoad((q?: Record<string, string | undefined>) => {
-  const raw = q?.courseId ?? q?.id
-  const id = raw ? parseInt(String(raw), 10) : NaN
-  if (!Number.isFinite(id) || id <= 0) {
-    uni.showToast({ title: '缺少课程参数', icon: 'none' })
-    setTimeout(() => onBack(), 800)
+async function loadData() {
+  if (!courseId.value) return
+  loading.value = true
+  errorText.value = ''
+  course.value = null
+
+  try {
+    course.value = await getCourseDetail(courseId.value)
+    await loadBookings()
+  } catch (error) {
+    errorText.value = error instanceof Error ? error.message : '加载失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
+onLoad((query?: Record<string, string | undefined>) => {
+  const id = Number(query?.courseId || query?.id || 0)
+  if (!id) {
+    loading.value = false
+    errorText.value = '缺少课程参数'
     return
   }
   courseId.value = id
-  loadDetail(id)
-  loadBookings(id)
+  loadData()
 })
 </script>
 
 <style lang="scss" scoped>
-.course-detail-page { min-height: 100vh; background: #f9f9f9; color: #1a1c1c; padding-bottom: 140rpx; }
+.page { min-height: 100vh; background: #f8fafc; color: #111827; padding-bottom: 132rpx; }
 .status-bar-placeholder { height: var(--status-bar-height); background: #f8fafc; }
-.top-bar { position: sticky; top: 0; z-index: 50; background: rgba(248,250,252,.92); backdrop-filter: blur(14px); }
-.top-inner { height: 88rpx; padding: 0 16rpx; display: flex; align-items: center; justify-content: space-between; }
-.left { display: flex; align-items: center; gap: 10rpx; }
-.hit { width: 56rpx; height: 56rpx; border-radius: 9999px; display: flex; align-items: center; justify-content: center; background: #fff; }
-.title { font-size: 32rpx; color: #ea580c; font-weight: 900; }
-.scroll { height: calc(100vh - var(--status-bar-height) - 92rpx - 126rpx); padding: 10rpx 16rpx 0; box-sizing: border-box; }
-
-.state-wrap { min-height: 360rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14rpx; color: #71717a; }
-.spinner { width: 44rpx; height: 44rpx; border-radius: 9999px; border: 4rpx solid #e5e7eb; border-top-color: #ea580c; animation: spin .8s linear infinite; }
+.top-bar { padding: 16rpx 24rpx; }
+.top-left { display: flex; align-items: center; gap: 12rpx; }
+.icon-btn { width: 72rpx; height: 72rpx; border-radius: 20rpx; background: #ffffff; display: flex; align-items: center; justify-content: center; }
+.title { font-size: 38rpx; font-weight: 800; }
+.scroll { height: calc(100vh - var(--status-bar-height) - 108rpx - 132rpx); padding: 0 24rpx; box-sizing: border-box; }
+.state-wrap { min-height: 420rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16rpx; color: #6b7280; }
+.spinner { width: 44rpx; height: 44rpx; border: 4rpx solid #e5e7eb; border-top-color: #ea580c; border-radius: 9999px; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-.hero { border-radius: 24rpx; overflow: hidden; height: 360rpx; position: relative; background: #f3f3f3; }
+.retry-btn { display: inline-flex; align-items: center; justify-content: center; height: 72rpx; padding: 0 32rpx; border-radius: 16rpx; background: #ea580c; color: #ffffff; font-weight: 700; }
+.hero { position: relative; height: 320rpx; border-radius: 28rpx; overflow: hidden; background: #e5e7eb; }
 .hero-img { width: 100%; height: 100%; }
-.badge { position: absolute; left: 14rpx; top: 14rpx; background: #ff6600; color: #561d00; padding: 8rpx 14rpx; border-radius: 9999px; font-size: 18rpx; font-weight: 900; }
-
-.head-info { margin-top: 14rpx; display: flex; justify-content: space-between; align-items: flex-end; gap: 12rpx; }
-.name { display: block; font-size: 48rpx; font-weight: 900; letter-spacing: -0.03em; }
-.code { display: block; margin-top: 6rpx; color: #71717a; font-weight: 700; font-size: 20rpx; }
-.price-pill { background: #e2e2e2; border-radius: 16rpx; padding: 10rpx 14rpx; }
-.price-pill .k { display: block; font-size: 14rpx; color: #71717a; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-.price-pill .v { display: block; margin-top: 2rpx; font-size: 36rpx; color: #a33e00; font-weight: 900; }
-
-.progress-card { margin-top: 14rpx; background: #fff; border-radius: 20rpx; padding: 16rpx; box-shadow: 0 4rpx 12rpx rgba(2,6,23,.04); }
-.row { display: flex; justify-content: space-between; align-items: center; }
-.row .k { color: #71717a; font-size: 18rpx; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-.row .v { font-size: 24rpx; font-weight: 900; }
-.track { margin-top: 10rpx; height: 10rpx; border-radius: 9999px; background: #e5e7eb; overflow: hidden; }
-.fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #a33e00, #ff6600); }
-.tip { margin-top: 8rpx; font-size: 16rpx; color: #71717a; font-style: italic; }
-
-.grid { margin-top: 14rpx; display: grid; grid-template-columns: 1fr; gap: 10rpx; }
-.info-item { background: #f3f3f3; border-radius: 16rpx; padding: 14rpx; display: flex; gap: 10rpx; }
-.icon { width: 42rpx; height: 42rpx; border-radius: 12rpx; background: #ffedd5; display: flex; align-items: center; justify-content: center; }
-.info-item .k { display: block; font-size: 14rpx; color: #71717a; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-.v2 { display: block; margin-top: 2rpx; font-size: 24rpx; font-weight: 800; }
-
-.member-card { margin-top: 14rpx; background: #fff; border-radius: 20rpx; padding: 16rpx; box-shadow: 0 4rpx 12rpx rgba(2,6,23,.04); }
-.m-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10rpx; font-size: 20rpx; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: #71717a; }
-.all { color: #a33e00; }
-.m-empty { text-align: center; padding: 24rpx 0; color: #a1a1aa; font-weight: 700; }
-.m-list { display: flex; flex-direction: column; gap: 10rpx; }
-.m-row { display: flex; align-items: center; gap: 10rpx; }
-.avatar { width: 44rpx; height: 44rpx; border-radius: 9999px; background: #ffedd5; display: flex; align-items: center; justify-content: center; color: #a33e00; font-weight: 900; }
-.avatar.soft { background: #e5e7eb; color: #71717a; }
-.meta { flex: 1; display: flex; flex-direction: column; gap: 2rpx; }
-.n { font-size: 24rpx; font-weight: 800; }
-.t { font-size: 14rpx; color: #71717a; }
-.dot { width: 10rpx; height: 10rpx; border-radius: 9999px; background: #22c55e; }
-.t2 { font-size: 16rpx; color: #71717a; font-weight: 700; }
-
-.desc-wrap { margin-top: 14rpx; }
-.d-title { display: block; font-size: 18rpx; font-weight: 900; color: #71717a; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8rpx; }
-.desc { background: #fff; border-radius: 20rpx; border-left: 6rpx solid #a33e00; padding: 14rpx; font-size: 22rpx; line-height: 1.65; box-shadow: 0 4rpx 12rpx rgba(2,6,23,.04); }
-
-.spacer { height: 20rpx; }
-.footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; padding: 18rpx 16rpx calc(18rpx + env(safe-area-inset-bottom)); background: rgba(255,255,255,.74); backdrop-filter: blur(18px); display: flex; gap: 10rpx; }
-.btn { height: 88rpx; border-radius: 18rpx; display: flex; align-items: center; justify-content: center; gap: 8rpx; font-size: 28rpx; font-weight: 900; }
-.btn.ghost { flex: 1; background: #e2e2e2; color: #1a1c1c; }
-.btn.primary { flex: 2; background: linear-gradient(90deg, #a33e00, #ff6600); color: #561d00; box-shadow: 0 16rpx 36rpx rgba(234,88,12,.22); }
+.badge { position: absolute; left: 18rpx; top: 18rpx; padding: 10rpx 18rpx; border-radius: 9999px; font-size: 20rpx; font-weight: 800; }
+.badge.enrolling { background: #ffedd5; color: #c2410c; }
+.badge.ongoing { background: #dbeafe; color: #1d4ed8; }
+.badge.finished { background: #dcfce7; color: #166534; }
+.badge.cancelled { background: #fee2e2; color: #b91c1c; }
+.badge.unknown { background: #e5e7eb; color: #4b5563; }
+.headline { margin-top: 18rpx; display: flex; gap: 16rpx; justify-content: space-between; align-items: flex-start; }
+.name { display: block; font-size: 42rpx; font-weight: 900; }
+.sub { display: block; margin-top: 8rpx; font-size: 22rpx; color: #6b7280; }
+.price-card, .panel, .info-card { background: #ffffff; border-radius: 24rpx; box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05); }
+.price-card { padding: 18rpx 20rpx; min-width: 220rpx; }
+.price-label { display: block; font-size: 18rpx; color: #6b7280; }
+.price-value { display: block; margin-top: 8rpx; font-size: 34rpx; color: #c2410c; font-weight: 900; }
+.panel { margin-top: 18rpx; padding: 22rpx; display: flex; flex-direction: column; gap: 12rpx; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12rpx; }
+.panel-title { font-size: 26rpx; font-weight: 800; }
+.panel-value, .panel-link { font-size: 22rpx; font-weight: 700; color: #c2410c; }
+.progress-track { height: 12rpx; border-radius: 9999px; background: #e5e7eb; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #a33e00, #ff6600); }
+.panel-tip, .empty-text { font-size: 22rpx; color: #6b7280; }
+.grid { margin-top: 18rpx; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16rpx; }
+.info-card { padding: 22rpx; }
+.label { display: block; font-size: 20rpx; color: #6b7280; margin-bottom: 8rpx; }
+.value { font-size: 24rpx; font-weight: 700; line-height: 1.5; }
+.member-list { display: flex; flex-direction: column; gap: 14rpx; }
+.member-row { display: flex; align-items: center; gap: 14rpx; }
+.member-avatar { width: 56rpx; height: 56rpx; border-radius: 9999px; background: #ffedd5; color: #c2410c; display: flex; align-items: center; justify-content: center; font-size: 22rpx; font-weight: 800; }
+.member-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }
+.member-name { font-size: 24rpx; font-weight: 700; }
+.member-sub { font-size: 20rpx; color: #6b7280; }
+.member-status { padding: 8rpx 14rpx; border-radius: 9999px; font-size: 18rpx; font-weight: 800; }
+.member-status.pending { background: #fef3c7; color: #b45309; }
+.member-status.paid { background: #dbeafe; color: #1d4ed8; }
+.member-status.ongoing { background: #e0f2fe; color: #0369a1; }
+.member-status.completed { background: #dcfce7; color: #166534; }
+.member-status.cancelled { background: #fee2e2; color: #b91c1c; }
+.member-status.unknown { background: #e5e7eb; color: #4b5563; }
+.desc { font-size: 24rpx; color: #4b5563; line-height: 1.7; }
+.bottom-space { height: 36rpx; }
+.footer { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 12rpx; padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(16px); }
+.footer-btn { height: 88rpx; border-radius: 18rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 800; }
+.footer-btn.ghost { flex: 1; background: #e5e7eb; color: #111827; }
+.footer-btn.primary { flex: 1; background: #ea580c; color: #ffffff; }
 </style>
-

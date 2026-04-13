@@ -1,207 +1,169 @@
 <template>
   <PresidentLayout :showTabBar="false">
-    <view class="stock-page">
+    <view class="page">
       <view class="status-bar-placeholder" />
 
       <view class="top-bar">
-        <view class="top-left">
-          <view class="menu-btn" @click="onCancel">
-            <uni-icons type="arrow-left" size="22" color="#ff6600" />
-          </view>
-          <text class="top-title">库存管理</text>
-        </view>
-        <view class="top-right">
+        <view class="top-left" @click="goBack">
           <view class="icon-btn">
-            <uni-icons type="notification" size="18" color="#ea580c" />
+            <uni-icons type="arrow-left" size="22" color="#ea580c" />
           </view>
-          <image class="avatar" :src="presidentAvatar" mode="aspectFill" />
+          <text class="title">库存视图</text>
         </view>
       </view>
 
       <scroll-view scroll-y class="scroll" :show-scrollbar="false">
-        <view class="bento-grid">
-          <view class="card total">
-            <text class="k">资产总量</text>
-            <text class="v">1,248 <text class="unit">项目</text></text>
-            <text class="tag">+12% 较上月</text>
-            <view class="watermark"><uni-icons type="shop" size="88" color="#000000" /></view>
-          </view>
-          <view class="card warning">
-            <text class="k white">低库存预警</text>
-            <text class="v white">04</text>
-            <text class="tag white-soft">立即处理</text>
-          </view>
-          <view class="card flow">
-            <text class="k">今日流水</text>
-            <text class="v">82</text>
-            <text class="sub">入库/出库</text>
-          </view>
+        <view v-if="loading" class="state-wrap">
+          <view class="spinner" />
+          <text>加载库存信息中...</text>
         </view>
 
-        <view class="panel">
-          <view class="tabs">
-            <view class="tab active">库存项 (Active)</view>
-            <view class="tab">入库记录</view>
-            <view class="tab">出库日志</view>
-          </view>
-
-          <view class="thead">
-            <text class="c1">器材项目</text>
-            <text class="c2">器材分类</text>
-            <text class="c3">补货分发</text>
-          </view>
-
-          <view class="row" v-for="item in items" :key="item.id">
-            <view class="item-left">
-              <image class="item-img" :src="item.image" mode="aspectFill" />
-              <view class="item-main">
-                <text class="name">{{ item.name }}</text>
-                <text class="sku">SKU: {{ item.sku }}</text>
-              </view>
-            </view>
-            <text class="type">{{ item.type }}</text>
-            <view class="stepper">
-              <view class="op" @click="decrease(item)">-</view>
-              <input class="count" type="number" v-model="item.delta" />
-              <view class="op plus" @click="increase(item)">+</view>
-            </view>
-          </view>
-
-          <view class="panel-footer">
-            <text>最后更新：今天, 14:42 操作人：Marcus V.</text>
-            <view class="actions">
-              <view class="btn ghost" @click="onCancel">取消</view>
-              <view class="btn primary" @click="onSubmit">确认提交</view>
-            </view>
-          </view>
+        <view v-else-if="errorText" class="state-wrap">
+          <text>{{ errorText }}</text>
+          <view class="retry-btn" @click="loadData">重试</view>
         </view>
 
-        <view class="log-wrap">
-          <view class="log-head">
-            <view>
-              <text class="log-title">近期变动日志 (Recent Log)</text>
-              <text class="log-sub">历史出库及入库记录。</text>
-            </view>
-            <view class="log-link">查看全部日志 <uni-icons type="right" size="14" color="#a33e00" /></view>
-          </view>
-          <view class="log-grid">
-            <view class="log-card" v-for="log in logs" :key="log.id">
-              <view class="log-left">
-                <view class="log-icon" :class="log.kind === 'in' ? 'in' : 'out'">
-                  <uni-icons :type="log.kind === 'in' ? 'download' : 'upload'" size="16" :color="log.kind === 'in' ? '#0062a1' : '#a33e00'" />
-                </view>
-                <view>
-                  <text class="log-name">{{ log.title }}</text>
-                  <text class="log-meta">{{ log.meta }}</text>
-                </view>
-              </view>
-              <view class="log-right">
-                <text :class="log.kind === 'in' ? 'in-t' : 'out-t'">{{ log.qty }}</text>
-                <text class="qty">Qty</text>
-              </view>
-            </view>
-          </view>
+        <view v-else-if="!equipment" class="state-wrap">
+          <text>未找到器材信息</text>
         </view>
+
+        <template v-else>
+          <view class="hero-card">
+            <image class="thumb" :src="imageUrl" mode="aspectFill" />
+            <view class="hero-main">
+              <text class="name">{{ equipment.equipmentName }}</text>
+              <text class="sub">{{ equipment.equipmentCode || '-' }}</text>
+              <view class="status-pill" :class="statusMeta.key">{{ statusMeta.label }}</view>
+            </view>
+          </view>
+
+          <view class="grid">
+            <view class="info-card">
+              <text class="label">总库存</text>
+              <text class="value">{{ equipment.totalQuantity || 0 }}</text>
+            </view>
+            <view class="info-card">
+              <text class="label">可用库存</text>
+              <text class="value">{{ equipment.availableQuantity || 0 }}</text>
+            </view>
+            <view class="info-card">
+              <text class="label">占用库存</text>
+              <text class="value">{{ occupiedCount }}</text>
+            </view>
+            <view class="info-card">
+              <text class="label">库存可用率</text>
+              <text class="value">{{ stockPercent }}%</text>
+            </view>
+          </view>
+
+          <view class="panel">
+            <text class="panel-title">当前说明</text>
+            <text class="panel-content">
+              当前版本暂未接入独立的库存变更接口，因此该页面仅展示真实库存信息，不执行入库、出库或批量调整操作。
+            </text>
+          </view>
+
+          <view class="panel">
+            <text class="panel-title">建议操作</text>
+            <text class="panel-content">
+              如需调整库存，请先在后台补充库存变更接口；当前可通过器材详情和列表页完成查看、筛选和基础编辑。
+            </text>
+          </view>
+        </template>
+
+        <view class="bottom-space" />
       </scroll-view>
     </view>
   </PresidentLayout>
 </template>
 
 <script setup lang="ts">
-import { reactive, computed } from 'vue'
+import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getEquipmentDetail, type EquipmentItem } from '@/api/equipment'
+import { getEquipmentStatusMeta } from '@/utils/presidentStatus'
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
 
-const userStore = useUserStore()
-const presidentAvatar = computed(() => userStore.userInfo?.avatar || '/static/placeholders/avatar.svg')
+const equipmentId = ref(0)
+const loading = ref(true)
+const errorText = ref('')
+const equipment = ref<(EquipmentItem & { equipmentImage?: string }) | null>(null)
 
-const items = reactive([
-  { id: 1, name: 'Yonex Astrox 88D Pro', sku: 'KL-YN-88D-01', type: '球拍', delta: '0', image: '/static/placeholders/hero.svg' },
-  { id: 2, name: 'Aerosensa 50 (Dozen)', sku: 'KL-YN-AS50', type: '耗材', delta: '12', image: '/static/placeholders/hero.svg' },
-  { id: 3, name: 'BG80 Power Roll (200m)', sku: 'KL-YN-BG80P', type: '球线', delta: '0', image: '/static/placeholders/hero.svg' }
-])
+const imageUrl = computed(() => resolveImageUrl(equipment.value?.equipmentImage) || '/static/placeholders/hero.svg')
+const statusMeta = computed(() => getEquipmentStatusMeta(equipment.value?.status, equipment.value?.availableQuantity))
+const occupiedCount = computed(() => {
+  const total = Number(equipment.value?.totalQuantity || 0)
+  const available = Number(equipment.value?.availableQuantity || 0)
+  return Math.max(0, total - available)
+})
+const stockPercent = computed(() => {
+  const total = Number(equipment.value?.totalQuantity || 0)
+  const available = Number(equipment.value?.availableQuantity || 0)
+  return total > 0 ? Math.min(100, Math.round((available / total) * 100)) : 0
+})
 
-const logs = [
-  { id: 1, kind: 'in', title: 'Inbound: Yonex String Roll', meta: 'Batch #8821 • 2 hours ago', qty: '+5' },
-  { id: 2, kind: 'out', title: 'Outbound: Shuttlecock Boxes', meta: 'Match Ref: #M92 • 5 hours ago', qty: '-12' }
-]
-
-function increase(item: { delta: string }) {
-  item.delta = String((parseInt(item.delta || '0', 10) || 0) + 1)
-}
-function decrease(item: { delta: string }) {
-  const next = (parseInt(item.delta || '0', 10) || 0) - 1
-  item.delta = String(Math.max(0, next))
-}
-function onCancel() {
+function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.EQUIPMENT_LIST)
 }
-function onSubmit() {
-  uni.showToast({ title: '库存变更已提交（演示）', icon: 'success' })
+
+async function loadData() {
+  if (!equipmentId.value) return
+  loading.value = true
+  errorText.value = ''
+  equipment.value = null
+
+  try {
+    equipment.value = await getEquipmentDetail(equipmentId.value)
+  } catch (error) {
+    errorText.value = error instanceof Error ? error.message : '加载失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
 }
+
+onLoad((query?: Record<string, string | undefined>) => {
+  const id = Number(query?.id || 0)
+  if (!id) {
+    loading.value = false
+    errorText.value = '缺少器材参数'
+    return
+  }
+  equipmentId.value = id
+  loadData()
+})
 </script>
 
 <style lang="scss" scoped>
-.stock-page { min-height: 100vh; background: #f9f9f9; color: #1a1c1c; }
+.page { min-height: 100vh; background: #f8fafc; color: #111827; }
 .status-bar-placeholder { height: var(--status-bar-height); background: #f8fafc; }
-.top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16rpx 24rpx; }
-.top-left,.top-right { display: flex; align-items: center; gap: 12rpx; }
-.menu-btn,.icon-btn { width: 46rpx; height: 46rpx; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-.top-title { font-size: 36rpx; font-weight: 900; }
-.avatar { width: 52rpx; height: 52rpx; border-radius: 9999px; }
-.scroll { height: calc(100vh - var(--status-bar-height) - 84rpx); padding: 0 24rpx 24rpx; box-sizing: border-box; }
-.bento-grid { display: grid; grid-template-columns: 1fr; gap: 12rpx; }
-.card { border-radius: 18rpx; padding: 20rpx; background: #fff; position: relative; overflow: hidden; }
-.k { color: #71717a; font-size: 18rpx; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.k.white { color: rgba(255,255,255,.85); }
-.v { display: block; margin-top: 8rpx; font-size: 58rpx; font-weight: 900; letter-spacing: -0.03em; }
-.v.white { color: #fff; }
-.unit { font-size: 20rpx; color: #a1a1aa; font-weight: 600; }
-.tag { display: inline-block; margin-top: 14rpx; background: rgba(163,62,0,.1); color: #a33e00; font-size: 16rpx; font-weight: 800; padding: 6rpx 10rpx; border-radius: 9999px; }
-.tag.white-soft { background: rgba(255,255,255,.22); color: #fff; }
-.watermark { position: absolute; right: -8rpx; bottom: -8rpx; opacity: .06; }
-.warning { background: #ff6600; }
-.sub { display: block; margin-top: 10rpx; color: #0062a1; font-size: 18rpx; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-
-.panel { margin-top: 18rpx; background: #fff; border-radius: 18rpx; overflow: hidden; }
-.tabs { display: flex; align-items: center; background: #f3f3f3; overflow-x: auto; }
-.tab { flex-shrink: 0; padding: 18rpx 20rpx; color: #71717a; font-size: 22rpx; font-weight: 700; }
-.tab.active { color: #a33e00; border-bottom: 3rpx solid #a33e00; }
-.thead { display: grid; grid-template-columns: 2fr .8fr 1fr; padding: 16rpx 18rpx; color: #71717a; font-size: 16rpx; font-weight: 800; border-bottom: 1rpx solid #f1f5f9; }
-.row { display: grid; grid-template-columns: 2fr .8fr 1fr; align-items: center; padding: 14rpx 18rpx; border-bottom: 1rpx solid #f1f5f9; }
-.item-left { display: flex; align-items: center; gap: 10rpx; min-width: 0; }
-.item-img { width: 56rpx; height: 56rpx; border-radius: 12rpx; background: #e5e7eb; }
-.item-main { min-width: 0; display: flex; flex-direction: column; }
-.name { font-size: 22rpx; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sku { font-size: 16rpx; color: #a1a1aa; margin-top: 3rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.type { justify-self: center; font-size: 18rpx; color: #5f5e5e; background: #f3f3f3; padding: 4rpx 12rpx; border-radius: 9999px; }
-.stepper { justify-self: end; display: inline-flex; align-items: center; background: #f3f3f3; border-radius: 10rpx; padding: 4rpx; gap: 4rpx; }
-.op { width: 34rpx; height: 34rpx; border-radius: 8rpx; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 24rpx; font-weight: 900; color: #a33e00; }
-.op.plus { background: #ff6600; color: #fff; }
-.count { width: 52rpx; text-align: center; font-size: 20rpx; font-weight: 800; }
-.panel-footer { padding: 14rpx 18rpx; display: flex; flex-direction: column; gap: 10rpx; background: #f3f3f3; color: #71717a; font-size: 16rpx; }
-.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10rpx; }
-.btn { height: 66rpx; border-radius: 12rpx; display: flex; align-items: center; justify-content: center; font-size: 24rpx; font-weight: 800; }
-.btn.ghost { background: #e5e7eb; color: #1f2937; }
-.btn.primary { background: #ff6600; color: #561d00; }
-
-.log-wrap { margin-top: 18rpx; }
-.log-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10rpx; }
-.log-title { display: block; font-size: 34rpx; font-weight: 900; }
-.log-sub { display: block; font-size: 16rpx; color: #71717a; margin-top: 2rpx; }
-.log-link { display: flex; align-items: center; gap: 2rpx; color: #a33e00; font-size: 18rpx; font-weight: 800; }
-.log-grid { display: grid; grid-template-columns: 1fr; gap: 10rpx; }
-.log-card { background: #fff; border-radius: 14rpx; padding: 14rpx; display: flex; align-items: center; justify-content: space-between; }
-.log-left { display: flex; align-items: center; gap: 10rpx; min-width: 0; }
-.log-icon { width: 42rpx; height: 42rpx; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
-.log-icon.in { background: rgba(0,98,161,.12); }
-.log-icon.out { background: rgba(163,62,0,.12); }
-.log-name { display: block; font-size: 24rpx; font-weight: 800; }
-.log-meta { display: block; font-size: 16rpx; color: #a1a1aa; margin-top: 2rpx; }
-.log-right { text-align: right; }
-.in-t { color: #0062a1; font-size: 28rpx; font-weight: 900; }
-.out-t { color: #a33e00; font-size: 28rpx; font-weight: 900; }
-.qty { display: block; font-size: 14rpx; color: #a1a1aa; margin-top: 2rpx; }
+.top-bar { padding: 16rpx 24rpx; }
+.top-left { display: flex; align-items: center; gap: 12rpx; }
+.icon-btn { width: 72rpx; height: 72rpx; border-radius: 20rpx; background: #ffffff; display: flex; align-items: center; justify-content: center; }
+.title { font-size: 38rpx; font-weight: 800; }
+.scroll { height: calc(100vh - var(--status-bar-height) - 108rpx); padding: 0 24rpx; box-sizing: border-box; }
+.state-wrap { min-height: 420rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16rpx; color: #6b7280; }
+.spinner { width: 44rpx; height: 44rpx; border: 4rpx solid #e5e7eb; border-top-color: #ea580c; border-radius: 9999px; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.retry-btn { display: inline-flex; align-items: center; justify-content: center; height: 72rpx; padding: 0 32rpx; border-radius: 16rpx; background: #ea580c; color: #ffffff; font-weight: 700; }
+.hero-card { display: flex; gap: 18rpx; padding: 24rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05); }
+.thumb { width: 132rpx; height: 132rpx; border-radius: 24rpx; background: #e5e7eb; flex-shrink: 0; }
+.hero-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10rpx; justify-content: center; }
+.name { font-size: 32rpx; font-weight: 800; }
+.sub { font-size: 22rpx; color: #6b7280; }
+.status-pill { display: inline-flex; align-items: center; justify-content: center; width: fit-content; padding: 8rpx 16rpx; border-radius: 9999px; font-size: 18rpx; font-weight: 800; }
+.status-pill.available, .status-pill.normal { background: #dcfce7; color: #166534; }
+.status-pill.out { background: #fee2e2; color: #b91c1c; }
+.status-pill.disabled { background: #e5e7eb; color: #4b5563; }
+.status-pill.maintenance { background: #fef3c7; color: #b45309; }
+.grid { margin-top: 18rpx; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16rpx; }
+.info-card, .panel { background: #ffffff; border-radius: 24rpx; padding: 22rpx; box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05); }
+.label { display: block; font-size: 20rpx; color: #6b7280; margin-bottom: 8rpx; }
+.value { font-size: 26rpx; font-weight: 800; }
+.panel { margin-top: 18rpx; display: flex; flex-direction: column; gap: 12rpx; }
+.panel-title { font-size: 26rpx; font-weight: 800; }
+.panel-content { font-size: 24rpx; color: #4b5563; line-height: 1.7; }
+.bottom-space { height: 36rpx; }
 </style>

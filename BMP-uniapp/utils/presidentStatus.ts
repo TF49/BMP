@@ -13,6 +13,66 @@ export function getCourtStatusMeta(status?: number | null) {
   }
 }
 
+export function getCoachStatusMeta(status?: number | null) {
+  switch (status) {
+    case 1:
+      return { label: '在职', key: 'active' as const }
+    case 0:
+      return { label: '停用', key: 'inactive' as const }
+    default:
+      return { label: '未知状态', key: 'unknown' as const }
+  }
+}
+
+export function getCourseStatusMeta(status?: number | null) {
+  switch (status) {
+    case 1:
+      return { label: '报名中', key: 'enrolling' as const }
+    case 2:
+      return { label: '进行中', key: 'ongoing' as const }
+    case 3:
+      return { label: '已结束', key: 'finished' as const }
+    case 0:
+      return { label: '已取消', key: 'cancelled' as const }
+    default:
+      return { label: '未知状态', key: 'unknown' as const }
+  }
+}
+
+export function getCourseBookingStatusMeta(status?: number | null) {
+  switch (status) {
+    case 1:
+      return { label: '待支付', key: 'pending' as const }
+    case 2:
+      return { label: '已支付', key: 'paid' as const }
+    case 3:
+      return { label: '进行中', key: 'ongoing' as const }
+    case 4:
+      return { label: '已完成', key: 'completed' as const }
+    case 0:
+      return { label: '已取消', key: 'cancelled' as const }
+    default:
+      return { label: '未知状态', key: 'unknown' as const }
+  }
+}
+
+export function getEquipmentStatusMeta(status?: number | null, availableQuantity?: number | null) {
+  if ((availableQuantity ?? 0) <= 0) {
+    return { label: '缺货', key: 'out' as const }
+  }
+
+  switch (status) {
+    case 1:
+      return { label: '可用', key: 'available' as const }
+    case 0:
+      return { label: '停用', key: 'disabled' as const }
+    case 2:
+      return { label: '维护中', key: 'maintenance' as const }
+    default:
+      return { label: '库存正常', key: 'normal' as const }
+  }
+}
+
 export function getEquipmentRentalStatusMeta(status?: number | null) {
   switch (status) {
     case 0:

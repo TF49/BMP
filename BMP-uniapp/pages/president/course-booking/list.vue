@@ -1,667 +1,255 @@
 <template>
-  <PresidentLayout :showTabBar="false" backgroundColor="#f9f9f9">
+  <PresidentLayout :showTabBar="false" backgroundColor="#f8fafc">
     <view class="page">
       <view class="status-bar-placeholder" />
 
       <view class="top-bar">
-        <view class="top-bar-left">
-          <view class="icon-round" @click="goBack">
-            <uni-icons type="arrow-left" size="24" color="#ff6600" />
+        <view class="top-left" @click="goBack">
+          <view class="icon-btn">
+            <uni-icons type="arrow-left" size="22" color="#ea580c" />
           </view>
-          <text class="top-title">管理</text>
+          <text class="title">课程预约管理</text>
         </view>
-        <view class="icon-round">
-          <uni-icons type="search" size="22" color="#ff6600" />
+      </view>
+
+      <view class="toolbar">
+        <view class="search-box">
+          <uni-icons type="search" size="18" color="#71717a" />
+          <input
+            v-model.trim="keyword"
+            class="search-input"
+            placeholder="搜索会员或课程"
+            confirm-type="search"
+            @confirm="reloadList"
+          />
         </view>
+        <scroll-view scroll-x class="tabs-scroll" :show-scrollbar="false">
+          <view class="tabs">
+            <view class="tab" :class="{ active: statusFilter === -1 }" @click="setStatus(-1)">全部</view>
+            <view class="tab" :class="{ active: statusFilter === 1 }" @click="setStatus(1)">待支付</view>
+            <view class="tab" :class="{ active: statusFilter === 2 }" @click="setStatus(2)">已支付</view>
+            <view class="tab" :class="{ active: statusFilter === 3 }" @click="setStatus(3)">进行中</view>
+            <view class="tab" :class="{ active: statusFilter === 4 }" @click="setStatus(4)">已完成</view>
+            <view class="tab" :class="{ active: statusFilter === 0 }" @click="setStatus(0)">已取消</view>
+          </view>
+        </scroll-view>
       </view>
 
       <scroll-view scroll-y class="scroll" :show-scrollbar="false">
-        <view class="content">
-          <view class="hero-block">
-            <text class="hero-heading">课程预约列表</text>
-            <text class="hero-desc">查看和管理所有区域中心的近期运动认证和技能研讨会预约。</text>
-            <view class="hero-actions">
-              <button class="btn-secondary" @click="onExport">导出数据</button>
-              <button class="btn-primary" @click="openNewCourse">新增课程</button>
-            </view>
-          </view>
-
-          <view class="tabs-search">
-            <scroll-view scroll-x class="tabs-scroll" :show-scrollbar="false">
-              <view class="tabs-inner">
-                <view
-                  v-for="tab in tabs"
-                  :key="tab.key"
-                  class="tab-chip"
-                  :class="{ active: activeTab === tab.key }"
-                  @click="activeTab = tab.key"
-                >
-                  <text class="tab-text" :class="{ 'tab-text-active': activeTab === tab.key }">{{ tabLabel(tab) }}</text>
-                </view>
-              </view>
-            </scroll-view>
-            <view class="search-field">
-              <uni-icons class="search-ico" type="search" size="20" color="#5f5e5e" />
-              <input v-model="keyword" class="search-input" type="text" placeholder="搜索会员或课程..." confirm-type="search" />
-            </view>
-          </view>
-
-          <view class="list">
-            <view
-              v-for="row in visibleBookings"
-              :key="row.id"
-              class="booking-card"
-              :class="{ cancelled: row.status === 'cancelled' }"
-              @click="openDetail(row)"
-            >
-              <view class="card-top">
-                <image class="avatar" :src="row.avatar" mode="aspectFill" />
-                <view class="user-block">
-                  <view class="name-row">
-                    <text class="user-name">{{ row.name }}</text>
-                    <view class="tier-pill" :class="row.memberTier === 'pro' ? 'tier-pro' : 'tier-normal'">
-                      <text class="tier-text">{{ row.memberTier === 'pro' ? 'PRO 会员' : '普通会员' }}</text>
-                    </view>
-                  </view>
-                  <view class="email-row">
-                    <uni-icons type="email" size="14" color="#5f5e5e" />
-                    <text class="email-text">{{ row.email }}</text>
-                  </view>
-                </view>
-                <view class="more-hit" @click.stop="onMore(row)">
-                  <uni-icons type="more-filled" size="22" color="#5f5e5e" />
-                </view>
-              </view>
-
-              <view class="detail-grid">
-                <view class="detail-cell">
-                  <text class="detail-label">课程名称</text>
-                  <text class="detail-value">{{ row.courseName }}</text>
-                </view>
-                <view class="detail-cell">
-                  <text class="detail-label">日期 & 时间</text>
-                  <text class="detail-value">{{ row.dateTime }}</text>
-                </view>
-              </view>
-
-              <view class="status-row">
-                <text class="status-label">状态</text>
-                <view class="status-pill" :class="`st-${row.status}`">
-                  <view v-if="row.status === 'pending'" class="pulse-dot" />
-                  <view v-else class="status-dot" :class="`dot-${row.status}`" />
-                  <text class="status-pill-text">{{ statusText(row.status) }}</text>
-                </view>
-              </view>
-            </view>
-          </view>
-
-          <view class="load-more-wrap">
-            <button class="load-more" @click="onLoadMore">
-              <text class="load-more-text">加载更多预约</text>
-              <uni-icons type="down" size="20" color="#5f5e5e" />
-            </button>
-          </view>
-
-          <view class="scroll-bottom-pad" />
+        <view v-if="loading" class="state-wrap">
+          <view class="spinner" />
+          <text>加载课程预约中...</text>
         </view>
-      </scroll-view>
 
-      <view class="fab" @click="openNewCourse">
-        <uni-icons type="plusempty" size="36" color="#561d00" />
-      </view>
+        <view v-else-if="errorText" class="state-wrap">
+          <text>{{ errorText }}</text>
+          <view class="retry-btn" @click="reloadList">重试</view>
+        </view>
+
+        <view v-else-if="bookingList.length === 0" class="state-wrap">
+          <text>暂无符合条件的课程预约</text>
+        </view>
+
+        <view v-else class="list">
+          <view class="summary">
+            <text>共 {{ total }} 条预约</text>
+            <text>当前展示 {{ bookingList.length }} 条</text>
+          </view>
+
+          <view v-for="item in bookingList" :key="item.id" class="card" @click="goDetail(item.id)">
+            <view class="row">
+              <view>
+                <text class="name">{{ item.memberName || '未知会员' }}</text>
+                <text class="sub">{{ item.courseName || '未命名课程' }}</text>
+              </view>
+              <view class="status-pill" :class="item.statusMeta.key">
+                {{ item.statusMeta.label }}
+              </view>
+            </view>
+
+            <view class="meta-grid">
+              <view class="meta-item">
+                <text class="label">教练</text>
+                <text class="value">{{ item.coachName || '未指定教练' }}</text>
+              </view>
+              <view class="meta-item">
+                <text class="label">时间</text>
+                <text class="value">{{ item.scheduleText }}</text>
+              </view>
+              <view class="meta-item">
+                <text class="label">金额</text>
+                <text class="value">¥{{ item.amountText }}</text>
+              </view>
+              <view class="meta-item">
+                <text class="label">创建时间</text>
+                <text class="value">{{ item.createTimeText }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view v-if="hasMore" class="more-btn" @click="loadMore">加载更多</view>
+        </view>
+
+        <view class="bottom-space" />
+      </scroll-view>
     </view>
   </PresidentLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getCourseBookingList, type CourseBookingItem } from '@/api/course'
+import { parsePagedList } from '@/utils/parsePagedList'
+import { formatDate, formatDateTime, formatTime } from '@/utils/format'
+import { getCourseBookingStatusMeta } from '@/utils/presidentStatus'
 
-type BookingStatus = 'pending' | 'confirmed' | 'cancelled'
-type TabKey = 'all' | BookingStatus
-
-type Booking = {
-  id: string
-  name: string
-  avatar: string
-  memberTier: 'pro' | 'normal'
-  email: string
+type BookingCard = {
+  id: number
+  memberName: string
   courseName: string
-  dateTime: string
-  status: BookingStatus
+  coachName: string
+  scheduleText: string
+  amountText: string
+  createTimeText: string
+  statusMeta: ReturnType<typeof getCourseBookingStatusMeta>
 }
 
-const activeTab = ref<TabKey>('all')
+const page = ref(1)
+const size = 10
+const total = ref(0)
+const loading = ref(false)
+const errorText = ref('')
 const keyword = ref('')
+const statusFilter = ref(-1)
+const courseId = ref<number | undefined>(undefined)
+const bookingList = ref<BookingCard[]>([])
 
-const tabs: { key: TabKey; base: string }[] = [
-  { key: 'all', base: '全部预约' },
-  { key: 'pending', base: '待处理' },
-  { key: 'confirmed', base: '已确认' },
-  { key: 'cancelled', base: '已取消' }
-]
+const hasMore = computed(() => bookingList.value.length < total.value)
 
-const allBookings = ref<Booking[]>([
-  {
-    id: '1',
-    name: 'Julian Schmidt',
-    avatar:
-      '/static/placeholders/hero.svg',
-    memberTier: 'pro',
-    email: 'julian.s@kinetic.com',
-    courseName: '高级扣杀动力学',
-    dateTime: '10月 24, 2023 • 14:00 PM',
-    status: 'pending'
-  },
-  {
-    id: '2',
-    name: 'Mila Laurent',
-    avatar:
-      '/static/placeholders/hero.svg',
-    memberTier: 'normal',
-    email: 'mila.l@web.fr',
-    courseName: '耐力蓝图 II 级',
-    dateTime: '10月 26, 2023 • 09:30 AM',
-    status: 'confirmed'
-  },
-  {
-    id: '3',
-    name: 'Daisuke Ken',
-    avatar:
-      '/static/placeholders/hero.svg',
-    memberTier: 'pro',
-    email: 'd.ken@tokyo-bad.jp',
-    courseName: '心理战：半职业预备',
-    dateTime: '10月 28, 2023 • 18:00 PM',
-    status: 'cancelled'
-  },
-  {
-    id: '4',
-    name: 'Sarah Williams',
-    avatar:
-      '/static/placeholders/hero.svg',
-    memberTier: 'normal',
-    email: 'sarah.w@uk-athletics.co.uk',
-    courseName: '敏捷与步法大师课',
-    dateTime: '10月 30, 2023 • 11:00 AM',
-    status: 'confirmed'
-  }
-])
+function mapBooking(item: CourseBookingItem): BookingCard {
+  const date = item.courseDate ? formatDate(item.courseDate, 'YYYY.MM.DD') : ''
+  const start = item.courseStartTime ? formatTime(item.courseStartTime, 'HH:mm') : ''
+  const end = item.courseEndTime ? formatTime(item.courseEndTime, 'HH:mm') : ''
 
-const counts = computed(() => {
-  const list = allBookings.value
   return {
-    all: list.length,
-    pending: list.filter(b => b.status === 'pending').length,
-    confirmed: list.filter(b => b.status === 'confirmed').length,
-    cancelled: list.filter(b => b.status === 'cancelled').length
+    id: Number(item.id || 0),
+    memberName: item.memberName || '',
+    courseName: item.courseName || '',
+    coachName: item.coachName || '',
+    scheduleText: date && start && end ? `${date} ${start}-${end}` : '未设置排期',
+    amountText: Number(item.orderAmount || 0).toFixed(2),
+    createTimeText: formatDateTime(item.createTime, 'YYYY-MM-DD HH:mm') || '-',
+    statusMeta: getCourseBookingStatusMeta(item.status)
   }
-})
-
-function tabLabel(tab: (typeof tabs)[0]) {
-  const n =
-    tab.key === 'all'
-      ? counts.value.all
-      : tab.key === 'pending'
-        ? counts.value.pending
-        : tab.key === 'confirmed'
-          ? counts.value.confirmed
-          : counts.value.cancelled
-  return `${tab.base} (${n})`
 }
 
-const filteredBookings = computed(() => {
-  let list = allBookings.value
-  if (activeTab.value !== 'all') {
-    list = list.filter(b => b.status === activeTab.value)
-  }
-  const q = keyword.value.trim().toLowerCase()
-  if (q) {
-    list = list.filter(
-      b =>
-        b.name.toLowerCase().includes(q) ||
-        b.email.toLowerCase().includes(q) ||
-        b.courseName.toLowerCase().includes(q)
-    )
-  }
-  return list
-})
+async function fetchList(reset = false) {
+  if (loading.value) return
+  loading.value = true
+  errorText.value = ''
 
-const visibleBookings = computed(() => filteredBookings.value)
+  if (reset) {
+    page.value = 1
+  }
 
-function statusText(s: BookingStatus) {
-  if (s === 'pending') return '待处理'
-  if (s === 'confirmed') return '已确认'
-  return '已取消'
+  try {
+    const res = await getCourseBookingList({
+      page: page.value,
+      size,
+      courseId: courseId.value,
+      status: statusFilter.value >= 0 ? statusFilter.value : undefined,
+      keyword: keyword.value || undefined
+    })
+    const parsed = parsePagedList<CourseBookingItem>(res)
+    const mapped = parsed.list.map(mapBooking).filter(item => item.id > 0)
+    total.value = parsed.total
+    bookingList.value = reset ? mapped : bookingList.value.concat(mapped)
+  } catch (error) {
+    if (!bookingList.value.length) {
+      errorText.value = error instanceof Error ? error.message : '加载失败，请稍后重试'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function reloadList() {
+  fetchList(true)
+}
+
+function loadMore() {
+  if (!hasMore.value || loading.value) return
+  page.value += 1
+  fetchList()
+}
+
+function setStatus(status: number) {
+  if (statusFilter.value === status) return
+  statusFilter.value = status
+  reloadList()
 }
 
 function goBack() {
-  safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
+  if (courseId.value) {
+    safeNavigateBack(`${PRESIDENT_PAGES.COURSE_DETAIL}?id=${courseId.value}`)
+    return
+  }
+  safeNavigateBack(PRESIDENT_PAGES.COURSE_LIST)
 }
 
-function openNewCourse() {
-  uni.navigateTo({ url: PRESIDENT_PAGES.COURSE_FORM })
+function goDetail(id: number) {
+  if (!id) return
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURSE_BOOKING_DETAIL}?id=${id}` })
 }
 
-function openDetail(row: Booking) {
-  uni.navigateTo({ url: `${PRESIDENT_PAGES.COURSE_BOOKING_DETAIL}?id=${encodeURIComponent(row.id)}` })
-}
+onLoad((query?: Record<string, string | undefined>) => {
+  const id = Number(query?.courseId || 0)
+  courseId.value = id > 0 ? id : undefined
+})
 
-function onExport() {
-  uni.showToast({ title: '导出任务已创建（示例）', icon: 'none' })
-}
-
-function onLoadMore() {
-  uni.showToast({ title: '暂无更多数据', icon: 'none' })
-}
-
-function onMore(row: Booking) {
-  uni.showActionSheet({
-    itemList: ['查看详情', '联系会员'],
-    success(res) {
-      if (res.tapIndex === 0) openDetail(row)
-    }
-  })
-}
+onShow(() => {
+  reloadList()
+})
 </script>
 
 <style lang="scss" scoped>
-.page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-.status-bar-placeholder {
-  height: var(--status-bar-height);
-  background: #f9f9f9;
-}
-.top-bar {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16rpx 28rpx 20rpx;
-  background: #f9f9f9;
-  position: sticky;
-  top: 0;
-  z-index: 40;
-}
-.top-bar-left {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12rpx;
-}
-.icon-round {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.icon-round:active {
-  background: rgba(0, 0, 0, 0.05);
-}
-.top-title {
-  font-size: 40rpx;
-  font-weight: 800;
-  color: #1a1a1a;
-  letter-spacing: -0.02em;
-}
-.scroll {
-  flex: 1;
-  height: 0;
-}
-.content {
-  padding: 16rpx 28rpx 200rpx;
-  max-width: 1600rpx;
-  margin: 0 auto;
-}
-
-.hero-block {
-  margin-bottom: 40rpx;
-}
-.hero-heading {
-  display: block;
-  font-size: 64rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-}
-.hero-desc {
-  display: block;
-  margin-top: 16rpx;
-  font-size: 26rpx;
-  color: #5f5e5e;
-  line-height: 1.5;
-}
-.hero-actions {
-  margin-top: 28rpx;
-  display: flex;
-  flex-direction: row;
-  gap: 16rpx;
-  flex-wrap: wrap;
-}
-.btn-secondary {
-  margin: 0;
-  padding: 0 36rpx;
-  height: 72rpx;
-  line-height: 72rpx;
-  background: #e2e2e2;
-  color: #1a1c1c;
-  font-size: 26rpx;
-  font-weight: 800;
-  border-radius: 16rpx;
-  border: none;
-}
-.btn-secondary::after {
-  border: none;
-}
-.btn-primary {
-  margin: 0;
-  padding: 0 36rpx;
-  height: 72rpx;
-  line-height: 72rpx;
-  background: #ff6600;
-  color: #561d00;
-  font-size: 26rpx;
-  font-weight: 800;
-  border-radius: 16rpx;
-  border: none;
-  box-shadow: 0 8rpx 24rpx rgba(255, 102, 0, 0.25);
-}
-.btn-primary::after {
-  border: none;
-}
-
-.tabs-search {
-  margin-bottom: 32rpx;
-}
-.tabs-scroll {
-  width: 100%;
-  white-space: nowrap;
-  margin-bottom: 20rpx;
-}
-.tabs-inner {
-  display: inline-flex;
-  flex-direction: row;
-  gap: 12rpx;
-  padding: 8rpx;
-  background: #f3f3f3;
-  border-radius: 20rpx;
-}
-.tab-chip {
-  padding: 16rpx 28rpx;
-  border-radius: 16rpx;
-  flex-shrink: 0;
-}
-.tab-chip.active {
-  background: #ffffff;
-  box-shadow: 0 2rpx 8rpx rgba(26, 28, 28, 0.08);
-}
-.tab-text {
-  font-size: 24rpx;
-  font-weight: 800;
-  color: #5f5e5e;
-}
-.tab-text-active {
-  color: #a33e00;
-}
-.search-field {
-  position: relative;
-}
-.search-ico {
-  position: absolute;
-  left: 24rpx;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.5;
-  z-index: 1;
-}
-.search-input {
-  width: 100%;
-  padding: 24rpx 24rpx 24rpx 72rpx;
-  background: #ffffff;
-  border-radius: 16rpx;
-  font-size: 26rpx;
-  color: #1a1c1c;
-  border: none;
-  box-sizing: border-box;
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-.booking-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  box-shadow: 0 4rpx 16rpx rgba(26, 28, 28, 0.06);
-}
-.booking-card.cancelled {
-  opacity: 0.82;
-}
-.card-top {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 24rpx;
-}
-.avatar {
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 9999px;
-  background: #e8e8e8;
-  flex-shrink: 0;
-}
-.user-block {
-  flex: 1;
-  min-width: 0;
-}
-.name-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12rpx;
-  margin-bottom: 8rpx;
-}
-.user-name {
-  font-size: 32rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-}
-.tier-pill {
-  padding: 6rpx 14rpx;
-  border-radius: 9999px;
-}
-.tier-pro {
-  background: #ffdbcd;
-}
-.tier-pro .tier-text {
-  color: #360f00;
-}
-.tier-normal {
-  background: #e8e8e8;
-}
-.tier-normal .tier-text {
-  color: #1a1c1c;
-}
-.tier-text {
-  font-size: 18rpx;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.email-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8rpx;
-}
-.email-text {
-  font-size: 24rpx;
-  color: #5f5e5e;
-}
-.more-hit {
-  padding: 8rpx;
-  flex-shrink: 0;
-}
-
-.detail-grid {
-  margin-top: 28rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-.detail-cell {
-  padding-left: 16rpx;
-  border-left: 4rpx solid rgba(255, 102, 0, 0.2);
-}
-.detail-label {
-  display: block;
-  font-size: 20rpx;
-  font-weight: 800;
-  color: #5f5e5e;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.detail-value {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 28rpx;
-  font-weight: 800;
-  color: #1a1c1c;
-}
-
-.status-row {
-  margin-top: 28rpx;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-.status-label {
-  font-size: 20rpx;
-  font-weight: 800;
-  color: #5f5e5e;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.status-pill {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12rpx;
-  padding: 10rpx 20rpx;
-  border-radius: 9999px;
-}
-.st-pending {
-  background: #e2dfde;
-}
-.st-pending .status-pill-text {
-  color: #636262;
-}
-.st-confirmed {
-  background: rgba(255, 102, 0, 0.12);
-}
-.st-confirmed .status-pill-text {
-  color: #a33e00;
-}
-.st-cancelled {
-  background: #ffdad6;
-}
-.st-cancelled .status-pill-text {
-  color: #93000a;
-}
-.pulse-dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 9999px;
-  background: #f59e0b;
-}
-.status-dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 9999px;
-}
-.dot-confirmed {
-  background: #a33e00;
-}
-.dot-cancelled {
-  background: #ba1a1a;
-}
-.status-pill-text {
-  font-size: 22rpx;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.load-more-wrap {
-  margin-top: 48rpx;
-  display: flex;
-  justify-content: center;
-}
-.load-more {
-  margin: 0;
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 16rpx;
-  padding: 28rpx 48rpx;
-  background: #f3f3f3;
-  border-radius: 24rpx;
-  border: none;
-}
-.load-more::after {
-  border: none;
-}
-.load-more-text {
-  font-size: 28rpx;
-  font-weight: 800;
-  color: #5f5e5e;
-}
-
-.scroll-bottom-pad {
-  height: 32rpx;
-}
-
-.fab {
-  position: fixed;
-  right: 40rpx;
-  bottom: calc(40rpx + env(safe-area-inset-bottom));
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 9999px;
-  background: #ff6600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 16rpx 40rpx rgba(255, 102, 0, 0.4);
-  z-index: 60;
-}
-.fab:active {
-  transform: scale(0.96);
-}
-
-@media screen and (min-width: 768px) {
-  .detail-grid {
-    flex-direction: row;
-    gap: 32rpx;
-  }
-  .detail-cell {
-    flex: 1;
-  }
-  .card-top {
-    align-items: center;
-  }
-}
+.page { min-height: 100vh; background: #f8fafc; color: #111827; }
+.status-bar-placeholder { height: var(--status-bar-height); background: #f8fafc; }
+.top-bar { padding: 16rpx 24rpx; }
+.top-left { display: flex; align-items: center; gap: 12rpx; }
+.icon-btn { width: 72rpx; height: 72rpx; border-radius: 20rpx; background: #ffffff; display: flex; align-items: center; justify-content: center; }
+.title { font-size: 38rpx; font-weight: 800; }
+.toolbar { padding: 0 24rpx 24rpx; display: flex; flex-direction: column; gap: 16rpx; }
+.search-box { display: flex; align-items: center; gap: 12rpx; padding: 0 24rpx; height: 88rpx; border-radius: 20rpx; background: #ffffff; }
+.search-input { flex: 1; font-size: 26rpx; }
+.tabs-scroll { white-space: nowrap; }
+.tabs { display: inline-flex; gap: 12rpx; }
+.tab { padding: 14rpx 28rpx; border-radius: 9999px; background: #e5e7eb; color: #4b5563; font-size: 24rpx; font-weight: 700; white-space: nowrap; }
+.tab.active { background: #ffedd5; color: #c2410c; }
+.scroll { height: calc(100vh - var(--status-bar-height) - 232rpx); padding: 0 24rpx; box-sizing: border-box; }
+.state-wrap { min-height: 420rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16rpx; color: #6b7280; }
+.spinner { width: 44rpx; height: 44rpx; border: 4rpx solid #e5e7eb; border-top-color: #ea580c; border-radius: 9999px; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.retry-btn, .more-btn { display: inline-flex; align-items: center; justify-content: center; height: 72rpx; padding: 0 32rpx; border-radius: 16rpx; background: #ea580c; color: #ffffff; font-weight: 700; }
+.list { display: flex; flex-direction: column; gap: 18rpx; }
+.summary { display: flex; justify-content: space-between; color: #6b7280; font-size: 22rpx; margin-bottom: 4rpx; }
+.card { padding: 24rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05); display: flex; flex-direction: column; gap: 18rpx; }
+.row { display: flex; justify-content: space-between; gap: 12rpx; align-items: flex-start; }
+.name { display: block; font-size: 30rpx; font-weight: 800; }
+.sub { display: block; margin-top: 6rpx; font-size: 22rpx; color: #6b7280; }
+.status-pill { padding: 10rpx 18rpx; border-radius: 9999px; font-size: 18rpx; font-weight: 800; }
+.status-pill.pending { background: #fef3c7; color: #b45309; }
+.status-pill.paid { background: #dbeafe; color: #1d4ed8; }
+.status-pill.ongoing { background: #e0f2fe; color: #0369a1; }
+.status-pill.completed { background: #dcfce7; color: #166534; }
+.status-pill.cancelled { background: #fee2e2; color: #b91c1c; }
+.status-pill.unknown { background: #e5e7eb; color: #4b5563; }
+.meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16rpx; }
+.label { display: block; font-size: 18rpx; color: #6b7280; margin-bottom: 6rpx; }
+.value { font-size: 24rpx; font-weight: 700; line-height: 1.5; }
+.bottom-space { height: 36rpx; }
 </style>

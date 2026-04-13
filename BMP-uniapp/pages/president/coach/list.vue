@@ -1,174 +1,184 @@
 <template>
   <PresidentLayout :showTabBar="true">
-    <view class="coach-list-page">
-      <view class="status-bar-placeholder"></view>
-      
-      <!-- TopAppBar Navigation -->
-      <view class="nav-header">
-        <view class="nav-row">
-          <view class="nav-left" @click="goBack">
-            <view class="back-btn">
-              <uni-icons type="arrow-left" size="24" color="#ff6600"></uni-icons>
-            </view>
-            <text class="nav-title">教练管理</text>
+    <view class="page">
+      <view class="status-bar-placeholder" />
+
+      <view class="top-bar">
+        <view class="top-left" @click="goBack">
+          <view class="icon-btn">
+            <uni-icons type="arrow-left" size="22" color="#ea580c" />
           </view>
-          <view class="nav-right">
-            <view class="add-btn" @click="goAdd">
-              <uni-icons type="plusempty" size="24" color="#ea580c" style="font-weight: bold;"></uni-icons>
-            </view>
-          </view>
+          <text class="title">教练管理</text>
+        </view>
+        <view class="icon-btn add-btn" @click="goAdd">
+          <uni-icons type="plusempty" size="22" color="#ffffff" />
         </view>
       </view>
 
-      <view class="main-content">
-        <!-- Search and Filter Section -->
-        <view class="filter-section">
-          <view class="search-wrap">
-            <text class="section-label">搜索教练</text>
-            <view class="search-box">
-              <uni-icons type="search" size="20" color="#a1a1aa" class="search-icon"></uni-icons>
-              <input 
-                class="search-input" 
-                placeholder="输入教练姓名或特长..." 
-                placeholder-class="input-placeholder"
-                v-model="searchQuery"
-              />
-            </view>
-          </view>
-
-          <view class="tabs-wrap">
-            <view 
-              class="tab-item" 
-              :class="{ active: currentTab === 0 }" 
-              @click="currentTab = 0">全部</view>
-            <view 
-              class="tab-item" 
-              :class="{ active: currentTab === 1 }" 
-              @click="currentTab = 1">在职</view>
-            <view 
-              class="tab-item" 
-              :class="{ active: currentTab === 2 }" 
-              @click="currentTab = 2">休息中</view>
-          </view>
+      <view class="toolbar">
+        <view class="search-box">
+          <uni-icons type="search" size="18" color="#71717a" />
+          <input
+            v-model.trim="keyword"
+            class="search-input"
+            placeholder="搜索教练姓名、专长、场馆"
+            confirm-type="search"
+            @confirm="reloadList"
+          />
         </view>
-
-        <!-- Coach List -->
-        <view class="coach-grid">
-          <view class="coach-card group" v-for="(coach, index) in filteredList" :key="index" @click="goDetail(coach)">
-
-            <view class="card-top">
-              <view class="avatar-wrap">
-                <image class="avatar" :src="coach.avatar" mode="aspectFill"></image>
-                <view class="status-indicator" :class="coach.status === 'active' ? 'active' : 'resting'"></view>
-              </view>
-              
-              <view class="info-wrap">
-                <view class="name-row">
-                  <text class="name">{{ coach.name }}</text>
-                  <view class="rating-badge">
-                    <uni-icons type="star-filled" size="12" color="#ea580c"></uni-icons>
-                    <text class="rating-val">{{ coach.rating.toFixed(1) }}</text>
-                  </view>
-                </view>
-                <text class="title">{{ coach.title }}</text>
-                <view class="tags-row">
-                  <text class="tag" v-for="tag in coach.tags" :key="tag">{{ tag }}</text>
-                </view>
-              </view>
-            </view>
-
-            <view class="card-bottom">
-              <view class="price-side">
-                <text class="label">价格</text>
-                <view class="price-val">
-                  <text class="currency">¥</text>
-                  <text class="amount">{{ coach.price }}</text>
-                  <text class="unit"> / 小时</text>
-                </view>
-              </view>
-              <view class="activity-side">
-                <text class="label">活跃度</text>
-                <text class="activity-val">{{ coach.activity }}</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- Add Placeholder -->
-          <view class="add-placeholder" @click="goAdd">
-            <uni-icons type="personadd" size="36" color="#a1a1aa"></uni-icons>
-            <text class="add-text">添加新教练</text>
-          </view>
+        <view class="tabs">
+          <view class="tab" :class="{ active: statusFilter === -1 }" @click="setStatus(-1)">全部</view>
+          <view class="tab" :class="{ active: statusFilter === 1 }" @click="setStatus(1)">在职</view>
+          <view class="tab" :class="{ active: statusFilter === 0 }" @click="setStatus(0)">停用</view>
         </view>
       </view>
 
-      <!-- FAB -->
-      <view class="fab-btn" @click="goAdd">
-        <uni-icons type="plusempty" size="30" color="#ffffff" class="fab-bold"></uni-icons>
-      </view>
+      <scroll-view scroll-y class="scroll" :show-scrollbar="false">
+        <view v-if="loading" class="state-wrap">
+          <view class="spinner" />
+          <text>加载教练列表中...</text>
+        </view>
+
+        <view v-else-if="errorText" class="state-wrap">
+          <text>{{ errorText }}</text>
+          <view class="retry-btn" @click="reloadList">重试</view>
+        </view>
+
+        <view v-else-if="coachList.length === 0" class="state-wrap">
+          <text>暂无符合条件的教练</text>
+        </view>
+
+        <view v-else class="list">
+          <view class="summary">
+            <text>共 {{ total }} 位教练</text>
+            <text>当前展示 {{ coachList.length }} 位</text>
+          </view>
+
+          <view v-for="item in coachList" :key="item.id" class="card" @click="goDetail(item.id)">
+            <image class="avatar" :src="item.avatar" mode="aspectFill" />
+
+            <view class="main">
+              <view class="row">
+                <text class="name">{{ item.name }}</text>
+                <view class="status-pill" :class="item.statusMeta.key">
+                  {{ item.statusMeta.label }}
+                </view>
+              </view>
+
+              <text class="sub">{{ item.venueName || '未绑定场馆' }}</text>
+              <text class="sub">{{ item.specialty || '未填写专长' }}</text>
+
+              <view class="meta-row">
+                <text>评分 {{ item.ratingText }}</text>
+                <text>课时费 ¥{{ item.priceText }}/小时</text>
+                <text>学员 {{ item.totalStudents }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view v-if="hasMore" class="more-btn" @click="loadMore">
+            加载更多
+          </view>
+        </view>
+
+        <view class="bottom-space" />
+      </scroll-view>
     </view>
   </PresidentLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getCoachList, type CoachDto } from '@/api/coach'
+import { parsePagedList } from '@/utils/parsePagedList'
+import { getCoachStatusMeta } from '@/utils/presidentStatus'
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
 
-const currentTab = ref(0)
-const searchQuery = ref('')
+type CoachCard = {
+  id: number
+  name: string
+  avatar: string
+  venueName: string
+  specialty: string
+  totalStudents: number
+  ratingText: string
+  priceText: string
+  statusMeta: ReturnType<typeof getCoachStatusMeta>
+}
 
-const coaches = ref([
-  {
-    id: 1,
-    name: '张立明',
-    avatar: '/static/placeholders/avatar.svg',
-    status: 'active',
-    rating: 4.9,
-    title: '国家一级运动员',
-    tags: ['进攻专家', '10年教龄'],
-    price: 180,
-    activity: '累计 350+ 学员'
-  },
-  {
-    id: 2,
-    name: '李小雅',
-    avatar: '/static/placeholders/avatar.svg',
-    status: 'resting',
-    rating: 4.8,
-    title: '青少年培训专家',
-    tags: ['基础稳固', '耐心温和'],
-    price: 120,
-    activity: '累计 200+ 学员'
-  },
-  {
-    id: 3,
-    name: '王志强',
-    avatar: '/static/placeholders/avatar.svg',
-    status: 'active',
-    rating: 5.0,
-    title: '前省队主教练',
-    tags: ['战术大师', '职业指导'],
-    price: 300,
-    activity: '累计 120+ 职业球员'
+const page = ref(1)
+const size = 10
+const total = ref(0)
+const loading = ref(false)
+const errorText = ref('')
+const keyword = ref('')
+const statusFilter = ref(-1)
+const coachList = ref<CoachCard[]>([])
+
+const hasMore = computed(() => coachList.value.length < total.value)
+
+function mapCoach(item: CoachDto): CoachCard {
+  return {
+    id: Number(item.id || 0),
+    name: item.coachName || '未命名教练',
+    avatar: resolveImageUrl(item.avatar) || '/static/placeholders/avatar.svg',
+    venueName: item.venueName || '',
+    specialty: item.specialty || '',
+    totalStudents: Number(item.totalStudents || 0),
+    ratingText: item.rating != null ? Number(item.rating).toFixed(1) : '暂无',
+    priceText: item.hourlyPrice != null ? Number(item.hourlyPrice).toFixed(2) : '0.00',
+    statusMeta: getCoachStatusMeta(item.status)
   }
-])
+}
 
-const filteredList = computed(() => {
-  return coaches.value.filter(c => {
-    if (currentTab.value === 1 && c.status !== 'active') return false
-    if (currentTab.value === 2 && c.status !== 'resting') return false
-    
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      if (!c.name.includes(q) && !c.tags.some(t => t.includes(q)) && !c.title.includes(q)) {
-        return false
-      }
+async function fetchList(reset = false) {
+  if (loading.value) return
+  loading.value = true
+  errorText.value = ''
+
+  if (reset) {
+    page.value = 1
+  }
+
+  try {
+    const res = await getCoachList({
+      page: page.value,
+      size,
+      keyword: keyword.value || undefined,
+      status: statusFilter.value >= 0 ? statusFilter.value : undefined
+    })
+    const parsed = parsePagedList<CoachDto>(res)
+    const mapped = parsed.list.map(mapCoach).filter(item => item.id > 0)
+    total.value = parsed.total
+    coachList.value = reset ? mapped : coachList.value.concat(mapped)
+  } catch (error) {
+    if (!coachList.value.length) {
+      errorText.value = error instanceof Error ? error.message : '加载失败，请稍后重试'
     }
-    
-    return true
-  })
-})
+  } finally {
+    loading.value = false
+  }
+}
+
+function reloadList() {
+  fetchList(true)
+}
+
+function loadMore() {
+  if (!hasMore.value || loading.value) return
+  page.value += 1
+  fetchList()
+}
+
+function setStatus(status: number) {
+  if (statusFilter.value === status) return
+  statusFilter.value = status
+  reloadList()
+}
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
@@ -178,449 +188,47 @@ function goAdd() {
   uni.navigateTo({ url: PRESIDENT_PAGES.COACH_FORM })
 }
 
-function goDetail(coach: any) {
-  if (!coach || !coach.id) return
-  uni.navigateTo({
-    url: `${PRESIDENT_PAGES.COACH_DETAIL}?id=${encodeURIComponent(String(coach.id))}`
-  })
+function goDetail(id: number) {
+  if (!id) return
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.COACH_DETAIL}?id=${id}` })
 }
+
+onShow(() => {
+  reloadList()
+})
 </script>
 
 <style lang="scss" scoped>
-.coach-list-page {
-  min-height: 100vh;
-  background-color: #f9f9f9;
-  padding-bottom: 240rpx; /* Leave space for bottom bar */
-  font-family: "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-.status-bar-placeholder {
-  height: var(--status-bar-height);
-  background-color: #f8fafc;
-}
-
-.nav-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background-color: #f8fafc;
-  padding: 32rpx 48rpx;
-  transition: all 0.3s ease;
-}
-
-.nav-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: 32rpx;
-
-  .back-btn {
-    width: 72rpx;
-    height: 72rpx;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-    
-    &:active {
-      background-color: #e4e4e7;
-    }
-  }
-
-  .nav-title {
-    font-size: 44rpx;
-    font-weight: 800;
-    color: #18181b;
-    letter-spacing: -0.025em;
-  }
-}
-
-.nav-right {
-  .add-btn {
-    width: 80rpx;
-    height: 80rpx;
-    background-color: #ffedd5;
-    border-radius: 24rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s;
-    
-    &:active {
-      transform: scale(0.95);
-    }
-  }
-}
-
-.main-content {
-  padding: 24rpx 48rpx 48rpx;
-  max-width: 1200rpx;
-  margin: 0 auto;
-}
-
-.filter-section {
-  display: flex;
-  flex-direction: column;
-  gap: 48rpx;
-  margin-bottom: 64rpx;
-  
-  @media (min-width: 768px) {
-    flex-direction: row;
-    align-items: flex-end;
-  }
-}
-
-.search-wrap {
-  flex: 1;
-
-  .section-label {
-    display: block;
-    font-size: 20rpx;
-    font-weight: 600;
-    color: #71717a;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 16rpx;
-  }
-
-  .search-box {
-    position: relative;
-    background-color: #ffffff;
-    border-radius: 24rpx;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.02);
-    transition: all 0.2s ease;
-    
-    &:focus-within {
-      box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
-      border-bottom: 4rpx solid #ea580c;
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 32rpx;
-    }
-
-    .search-input {
-      flex: 1;
-      height: 110rpx;
-      padding: 0 32rpx 0 96rpx;
-      font-size: 28rpx;
-      color: #1a1c1c;
-      background: transparent;
-    }
-
-    .input-placeholder {
-      color: #a1a1aa;
-    }
-  }
-}
-
-.tabs-wrap {
-  display: flex;
-  background-color: #f3f3f3;
-  padding: 8rpx;
-  border-radius: 24rpx;
-  
-  .tab-item {
-    flex: 1;
-    padding: 24rpx 32rpx;
-    text-align: center;
-    border-radius: 16rpx;
-    font-size: 28rpx;
-    font-weight: 600;
-    color: #71717a;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-    
-    &.active {
-      background-color: #ffffff;
-      color: #ea580c;
-      box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.04);
-    }
-  }
-}
-
-.coach-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 48rpx;
-  
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.coach-card {
-  position: relative;
-  background-color: #ffffff;
-  border-radius: 24rpx;
-  padding: 48rpx;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  overflow: hidden;
-  
-  /* Active state for uniapp */
-  &:active {
-    transform: scale(0.98);
-  }
-  
-  @media (hover: hover) {
-    &:hover {
-      transform: translateY(-4rpx);
-      box-shadow: 0 12rpx 40rpx rgba(0,0,0,0.04);
-    }
-    
-    &:hover .card-actions {
-       opacity: 1;
-    }
-  }
-
-  .card-actions {
-    position: absolute;
-    top: 32rpx;
-    right: 32rpx;
-    display: flex;
-    gap: 16rpx;
-    opacity: 1; // Uniapp doesn't handle hover great consistently on mobile, default visible
-    transition: opacity 0.3s ease;
-  }
-
-  .action-btn {
-    width: 64rpx;
-    height: 64rpx;
-    background-color: #f4f4f5;
-    border-radius: 16rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    &:active {
-      background-color: #e4e4e7;
-    }
-    
-    &.delete:active {
-      background-color: #fee2e2;
-    }
-  }
-}
-
-.card-top {
-  display: flex;
-  gap: 40rpx;
-  align-items: flex-start;
-  margin-bottom: 48rpx;
-}
-
-.avatar-wrap {
-  position: relative;
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 32rpx;
-  border: 8rpx solid #fff7ed;
-  flex-shrink: 0;
-  
-  .avatar {
-    width: 100%;
-    height: 100%;
-    border-radius: 24rpx;
-  }
-
-  .status-indicator {
-    position: absolute;
-    bottom: -8rpx;
-    right: -8rpx;
-    width: 48rpx;
-    height: 48rpx;
-    border-radius: 50%;
-    border: 8rpx solid #ffffff;
-    
-    &.active {
-      background-color: #22c55e;
-    }
-    
-    &.resting {
-      background-color: #d4d4d8;
-    }
-  }
-}
-
-.info-wrap {
-  flex: 1;
-  min-width: 0;
-  
-  .name-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8rpx;
-    
-    .name {
-      font-size: 40rpx;
-      font-weight: 700;
-      color: #1a1c1c;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .rating-badge {
-      display: flex;
-      align-items: center;
-      gap: 8rpx;
-      background-color: #fff7ed;
-      padding: 4rpx 16rpx;
-      border-radius: 12rpx;
-      flex-shrink: 0;
-      
-      .rating-val {
-        font-size: 24rpx;
-        font-weight: 700;
-        color: #ea580c;
-      }
-    }
-  }
-
-  .title {
-    display: block;
-    font-size: 28rpx;
-    font-weight: 500;
-    color: #71717a;
-    margin-bottom: 24rpx;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .tags-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16rpx;
-    
-    .tag {
-      font-size: 20rpx;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background-color: #e2dfde;
-      color: #636262;
-      padding: 8rpx 16rpx;
-      border-radius: 99px;
-    }
-  }
-}
-
-.card-bottom {
-  border-top: 2rpx solid #f8fafc;
-  padding-top: 48rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  
-  .label {
-    display: block;
-    font-size: 20rpx;
-    font-weight: 700;
-    color: #a1a1aa;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 8rpx;
-  }
-
-  .price-side {
-    .price-val {
-      display: flex;
-      align-items: baseline;
-      
-      .currency {
-        font-size: 28rpx;
-        font-weight: 700;
-        color: #ea580c;
-      }
-      
-      .amount {
-        font-size: 40rpx;
-        font-weight: 700;
-        color: #ea580c;
-        margin: 0 4rpx;
-      }
-      
-      .unit {
-        font-size: 24rpx;
-        color: #a1a1aa;
-      }
-    }
-  }
-
-  .activity-side {
-    text-align: right;
-    
-    .activity-val {
-      font-size: 28rpx;
-      font-weight: 700;
-      color: #1a1c1c;
-    }
-  }
-}
-
-.add-placeholder {
-  background-color: #f3f3f3;
-  border: 4rpx dashed #e4e4e7;
-  border-radius: 24rpx;
-  padding: 48rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 280rpx;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  
-  &:active {
-    background-color: #f4f4f5;
-  }
-  
-  @media (hover: hover) {
-    &:hover {
-      border-color: #fdba74;
-      .add-text { color: #fb923c; }
-    }
-  }
-
-  .add-text {
-    margin-top: 16rpx;
-    font-size: 28rpx;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #a1a1aa;
-    transition: color 0.2s;
-  }
-}
-
-.fab-btn {
-  position: fixed;
-  bottom: 240rpx;
-  right: 48rpx;
-  width: 120rpx;
-  height: 120rpx;
-  background-color: #ea580c;
-  border-radius: 40rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 16rpx 40rpx rgba(234, 88, 12, 0.4);
-  z-index: 1001; /* Above TabBar */
-  transition: transform 0.2s ease;
-  
-  &:active {
-    transform: scale(0.9);
-  }
-}
+.page { min-height: 100vh; background: #f8fafc; color: #111827; }
+.status-bar-placeholder { height: var(--status-bar-height); background: #f8fafc; }
+.top-bar { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 24rpx; }
+.top-left { display: flex; align-items: center; gap: 12rpx; }
+.icon-btn { width: 72rpx; height: 72rpx; border-radius: 20rpx; background: #ffffff; display: flex; align-items: center; justify-content: center; }
+.add-btn { background: #ea580c; }
+.title { font-size: 38rpx; font-weight: 800; }
+.toolbar { padding: 0 24rpx 24rpx; display: flex; flex-direction: column; gap: 16rpx; }
+.search-box { display: flex; align-items: center; gap: 12rpx; padding: 0 24rpx; height: 88rpx; border-radius: 20rpx; background: #ffffff; }
+.search-input { flex: 1; font-size: 26rpx; }
+.tabs { display: flex; gap: 12rpx; }
+.tab { padding: 14rpx 28rpx; border-radius: 9999px; background: #e5e7eb; color: #4b5563; font-size: 24rpx; font-weight: 700; }
+.tab.active { background: #ffedd5; color: #c2410c; }
+.scroll { height: calc(100vh - var(--status-bar-height) - 232rpx); padding: 0 24rpx; box-sizing: border-box; }
+.state-wrap { min-height: 420rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16rpx; color: #6b7280; }
+.spinner { width: 44rpx; height: 44rpx; border: 4rpx solid #e5e7eb; border-top-color: #ea580c; border-radius: 9999px; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.retry-btn, .more-btn { display: inline-flex; align-items: center; justify-content: center; height: 72rpx; padding: 0 32rpx; border-radius: 16rpx; background: #ea580c; color: #ffffff; font-weight: 700; }
+.summary { display: flex; justify-content: space-between; color: #6b7280; font-size: 22rpx; margin-bottom: 20rpx; }
+.list { display: flex; flex-direction: column; gap: 18rpx; }
+.card { display: flex; gap: 20rpx; padding: 24rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05); }
+.avatar { width: 120rpx; height: 120rpx; border-radius: 24rpx; background: #e5e7eb; flex-shrink: 0; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8rpx; }
+.row { display: flex; justify-content: space-between; gap: 12rpx; align-items: center; }
+.name { font-size: 32rpx; font-weight: 800; color: #111827; }
+.sub { font-size: 22rpx; color: #6b7280; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 8rpx; font-size: 20rpx; color: #4b5563; }
+.status-pill { padding: 8rpx 16rpx; border-radius: 9999px; font-size: 18rpx; font-weight: 800; }
+.status-pill.active { background: #dcfce7; color: #166534; }
+.status-pill.inactive { background: #fee2e2; color: #b91c1c; }
+.status-pill.unknown { background: #e5e7eb; color: #4b5563; }
+.bottom-space { height: 36rpx; }
 </style>
