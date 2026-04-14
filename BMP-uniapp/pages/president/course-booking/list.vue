@@ -85,6 +85,9 @@
                 <text class="value">{{ item.createTimeText }}</text>
               </view>
             </view>
+            <view class="card-actions" @click.stop>
+              <view class="action-btn" @click="openActions(item)">操作</view>
+            </view>
           </view>
 
           <view v-if="hasMore" class="more-btn" @click="loadMore">加载更多</view>
@@ -102,10 +105,18 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getCourseBookingList, type CourseBookingItem } from '@/api/course'
+import {
+  deleteCourseBooking,
+  getCourseBookingList,
+  processCourseBookingPayment,
+  processCourseBookingRefund,
+  type CourseBookingItem,
+  updateCourseBookingStatus
+} from '@/api/course'
 import { parsePagedList } from '@/utils/parsePagedList'
 import { formatDate, formatDateTime, formatTime } from '@/utils/format'
 import { getCourseBookingStatusMeta } from '@/utils/presidentStatus'
+import { BOOKING_STATUS, PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 
 type BookingCard = {
   id: number
@@ -116,6 +127,8 @@ type BookingCard = {
   amountText: string
   createTimeText: string
   statusMeta: ReturnType<typeof getCourseBookingStatusMeta>
+  rawStatus: number
+  paymentStatus: number
 }
 
 const page = ref(1)
@@ -143,7 +156,9 @@ function mapBooking(item: CourseBookingItem): BookingCard {
     scheduleText: date && start && end ? `${date} ${start}-${end}` : '未设置排期',
     amountText: Number(item.orderAmount || 0).toFixed(2),
     createTimeText: formatDateTime(item.createTime, 'YYYY-MM-DD HH:mm') || '-',
-    statusMeta: getCourseBookingStatusMeta(item.status)
+    statusMeta: getCourseBookingStatusMeta(item.status),
+    rawStatus: Number(item.status ?? -1),
+    paymentStatus: Number(item.paymentStatus ?? 0)
   }
 }
 
@@ -206,6 +221,100 @@ function goDetail(id: number) {
   uni.navigateTo({ url: `${PRESIDENT_PAGES.COURSE_BOOKING_DETAIL}?id=${id}` })
 }
 
+async function updateBookingStatusAction(item: BookingCard, status: number, title: string) {
+  try {
+    await updateCourseBookingStatus(item.id, status)
+    uni.showToast({ title, icon: 'success' })
+    reloadList()
+  } catch (error) {
+    console.error('Failed to update course booking status:', error)
+  }
+}
+
+async function payBooking(item: BookingCard) {
+  const paymentMethods = [
+    PAYMENT_METHOD.CASH,
+    PAYMENT_METHOD.ALIPAY,
+    PAYMENT_METHOD.WECHAT,
+    PAYMENT_METHOD.BALANCE
+  ] as const
+  const res = await uni.showActionSheet({
+    itemList: paymentMethods.map((method) => PAYMENT_METHOD_TEXT[method])
+  })
+  const selectedMethod = paymentMethods[res.tapIndex]
+  if (!selectedMethod) return
+
+  try {
+    await processCourseBookingPayment(item.id, selectedMethod)
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+    reloadList()
+  } catch (error) {
+    console.error('Failed to process course booking payment:', error)
+  }
+}
+
+async function refundBooking(item: BookingCard) {
+  const { confirm } = await uni.showModal({
+    title: '确认退款',
+    content: '退款后将撤销当前课程预约支付记录，是否继续？'
+  })
+  if (!confirm) return
+
+  try {
+    await processCourseBookingRefund(item.id)
+    uni.showToast({ title: '退款成功', icon: 'success' })
+    reloadList()
+  } catch (error) {
+    console.error('Failed to refund course booking:', error)
+  }
+}
+
+async function deleteBooking(item: BookingCard) {
+  const { confirm } = await uni.showModal({
+    title: '确认删除',
+    content: '删除后将无法恢复该预约记录，是否继续？'
+  })
+  if (!confirm) return
+
+  try {
+    await deleteCourseBooking(item.id)
+    uni.showToast({ title: '删除成功', icon: 'success' })
+    reloadList()
+  } catch (error) {
+    console.error('Failed to delete course booking:', error)
+  }
+}
+
+function openActions(item: BookingCard) {
+  const actions: Array<{ label: string; handler: () => void }> = [{ label: '查看详情', handler: () => goDetail(item.id) }]
+
+  if (item.rawStatus === BOOKING_STATUS.PENDING_PAYMENT) {
+    actions.push({ label: '确认收款', handler: () => void payBooking(item) })
+    actions.push({
+      label: '取消预约',
+      handler: () => void updateBookingStatusAction(item, BOOKING_STATUS.CANCELLED, '已取消预约')
+    })
+  } else if (item.rawStatus === BOOKING_STATUS.PAID) {
+    actions.push({
+      label: '开始上课',
+      handler: () => void updateBookingStatusAction(item, BOOKING_STATUS.IN_PROGRESS, '已开始上课')
+    })
+    actions.push({ label: '退款', handler: () => void refundBooking(item) })
+  } else if (item.rawStatus === BOOKING_STATUS.IN_PROGRESS) {
+    actions.push({
+      label: '标记完成',
+      handler: () => void updateBookingStatusAction(item, BOOKING_STATUS.COMPLETED, '已标记完成')
+    })
+  } else if (item.rawStatus === BOOKING_STATUS.CANCELLED || item.rawStatus === BOOKING_STATUS.COMPLETED) {
+    actions.push({ label: '删除记录', handler: () => void deleteBooking(item) })
+  }
+
+  uni.showActionSheet({
+    itemList: actions.map((action) => action.label),
+    success: (res) => actions[res.tapIndex]?.handler()
+  })
+}
+
 onLoad((query?: Record<string, string | undefined>) => {
   const id = Number(query?.courseId || 0)
   courseId.value = id > 0 ? id : undefined
@@ -238,6 +347,8 @@ onShow(() => {
 .list { display: flex; flex-direction: column; gap: 18rpx; }
 .summary { display: flex; justify-content: space-between; color: #6b7280; font-size: 22rpx; margin-bottom: 4rpx; }
 .card { padding: 24rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05); display: flex; flex-direction: column; gap: 18rpx; }
+.card-actions { display: flex; justify-content: flex-end; }
+.action-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 120rpx; height: 64rpx; padding: 0 24rpx; border-radius: 16rpx; background: #ffedd5; color: #c2410c; font-size: 22rpx; font-weight: 700; }
 .row { display: flex; justify-content: space-between; gap: 12rpx; align-items: flex-start; }
 .name { display: block; font-size: 30rpx; font-weight: 800; }
 .sub { display: block; margin-top: 6rpx; font-size: 22rpx; color: #6b7280; }

@@ -68,6 +68,9 @@
                 :status="getStatus(row)"
                 @click="openDetail(row)"
               />
+              <view class="item-actions">
+                <view class="action-btn" @click="openActions(row)">操作</view>
+              </view>
             </view>
           </view>
 
@@ -89,8 +92,17 @@ import StatCard from '@/components/president/equipment-rental/StatCard.vue'
 import RentalListItem, { type RentalListStatus } from '@/components/president/equipment-rental/RentalListItem.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getEquipmentRentalList, getEquipmentRentalStatistics, type EquipmentRentalItem } from '@/api/equipment'
+import {
+  deleteEquipmentRental,
+  getEquipmentRentalList,
+  getEquipmentRentalStatistics,
+  processEquipmentRentalPayment,
+  processEquipmentRentalRefund,
+  type EquipmentRentalItem,
+  updateEquipmentRentalStatus
+} from '@/api/equipment'
 import { formatDate } from '@/utils/format'
+import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 
 const stats = ref({
   totalRentals: 0,
@@ -111,9 +123,10 @@ const hasMore = computed(() => list.value.length < total.value)
 
 const statusOptions = [
   { label: '全部', value: undefined },
-  { label: '租借中', value: 0 },
-  { label: '已归还', value: 1 },
-  { label: '逾期', value: 2 }
+  { label: '租借中', value: 1 },
+  { label: '已归还', value: 2 },
+  { label: '已逾期', value: 3 },
+  { label: '已取消', value: 0 }
 ]
 
 function statusLabel(status: number) {
@@ -135,11 +148,14 @@ function formatDateRange(start?: string, end?: string) {
 }
 
 function getSubText(item: EquipmentRentalItem): string {
-  if (item.status === 2) {
+  if (item.status === 3) {
     return '逾期未还'
   }
-  if (item.status === 1) {
+  if (item.status === 2) {
     return `已于 ${formatDate(item.actualReturnDate || '')} 归还`
+  }
+  if (item.status === 0) {
+    return '租借已取消'
   }
   // 租借中，计算剩余天数
   if (item.expectedReturnDate) {
@@ -156,12 +172,12 @@ function getSubText(item: EquipmentRentalItem): string {
 }
 
 function getSubTextTone(item: EquipmentRentalItem): 'error' | 'muted' {
-  return item.status === 2 ? 'error' : 'muted'
+  return item.status === 3 ? 'error' : 'muted'
 }
 
 function getStatus(item: EquipmentRentalItem): RentalListStatus {
-  if (item.status === 2) return 'overdue'
-  if (item.status === 1) return 'returned'
+  if (item.status === 3) return 'overdue'
+  if (item.status === 2) return 'returned'
   return 'on_rent'
 }
 
@@ -249,6 +265,96 @@ function openForm() {
 function openDetail(row: EquipmentRentalItem) {
   uni.navigateTo({
     url: `${PRESIDENT_PAGES.EQUIPMENT_RENTAL_DETAIL}?id=${row.id}`
+  })
+}
+
+async function updateRentalStatusAction(id: number, status: number, title: string) {
+  try {
+    await updateEquipmentRentalStatus(id, status)
+    uni.showToast({ title, icon: 'success' })
+    page.value = 1
+    await Promise.all([loadStatistics(), loadList(false)])
+  } catch (error) {
+    console.error('Failed to update equipment rental status:', error)
+  }
+}
+
+async function payRental(row: EquipmentRentalItem) {
+  const paymentMethods = [
+    PAYMENT_METHOD.CASH,
+    PAYMENT_METHOD.ALIPAY,
+    PAYMENT_METHOD.WECHAT,
+    PAYMENT_METHOD.BALANCE
+  ] as const
+  const result = await uni.showActionSheet({
+    itemList: paymentMethods.map((method) => PAYMENT_METHOD_TEXT[method])
+  })
+  const selectedMethod = paymentMethods[result.tapIndex]
+  if (!selectedMethod) return
+
+  try {
+    await processEquipmentRentalPayment(row.id, selectedMethod)
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+    page.value = 1
+    await Promise.all([loadStatistics(), loadList(false)])
+  } catch (error) {
+    console.error('Failed to process equipment rental payment:', error)
+  }
+}
+
+async function refundRental(row: EquipmentRentalItem) {
+  const { confirm } = await uni.showModal({
+    title: '确认退款',
+    content: '退款后将撤销当前器材租借支付记录，是否继续？'
+  })
+  if (!confirm) return
+
+  try {
+    await processEquipmentRentalRefund(row.id)
+    uni.showToast({ title: '退款成功', icon: 'success' })
+    page.value = 1
+    await Promise.all([loadStatistics(), loadList(false)])
+  } catch (error) {
+    console.error('Failed to refund equipment rental:', error)
+  }
+}
+
+async function deleteRental(row: EquipmentRentalItem) {
+  const { confirm } = await uni.showModal({
+    title: '确认删除',
+    content: '删除后将无法恢复该租借记录，是否继续？'
+  })
+  if (!confirm) return
+
+  try {
+    await deleteEquipmentRental(row.id)
+    uni.showToast({ title: '删除成功', icon: 'success' })
+    page.value = 1
+    await Promise.all([loadStatistics(), loadList(false)])
+  } catch (error) {
+    console.error('Failed to delete equipment rental:', error)
+  }
+}
+
+function openActions(row: EquipmentRentalItem) {
+  const actions: Array<{ label: string; handler: () => void }> = [{ label: '查看详情', handler: () => openDetail(row) }]
+
+  if (row.status === 1 || row.status === 3) {
+    if (Number(row.paymentStatus ?? 0) !== 1) {
+      actions.push({ label: '确认收款', handler: () => void payRental(row) })
+    }
+    actions.push({ label: '标记归还', handler: () => void updateRentalStatusAction(row.id, 2, '已标记归还') })
+    actions.push({ label: '取消租借', handler: () => void updateRentalStatusAction(row.id, 0, '已取消租借') })
+    if (Number(row.paymentStatus ?? 0) === 1) {
+      actions.push({ label: '退款', handler: () => void refundRental(row) })
+    }
+  } else if (row.status === 0 || row.status === 2) {
+    actions.push({ label: '删除记录', handler: () => void deleteRental(row) })
+  }
+
+  uni.showActionSheet({
+    itemList: actions.map((action) => action.label),
+    success: (res) => actions[res.tapIndex]?.handler()
   })
 }
 
@@ -424,6 +530,24 @@ onMounted(() => {
 }
 .list-gap {
   margin-bottom: 24rpx;
+}
+.item-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12rpx;
+}
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120rpx;
+  height: 64rpx;
+  padding: 0 24rpx;
+  border-radius: 16rpx;
+  background: #ffedd5;
+  color: #c2410c;
+  font-size: 22rpx;
+  font-weight: 700;
 }
 .state-wrap {
   padding: 100rpx 0;

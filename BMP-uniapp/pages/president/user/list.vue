@@ -112,6 +112,10 @@
                 <text class="user-meta">
                   {{ venueLabel(item.venueId) }}
                 </text>
+                <view class="card-actions" @click.stop>
+                  <view class="ghost-btn" @click="goEdit(item.id)">编辑</view>
+                  <view class="ghost-btn danger" @click="confirmDelete(item)">删除</view>
+                </view>
               </view>
             </view>
           </view>
@@ -133,7 +137,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getUserList, type UserListItem } from '@/api/president/user'
+import { deleteUser, getUserList, type UserListItem } from '@/api/president/user'
 import { getVenueList } from '@/api/president/venue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { parsePagedList } from '@/utils/parsePagedList'
@@ -234,8 +238,29 @@ function goDetail(id: number) {
   uni.navigateTo({ url: `${PRESIDENT_PAGES.USER_DETAIL}?id=${id}` })
 }
 
+function goEdit(id: number) {
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.USER_FORM}?id=${id}` })
+}
+
 function goAdd() {
   uni.navigateTo({ url: PRESIDENT_PAGES.USER_FORM })
+}
+
+function confirmDelete(item: UserListItem) {
+  uni.showModal({
+    title: '确认删除',
+    content: `确定删除用户“${item.username || item.id}”吗？`,
+    success: async ({ confirm }) => {
+      if (!confirm) return
+      try {
+        await deleteUser(item.id)
+        uni.showToast({ title: '删除成功', icon: 'success' })
+        await loadList()
+      } catch (error) {
+        console.error('Failed to delete user:', error)
+      }
+    }
+  })
 }
 
 function goBack() {
@@ -602,6 +627,26 @@ onMounted(() => {
   font-size: 26rpx;
   color: #5f5e5e;
   font-weight: 600;
+}
+
+.card-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.ghost-btn {
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+.ghost-btn.danger {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .load-more {

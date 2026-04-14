@@ -85,6 +85,10 @@
                 <text class="field-value remark">{{ detail.remark || '无' }}</text>
               </view>
             </view>
+
+            <view class="action-row">
+              <view class="action-btn secondary" @click="openActions">管理租借</view>
+            </view>
           </template>
         </view>
       </scroll-view>
@@ -96,10 +100,18 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getEquipmentRentalDetail, type EquipmentRentalItem } from '@/api/equipment'
+import {
+  deleteEquipmentRental,
+  getEquipmentRentalDetail,
+  processEquipmentRentalPayment,
+  processEquipmentRentalRefund,
+  type EquipmentRentalItem,
+  updateEquipmentRentalStatus
+} from '@/api/equipment'
 import { formatAmount, formatDate, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 
 type EquipmentRentalDetail = EquipmentRentalItem & {
   expectedReturnDate?: string
@@ -152,6 +164,92 @@ async function loadDetail(id: number) {
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.EQUIPMENT_RENTAL_LIST)
+}
+
+async function refreshDetail() {
+  if (!detail.value?.id) return
+  await loadDetail(detail.value.id)
+}
+
+async function openActions() {
+  if (!detail.value?.id) return
+  const actions: Array<{ label: string; handler: () => Promise<void> | void }> = []
+  const currentStatus = Number(detail.value.status ?? -1)
+  const currentPaymentStatus = Number(detail.value.paymentStatus ?? 0)
+
+  if (currentStatus === 1 || currentStatus === 3) {
+    if (currentPaymentStatus !== 1) {
+      actions.push({
+        label: '确认收款',
+        handler: async () => {
+          const methods = [
+            PAYMENT_METHOD.CASH,
+            PAYMENT_METHOD.ALIPAY,
+            PAYMENT_METHOD.WECHAT,
+            PAYMENT_METHOD.BALANCE
+          ] as const
+          const result = await uni.showActionSheet({
+            itemList: methods.map((method) => PAYMENT_METHOD_TEXT[method])
+          })
+          const selectedMethod = methods[result.tapIndex]
+          if (!selectedMethod) return
+          await processEquipmentRentalPayment(detail.value!.id, selectedMethod)
+          uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+          await refreshDetail()
+        }
+      })
+    }
+    actions.push({
+      label: '标记归还',
+      handler: async () => {
+        await updateEquipmentRentalStatus(detail.value!.id, 2)
+        uni.showToast({ title: '已标记归还', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+    actions.push({
+      label: '取消租借',
+      handler: async () => {
+        await updateEquipmentRentalStatus(detail.value!.id, 0)
+        uni.showToast({ title: '已取消租借', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+    if (currentPaymentStatus === 1) {
+      actions.push({
+        label: '退款',
+        handler: async () => {
+          await processEquipmentRentalRefund(detail.value!.id)
+          uni.showToast({ title: '退款成功', icon: 'success' })
+          await refreshDetail()
+        }
+      })
+    }
+  } else if (currentStatus === 0 || currentStatus === 2) {
+    actions.push({
+      label: '删除记录',
+      handler: async () => {
+        await deleteEquipmentRental(detail.value!.id)
+        uni.showToast({ title: '删除成功', icon: 'success' })
+        goBack()
+      }
+    })
+  }
+
+  if (!actions.length) {
+    uni.showToast({ title: '当前状态暂无可执行操作', icon: 'none' })
+    return
+  }
+
+  const result = await uni.showActionSheet({ itemList: actions.map((action) => action.label) })
+  const action = actions[result.tapIndex]
+  if (!action) return
+
+  try {
+    await action.handler()
+  } catch (error) {
+    console.error('Failed to manage equipment rental detail:', error)
+  }
 }
 
 onLoad((options) => {
@@ -309,5 +407,24 @@ onLoad((options) => {
 
 .remark {
   white-space: pre-wrap;
+}
+
+.action-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  min-width: 200rpx;
+  padding: 20rpx 28rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.action-btn.secondary {
+  background: #ffedd5;
+  color: #c2410c;
 }
 </style>

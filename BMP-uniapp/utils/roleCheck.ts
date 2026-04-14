@@ -60,7 +60,7 @@ export function checkAndHandleRole(role: string | undefined | null): boolean {
   const roleName = getRoleName(role)
   uni.showModal({
     title: '提示',
-    content: `抱歉，${roleName}账号请使用网页端管理系统登录。\n\n小程序端仅支持普通用户使用，感谢您的理解！`,
+    content: `抱歉，${roleName}账号暂不支持当前入口。\n\n小程序端当前支持普通用户和协会会长使用，场馆管理员请使用网页端管理系统登录。`,
     showCancel: false,
     confirmText: '我知道了',
     confirmColor: '#3cc51f'

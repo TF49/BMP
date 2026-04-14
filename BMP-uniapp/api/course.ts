@@ -59,6 +59,7 @@ export interface CourseBookingItem {
   status: number
   remark?: string
   createTime: string
+  updateTime?: string
 }
 
 /**
@@ -170,6 +171,37 @@ export function getCourseBookingDetail(id: number) {
   return request<CourseBookingItem>({
     url: `${API_PATHS.COURSE.BOOKING.DETAIL}/${id}`,
     method: 'GET'
+  })
+}
+
+export function updateCourseBookingStatus(id: number, status: number) {
+  return request<null>({
+    url: `/course/booking/status?id=${id}&status=${status}`,
+    method: 'PUT'
+  })
+}
+
+export function processCourseBookingPayment(
+  bookingId: number,
+  paymentMethod: 'CASH' | 'ALIPAY' | 'WECHAT' | 'BALANCE'
+) {
+  return request<null>({
+    url: `/course/booking/payment?bookingId=${bookingId}&paymentMethod=${paymentMethod}`,
+    method: 'POST'
+  })
+}
+
+export function processCourseBookingRefund(bookingId: number) {
+  return request<null>({
+    url: `/course/booking/refund?bookingId=${bookingId}`,
+    method: 'POST'
+  })
+}
+
+export function deleteCourseBooking(id: number) {
+  return request<null>({
+    url: `/course/booking/${id}`,
+    method: 'DELETE'
   })
 }
 

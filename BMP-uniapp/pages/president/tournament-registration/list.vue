@@ -279,7 +279,20 @@ function goBack() {
 }
 
 function onFilter() {
-  uni.showToast({ title: '筛选条件开发中', icon: 'none' })
+  const options: Array<{ label: string; key: FilterKey }> = [
+    { label: '全部报名', key: 'all' },
+    { label: '待审核', key: 'pending' },
+    { label: '已通过', key: 'approved' },
+    { label: '已拒绝', key: 'rejected' }
+  ]
+  uni.showActionSheet({
+    itemList: options.map((item) => item.label),
+    success: (res) => {
+      const selected = options[res.tapIndex]
+      if (!selected) return
+      activeFilter.value = selected.key
+    }
+  })
 }
 
 function openDetail(row: RegRow) {

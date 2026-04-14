@@ -72,6 +72,10 @@
                 <text class="field-value remark">{{ detail.remark || '无特殊备注' }}</text>
               </view>
             </view>
+
+            <view class="action-row">
+              <view class="action-btn secondary" @click="openActions">管理工单</view>
+            </view>
           </template>
         </view>
       </scroll-view>
@@ -83,10 +87,16 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getStringingDetail, type StringingService } from '@/api/stringing'
+import {
+  getStringingDetail,
+  processStringingPayment,
+  processStringingRefund,
+  type StringingService,
+  updateStringingStatus
+} from '@/api/stringing'
 import { formatAmount, formatDateTime, formatPhone } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
-import { STRINGING_STATUS } from '@/utils/constant'
+import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 const detail = ref<StringingService | null>(null)
@@ -145,6 +155,100 @@ async function loadDetail(id: number) {
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.STRINGING_LIST)
+}
+
+async function refreshDetail() {
+  if (!detail.value?.id) return
+  await loadDetail(detail.value.id)
+}
+
+async function openActions() {
+  if (!detail.value?.id) return
+  const actions: Array<{ label: string; handler: () => Promise<void> | void }> = []
+  const currentStatus = Number(detail.value.status ?? -1)
+  const currentPaymentStatus = Number(detail.value.paymentStatus ?? 0)
+
+  if (currentStatus === STRINGING_STATUS.WAITING) {
+    actions.push({
+      label: '开始穿线',
+      handler: async () => {
+        await updateStringingStatus(detail.value!.id, STRINGING_STATUS.IN_PROGRESS)
+        uni.showToast({ title: '已开始穿线', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+    actions.push({
+      label: '取消工单',
+      handler: async () => {
+        await updateStringingStatus(detail.value!.id, STRINGING_STATUS.CANCELLED)
+        uni.showToast({ title: '已取消工单', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+  } else if (currentStatus === STRINGING_STATUS.IN_PROGRESS) {
+    actions.push({
+      label: '标记完成',
+      handler: async () => {
+        await updateStringingStatus(detail.value!.id, STRINGING_STATUS.COMPLETED)
+        uni.showToast({ title: '已标记完成', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+    actions.push({
+      label: '取消工单',
+      handler: async () => {
+        await updateStringingStatus(detail.value!.id, STRINGING_STATUS.CANCELLED)
+        uni.showToast({ title: '已取消工单', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+  } else if (currentStatus === STRINGING_STATUS.COMPLETED) {
+    if (currentPaymentStatus !== 1) {
+      actions.push({
+        label: '确认收款',
+        handler: async () => {
+          const methods = [
+            PAYMENT_METHOD.CASH,
+            PAYMENT_METHOD.ALIPAY,
+            PAYMENT_METHOD.WECHAT,
+            PAYMENT_METHOD.BALANCE
+          ] as const
+          const result = await uni.showActionSheet({
+            itemList: methods.map((method) => PAYMENT_METHOD_TEXT[method])
+          })
+          const selectedMethod = methods[result.tapIndex]
+          if (!selectedMethod) return
+          await processStringingPayment(detail.value!.id, selectedMethod)
+          uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+          await refreshDetail()
+        }
+      })
+    } else {
+      actions.push({
+        label: '退款',
+        handler: async () => {
+          await processStringingRefund(detail.value!.id)
+          uni.showToast({ title: '退款成功', icon: 'success' })
+          await refreshDetail()
+        }
+      })
+    }
+  }
+
+  if (!actions.length) {
+    uni.showToast({ title: '当前状态暂无可执行操作', icon: 'none' })
+    return
+  }
+
+  const result = await uni.showActionSheet({ itemList: actions.map((action) => action.label) })
+  const action = actions[result.tapIndex]
+  if (!action) return
+
+  try {
+    await action.handler()
+  } catch (error) {
+    console.error('Failed to manage stringing detail:', error)
+  }
 }
 
 onLoad((options) => {
@@ -291,5 +395,24 @@ onLoad((options) => {
 
 .remark {
   white-space: pre-wrap;
+}
+
+.action-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  min-width: 200rpx;
+  padding: 20rpx 28rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.action-btn.secondary {
+  background: #ffedd5;
+  color: #c2410c;
 }
 </style>

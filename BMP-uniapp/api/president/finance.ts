@@ -87,5 +87,5 @@ export function getBusinessRatio(params?: {
   return get<{
     labels: string[]
     values: number[]
-  }>('/finance/business-ratio', params || {})
+  }>('/finance/ratio', params || {})
 }

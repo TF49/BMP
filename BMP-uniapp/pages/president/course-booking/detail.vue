@@ -88,6 +88,10 @@
                 <text class="field-value remark">{{ detail.remark || '无' }}</text>
               </view>
             </view>
+
+            <view class="action-row">
+              <view class="action-btn secondary" @click="openActions">管理预约</view>
+            </view>
           </template>
         </view>
       </scroll-view>
@@ -99,10 +103,18 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getCourseBookingDetail, type CourseBookingItem } from '@/api/course'
+import {
+  deleteCourseBooking,
+  getCourseBookingDetail,
+  processCourseBookingPayment,
+  processCourseBookingRefund,
+  type CourseBookingItem,
+  updateCourseBookingStatus
+} from '@/api/course'
 import { formatAmount, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { BOOKING_STATUS, PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 
 type CourseBookingDetail = CourseBookingItem & {
   coachName?: string
@@ -120,11 +132,11 @@ const loadError = ref('')
 
 const statusLabel = computed(() => {
   const status = detail.value?.status
-  if (status === 0) return '已取消'
-  if (status === 1) return '待开始'
-  if (status === 2) return '已完成'
-  if (status === 3) return '已核销'
-  if (status === 4) return '已退款'
+  if (status === BOOKING_STATUS.CANCELLED) return '已取消'
+  if (status === BOOKING_STATUS.PENDING_PAYMENT) return '待支付'
+  if (status === BOOKING_STATUS.PAID) return '已支付'
+  if (status === BOOKING_STATUS.IN_PROGRESS) return '进行中'
+  if (status === BOOKING_STATUS.COMPLETED) return '已完成'
   return '未知状态'
 })
 
@@ -160,6 +172,97 @@ async function loadDetail(id: number) {
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.COURSE_BOOKING_LIST)
+}
+
+async function refreshDetail() {
+  if (!detail.value?.id) return
+  await loadDetail(detail.value.id)
+}
+
+async function openActions() {
+  if (!detail.value?.id) return
+  const actions: Array<{ label: string; handler: () => Promise<void> | void }> = []
+  const currentStatus = Number(detail.value.status ?? -1)
+
+  if (currentStatus === BOOKING_STATUS.PENDING_PAYMENT) {
+    actions.push({
+      label: '确认收款',
+      handler: async () => {
+        const methods = [
+          PAYMENT_METHOD.CASH,
+          PAYMENT_METHOD.ALIPAY,
+          PAYMENT_METHOD.WECHAT,
+          PAYMENT_METHOD.BALANCE
+        ] as const
+        const result = await uni.showActionSheet({
+          itemList: methods.map((method) => PAYMENT_METHOD_TEXT[method])
+        })
+        const selectedMethod = methods[result.tapIndex]
+        if (!selectedMethod) return
+        await processCourseBookingPayment(detail.value!.id, selectedMethod)
+        uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+        await refreshDetail()
+      }
+    })
+    actions.push({
+      label: '取消预约',
+      handler: async () => {
+        await updateCourseBookingStatus(detail.value!.id, BOOKING_STATUS.CANCELLED)
+        uni.showToast({ title: '已取消预约', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+  } else if (currentStatus === BOOKING_STATUS.PAID) {
+    actions.push({
+      label: '开始上课',
+      handler: async () => {
+        await updateCourseBookingStatus(detail.value!.id, BOOKING_STATUS.IN_PROGRESS)
+        uni.showToast({ title: '已开始上课', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+    actions.push({
+      label: '退款',
+      handler: async () => {
+        await processCourseBookingRefund(detail.value!.id)
+        uni.showToast({ title: '退款成功', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+  } else if (currentStatus === BOOKING_STATUS.IN_PROGRESS) {
+    actions.push({
+      label: '标记完成',
+      handler: async () => {
+        await updateCourseBookingStatus(detail.value!.id, BOOKING_STATUS.COMPLETED)
+        uni.showToast({ title: '已标记完成', icon: 'success' })
+        await refreshDetail()
+      }
+    })
+  } else if (currentStatus === BOOKING_STATUS.CANCELLED || currentStatus === BOOKING_STATUS.COMPLETED) {
+    actions.push({
+      label: '删除记录',
+      handler: async () => {
+        await deleteCourseBooking(detail.value!.id)
+        uni.showToast({ title: '删除成功', icon: 'success' })
+        goBack()
+      }
+    })
+  }
+
+  if (!actions.length) {
+    uni.showToast({ title: '当前状态暂无可执行操作', icon: 'none' })
+    return
+  }
+
+  const result = await uni.showActionSheet({ itemList: actions.map((action) => action.label) })
+  const action = actions[result.tapIndex]
+  if (!action) return
+
+  try {
+    await action.handler()
+  } catch (error) {
+    console.error('Failed to manage course booking detail:', error)
+  }
 }
 
 onLoad((options) => {
@@ -306,5 +409,24 @@ onLoad((options) => {
 
 .remark {
   white-space: pre-wrap;
+}
+
+.action-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  min-width: 200rpx;
+  padding: 20rpx 28rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.action-btn.secondary {
+  background: #ffedd5;
+  color: #c2410c;
 }
 </style>

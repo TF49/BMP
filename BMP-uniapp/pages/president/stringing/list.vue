@@ -198,12 +198,13 @@ import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import {
   getStringingList,
+  processStringingPayment,
   processStringingRefund,
   updateStringingStatus,
   type StringingService
 } from '@/api/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
-import { STRINGING_STATUS } from '@/utils/constant'
+import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 type JobStatus = 'in_progress' | 'pending' | 'ready' | 'cancelled'
@@ -365,7 +366,15 @@ function onDrawerNav(item: (typeof drawerNav.value)[0]) {
     safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
     return
   }
-  uni.showToast({ title: `${item.label} 开发中`, icon: 'none' })
+  if (item.action === 'assoc') {
+    uni.reLaunch({ url: PRESIDENT_PAGES.USER_LIST })
+    return
+  }
+  if (item.action === 'league') {
+    uni.navigateTo({ url: PRESIDENT_PAGES.TOURNAMENT_LIST })
+    return
+  }
+  uni.switchTab({ url: PRESIDENT_PAGES.PROFILE })
 }
 
 function openForm() {
@@ -402,6 +411,32 @@ async function refundJob(job: Job) {
   }
 }
 
+async function payForJob(job: Job) {
+  const paymentMethods = [
+    PAYMENT_METHOD.CASH,
+    PAYMENT_METHOD.ALIPAY,
+    PAYMENT_METHOD.WECHAT,
+    PAYMENT_METHOD.BALANCE
+  ] as const
+  const result = await uni.showActionSheet({
+    itemList: paymentMethods.map((method) => PAYMENT_METHOD_TEXT[method])
+  })
+  const selectedMethod = paymentMethods[result.tapIndex]
+  if (!selectedMethod) return
+
+  try {
+    await processStringingPayment(job.id, selectedMethod)
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+    await loadRecords()
+  } catch (error) {
+    console.error('Failed to process stringing payment:', error)
+  }
+}
+
+function onCancel(job: Job) {
+  void updateJobStatus(job.id, STRINGING_STATUS.CANCELLED, '已取消工单')
+}
+
 function onStart(job: Job) {
   void updateJobStatus(job.id, STRINGING_STATUS.IN_PROGRESS, '已开始穿线')
 }
@@ -414,10 +449,13 @@ function onMore(job: Job) {
   const itemList = ['查看详情']
   if (job.status === 'pending') {
     itemList.push('开始穿线')
+    itemList.push('取消工单')
   } else if (job.status === 'in_progress') {
     itemList.push('标记完成')
-  } else if (job.status === 'ready' && job.paymentStatus === 1) {
-    itemList.push('退款')
+    itemList.push('取消工单')
+  } else if (job.status === 'ready') {
+    if (job.paymentStatus !== 1) itemList.push('确认收款')
+    if (job.paymentStatus === 1) itemList.push('退款')
   }
 
   uni.showActionSheet({
@@ -428,15 +466,23 @@ function onMore(job: Job) {
         return
       }
       if (job.status === 'pending') {
-        onStart(job)
+        if (res.tapIndex === 1) onStart(job)
+        if (res.tapIndex === 2) onCancel(job)
         return
       }
       if (job.status === 'in_progress') {
-        onComplete(job)
+        if (res.tapIndex === 1) onComplete(job)
+        if (res.tapIndex === 2) onCancel(job)
         return
       }
-      if (job.status === 'ready' && job.paymentStatus === 1) {
-        void refundJob(job)
+      if (job.status === 'ready') {
+        if (job.paymentStatus !== 1 && res.tapIndex === 1) {
+          void payForJob(job)
+          return
+        }
+        if (job.paymentStatus === 1 && res.tapIndex === 1) {
+          void refundJob(job)
+        }
       }
     }
   })

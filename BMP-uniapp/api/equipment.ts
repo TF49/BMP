@@ -62,9 +62,14 @@ export interface EquipmentRentalItem {
   expectedReturnDate?: string
   actualReturnDate?: string
   rentalAmount: number
+  unitPrice?: number
+  depositAmount?: number
   paymentMethod: string
+  paymentStatus?: number
   status: number
+  remark?: string
   createTime: string
+  updateTime?: string
 }
 
 /**
@@ -176,5 +181,36 @@ export function getEquipmentRentalStatistics() {
   }>({
     url: '/equipment/rental/statistics',
     method: 'GET'
+  })
+}
+
+export function updateEquipmentRentalStatus(id: number, status: number) {
+  return request<null>({
+    url: `/equipment/rental/status?id=${id}&status=${status}`,
+    method: 'PUT'
+  })
+}
+
+export function processEquipmentRentalPayment(
+  rentalId: number,
+  paymentMethod: 'CASH' | 'ALIPAY' | 'WECHAT' | 'BALANCE'
+) {
+  return request<null>({
+    url: `/equipment/rental/payment?rentalId=${rentalId}&paymentMethod=${paymentMethod}`,
+    method: 'POST'
+  })
+}
+
+export function processEquipmentRentalRefund(rentalId: number) {
+  return request<null>({
+    url: `/equipment/rental/refund?rentalId=${rentalId}`,
+    method: 'POST'
+  })
+}
+
+export function deleteEquipmentRental(id: number) {
+  return request<null>({
+    url: `/equipment/rental/${id}`,
+    method: 'DELETE'
   })
 }
