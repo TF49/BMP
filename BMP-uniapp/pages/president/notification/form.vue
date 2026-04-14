@@ -8,7 +8,7 @@
           <view class="icon-btn">
             <uni-icons type="arrow-left" size="22" color="#ff6600" />
           </view>
-          <text class="nav-title">发布通知</text>
+          <text class="nav-title">{{ isEdit ? '编辑通知' : '发布通知' }}</text>
         </view>
       </view>
 
@@ -56,14 +56,15 @@
             </view>
 
             <view v-if="form.audience === 'venue'" class="field-block venue-field">
-              <text class="field-label">场馆 ID</text>
-              <input
-                v-model.trim="form.venueIdInput"
-                class="input"
-                type="number"
-                placeholder="请输入场馆 ID"
-                placeholder-class="input-placeholder"
-              />
+              <text class="field-label">指定场馆</text>
+              <picker mode="selector" :range="venueLabels" :value="venuePickerValue" @change="onVenueChange">
+                <view class="picker-display">
+                  <text :class="['picker-text', { placeholder: !selectedVenueLabel }]">
+                    {{ selectedVenueLabel || '请选择场馆' }}
+                  </text>
+                  <uni-icons type="arrowdown" size="14" color="#5f5e5e" />
+                </view>
+              </picker>
             </view>
           </view>
 
@@ -73,7 +74,7 @@
           </view>
 
           <button class="submit-btn" :disabled="submitting" @click="onPublish">
-            {{ submitting ? '发布中...' : '立即发布' }}
+            {{ submitting ? (isEdit ? '保存中...' : '发布中...') : (isEdit ? '保存修改' : '立即发布') }}
           </button>
         </view>
       </scroll-view>
@@ -82,21 +83,31 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { createNotification } from '@/api/notification'
+import { createNotification, updateNotification, getNotificationDetail } from '@/api/notification'
+import { getVenueList } from '@/api/president/venue'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
+type VenueOption = {
+  id: number
+  venueName: string
+}
+
 const userStore = useUserStore()
 const submitting = ref(false)
+const isEdit = ref(false)
+const notificationId = ref<number | null>(null)
+const venueOptions = ref<VenueOption[]>([])
 
 const form = reactive({
   title: '',
   content: '',
   audience: 'all' as 'all' | 'members' | 'venue',
-  venueIdInput: ''
+  venueId: null as number | null
 })
 
 const audienceOptions = [
@@ -105,14 +116,43 @@ const audienceOptions = [
   { value: 'venue' as const, label: '指定场馆' }
 ]
 
+const venueLabels = computed(() => venueOptions.value.map((item) => item.venueName))
+const venuePickerValue = computed(() => {
+  if (venueOptions.value.length === 0) return 0
+  const index = venueOptions.value.findIndex((item) => item.id === form.venueId)
+  return index >= 0 ? index : 0
+})
+const selectedVenueLabel = computed(() => {
+  const item = venueOptions.value.find((option) => option.id === form.venueId)
+  return item?.venueName || ''
+})
+
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.NOTIFICATION_LIST)
 }
 
 function resolveVenueId() {
   if (form.audience !== 'venue') return null
-  const venueId = Number(form.venueIdInput)
-  return Number.isFinite(venueId) && venueId > 0 ? venueId : null
+  return Number.isFinite(Number(form.venueId)) && Number(form.venueId) > 0 ? Number(form.venueId) : null
+}
+
+function onVenueChange(e: { detail?: { value?: string | number } }) {
+  const index = Number(e.detail?.value ?? -1)
+  const venueId = venueOptions.value[index]?.id
+  form.venueId = venueId || null
+}
+
+async function loadVenueOptions() {
+  try {
+    const res = await getVenueList({ page: 1, size: 200 })
+    const list = Array.isArray(res?.data) ? res.data : []
+    venueOptions.value = list
+      .filter((item) => item?.id && item.venueName)
+      .map((item) => ({ id: item.id, venueName: item.venueName }))
+  } catch (error) {
+    console.error('Failed to load venue options for notification form:', error)
+    venueOptions.value = []
+  }
 }
 
 async function onPublish() {
@@ -125,7 +165,7 @@ async function onPublish() {
     return
   }
   if (form.audience === 'venue' && resolveVenueId() === null) {
-    uni.showToast({ title: '请输入有效的场馆 ID', icon: 'none' })
+    uni.showToast({ title: '请选择有效场馆', icon: 'none' })
     return
   }
   if (!userStore.userId) {
@@ -136,23 +176,61 @@ async function onPublish() {
   submitting.value = true
   try {
     const venueId = resolveVenueId()
-    await createNotification({
+    const payload = {
       title: form.title,
       content: form.content,
       publisherId: userStore.userId,
       publisherName: userStore.userInfo?.username || '',
       venueId
-    })
-    uni.showToast({ title: '发布成功', icon: 'success' })
+    }
+
+    if (isEdit.value && notificationId.value) {
+      await updateNotification(notificationId.value, payload)
+      uni.showToast({ title: '保存成功', icon: 'success' })
+    } else {
+      await createNotification(payload)
+      uni.showToast({ title: '发布成功', icon: 'success' })
+    }
+    
     setTimeout(() => {
       safeNavigateBack(PRESIDENT_PAGES.NOTIFICATION_LIST)
     }, 300)
   } catch (error) {
-    console.error('Failed to create notification:', error)
+    console.error('Failed to save notification:', error)
   } finally {
     submitting.value = false
   }
 }
+
+onLoad(async (query?: Record<string, string | undefined>) => {
+  await loadVenueOptions()
+  const id = query?.id
+  if (id) {
+    const numId = parseInt(id, 10)
+    if (Number.isFinite(numId) && numId > 0) {
+      isEdit.value = true
+      notificationId.value = numId
+      
+      try {
+        const notification = await getNotificationDetail(numId)
+        form.title = notification.title || ''
+        form.content = notification.content || ''
+        
+        // 根据venueId判断发布范围
+        if (notification.venueId) {
+          form.audience = 'venue'
+          form.venueId = notification.venueId
+        } else {
+          form.audience = 'all'
+          form.venueId = null
+        }
+      } catch (error) {
+        console.error('Failed to load notification:', error)
+        uni.showToast({ title: '加载通知失败', icon: 'none' })
+      }
+    }
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -296,6 +374,26 @@ async function onPublish() {
 
 .venue-field {
   margin-top: 8rpx;
+}
+
+.picker-display {
+  width: 100%;
+  border-radius: 18rpx;
+  background: #f7f7f7;
+  padding: 20rpx 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.picker-text {
+  font-size: 28rpx;
+  color: #1a1c1c;
+}
+
+.picker-text.placeholder {
+  color: #9ca3af;
 }
 
 .tip-text {

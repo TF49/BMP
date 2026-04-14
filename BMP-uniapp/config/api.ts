@@ -16,7 +16,7 @@ export const API_PATHS = {
     REFRESH: '/auth/refresh',
     LOGOUT: '/auth/logout',
     UPDATE_INFO: '/auth/update',
-    UPDATE_PASSWORD: '/auth/update-password',
+    UPDATE_PASSWORD: '/auth/change-password',
     SEND_CODE: '/auth/send-code',
     UPDATE_PHONE: '/auth/update-phone',
     SUBMIT_FEEDBACK: '/auth/feedback'
@@ -106,18 +106,18 @@ export const API_PATHS = {
   },
   // 通知相关
   NOTIFICATION: {
-    LIST: '/api/notifications',
-    DETAIL: '/api/notifications'
+    LIST: '/notifications',
+    DETAIL: '/notifications'
   },
   // 穿线服务相关
   STRINGING: {
-    LIST: '/api/stringing/list',
-    INFO: '/api/stringing/info',
-    INFO_NO: '/api/stringing/info/no',
-    ADD: '/api/stringing/add',
-    STATUS: '/api/stringing/status',
-    STRINGS: '/api/stringing/strings',
-    CALCULATE_PRICE: '/api/stringing/calculate-price'
+    LIST: '/stringing/list',
+    INFO: '/stringing/info',
+    INFO_NO: '/stringing/info/no',
+    ADD: '/stringing/add',
+    STATUS: '/stringing/status',
+    STRINGS: '/stringing/strings',
+    CALCULATE_PRICE: '/stringing/calculate-price'
   }
 }
 

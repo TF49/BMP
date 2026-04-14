@@ -21,7 +21,7 @@
             <view class="head-copy">
               <text class="kicker">管理端审核</text>
               <text class="page-title">赛事报名审核</text>
-              <text class="page-desc">审核并授权运动员参加即将举行的春季锦标赛。最终审批需在周五前完成。</text>
+              <text class="page-desc">审核并授权运动员参加即将举行的赛事，审核结果以真实后端状态为准。</text>
             </view>
             <button class="filter-btn" @click="onFilter">
               <uni-icons type="settings" size="18" color="#1a1c1c" />
@@ -46,7 +46,7 @@
             <view class="table-head">
               <text class="th th-name">申请人姓名</text>
               <text class="th th-event">赛事名称</text>
-              <text class="th th-date">注册日期</text>
+              <text class="th th-date">报名日期</text>
               <text class="th th-status">状态</text>
               <text class="th th-actions">操作</text>
             </view>
@@ -61,37 +61,37 @@
 
             <template v-else>
               <view v-for="row in pagedRows" :key="row.id" class="data-row" @click="openDetail(row)">
-              <view class="td td-name">
-                <view class="avatar">{{ row.initials }}</view>
-                <view class="name-block">
-                  <text class="applicant-name">{{ row.name }}</text>
-                  <text class="applicant-id">{{ row.memberId }}</text>
-                </view>
-              </view>
-              <text class="td td-event">{{ row.tournament }}</text>
-              <text class="td td-date">{{ row.date }}</text>
-              <view class="td td-status">
-                <view class="status-pill" :class="`pill-${row.status}`">
-                  <text class="pill-txt">{{ statusLabel(row.status) }}</text>
-                </view>
-              </view>
-              <view class="td td-actions" @click.stop>
-                <view v-if="row.status === 'pending'" class="act-group">
-                  <view class="act-ok" @click="onApprove(row)">
-                    <uni-icons type="checkbox-filled" size="22" color="#16a34a" />
-                  </view>
-                  <view class="act-no" @click="onReject(row)">
-                    <uni-icons type="closeempty" size="22" color="#dc2626" />
+                <view class="td td-name">
+                  <view class="avatar">{{ row.initials }}</view>
+                  <view class="name-block">
+                    <text class="applicant-name">{{ row.name }}</text>
+                    <text class="applicant-id">{{ row.memberId }}</text>
                   </view>
                 </view>
-                <view v-else-if="row.status === 'approved'" class="act-hit" @click="onMore(row)">
-                  <uni-icons type="more-filled" size="22" color="#5f5e5e" />
+                <text class="td td-event">{{ row.tournament }}</text>
+                <text class="td td-date">{{ row.date }}</text>
+                <view class="td td-status">
+                  <view class="status-pill" :class="`pill-${row.status}`">
+                    <text class="pill-txt">{{ statusLabel(row) }}</text>
+                  </view>
                 </view>
-                <view v-else class="act-hit" @click="openDetail(row)">
-                  <uni-icons type="info" size="22" color="#5f5e5e" />
+                <view class="td td-actions" @click.stop>
+                  <view v-if="row.status === 'pending'" class="act-group">
+                    <view class="act-ok" @click="onApprove(row)">
+                      <uni-icons type="checkbox-filled" size="22" color="#16a34a" />
+                    </view>
+                    <view class="act-no" @click="onReject(row)">
+                      <uni-icons type="closeempty" size="22" color="#dc2626" />
+                    </view>
+                  </view>
+                  <view v-else-if="row.status === 'approved'" class="act-hit" @click="onMore(row)">
+                    <uni-icons type="more-filled" size="22" color="#5f5e5e" />
+                  </view>
+                  <view v-else class="act-hit" @click="openDetail(row)">
+                    <uni-icons type="info" size="22" color="#5f5e5e" />
+                  </view>
                 </view>
               </view>
-            </view>
             </template>
 
             <view class="table-footer">
@@ -121,15 +121,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getTournamentRegistrationList, type TournamentRegistrationItem } from '@/api/tournament'
+import {
+  getTournamentRegistrationList,
+  updateTournamentRegistrationStatus,
+  type TournamentRegistrationItem
+} from '@/api/tournament'
 import { parsePagedList } from '@/utils/parsePagedList'
 
-type RegStatus = 'pending' | 'approved' | 'rejected'
-type FilterKey = 'all' | RegStatus
+type RegStatus = 'pending' | 'approved' | 'rejected' | 'readonly'
+type FilterKey = 'all' | 'pending' | 'approved' | 'rejected'
 
 type RegRow = {
   id: string
@@ -139,93 +143,80 @@ type RegRow = {
   tournament: string
   date: string
   status: RegStatus
+  rawStatus: number
 }
 
 const loading = ref(false)
+const actionLoadingId = ref('')
 const activeFilter = ref<FilterKey>('pending')
 const currentPage = ref(1)
 const pageSize = 10
-
 const allRows = ref<RegRow[]>([])
 
-// 生成首字母缩写
 function getInitials(name?: string): string {
   if (!name) return 'U'
   const trimmed = name.trim()
-  if (/[\u4e00-\u9fa5]/.test(trimmed)) {
-    return trimmed.slice(0, 1)
-  }
+  if (/[\u4e00-\u9fa5]/.test(trimmed)) return trimmed.slice(0, 1)
   const parts = trimmed.split(/\s+/).filter(Boolean)
   const first = parts[0]?.[0] || 'U'
   const second = parts[1]?.[0] || ''
   return (first + second).toUpperCase()
 }
 
-// 格式化日期
 function formatDate(dateStr?: string): string {
-  if (!dateStr) return '—'
+  if (!dateStr) return '-'
   try {
     const date = new Date(dateStr)
-    const year = date.getFullYear()
-    const month = date.getMonth() + 1
-    const day = date.getDate()
-    return `${year}年${month}月${day}日`
+    return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
   } catch {
     return dateStr
   }
 }
 
-// 状态映射：后端 status 字段映射
-// 根据 TournamentRegistrationItem 接口，status 为 number
-// 假设：0=已取消, 1=待审核, 2=已通过, 3=已拒绝
 function mapRegistrationStatus(status?: number): RegStatus {
   if (status === 1) return 'pending'
   if (status === 2) return 'approved'
-  if (status === 3) return 'rejected'
-  return 'pending' // 默认待审核
+  if (status === 0) return 'rejected'
+  return 'readonly'
 }
 
-// 数据转换函数
 function transformRegistration(item: TournamentRegistrationItem): RegRow {
+  const rawStatus = Number(item.status ?? -1)
   return {
     id: String(item.id),
     initials: getInitials(item.memberName),
     name: item.memberName || '未知会员',
-    memberId: `ID-${item.memberId || '—'}`,
+    memberId: `ID-${item.memberId || '-'}`,
     tournament: item.tournamentName || '未知赛事',
     date: formatDate(item.createTime),
-    status: mapRegistrationStatus(item.status)
+    status: mapRegistrationStatus(rawStatus),
+    rawStatus
   }
 }
 
-// 加载报名列表
 async function loadRegistrations() {
   loading.value = true
   try {
-    const res = await getTournamentRegistrationList({
-      page: 1,
-      size: 100
-    })
+    const res = await getTournamentRegistrationList({ page: 1, size: 100 })
     const { list } = parsePagedList<TournamentRegistrationItem>(res)
     allRows.value = list.map(transformRegistration)
   } catch (error) {
-    console.error('加载报名列表失败:', error)
-    uni.showToast({ 
-      title: '加载失败，请重试', 
-      icon: 'none' 
+    console.error('Failed to load tournament registrations:', error)
+    uni.showToast({
+      title: '加载失败，请重试',
+      icon: 'none'
     })
   } finally {
     loading.value = false
   }
 }
 
-// 统计数据
 const stats = computed(() => {
   const total = allRows.value.length
-  const pending = allRows.value.filter(r => r.status === 'pending').length
-  const approved = allRows.value.filter(r => r.status === 'approved').length
-  const rejected = allRows.value.filter(r => r.status === 'rejected').length
-  
+  const pending = allRows.value.filter((row) => row.status === 'pending').length
+  const approved = allRows.value.filter((row) => row.status === 'approved').length
+  const rejected = allRows.value.filter((row) => row.status === 'rejected').length
+
   return {
     totalApplicants: total.toLocaleString(),
     pending,
@@ -235,15 +226,15 @@ const stats = computed(() => {
 })
 
 const metricItems = computed(() => [
-  { key: 'all' as const, label: '总申请人数', value: stats.totalApplicants },
-  { key: 'pending' as const, label: '待审核', value: String(stats.pending) },
-  { key: 'approved' as const, label: '已通过', value: stats.approved },
-  { key: 'rejected' as const, label: '已拒绝', value: stats.rejected }
+  { key: 'all' as const, label: '总申请人数', value: stats.value.totalApplicants },
+  { key: 'pending' as const, label: '待审核', value: String(stats.value.pending) },
+  { key: 'approved' as const, label: '已通过', value: stats.value.approved },
+  { key: 'rejected' as const, label: '已拒绝', value: stats.value.rejected }
 ])
 
 const filteredRows = computed(() => {
   if (activeFilter.value === 'all') return allRows.value
-  return allRows.value.filter(r => r.status === activeFilter.value)
+  return allRows.value.filter((row) => row.status === activeFilter.value)
 })
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize)))
@@ -255,32 +246,32 @@ const pagedRows = computed(() => {
 })
 
 const pageButtons = computed(() => {
-  const n = totalPages.value
-  const cur = Math.min(currentPage.value, n)
-  if (n <= 3) return Array.from({ length: n }, (_, i) => i + 1)
-  if (cur <= 2) return [1, 2, 3]
-  if (cur >= n - 1) return [n - 2, n - 1, n]
-  return [cur - 1, cur, cur + 1]
+  const total = totalPages.value
+  const current = Math.min(currentPage.value, total)
+  if (total <= 3) return Array.from({ length: total }, (_, index) => index + 1)
+  if (current <= 2) return [1, 2, 3]
+  if (current >= total - 1) return [total - 2, total - 1, total]
+  return [current - 1, current, current + 1]
 })
 
 const footerHint = computed(() => {
   if (activeFilter.value === 'pending') {
-    const n = pagedRows.value.length
-    return `显示 ${stats.pending} 条待审核记录中的 ${n} 条`
+    return `显示 ${stats.value.pending} 条待审核记录中的 ${pagedRows.value.length} 条`
   }
-  const total = filteredRows.value.length
-  const n = pagedRows.value.length
-  return `本页 ${n} 条 · 筛选共 ${total} 条`
+  return `本页 ${pagedRows.value.length} 条，筛选后共 ${filteredRows.value.length} 条`
 })
 
 watch([activeFilter, () => filteredRows.value.length], () => {
   currentPage.value = 1
 })
 
-function statusLabel(s: RegStatus) {
-  if (s === 'pending') return '待审核'
-  if (s === 'approved') return '已通过'
-  return '已拒绝'
+function statusLabel(row: RegRow) {
+  if (row.status === 'pending') return '待审核'
+  if (row.status === 'approved') return '已通过'
+  if (row.status === 'rejected') return '已拒绝'
+  if (row.rawStatus === 3) return '已参赛'
+  if (row.rawStatus === 4) return '已退赛'
+  return '已处理'
 }
 
 function goBack() {
@@ -295,14 +286,26 @@ function openDetail(row: RegRow) {
   uni.navigateTo({ url: `${PRESIDENT_PAGES.TOURNAMENT_REGISTRATION_DETAIL}?id=${encodeURIComponent(row.id)}` })
 }
 
+async function updateStatus(row: RegRow, status: number, title: string) {
+  if (actionLoadingId.value) return
+  try {
+    actionLoadingId.value = row.id
+    await updateTournamentRegistrationStatus(Number(row.id), status)
+    uni.showToast({ title, icon: 'success' })
+    await loadRegistrations()
+  } catch (error) {
+    console.error('Failed to update tournament registration status:', error)
+  } finally {
+    actionLoadingId.value = ''
+  }
+}
+
 function onApprove(row: RegRow) {
-  row.status = 'approved'
-  uni.showToast({ title: '已通过', icon: 'success' })
+  void updateStatus(row, 2, '已通过')
 }
 
 function onReject(row: RegRow) {
-  row.status = 'rejected'
-  uni.showToast({ title: '已拒绝', icon: 'none' })
+  void updateStatus(row, 0, '已拒绝')
 }
 
 function onMore(row: RegRow) {
@@ -318,9 +321,8 @@ function nextPage() {
   if (currentPage.value < totalPages.value) currentPage.value += 1
 }
 
-// 页面加载时获取数据
 onMounted(() => {
-  loadRegistrations()
+  void loadRegistrations()
 })
 </script>
 
@@ -567,6 +569,12 @@ onMounted(() => {
 }
 .pill-rejected .pill-txt {
   color: #93000a;
+}
+.pill-readonly {
+  background: #e8e8e8;
+}
+.pill-readonly .pill-txt {
+  color: #5f5e5e;
 }
 .pill-txt {
   font-size: 20rpx;

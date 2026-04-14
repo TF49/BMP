@@ -3,7 +3,6 @@
     <view class="page">
       <view class="status-bar-placeholder" />
 
-      <!-- Mobile drawer -->
       <view v-if="drawerOpen" class="drawer-root" @click="drawerOpen = false">
         <view class="drawer-panel" @click.stop>
           <view class="drawer-head">
@@ -53,15 +52,29 @@
           <text class="screen-title">穿线管理</text>
         </view>
         <view class="top-bar-right">
-          <view class="icon-round">
-            <uni-icons type="search" size="22" color="#ff6600" />
-          </view>
           <button class="cta-btn" @click="openForm">+ 新增穿线</button>
         </view>
       </view>
 
       <scroll-view scroll-y class="scroll" :show-scrollbar="false">
         <view class="content">
+          <view class="search-panel">
+            <view class="search-field">
+              <uni-icons class="search-ico" type="search" size="20" color="#5f5e5e" />
+              <input
+                v-model="keyword"
+                class="search-input"
+                type="text"
+                placeholder="搜索客户、球拍或线材..."
+                confirm-type="search"
+                @input="onSearchInput"
+              />
+              <view v-if="keyword" class="clear-btn" @click="clearSearch">
+                <uni-icons type="clear" size="18" color="#5f5e5e" />
+              </view>
+            </view>
+          </view>
+
           <view class="summary-block">
             <view class="summary-hero">
               <text class="summary-label">今日工单总量</text>
@@ -148,7 +161,7 @@
                 <view v-for="inv in inventory" :key="inv.name" class="inv-row">
                   <text class="inv-name">{{ inv.name }}</text>
                   <view class="inv-bar-track">
-                    <view class="inv-bar-fill" :class="inv.low ? 'fill-error' : 'fill-primary'" :style="{ width: inv.pct + '%' }" />
+                    <view class="inv-bar-fill" :class="inv.low ? 'fill-error' : 'fill-primary'" :style="{ width: `${inv.pct}%` }" />
                   </view>
                 </view>
                 <view v-if="inventory.length === 0" class="inv-row">
@@ -183,7 +196,12 @@
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getStringingList, updateStringingStatus, type StringingService } from '@/api/stringing'
+import {
+  getStringingList,
+  processStringingRefund,
+  updateStringingStatus,
+  type StringingService
+} from '@/api/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
 import { STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
@@ -197,6 +215,7 @@ type Job = {
   stringModel: string
   tensionMain: string
   tensionCross: string
+  paymentStatus: number
   status: JobStatus
 }
 
@@ -209,6 +228,8 @@ type InventoryItem = {
 const drawerOpen = ref(false)
 const loading = ref(false)
 const records = ref<StringingService[]>([])
+const keyword = ref('')
+let searchTimer: number | null = null
 
 const drawerNav = ref([
   { label: '仪表盘', icon: 'home', active: false, action: 'dashboard' as const },
@@ -234,6 +255,7 @@ const jobs = computed<Job[]>(() =>
       stringModel: resolveStringModel(item),
       tensionMain: tension,
       tensionCross: tension,
+      paymentStatus: Number(item.paymentStatus ?? 0),
       status: mapJobStatus(item.status)
     }
   })
@@ -244,6 +266,7 @@ const inventory = computed<InventoryItem[]>(() => {
   jobs.value.forEach((item) => {
     counts.set(item.stringModel, (counts.get(item.stringModel) || 0) + 1)
   })
+
   const totalCount = jobs.value.length || 1
   return Array.from(counts.entries())
     .sort((a, b) => b[1] - a[1])
@@ -289,14 +312,15 @@ function statusLabel(status: JobStatus) {
   if (status === 'in_progress') return '进行中'
   if (status === 'pending') return '待处理'
   if (status === 'cancelled') return '已取消'
-  return '已就绪'
+  return '已完成'
 }
 
 async function loadRecords() {
   loading.value = true
   try {
+    const searchKeyword = keyword.value.trim() || undefined
     const [allRes, pendingRes, progressRes, readyRes] = await Promise.all([
-      getStringingList({ page: 1, size: 100 }),
+      getStringingList({ page: 1, size: 100, keyword: searchKeyword }),
       getStringingList({ page: 1, size: 1, status: STRINGING_STATUS.WAITING }),
       getStringingList({ page: 1, size: 1, status: STRINGING_STATUS.IN_PROGRESS }),
       getStringingList({ page: 1, size: 1, status: STRINGING_STATUS.COMPLETED })
@@ -321,6 +345,18 @@ async function loadRecords() {
   } finally {
     loading.value = false
   }
+}
+
+function onSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    void loadRecords()
+  }, 500)
+}
+
+function clearSearch() {
+  keyword.value = ''
+  void loadRecords()
 }
 
 function onDrawerNav(item: (typeof drawerNav.value)[0]) {
@@ -350,6 +386,22 @@ async function updateJobStatus(id: number, status: number, title: string) {
   }
 }
 
+async function refundJob(job: Job) {
+  const result = await uni.showModal({
+    title: '确认退款',
+    content: '退款后将撤销当前穿线支付记录，是否继续？'
+  })
+  if (!result.confirm) return
+
+  try {
+    await processStringingRefund(job.id)
+    uni.showToast({ title: '退款成功', icon: 'success' })
+    await loadRecords()
+  } catch (error) {
+    console.error('Failed to refund stringing order:', error)
+  }
+}
+
 function onStart(job: Job) {
   void updateJobStatus(job.id, STRINGING_STATUS.IN_PROGRESS, '已开始穿线')
 }
@@ -359,26 +411,32 @@ function onComplete(job: Job) {
 }
 
 function onMore(job: Job) {
-  const itemList =
-    job.status === 'pending'
-      ? ['查看详情', '开始穿线']
-      : job.status === 'in_progress'
-        ? ['查看详情', '标记完成']
-        : ['查看详情']
+  const itemList = ['查看详情']
+  if (job.status === 'pending') {
+    itemList.push('开始穿线')
+  } else if (job.status === 'in_progress') {
+    itemList.push('标记完成')
+  } else if (job.status === 'ready' && job.paymentStatus === 1) {
+    itemList.push('退款')
+  }
+
   uni.showActionSheet({
     itemList,
     success(res) {
       if (res.tapIndex === 0) {
         openDetail(job)
+        return
       }
-      if (res.tapIndex === 1) {
-        if (job.status === 'pending') {
-          onStart(job)
-          return
-        }
-        if (job.status === 'in_progress') {
-          onComplete(job)
-        }
+      if (job.status === 'pending') {
+        onStart(job)
+        return
+      }
+      if (job.status === 'in_progress') {
+        onComplete(job)
+        return
+      }
+      if (job.status === 'ready' && job.paymentStatus === 1) {
+        void refundJob(job)
       }
     }
   })
@@ -582,6 +640,49 @@ onShow(() => {
 }
 .content {
   padding: 24rpx 28rpx 40rpx;
+}
+
+.search-panel {
+  background: #f3f3f3;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 32rpx;
+}
+.search-field {
+  position: relative;
+  width: 100%;
+}
+.search-ico {
+  position: absolute;
+  left: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+.search-input {
+  width: 100%;
+  padding: 24rpx 72rpx 24rpx 72rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  color: #1a1c1c;
+  border: none;
+}
+.clear-btn {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.clear-btn:active {
+  background: #f3f3f3;
 }
 
 .summary-block {

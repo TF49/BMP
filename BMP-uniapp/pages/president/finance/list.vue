@@ -16,17 +16,32 @@
           </view>
           <view class="nav-right">
             <text class="audit-link" @click.stop="goAuditLog">审计日志</text>
-            <view class="icon-btn" @click.stop="handleSearch">
+            <view class="icon-btn" @click.stop="toggleSearch">
               <uni-icons type="search" size="22" color="#71717a"></uni-icons>
-            </view>
-            <view class="icon-btn" @click.stop="handleSettings">
-              <uni-icons type="gear" size="22" color="#71717a"></uni-icons>
             </view>
           </view>
         </view>
       </view>
 
       <view class="main-content">
+        <!-- Search Bar -->
+        <view v-if="showSearch" class="search-bar">
+          <view class="search-input-wrap">
+            <uni-icons type="search" size="20" color="#71717a"></uni-icons>
+            <input 
+              class="search-input" 
+              v-model="searchKeyword" 
+              placeholder="搜索交易记录..."
+              @confirm="handleSearchConfirm"
+              @input="handleSearchInput"
+            />
+            <view v-if="searchKeyword" class="clear-btn" @click="clearSearch">
+              <uni-icons type="closeempty" size="16" color="#71717a"></uni-icons>
+            </view>
+          </view>
+          <text class="cancel-btn" @click="toggleSearch">取消</text>
+        </view>
+
         <!-- Welcome & Role Badge -->
         <view class="welcome-section">
           <view class="title-wrap">
@@ -115,26 +130,21 @@
               </view>
               <!-- Bars -->
               <view class="bars-container">
-                <view class="bar-group hoverable">
-                  <view class="bar" style="height: 45%"><view class="bar-fill"></view></view>
-                  <text class="bar-label">1月</text>
-                </view>
-                <view class="bar-group hoverable">
-                  <view class="bar" style="height: 55%"><view class="bar-fill"></view></view>
-                  <text class="bar-label">2月</text>
-                </view>
-                <view class="bar-group hoverable">
-                  <view class="bar" style="height: 50%"><view class="bar-fill"></view></view>
-                  <text class="bar-label">3月</text>
-                </view>
-                <view class="bar-group hoverable">
-                  <view class="bar" style="height: 65%"><view class="bar-fill"></view></view>
-                  <text class="bar-label">4月</text>
-                </view>
-                <view class="bar-group hoverable">
-                  <view class="bar active" style="height: 80%"><view class="bar-fill"></view></view>
-                  <text class="bar-label">5月</text>
-                </view>
+                <template v-if="trendBars.length === 0">
+                  <view class="chart-empty">暂无趋势数据</view>
+                </template>
+                <template v-else>
+                  <view
+                    v-for="item in trendBars"
+                    :key="item.label"
+                    class="bar-group hoverable"
+                  >
+                    <view class="bar" :class="{ active: item.active }" :style="{ height: `${item.height}%` }">
+                      <view class="bar-fill"></view>
+                    </view>
+                    <text class="bar-label">{{ item.label }}</text>
+                  </view>
+                </template>
               </view>
             </view>
           </view>
@@ -143,30 +153,26 @@
           <view class="chart-card pie-chart-card">
             <text class="chart-title mb">业务构成</text>
             <view class="pie-container">
-              <view class="pie-visual"></view>
+              <view class="pie-visual" :style="{ background: pieBackground }"></view>
               <view class="pie-center">
                 <text class="pie-label">收入</text>
-                <text class="pie-value">100%</text>
+                <text class="pie-value">{{ ratioItems.length > 0 ? '100%' : '0%' }}</text>
               </view>
             </view>
             
             <view class="legend-grid">
-              <view class="legend-item">
-                <view class="dot" style="background-color: #ff6600"></view>
-                <text class="legend-text">场地预约 (40%)</text>
-              </view>
-              <view class="legend-item">
-                <view class="dot" style="background-color: #5f5e5e"></view>
-                <text class="legend-text">课程预约 (35%)</text>
-              </view>
-              <view class="legend-item">
-                <view class="dot" style="background-color: #0062a1"></view>
-                <text class="legend-text">赛事报名 (15%)</text>
-              </view>
-              <view class="legend-item">
-                <view class="dot" style="background-color: #e3bfb1"></view>
-                <text class="legend-text">器材租借 (10%)</text>
-              </view>
+              <template v-if="ratioItems.length === 0">
+                <view class="legend-item">
+                  <view class="dot" style="background-color: #e8e8e8"></view>
+                  <text class="legend-text">暂无业务占比数据</text>
+                </view>
+              </template>
+              <template v-else>
+                <view v-for="item in ratioItems" :key="item.label" class="legend-item">
+                  <view class="dot" :style="{ backgroundColor: item.color }"></view>
+                  <text class="legend-text">{{ item.label }} ({{ item.percent }}%)</text>
+                </view>
+              </template>
             </view>
           </view>
         </view>
@@ -178,7 +184,6 @@
               <text class="table-title">最近交易</text>
               <text class="table-desc">最近的财务记录</text>
             </view>
-            <text class="export-btn" @click="handleExport">导出数据</text>
           </view>
           
           <!-- Loading State -->
@@ -240,11 +245,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getFinanceList, type FinanceItem } from '@/api/president/finance'
+import { 
+  getFinanceList, 
+  getFinanceStatistics,
+  getFinanceTrend,
+  getBusinessRatio,
+  type FinanceItem 
+} from '@/api/president/finance'
 
 // 数据状态
 const loading = ref(false)
@@ -254,40 +265,132 @@ const totalExpense = ref(0)
 const netIncome = ref(0)
 const growthRate = ref(0)
 
-// 加载财务数据
+// 搜索状态
+const showSearch = ref(false)
+const searchKeyword = ref('')
+let searchTimer: number | undefined
+
+// 图表数据
+const trendData = ref<{ dates: string[], incomes: number[], expenses: number[] }>({
+  dates: [],
+  incomes: [],
+  expenses: []
+})
+const businessRatioData = ref<{ labels: string[], values: number[] }>({
+  labels: [],
+  values: []
+})
+
+const ratioColors = ['#ff6600', '#5f5e5e', '#0062a1', '#e3bfb1', '#ba1a1a', '#7c3aed']
+
+const trendBars = computed(() => {
+  const dates = trendData.value.dates || []
+  const incomes = trendData.value.incomes || []
+  const values = dates.map((date, index) => ({
+    label: formatTrendLabel(date, index),
+    value: Number(incomes[index] || 0)
+  }))
+  const maxValue = Math.max(...values.map((item) => item.value), 0)
+
+  return values.map((item, index) => ({
+    ...item,
+    height: maxValue > 0 ? Math.max(10, Math.round((item.value / maxValue) * 100)) : 10,
+    active: index === values.length - 1
+  }))
+})
+
+const ratioItems = computed(() => {
+  const labels = businessRatioData.value.labels || []
+  const values = businessRatioData.value.values || []
+  const total = values.reduce((sum, value) => sum + Number(value || 0), 0)
+
+  return labels.map((label, index) => {
+    const value = Number(values[index] || 0)
+    const percent = total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0
+    return {
+      label: formatBusinessLabel(label),
+      value,
+      percent,
+      color: ratioColors[index % ratioColors.length]
+    }
+  })
+})
+
+const pieBackground = computed(() => {
+  if (ratioItems.value.length === 0) {
+    return 'conic-gradient(#e8e8e8 0% 100%)'
+  }
+
+  let current = 0
+  const stops = ratioItems.value.map((item) => {
+    const start = current
+    current += item.percent
+    const end = Math.min(current, 100)
+    return `${item.color} ${start}% ${end}%`
+  })
+
+  if (current < 100) {
+    stops.push(`#e8e8e8 ${current}% 100%`)
+  }
+
+  return `conic-gradient(${stops.join(', ')})`
+})
+
+// 加载财务统计数据
+async function loadStatistics() {
+  try {
+    const stats = await getFinanceStatistics()
+    totalIncome.value = stats.totalIncome || 0
+    totalExpense.value = stats.totalExpense || 0
+    netIncome.value = stats.netIncome || 0
+    
+    // 计算利润率
+    if (totalExpense.value > 0) {
+      growthRate.value = (netIncome.value / totalExpense.value * 100)
+    } else if (totalIncome.value > 0) {
+      growthRate.value = 100
+    }
+  } catch (error) {
+    console.error('加载统计数据失败:', error)
+  }
+}
+
+// 加载趋势数据
+async function loadTrendData() {
+  try {
+    const trend = await getFinanceTrend()
+    trendData.value = trend
+  } catch (error) {
+    console.error('加载趋势数据失败:', error)
+  }
+}
+
+// 加载业务占比数据
+async function loadBusinessRatio() {
+  try {
+    const ratio = await getBusinessRatio()
+    businessRatioData.value = ratio
+  } catch (error) {
+    console.error('加载业务占比失败:', error)
+  }
+}
+
+// 加载财务列表数据
 async function loadFinanceData() {
   loading.value = true
   try {
-    const res = await getFinanceList({
+    const params: any = {
       page: 1,
       size: 10
-    })
-    
-    if (res.data) {
-      transactions.value = res.data
-      
-      // 计算统计数据
-      let income = 0
-      let expense = 0
-      
-      res.data.forEach(item => {
-        const amount = item.amount || 0
-        if (item.incomeExpenseType === 'income') {
-          income += amount
-        } else if (item.incomeExpenseType === 'expense') {
-          expense += amount
-        }
-      })
-      
-      totalIncome.value = income
-      totalExpense.value = expense
-      netIncome.value = income - expense
-      
-      // 简单计算增长率（实际应该从后端获取）
-      if (expense > 0) {
-        growthRate.value = ((income - expense) / expense * 100)
-      }
     }
+    
+    // 添加搜索关键词
+    if (searchKeyword.value.trim()) {
+      params.keyword = searchKeyword.value.trim()
+    }
+    
+    const res = await getFinanceList(params)
+    transactions.value = res.data || []
   } catch (error) {
     console.error('加载财务数据失败:', error)
     uni.showToast({ title: '加载失败', icon: 'none' })
@@ -307,6 +410,30 @@ function formatDate(dateStr?: string): string {
   if (!dateStr) return '-'
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function formatTrendLabel(dateStr: string, index: number): string {
+  if (!dateStr) return `${index + 1}月`
+  const date = new Date(dateStr)
+  if (!Number.isNaN(date.getTime())) {
+    return `${date.getMonth() + 1}月`
+  }
+  return dateStr.slice(5, 7).replace(/^0/, '') + '月'
+}
+
+function formatBusinessLabel(label?: string): string {
+  const map: Record<string, string> = {
+    court_booking: '场地预约',
+    course_booking: '课程预约',
+    tournament: '赛事报名',
+    tournament_registration: '赛事报名',
+    equipment_rental: '器材租借',
+    stringing: '穿线服务',
+    member_recharge: '会员充值',
+    maintenance: '维护服务'
+  }
+  if (!label) return '其他'
+  return map[label] || label
 }
 
 // 获取业务类型图标
@@ -349,19 +476,34 @@ function goAuditLog() {
   uni.navigateTo({ url: PRESIDENT_PAGES.FINANCE_AUDIT_LOG })
 }
 
-function handleSearch() {
-  uni.showToast({ title: '搜索功能开发中', icon: 'none' })
+function toggleSearch() {
+  showSearch.value = !showSearch.value
+  if (!showSearch.value) {
+    searchKeyword.value = ''
+    loadFinanceData()
+  }
 }
 
-function handleSettings() {
-  uni.showToast({ title: '设置功能开发中', icon: 'none' })
+function clearSearch() {
+  searchKeyword.value = ''
+  loadFinanceData()
 }
 
-function handleExport() {
-  uni.showToast({ title: '导出功能开发中', icon: 'none' })
+function handleSearchConfirm() {
+  loadFinanceData()
+}
+
+function handleSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    loadFinanceData()
+  }, 500) as unknown as number
 }
 
 onMounted(() => {
+  loadStatistics()
+  loadTrendData()
+  loadBusinessRatio()
   loadFinanceData()
 })
 </script>
@@ -378,6 +520,50 @@ onMounted(() => {
 .status-bar-placeholder {
   height: var(--status-bar-height);
   background-color: #f8fafc;
+}
+
+/* ── Search Bar ── */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 48rpx;
+  background-color: #ffffff;
+  margin-bottom: 24rpx;
+  border-radius: 24rpx;
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background-color: #f3f3f3;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1a1c1c;
+}
+
+.clear-btn {
+  width: 32rpx;
+  height: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e5e5e5;
+  border-radius: 50%;
+}
+
+.cancel-btn {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #ea580c;
+  white-space: nowrap;
 }
 
 /* ── Navigation（对齐赛事管理） ── */
@@ -736,6 +922,16 @@ onMounted(() => {
   z-index: 1;
 }
 
+.chart-empty {
+  width: 100%;
+  align-self: center;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #5f5e5e;
+  padding-bottom: 80rpx;
+}
+
 .bar-group {
   flex: 1;
   height: 100%;
@@ -893,13 +1089,6 @@ onMounted(() => {
     display: block;
   }
 
-  .export-btn {
-    color: #a33e00;
-    font-size: 28rpx;
-    font-weight: 700;
-    
-    &:active { opacity: 0.7; }
-  }
 }
 
 .loading-container,

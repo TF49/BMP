@@ -50,3 +50,42 @@ export function deleteFinance(id: number) {
 export function reconciliation() {
   return get<Record<string, unknown>>('/finance/reconciliation/full')
 }
+
+/** 财务统计概览 */
+export function getFinanceStatistics(params?: {
+  venueId?: number
+  startDate?: string
+  endDate?: string
+}) {
+  return get<{
+    totalIncome: number
+    totalExpense: number
+    netIncome: number
+    transactionCount: number
+  }>('/finance/statistics', params || {})
+}
+
+/** 财务趋势数据 */
+export function getFinanceTrend(params?: {
+  venueId?: number
+  startDate?: string
+  endDate?: string
+}) {
+  return get<{
+    dates: string[]
+    incomes: number[]
+    expenses: number[]
+  }>('/finance/trend', params || {})
+}
+
+/** 业务占比数据 */
+export function getBusinessRatio(params?: {
+  venueId?: number
+  startDate?: string
+  endDate?: string
+}) {
+  return get<{
+    labels: string[]
+    values: number[]
+  }>('/finance/business-ratio', params || {})
+}

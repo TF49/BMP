@@ -157,3 +157,10 @@ export function getTournamentRegistrationDetail(id: number) {
     method: 'GET'
   })
 }
+
+export function updateTournamentRegistrationStatus(id: number, status: number) {
+  return request<null>({
+    url: `/tournament/registration/status?id=${id}&status=${status}`,
+    method: 'PUT'
+  })
+}

@@ -8,17 +8,14 @@
           <view class="icon-round" @click="goBack">
             <uni-icons type="arrow-left" size="24" color="#ff6600" />
           </view>
-          <text class="screen-title">管理</text>
+          <text class="screen-title">器材租借管理</text>
         </view>
         <view class="top-bar-right">
-          <view class="icon-round">
-            <uni-icons type="search" size="22" color="#ff6600" />
-          </view>
           <button class="cta-btn" @click="openForm">新增租借</button>
         </view>
       </view>
 
-      <scroll-view scroll-y class="scroll" :show-scrollbar="false">
+      <scroll-view scroll-y class="scroll" :show-scrollbar="false" @scrolltolower="loadMore">
         <view class="content">
           <view class="stats-grid">
             <StatCard label="当前租借总数" :value="String(stats.totalRentals)" variant="primary" iconType="shop" />
@@ -35,40 +32,48 @@
                 type="text"
                 placeholder="搜索会员姓名或器材..."
                 confirm-type="search"
+                @input="onSearchInput"
               />
+              <view v-if="keyword" class="clear-btn" @click="clearSearch">
+                <uni-icons type="clear" size="18" color="#5f5e5e" />
+              </view>
             </view>
             <view class="filter-row">
-              <view class="chip-btn" @click="onFilter">
-                <uni-icons type="settings" size="16" color="#5f5e5e" />
-                <text class="chip-text">筛选</text>
-              </view>
-              <view class="chip-btn" @click="onSort">
-                <uni-icons type="arrowdown" size="16" color="#5f5e5e" />
-                <text class="chip-text">排序</text>
+              <view class="chip-btn" :class="{ active: filterStatus !== undefined }" @click="onFilter">
+                <uni-icons type="settings" size="16" :color="filterStatus !== undefined ? '#ff6600' : '#5f5e5e'" />
+                <text class="chip-text">{{ filterStatus !== undefined ? statusLabel(filterStatus) : '筛选' }}</text>
               </view>
             </view>
           </view>
 
-          <view class="list-block">
-            <view v-for="row in pagedRows" :key="row.key" class="list-gap">
+          <view v-if="loading && list.length === 0" class="state-wrap">
+            <text class="state-text">正在加载租借记录...</text>
+          </view>
+
+          <view v-else-if="!loading && list.length === 0" class="state-wrap">
+            <text class="state-text">暂无租借记录</text>
+          </view>
+
+          <view v-else class="list-block">
+            <view v-for="row in list" :key="row.id" class="list-gap">
               <RentalListItem
                 :member-name="row.memberName"
-                :member-id="row.memberId"
-                :initials="row.initials"
-                :avatar-url="row.avatarUrl"
+                :member-id="String(row.memberId)"
+                :initials="getInitials(row.memberName)"
                 :equipment-name="row.equipmentName"
-                :tag="row.tag"
-                :date-range="row.dateRange"
-                :sub-text="row.subText"
-                :sub-text-tone="row.subTextTone"
-                :status="row.status"
+                :tag="row.rentalNo"
+                :date-range="formatDateRange(row.rentalDate, row.expectedReturnDate)"
+                :sub-text="getSubText(row)"
+                :sub-text-tone="getSubTextTone(row)"
+                :status="getStatus(row)"
                 @click="openDetail(row)"
-                @more="onRowMore(row)"
               />
             </view>
           </view>
 
-          <Pagination v-model="currentPage" :total-pages="totalPages" />
+          <view v-if="hasMore && list.length > 0" class="load-more">
+            <text>{{ loading ? '加载中...' : '上拉加载更多' }}</text>
+          </view>
 
           <view class="bottom-space" />
         </view>
@@ -78,161 +83,156 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import StatCard from '@/components/president/equipment-rental/StatCard.vue'
 import RentalListItem, { type RentalListStatus } from '@/components/president/equipment-rental/RentalListItem.vue'
-import Pagination from '@/components/president/equipment-rental/Pagination.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-
-type RentalRow = {
-  key: string
-  memberName: string
-  memberId: string
-  initials: string
-  avatarUrl?: string
-  equipmentName: string
-  tag: string
-  dateRange: string
-  subText: string
-  subTextTone: 'error' | 'muted'
-  status: RentalListStatus
-}
+import { getEquipmentRentalList, getEquipmentRentalStatistics, type EquipmentRentalItem } from '@/api/equipment'
+import { formatDate } from '@/utils/format'
 
 const stats = ref({
-  totalRentals: 42,
-  overdue: 8,
-  availableStock: 124
+  totalRentals: 0,
+  overdue: 0,
+  availableStock: 0
 })
 
 const keyword = ref('')
-const currentPage = ref(1)
-const pageSize = 4
-const allRows = ref<RentalRow[]>([
-  {
-    key: '1',
-    memberName: 'Marcus Aris',
-    memberId: 'KL-2024-0082',
-    initials: 'MA',
-    equipmentName: '尤尼克斯 天斧 88D Pro',
-    tag: '#EQU-9921',
-    dateRange: '10月12日 — 10月19日',
-    subText: '逾期 3 天',
-    subTextTone: 'error',
-    status: 'overdue'
-  },
-  {
-    key: '2',
-    memberName: 'Sarah Ling',
-    memberId: 'KL-2024-0154',
-    initials: 'SL',
-    equipmentName: '胜利 突击 F 增强版 (Victor Thruster F)',
-    tag: '#EQU-1042',
-    dateRange: '10月20日 — 10月23日',
-    subText: '还有 1 天到期',
-    subTextTone: 'muted',
-    status: 'on_rent'
-  },
-  {
-    key: '3',
-    memberName: 'David Kim',
-    memberId: 'KL-2024-0012',
-    initials: 'DK',
-    equipmentName: '李宁 突袭 7 (Li-Ning Tectonic 7)',
-    tag: '#EQU-5532',
-    dateRange: '10月15日 — 10月18日',
-    subText: '已于 10月18日 归还',
-    subTextTone: 'muted',
-    status: 'returned'
-  },
-  {
-    key: '4',
-    memberName: 'Tobias Chen',
-    memberId: 'KL-2024-0091',
-    initials: 'TC',
-    avatarUrl:
-      '/static/placeholders/hero.svg',
-    equipmentName: '练习装备 (全套)',
-    tag: '#EQU-B002',
-    dateRange: '10月21日 — 10月28日',
-    subText: '还有 6 天到期',
-    subTextTone: 'muted',
-    status: 'on_rent'
-  },
-  {
-    key: '5',
-    memberName: 'Elena Wu',
-    memberId: 'KL-2024-0201',
-    initials: 'EW',
-    equipmentName: '尤尼克斯 弓箭11 Pro',
-    tag: '#EQU-2201',
-    dateRange: '10月22日 — 10月25日',
-    subText: '还有 2 天到期',
-    subTextTone: 'muted',
-    status: 'on_rent'
-  },
-  {
-    key: '6',
-    memberName: 'James Park',
-    memberId: 'KL-2024-0198',
-    initials: 'JP',
-    equipmentName: '李宁 雷霆 80',
-    tag: '#EQU-8891',
-    dateRange: '10月01日 — 10月08日',
-    subText: '逾期 5 天',
-    subTextTone: 'error',
-    status: 'overdue'
-  },
-  {
-    key: '7',
-    memberName: 'Nina Zhao',
-    memberId: 'KL-2024-0110',
-    initials: 'NZ',
-    equipmentName: 'Victor 神速100X',
-    tag: '#EQU-4410',
-    dateRange: '10月10日 — 10月17日',
-    subText: '已于 10月17日 归还',
-    subTextTone: 'muted',
-    status: 'returned'
-  },
-  {
-    key: '8',
-    memberName: 'Leo Zhang',
-    memberId: 'KL-2024-0077',
-    initials: 'LZ',
-    equipmentName: '球拍 + 球鞋套装',
-    tag: '#EQU-P077',
-    dateRange: '10月24日 — 10月30日',
-    subText: '还有 8 天到期',
-    subTextTone: 'muted',
-    status: 'on_rent'
+const filterStatus = ref<number | undefined>(undefined)
+const loading = ref(false)
+const list = ref<EquipmentRentalItem[]>([])
+const page = ref(1)
+const size = 20
+const total = ref(0)
+let searchTimer: number | null = null
+
+const hasMore = computed(() => list.value.length < total.value)
+
+const statusOptions = [
+  { label: '全部', value: undefined },
+  { label: '租借中', value: 0 },
+  { label: '已归还', value: 1 },
+  { label: '逾期', value: 2 }
+]
+
+function statusLabel(status: number) {
+  return statusOptions.find(o => o.value === status)?.label || '未知'
+}
+
+function getInitials(name: string) {
+  if (!name) return '?'
+  const words = name.trim().split(/\s+/)
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase()
   }
-])
+  return name.substring(0, 2).toUpperCase()
+}
 
-const filteredRows = computed(() => {
-  const q = keyword.value.trim().toLowerCase()
-  if (!q) return allRows.value
-  return allRows.value.filter(
-    r =>
-      r.memberName.toLowerCase().includes(q) ||
-      r.equipmentName.toLowerCase().includes(q) ||
-      r.tag.toLowerCase().includes(q) ||
-      r.memberId.toLowerCase().includes(q)
-  )
-})
+function formatDateRange(start?: string, end?: string) {
+  if (!start || !end) return '日期未知'
+  return `${formatDate(start)} — ${formatDate(end)}`
+}
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize)))
+function getSubText(item: EquipmentRentalItem): string {
+  if (item.status === 2) {
+    return '逾期未还'
+  }
+  if (item.status === 1) {
+    return `已于 ${formatDate(item.actualReturnDate || '')} 归还`
+  }
+  // 租借中，计算剩余天数
+  if (item.expectedReturnDate) {
+    const now = new Date()
+    const expected = new Date(item.expectedReturnDate)
+    const diffDays = Math.ceil((expected.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays > 0) {
+      return `还有 ${diffDays} 天到期`
+    } else if (diffDays === 0) {
+      return '今天到期'
+    }
+  }
+  return '租借中'
+}
 
-const pagedRows = computed(() => {
-  const page = Math.min(currentPage.value, totalPages.value)
-  const start = (page - 1) * pageSize
-  return filteredRows.value.slice(start, start + pageSize)
-})
+function getSubTextTone(item: EquipmentRentalItem): 'error' | 'muted' {
+  return item.status === 2 ? 'error' : 'muted'
+}
 
-watch(keyword, () => {
-  currentPage.value = 1
-})
+function getStatus(item: EquipmentRentalItem): RentalListStatus {
+  if (item.status === 2) return 'overdue'
+  if (item.status === 1) return 'returned'
+  return 'on_rent'
+}
+
+async function loadStatistics() {
+  try {
+    const res = await getEquipmentRentalStatistics()
+    stats.value = {
+      totalRentals: res.totalRentals || 0,
+      overdue: res.overdue || 0,
+      availableStock: res.availableStock || 0
+    }
+  } catch (error) {
+    console.error('加载统计数据失败:', error)
+  }
+}
+
+async function loadList(append = false) {
+  if (loading.value) return
+  loading.value = true
+  try {
+    const res = await getEquipmentRentalList({
+      keyword: keyword.value.trim() || undefined,
+      status: filterStatus.value,
+      page: page.value,
+      size
+    })
+    const records = Array.isArray(res.data) ? res.data : []
+    total.value = Number(res.total || 0)
+    list.value = append ? list.value.concat(records) : records
+  } catch (error) {
+    console.error('加载租借列表失败:', error)
+    if (!append) {
+      list.value = []
+      total.value = 0
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function onSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    loadList(false)
+  }, 500)
+}
+
+function clearSearch() {
+  keyword.value = ''
+  page.value = 1
+  loadList(false)
+}
+
+function onFilter() {
+  uni.showActionSheet({
+    itemList: statusOptions.map(o => o.label),
+    success: (res) => {
+      const selected = statusOptions[res.tapIndex]
+      filterStatus.value = selected.value
+      page.value = 1
+      loadList(false)
+    }
+  })
+}
+
+function loadMore() {
+  if (loading.value || !hasMore.value) return
+  page.value += 1
+  loadList(true)
+}
 
 function pad2(n: number) {
   return n < 10 ? `0${n}` : String(n)
@@ -246,28 +246,16 @@ function openForm() {
   uni.navigateTo({ url: PRESIDENT_PAGES.EQUIPMENT_RENTAL_FORM })
 }
 
-function openDetail(row: RentalRow) {
+function openDetail(row: EquipmentRentalItem) {
   uni.navigateTo({
-    url: `${PRESIDENT_PAGES.EQUIPMENT_RENTAL_DETAIL}?id=${encodeURIComponent(row.key)}`
+    url: `${PRESIDENT_PAGES.EQUIPMENT_RENTAL_DETAIL}?id=${row.id}`
   })
 }
 
-function onRowMore(row: RentalRow) {
-  uni.showActionSheet({
-    itemList: ['查看详情', '联系会员'],
-    success(res) {
-      if (res.tapIndex === 0) openDetail(row)
-    }
-  })
-}
-
-function onFilter() {
-  uni.showToast({ title: '筛选条件开发中', icon: 'none' })
-}
-
-function onSort() {
-  uni.showToast({ title: '排序方式开发中', icon: 'none' })
-}
+onMounted(() => {
+  loadStatistics()
+  loadList(false)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -372,12 +360,28 @@ function onSort() {
 }
 .search-input {
   width: 100%;
-  padding: 24rpx 24rpx 24rpx 72rpx;
+  padding: 24rpx 72rpx 24rpx 72rpx;
   background: #ffffff;
   border-radius: 16rpx;
   font-size: 26rpx;
   color: #1a1c1c;
   border: none;
+}
+.clear-btn {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.clear-btn:active {
+  background: #f3f3f3;
 }
 .filter-row {
   margin-top: 20rpx;
@@ -395,9 +399,14 @@ function onSort() {
   padding: 22rpx 16rpx;
   background: #e2e2e2;
   border-radius: 16rpx;
+  transition: all 0.2s;
 }
 .chip-btn:active {
   background: #e2dfde;
+}
+.chip-btn.active {
+  background: #ffe8d6;
+  border: 2rpx solid #ff6600;
 }
 .chip-text {
   font-size: 22rpx;
@@ -406,12 +415,29 @@ function onSort() {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.chip-btn.active .chip-text {
+  color: #ff6600;
+}
 .list-block {
   display: flex;
   flex-direction: column;
 }
 .list-gap {
   margin-bottom: 24rpx;
+}
+.state-wrap {
+  padding: 100rpx 0;
+  text-align: center;
+}
+.state-text {
+  color: #5f5e5e;
+  font-size: 28rpx;
+}
+.load-more {
+  padding: 40rpx 0;
+  text-align: center;
+  color: #5f5e5e;
+  font-size: 26rpx;
 }
 .bottom-space {
   height: 48rpx;

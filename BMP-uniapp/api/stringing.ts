@@ -143,7 +143,15 @@ export function createStringing(params: CreateStringingParams) {
 
 export function processStringingPayment(serviceId: number, paymentMethod: StringingPaymentMethod) {
   return request<null>({
-    url: `/api/stringing/payment?serviceId=${serviceId}&paymentMethod=${paymentMethod}`,
+    url: `/stringing/payment?serviceId=${serviceId}&paymentMethod=${paymentMethod}`,
+    method: 'POST',
+    data: undefined
+  })
+}
+
+export function processStringingRefund(serviceId: number) {
+  return request<null>({
+    url: `/stringing/refund?serviceId=${serviceId}`,
     method: 'POST',
     data: undefined
   })

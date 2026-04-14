@@ -59,6 +59,8 @@ export interface EquipmentRentalItem {
   equipmentName: string
   quantity: number
   rentalDate: string
+  expectedReturnDate?: string
+  actualReturnDate?: string
   rentalAmount: number
   paymentMethod: string
   status: number
@@ -145,6 +147,13 @@ export function getEquipmentRentalList(params?: {
   })
 }
 
+export function getEquipmentRentalDetail(id: number) {
+  return request<EquipmentRentalItem>({
+    url: `${API_PATHS.EQUIPMENT.RENTAL.DETAIL}/${id}`,
+    method: 'GET'
+  })
+}
+
 /**
  * 创建器材租借
  */
@@ -157,11 +166,15 @@ export function createEquipmentRental(params: EquipmentRentalParams) {
 }
 
 /**
- * 获取器材租借详情
+ * 获取器材租借统计数据
  */
-export function getEquipmentRentalDetail(id: number) {
-  return request<EquipmentRentalItem>({
-    url: `${API_PATHS.EQUIPMENT.RENTAL.DETAIL}/${id}`,
+export function getEquipmentRentalStatistics() {
+  return request<{
+    totalRentals: number
+    overdue: number
+    availableStock: number
+  }>({
+    url: '/equipment/rental/statistics',
     method: 'GET'
   })
 }

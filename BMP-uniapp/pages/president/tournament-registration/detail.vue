@@ -106,19 +106,23 @@ const loadError = ref('')
 
 const statusLabel = computed(() => {
   const status = detail.value?.status
-  if (status === 0) return '待审核'
-  if (status === 1) return '已通过'
-  if (status === 2) return '已拒绝'
-  if (status === 3) return '已取消'
-  if (status === 4) return '已退款'
+  if (status === 0) return '已取消'
+  if (status === 1) return '待支付'
+  if (status === 2) return '已支付'
+  if (status === 3) return '已参赛'
+  if (status === 4) return '已退赛'
   return '未知状态'
 })
 
 const paymentStatusLabel = computed(() => {
-  const status = detail.value?.paymentStatus
-  if (status === 1) return '支付成功'
-  if (status === 0) return '待支付'
-  if (status === 2) return '已退款'
+  const paymentStatus = detail.value?.paymentStatus
+  if (paymentStatus === 1) return '支付成功'
+  if (paymentStatus === 0) return '待支付'
+  if (paymentStatus === 2) return '已退款'
+
+  const registrationStatus = detail.value?.status
+  if (registrationStatus === 1) return '待支付'
+  if (registrationStatus === 2 || registrationStatus === 3 || registrationStatus === 4) return '支付成功'
   return '支付状态未知'
 })
 

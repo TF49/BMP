@@ -419,7 +419,16 @@ async function onConfirm() {
     }
 
     if (paymentStatus.value === 'paid') {
-      await processStringingPayment(serviceId, DEFAULT_PAYMENT_METHOD)
+      try {
+        await processStringingPayment(serviceId, DEFAULT_PAYMENT_METHOD)
+      } catch (error) {
+        console.error('Failed to process stringing payment:', error)
+        uni.showToast({ title: '工单已创建但支付失败', icon: 'none' })
+        setTimeout(() => {
+          uni.navigateTo({ url: `${PRESIDENT_PAGES.STRINGING_DETAIL}?id=${serviceId}` })
+        }, 500)
+        return
+      }
     }
 
     uni.showToast({ title: '创建成功', icon: 'success' })

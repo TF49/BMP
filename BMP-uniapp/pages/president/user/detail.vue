@@ -17,6 +17,10 @@
           <text class="value">{{ roleLabel(detail.role) }}</text>
         </view>
         <view class="detail-row">
+          <text class="label">所属场馆</text>
+          <text class="value">{{ venueLabel(detail.venueId) }}</text>
+        </view>
+        <view class="detail-row">
           <text class="label">状态</text>
           <text class="value">{{ detail.status === 1 ? '启用' : '禁用' }}</text>
         </view>
@@ -41,6 +45,7 @@
 import { ref, onMounted, computed } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getUserInfo, type UserDetail } from '@/api/president/user'
+import { getVenueList } from '@/api/president/venue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { safeNavigateBack } from '@/utils/navigation'
 
@@ -51,6 +56,7 @@ const id = computed(() => {
 })
 const loading = ref(true)
 const detail = ref<UserDetail | null>(null)
+const venueNameMap = ref<Record<number, string>>({})
 
 const roleLabels: Record<string, string> = {
   PRESIDENT: '协会会长',
@@ -59,6 +65,27 @@ const roleLabels: Record<string, string> = {
 }
 function roleLabel(role: string) {
   return roleLabels[role] || role
+}
+
+function venueLabel(venueId?: number) {
+  if (!venueId) return '所属场馆未设置'
+  return venueNameMap.value[venueId] || `场馆 #${venueId}`
+}
+
+async function loadVenueOptions() {
+  try {
+    const res = await getVenueList({ page: 1, size: 200 })
+    const records = Array.isArray(res?.data) ? res.data : []
+    venueNameMap.value = records.reduce<Record<number, string>>((map, item) => {
+      if (item?.id && item.venueName) {
+        map[item.id] = item.venueName
+      }
+      return map
+    }, {})
+  } catch (error) {
+    console.error('Failed to load venue options for user detail:', error)
+    venueNameMap.value = {}
+  }
 }
 
 async function load() {
@@ -83,7 +110,8 @@ function onBack() {
 }
 
 onMounted(() => {
-  load()
+  void loadVenueOptions()
+  void load()
 })
 </script>
 

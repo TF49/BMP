@@ -35,12 +35,25 @@
           </view>
 
           <view v-else class="list-wrap">
-            <view v-for="item in visibleList" :key="item.id" class="notice-card" @click="openDetail(item)">
-              <text class="notice-title">{{ item.title }}</text>
-              <text class="notice-content">{{ item.content }}</text>
-              <view class="notice-meta">
-                <text>{{ item.publisherName || `发布人 #${item.publisherId || '-'}` }}</text>
-                <text>{{ formatDateTime(item.createTime) || '未知时间' }}</text>
+            <view v-for="item in visibleList" :key="item.id" class="notice-card">
+              <view class="notice-main" @click="openDetail(item)">
+                <text class="notice-title">{{ item.title }}</text>
+                <text class="notice-content">{{ item.content }}</text>
+                <view class="notice-meta">
+                  <text>{{ item.publisherName || `发布人 #${item.publisherId || '-'}` }}</text>
+                  <text v-if="item.venueId">{{ venueLabel(item.venueId) }}</text>
+                  <text>{{ formatDateTime(item.createTime) || '未知时间' }}</text>
+                </view>
+              </view>
+              <view class="notice-actions">
+                <view class="action-btn edit" @click.stop="handleEdit(item)">
+                  <uni-icons type="compose" size="18" color="#0062a1"></uni-icons>
+                  <text>编辑</text>
+                </view>
+                <view class="action-btn delete" @click.stop="handleDelete(item)">
+                  <uni-icons type="trash" size="18" color="#ba1a1a"></uni-icons>
+                  <text>删除</text>
+                </view>
               </view>
             </view>
           </view>
@@ -58,7 +71,8 @@
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getNotificationList, type NotificationItem } from '@/api/notification'
+import { getNotificationList, deleteNotification, type NotificationItem } from '@/api/notification'
+import { getVenueList } from '@/api/president/venue'
 import { formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
@@ -69,6 +83,7 @@ const size = ref(20)
 const total = ref(0)
 const list = ref<NotificationItem[]>([])
 const keyword = ref('')
+const venueNameMap = ref<Record<number, string>>({})
 
 const hasMore = computed(() => list.value.length < total.value)
 
@@ -77,6 +92,26 @@ const visibleList = computed(() => {
   if (!term) return list.value
   return list.value.filter((item) => `${item.title} ${item.content}`.toLowerCase().includes(term))
 })
+
+function venueLabel(venueId: number) {
+  return venueNameMap.value[venueId] || `场馆 #${venueId}`
+}
+
+async function loadVenueOptions() {
+  try {
+    const res = await getVenueList({ page: 1, size: 200 })
+    const records = Array.isArray(res?.data) ? res.data : []
+    venueNameMap.value = records.reduce<Record<number, string>>((map, item) => {
+      if (item?.id && item.venueName) {
+        map[item.id] = item.venueName
+      }
+      return map
+    }, {})
+  } catch (error) {
+    console.error('Failed to load venue options for notification list:', error)
+    venueNameMap.value = {}
+  }
+}
 
 async function loadList(append = false) {
   if (loading.value) return
@@ -115,8 +150,35 @@ function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
 }
 
+function handleEdit(item: NotificationItem) {
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.NOTIFICATION_FORM}?id=${item.id}` })
+}
+
+function handleDelete(item: NotificationItem) {
+  uni.showModal({
+    title: '确认删除',
+    content: `确定要删除通知"${item.title}"吗？`,
+    confirmText: '删除',
+    confirmColor: '#ba1a1a',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await deleteNotification(item.id)
+          uni.showToast({ title: '删除成功', icon: 'success' })
+          // 刷新列表
+          page.value = 1
+          loadList(false)
+        } catch (error) {
+          console.error('删除通知失败:', error)
+        }
+      }
+    }
+  })
+}
+
 onLoad(() => {
-  loadList(false)
+  void loadVenueOptions()
+  void loadList(false)
 })
 
 onPullDownRefresh(() => {
@@ -239,6 +301,20 @@ onPullDownRefresh(() => {
   gap: 18rpx;
 }
 
+.notice-card {
+  border-radius: 24rpx;
+  background: #ffffff;
+  padding: 28rpx 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.notice-main {
+  flex: 1;
+}
+
 .notice-title {
   display: block;
   font-size: 30rpx;
@@ -259,6 +335,44 @@ onPullDownRefresh(() => {
   gap: 16rpx;
   font-size: 22rpx;
   color: #8a8a8a;
+}
+
+.notice-actions {
+  display: flex;
+  gap: 12rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f1f1f1;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 16rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  transition: all 0.2s;
+
+  &.edit {
+    background-color: #e6f4ff;
+    color: #0062a1;
+
+    &:active {
+      background-color: #bae0ff;
+    }
+  }
+
+  &.delete {
+    background-color: #ffebee;
+    color: #ba1a1a;
+
+    &:active {
+      background-color: #ffcdd2;
+    }
+  }
 }
 
 .load-more {

@@ -50,11 +50,11 @@
           <!-- Metrics -->
           <view class="metrics">
             <view class="m-card">
-              <text class="k">总营收</text>
-              <text class="v">¥{{ money(revenue) }}</text>
+              <text class="k">预估营收</text>
+              <text class="v">¥{{ money(estimatedRevenue) }}</text>
               <view class="trend">
                 <uni-icons type="arrow-up" size="14" color="#a33e00" />
-                <text>较上届增长 12%</text>
+                <text>按报名费与报名人数推导</text>
               </view>
             </view>
 
@@ -90,9 +90,31 @@
                   <uni-icons type="search" size="16" color="#71717a" />
                   <input class="search-input" v-model="keyword" placeholder="搜索选手..." />
                 </view>
-                <view class="filter-btn" @click="onFilter">
+                <view class="filter-btn" :class="{ active: filterStatus !== null }" @click="onFilter">
                   <uni-icons type="settings" size="18" color="#5f5e5e" />
                 </view>
+              </view>
+            </view>
+
+            <!-- Filter Dropdown -->
+            <view v-if="showFilter" class="filter-dropdown">
+              <view class="filter-item" @click="clearFilter">
+                <text class="filter-text" :class="{ active: filterStatus === null }">全部状态</text>
+              </view>
+              <view class="filter-item" @click="applyFilter(1)">
+                <text class="filter-text" :class="{ active: filterStatus === 1 }">待支付</text>
+              </view>
+              <view class="filter-item" @click="applyFilter(2)">
+                <text class="filter-text" :class="{ active: filterStatus === 2 }">已支付</text>
+              </view>
+              <view class="filter-item" @click="applyFilter(0)">
+                <text class="filter-text" :class="{ active: filterStatus === 0 }">已取消</text>
+              </view>
+              <view class="filter-item" @click="applyFilter(3)">
+                <text class="filter-text" :class="{ active: filterStatus === 3 }">已参赛</text>
+              </view>
+              <view class="filter-item" @click="applyFilter(4)">
+                <text class="filter-text" :class="{ active: filterStatus === 4 }">已退赛</text>
               </view>
             </view>
 
@@ -111,7 +133,7 @@
                   </view>
                 </view>
                 <view class="p-right">
-                  <view class="badge">已确认</view>
+                  <view class="badge" :class="registrationBadgeClass(r.status)">{{ registrationStatusLabel(r.status) }}</view>
                   <view class="more">
                     <uni-icons type="more-filled" size="18" color="#71717a" />
                   </view>
@@ -128,16 +150,7 @@
         <view class="bottom-space" />
       </scroll-view>
 
-      <!-- Bottom action -->
-      <view v-if="tournament" class="action-bar">
-        <view class="primary-btn" @click="onBracket">
-          <uni-icons type="list" size="18" color="#561d00" />
-          <text>对阵编排</text>
-        </view>
-        <view class="icon-only" @click="onExport">
-          <uni-icons type="download" size="20" color="#1a1c1c" />
-        </view>
-      </view>
+      <!-- Bottom action - Removed -->
     </view>
   </PresidentLayout>
 </template>
@@ -156,12 +169,13 @@ const tournamentId = ref(0)
 const tournament = ref<TournamentItem | null>(null)
 const regs = ref<TournamentRegistrationItem[]>([])
 const keyword = ref('')
+const showFilter = ref(false)
+const filterStatus = ref<number | null>(null)
 
 const heroImg =
   '/static/placeholders/hero.svg'
 
-const revenue = computed(() => {
-  // 原型：总营收。后端字段暂未提供，先以报名费*人数推导展示。
+const estimatedRevenue = computed(() => {
   const fee = Number(tournament.value?.entryFee || 0)
   const cnt = Number(tournament.value?.currentParticipants || 0)
   return fee * cnt
@@ -206,9 +220,20 @@ const pillClass = computed(() => {
 const avatarText = computed(() => 'AU')
 
 const filteredRegs = computed(() => {
+  let result = regs.value
+  
+  // 关键词筛选
   const k = keyword.value.trim().toLowerCase()
-  if (!k) return regs.value
-  return regs.value.filter((r) => (r.memberName || '').toLowerCase().includes(k))
+  if (k) {
+    result = result.filter((r) => (r.memberName || '').toLowerCase().includes(k))
+  }
+  
+  // 状态筛选
+  if (filterStatus.value !== null) {
+    result = result.filter((r) => r.status === filterStatus.value)
+  }
+  
+  return result
 })
 
 function onBack() {
@@ -221,15 +246,19 @@ function onEdit() {
 }
 
 function onFilter() {
-  uni.showToast({ title: '筛选功能开发中', icon: 'none' })
+  showFilter.value = !showFilter.value
 }
 
-function onBracket() {
-  uni.showToast({ title: '对阵编排开发中', icon: 'none' })
+function applyFilter(status: number | null) {
+  filterStatus.value = status
+  showFilter.value = false
+  loadRegs()
 }
 
-function onExport() {
-  uni.showToast({ title: '导出功能开发中', icon: 'none' })
+function clearFilter() {
+  filterStatus.value = null
+  showFilter.value = false
+  loadRegs()
 }
 
 function goAllRegs() {
@@ -258,6 +287,45 @@ function initials(name?: string) {
   return (a + b).toUpperCase()
 }
 
+function registrationStatusLabel(status?: number) {
+  if (status === 0) return '已取消'
+  if (status === 1) return '待支付'
+  if (status === 2) return '已支付'
+  if (status === 3) return '已参赛'
+  if (status === 4) return '已退赛'
+  return '未知状态'
+}
+
+function registrationBadgeClass(status?: number) {
+  if (status === 2 || status === 3) return 'paid'
+  if (status === 1) return 'pending'
+  if (status === 0 || status === 4) return 'muted'
+  return ''
+}
+
+async function loadRegs() {
+  regLoading.value = true
+  try {
+    const params: any = { 
+      tournamentId: tournamentId.value, 
+      page: 1, 
+      size: 20 
+    }
+    
+    // 添加状态筛选
+    if (filterStatus.value !== null) {
+      params.status = filterStatus.value
+    }
+    
+    const res = await getTournamentRegistrationList(params)
+    regs.value = res.data || []
+  } catch {
+    regs.value = []
+  } finally {
+    regLoading.value = false
+  }
+}
+
 async function loadAll() {
   loading.value = true
   regLoading.value = true
@@ -269,14 +337,7 @@ async function loadAll() {
     loading.value = false
   }
 
-  try {
-    const res = await getTournamentRegistrationList({ tournamentId: tournamentId.value, page: 1, size: 20 })
-    regs.value = res.data || []
-  } catch {
-    regs.value = []
-  } finally {
-    regLoading.value = false
-  }
+  loadRegs()
 }
 
 onLoad((q?: Record<string, string | undefined>) => {
@@ -293,7 +354,7 @@ onLoad((q?: Record<string, string | undefined>) => {
 </script>
 
 <style lang="scss" scoped>
-.t-detail-page { min-height: 100vh; background: #f9f9f9; color: #1a1c1c; padding-bottom: 140rpx; }
+.t-detail-page { min-height: 100vh; background: #f9f9f9; color: #1a1c1c; padding-bottom: 40rpx; }
 .status-bar-placeholder { height: var(--status-bar-height); background: #f8fafc; }
 .top-bar { position: sticky; top: 0; z-index: 40; background: rgba(248, 250, 252, 0.92); backdrop-filter: blur(14px); }
 .top-inner { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 24rpx; }
@@ -345,6 +406,11 @@ onLoad((q?: Record<string, string | undefined>) => {
 .search { display: flex; align-items: center; gap: 8rpx; background: #eeeeee; padding: 10rpx 14rpx; border-radius: 9999px; }
 .search-input { width: 220rpx; font-size: 22rpx; font-weight: 700; }
 .filter-btn { width: 56rpx; height: 56rpx; border-radius: 9999px; background: #eeeeee; display: flex; align-items: center; justify-content: center; }
+.filter-btn.active { background: #ffedd5; }
+.filter-dropdown { margin-top: 12rpx; background: #fff; border-radius: 18rpx; padding: 8rpx 0; box-shadow: 0 8rpx 24rpx rgba(2,6,23,.08); }
+.filter-item { padding: 18rpx 24rpx; }
+.filter-text { font-size: 26rpx; font-weight: 700; color: #5f5e5e; }
+.filter-text.active { color: #a33e00; }
 .list-state { text-align: center; color: #a1a1aa; padding: 48rpx 0; font-weight: 700; }
 .list { display: flex; flex-direction: column; gap: 10rpx; }
 .player { background: #fff; border-radius: 18rpx; padding: 18rpx; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4rpx 14rpx rgba(2,6,23,.04); }
@@ -356,12 +422,10 @@ onLoad((q?: Record<string, string | undefined>) => {
 .meta { margin-top: 4rpx; font-size: 16rpx; color: #71717a; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .p-right { display: flex; align-items: center; gap: 10rpx; }
 .badge { background: #e2dfde; color: #474746; font-size: 16rpx; font-weight: 900; padding: 6rpx 12rpx; border-radius: 9999px; }
+.badge.paid { background: #dcfce7; color: #166534; }
+.badge.pending { background: #fef3c7; color: #92400e; }
+.badge.muted { background: #e5e7eb; color: #4b5563; }
 .more { width: 40rpx; height: 40rpx; border-radius: 9999px; display: flex; align-items: center; justify-content: center; background: #f3f3f3; }
 .view-all { margin-top: 12rpx; padding: 20rpx; border-radius: 18rpx; border: 2rpx dashed #e3bfb1; color: #5f5e5e; font-weight: 900; text-align: center; }
-.bottom-space { height: 120rpx; }
-
-.action-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(249,249,249,0), rgba(249,249,249,.95) 40%, rgba(249,249,249,1)); display: flex; gap: 12rpx; }
-.primary-btn { flex: 1; height: 96rpx; border-radius: 18rpx; background: #ff6600; color: #561d00; display: flex; align-items: center; justify-content: center; gap: 10rpx; font-size: 30rpx; font-weight: 900; box-shadow: 0 16rpx 40rpx rgba(234,88,12,.22); }
-.icon-only { width: 96rpx; height: 96rpx; border-radius: 18rpx; background: #e2e2e2; display: flex; align-items: center; justify-content: center; }
+.bottom-space { height: 40rpx; }
 </style>
-

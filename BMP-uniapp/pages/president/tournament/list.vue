@@ -15,17 +15,32 @@
             </view>
           </view>
           <view class="nav-right">
-            <view class="icon-btn" @click="handleSearch">
+            <view class="icon-btn" @click="toggleSearch">
               <uni-icons type="search" size="22" color="#71717a"></uni-icons>
-            </view>
-            <view class="icon-btn" @click="handleSettings">
-              <uni-icons type="gear" size="22" color="#71717a"></uni-icons>
             </view>
           </view>
         </view>
       </view>
 
       <view class="main-content">
+        <!-- Search Bar -->
+        <view v-if="showSearch" class="search-bar">
+          <view class="search-input-wrap">
+            <uni-icons type="search" size="20" color="#71717a"></uni-icons>
+            <input 
+              class="search-input" 
+              v-model="searchKeyword" 
+              placeholder="搜索赛事名称..."
+              @confirm="handleSearchConfirm"
+              @input="handleSearchInput"
+            />
+            <view v-if="searchKeyword" class="clear-btn" @click="clearSearch">
+              <uni-icons type="closeempty" size="16" color="#71717a"></uni-icons>
+            </view>
+          </view>
+          <text class="cancel-btn" @click="toggleSearch">取消</text>
+        </view>
+
         <!-- Hero Section -->
         <view class="hero-section">
           <view class="hero-text">
@@ -211,11 +226,15 @@ import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { getTournamentList, type TournamentItem } from '@/api/tournament'
+import { searchTournaments } from '@/api/search'
 import { getTournamentStatusMeta } from '@/utils/presidentStatus'
 import { parsePagedList } from '@/utils/parsePagedList'
 
 const currentTab = ref(0)
 const loading = ref(false)
+const showSearch = ref(false)
+const searchKeyword = ref('')
+let searchTimer: number | undefined
 
 type TournamentStatus = 'registration' | 'ongoing' | 'ended' | 'draft' | 'cancelled'
 
@@ -291,12 +310,24 @@ function transformTournament(item: TournamentItem): Tournament {
 async function loadTournaments() {
   loading.value = true
   try {
-    const res = await getTournamentList({
-      page: 1,
-      size: 100
-    })
-    const { list } = parsePagedList<TournamentItem>(res)
-    tournaments.value = list.map(transformTournament)
+    // 如果有搜索关键词，使用搜索接口
+    if (searchKeyword.value.trim()) {
+      const res = await searchTournaments({
+        keyword: searchKeyword.value.trim(),
+        page: 1,
+        size: 100
+      })
+      const list = res.data || []
+      tournaments.value = list.map(transformTournament)
+    } else {
+      // 否则使用列表接口
+      const res = await getTournamentList({
+        page: 1,
+        size: 100
+      })
+      const { list } = parsePagedList<TournamentItem>(res)
+      tournaments.value = list.map(transformTournament)
+    }
   } catch (error) {
     console.error('加载赛事列表失败:', error)
     uni.showToast({ 
@@ -349,12 +380,28 @@ function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.DASHBOARD)
 }
 
-function handleSearch() {
-  uni.showToast({ title: '搜索功能开发中', icon: 'none' })
+function toggleSearch() {
+  showSearch.value = !showSearch.value
+  if (!showSearch.value) {
+    searchKeyword.value = ''
+    loadTournaments()
+  }
 }
 
-function handleSettings() {
-  uni.showToast({ title: '设置功能开发中', icon: 'none' })
+function clearSearch() {
+  searchKeyword.value = ''
+  loadTournaments()
+}
+
+function handleSearchConfirm() {
+  loadTournaments()
+}
+
+function handleSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    loadTournaments()
+  }, 500) as unknown as number
 }
 
 function handleCreate() {
@@ -386,6 +433,50 @@ onMounted(() => {
 .status-bar-placeholder {
   height: var(--status-bar-height);
   background-color: #f8fafc;
+}
+
+/* ── Search Bar ── */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 48rpx;
+  background-color: #ffffff;
+  margin-bottom: 24rpx;
+  border-radius: 24rpx;
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background-color: #f3f3f3;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1a1c1c;
+}
+
+.clear-btn {
+  width: 32rpx;
+  height: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e5e5e5;
+  border-radius: 50%;
+}
+
+.cancel-btn {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #ea580c;
+  white-space: nowrap;
 }
 
 /* ── Navigation ── */

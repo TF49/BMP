@@ -158,10 +158,6 @@
             <uni-icons type="compose" size="18" color="#94a3b8"></uni-icons>
             <text class="action-label">EDIT</text>
           </view>
-          <view class="action-item" @click="handleShare">
-            <uni-icons type="paperplane" size="18" color="#94a3b8"></uni-icons>
-            <text class="action-label">SHARE</text>
-          </view>
         </view>
         <view class="primary-cta" @click="handleBook">
           <view class="price-box">
@@ -317,10 +313,6 @@ function handleCall(phone: string) {
 
 function handleBook() {
   uni.navigateTo({ url: `/pages/venue/booking?venueId=${venue.value.id}` })
-}
-
-function handleShare() {
-  uni.showToast({ title: '分享功能开发中', icon: 'none' })
 }
 
 function onDelete() {

@@ -161,8 +161,7 @@
       </scroll-view>
 
       <view class="footer">
-        <view class="btn ghost" @click="saveDraft">保存草稿</view>
-        <view class="btn primary" :class="{ disabled: submitting }" @click="submitCreate">
+        <view class="btn primary full" :class="{ disabled: submitting }" @click="submitCreate">
           {{ isEdit ? '保存修改' : '创建赛事' }}
         </view>
       </view>
@@ -282,10 +281,6 @@ function validate() {
   const fee = Number(form.entryFee)
   if (!Number.isFinite(fee) || fee < 0) return '报名费不能为空且不能为负数'
   return ''
-}
-
-async function saveDraft() {
-  uni.showToast({ title: '草稿已保存（前端占位）', icon: 'none' })
 }
 
 async function submitCreate() {
@@ -446,8 +441,8 @@ onLoad(async (q?: Record<string, string | undefined>) => {
 .bottom-space { height: 40rpx; }
 .footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom)); background: rgba(255,255,255,.72); backdrop-filter: blur(20px); display: flex; gap: 12rpx; }
 .btn { height: 96rpx; border-radius: 18rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 900; }
-.btn.ghost { flex: 1; background: #e5e7eb; color: #1a1c1c; }
-.btn.primary { flex: 1.5; background: #ff6600; color: #561d00; box-shadow: 0 16rpx 40rpx rgba(234,88,12,.22); }
+.btn.full { flex: 1; }
+.btn.primary { background: #ff6600; color: #561d00; box-shadow: 0 16rpx 40rpx rgba(234,88,12,.22); }
 .btn.primary.disabled { opacity: .6; pointer-events: none; }
 </style>
 

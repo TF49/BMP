@@ -31,3 +31,11 @@ export function createNotification(payload: Pick<NotificationItem, 'title' | 'co
   return post<{ id: number }>(API_PATHS.NOTIFICATION.LIST, payload)
 }
 
+export function updateNotification(id: number, payload: Pick<NotificationItem, 'title' | 'content' | 'publisherId' | 'publisherName' | 'venueId'>) {
+  return post<{ id: number }>(`${API_PATHS.NOTIFICATION.DETAIL}/${id}`, payload, 'PUT')
+}
+
+export function deleteNotification(id: number) {
+  return post<string>(`${API_PATHS.NOTIFICATION.DETAIL}/${id}`, {}, 'DELETE')
+}
+

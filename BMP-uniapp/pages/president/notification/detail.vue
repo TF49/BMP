@@ -29,7 +29,7 @@
               <view class="meta-row">
                 <text>{{ formatDateTime(detail.createTime) || '未知时间' }}</text>
                 <text>{{ publisherLabel }}</text>
-                <text v-if="detail.venueId">场馆 #{{ detail.venueId }}</text>
+                <text v-if="detail.venueId">{{ venueLabel(detail.venueId) }}</text>
               </view>
             </view>
 
@@ -49,6 +49,7 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getNotificationDetail, type NotificationItem } from '@/api/notification'
+import { getVenueList } from '@/api/president/venue'
 import { formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
@@ -56,6 +57,7 @@ import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 const detail = ref<NotificationItem | null>(null)
 const loading = ref(false)
 const loadError = ref('')
+const venueNameMap = ref<Record<number, string>>({})
 
 const publisherLabel = computed(() => {
   if (!detail.value) return ''
@@ -63,6 +65,26 @@ const publisherLabel = computed(() => {
   if (detail.value.publisherId) return `发布人 #${detail.value.publisherId}`
   return '未知发布人'
 })
+
+function venueLabel(venueId: number) {
+  return venueNameMap.value[venueId] || `场馆 #${venueId}`
+}
+
+async function loadVenueOptions() {
+  try {
+    const res = await getVenueList({ page: 1, size: 200 })
+    const list = Array.isArray(res?.data) ? res.data : []
+    venueNameMap.value = list.reduce<Record<number, string>>((map, item) => {
+      if (item?.id && item.venueName) {
+        map[item.id] = item.venueName
+      }
+      return map
+    }, {})
+  } catch (error) {
+    console.error('Failed to load venue options for notification detail:', error)
+    venueNameMap.value = {}
+  }
+}
 
 async function loadDetail(id: number) {
   loading.value = true
@@ -88,7 +110,8 @@ onLoad((options) => {
     loadError.value = '缺少有效的通知 ID'
     return
   }
-  loadDetail(rawId)
+  void loadVenueOptions()
+  void loadDetail(rawId)
 })
 </script>
 

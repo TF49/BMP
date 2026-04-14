@@ -18,9 +18,6 @@
             <view class="icon-btn" @click.stop="handleNavSearch">
               <uni-icons type="search" size="22" color="#71717a"></uni-icons>
             </view>
-            <view class="icon-btn" @click.stop="handleNavSettings">
-              <uni-icons type="gear" size="22" color="#71717a"></uni-icons>
-            </view>
           </view>
         </view>
       </view>
@@ -137,6 +134,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getUserList, type UserListItem } from '@/api/president/user'
+import { getVenueList } from '@/api/president/venue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { parsePagedList } from '@/utils/parsePagedList'
 import { safeNavigateBack } from '@/utils/navigation'
@@ -155,6 +153,7 @@ const roleOptions = [
   { label: '普通用户', value: 'USER' }
 ]
 const roleIndex = ref(0)
+const venueNameMap = ref<Record<number, string>>({})
 
 const hasMore = computed(() => list.value.length < total.value)
 
@@ -172,8 +171,7 @@ function roleLabel(role: string) {
 
 function venueLabel(venueId?: number) {
   if (!venueId) return '所属场馆未设置'
-  // 先用占位文案，后续可接入场馆名称映射
-  return `关联场馆 ID #${venueId}`
+  return venueNameMap.value[venueId] || `场馆 #${venueId}`
 }
 
 function onRoleChange(e: any) {
@@ -205,6 +203,22 @@ async function loadList(append = false) {
     console.error(e)
   } finally {
     loading.value = false
+  }
+}
+
+async function loadVenueOptions() {
+  try {
+    const res = await getVenueList({ page: 1, size: 200 })
+    const list = Array.isArray(res?.data) ? res.data : []
+    venueNameMap.value = list.reduce<Record<number, string>>((map, item) => {
+      if (item?.id && item.venueName) {
+        map[item.id] = item.venueName
+      }
+      return map
+    }, {})
+  } catch (error) {
+    console.error('Failed to load venue options for user list:', error)
+    venueNameMap.value = {}
   }
 }
 
@@ -242,12 +256,9 @@ function handleNavSearch() {
   })
 }
 
-function handleNavSettings() {
-  uni.showToast({ title: '设置功能开发中', icon: 'none' })
-}
-
 onMounted(() => {
-  loadList()
+  void loadVenueOptions()
+  void loadList()
 })
 </script>
 
