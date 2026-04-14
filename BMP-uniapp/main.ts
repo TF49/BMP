@@ -1,3 +1,7 @@
+// 必须最先导入错误抑制器，在任何其他代码之前执行
+import './utils/mp-weixin-error-suppressor'
+// 必须最先导入 WebSocket 补丁，在任何其他代码之前执行
+import './utils/mp-weixin-websocket-patch'
 import { installShowToastSanitizer } from './utils/mp-weixin-showToast-patch'
 import { createSSRApp } from 'vue'
 import App from './App.vue'

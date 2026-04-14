@@ -15,6 +15,53 @@ const themeStore = useThemeStore()
 onLaunch(() => {
   console.log('App Launch')
 
+  // #ifdef MP-WEIXIN
+  // 微信小程序全局错误处理 - 必须在最早期设置
+  const originalOnError = (wx as any).onError
+  if (typeof originalOnError === 'function') {
+    ;(wx as any).onError = function(error: any) {
+      const errorStr = typeof error === 'string' ? error : JSON.stringify(error)
+      
+      // 过滤框架内部超时错误
+      const ignoredPatterns = [
+        'timeout',
+        'WAServiceMainContext',
+        'at Function.<anonymous>',
+        'at p (WAServiceMainContext'
+      ]
+      
+      if (!ignoredPatterns.some(pattern => errorStr.includes(pattern))) {
+        if (typeof originalOnError === 'function') {
+          originalOnError.call(wx, error)
+        }
+      }
+    }
+  }
+
+  // 拦截 App 级别的 onError
+  const app = getApp({ allowDefault: true }) as any
+  if (app && !app.__errorHandlerPatched) {
+    const originalAppOnError = app.onError
+    app.onError = function(error: string) {
+      const ignoredPatterns = [
+        'timeout',
+        'WAServiceMainContext',
+        'at Function.<anonymous>',
+        'at p (WAServiceMainContext'
+      ]
+      
+      if (!ignoredPatterns.some(pattern => error.includes(pattern))) {
+        if (typeof originalAppOnError === 'function') {
+          originalAppOnError.call(this, error)
+        } else {
+          console.error('[App Error]', error)
+        }
+      }
+    }
+    app.__errorHandlerPatched = true
+  }
+  // #endif
+
   // 全局自定义字体：不再请求 Google（fonts.gstatic.com），避免无外网/受限网络失败。
   // 小程序端对远程字体域名也更敏感；如需品牌字体请将 .ttf/.woff2 放入 /static/fonts/ 并在 loadGlobalFonts 中注册本地路径。
   // #ifndef MP-WEIXIN
@@ -26,11 +73,11 @@ onLaunch(() => {
 
   // 启动阶段不要阻塞在网络请求上，避免小程序生命周期超时。
   void userStore.checkLogin().catch((error) => {
-    console.warn('checkLogin during launch failed:', error)
+    // 过滤框架超时错误
+    if (error?.message !== 'check_timeout' && error?.message !== 'framework_timeout') {
+      console.warn('checkLogin during launch failed:', error)
+    }
   })
-
-  // 可以在这里初始化WebSocket连接（如果需要）
-  // initWebSocket()
 })
 
 /**
@@ -57,117 +104,12 @@ function loadGlobalFonts() {
   })
 }
 
-// 过滤微信小程序开发环境的非关键错误
-// #ifdef MP-WEIXIN
-function filterWeChatErrors() {
-  try {
-    const wxAny = (globalThis as any).wx
-    const uniAny = (globalThis as any).uni
-
-    if (wxAny && typeof wxAny.onUnhandledRejection === 'function') {
-      wxAny.onUnhandledRejection((event: any) => {
-        console.error('[wx.onUnhandledRejection]', event?.reason || event)
-      })
-    }
-
-    // 保存原始的 console.error
-    const originalError = console.error
-    
-    // 重写 console.error 以过滤非关键错误
-    console.error = function(...args: any[]) {
-      const errorMessage = args.map(arg => 
-        typeof arg === 'string' ? arg : JSON.stringify(arg)
-      ).join(' ')
-      
-      // 过滤掉这些常见的非关键错误
-      const ignoredErrors = [
-        'routeDone with a webviewId',
-        'webapi_getwxaasyncsecinfo:fail',
-        'SystemError (appServiceSDKScriptError)',
-        '游客模式下，调用 wx.operateWXData 是受限的',
-        'webapi_getwxaasyncsecinfo'
-      ]
-      
-      // 检查是否是需要忽略的错误
-      const shouldIgnore = ignoredErrors.some(pattern => 
-        errorMessage.includes(pattern)
-      )
-      
-      // 如果不是需要忽略的错误，才输出
-      if (!shouldIgnore) {
-        originalError.apply(console, args)
-      }
-    }
-
-    // 修复：微信要求 closeSocket code 只能是 1000 或 3000-4999。
-    // 某些开发环境/框架内部会错误地传入 1006（异常关闭码，不能主动传）。这里做兜底转换。
-    if (wxAny && typeof wxAny.closeSocket === 'function') {
-      const originalCloseSocket = wxAny.closeSocket
-      wxAny.closeSocket = function(options: any = {}) {
-        if (options && options.code === 1006) {
-          options.code = 1000
-        }
-        return originalCloseSocket.call(this, options)
-      }
-    }
-
-    // 同时兜底 uni.closeSocket（有些栈走的是 uni 而不是 wx）
-    if (uniAny && typeof uniAny.closeSocket === 'function') {
-      const originalUniCloseSocket = uniAny.closeSocket
-      uniAny.closeSocket = function(options: any = {}) {
-        if (options && options.code === 1006) {
-          options.code = 1000
-        }
-        return originalUniCloseSocket.call(this, options)
-      }
-    }
-    
-    // 处理全局未捕获的错误（如果支持）
-    if (typeof uni !== 'undefined' && uni.onError) {
-      const originalOnError = uni.onError
-      uni.onError = function(error: any) {
-        const errorMessage = typeof error === 'string' 
-          ? error 
-          : (error?.message || error?.errMsg || JSON.stringify(error) || '')
-        
-        // 过滤非关键错误
-        const ignoredErrors = [
-          'routeDone with a webviewId',
-          'webapi_getwxaasyncsecinfo:fail',
-          'SystemError (appServiceSDKScriptError)'
-        ]
-        
-        const shouldIgnore = ignoredErrors.some(pattern => 
-          errorMessage.includes(pattern)
-        )
-        
-        if (!shouldIgnore && originalOnError) {
-          originalOnError(error)
-        }
-      }
-    }
-  } catch (e) {
-    // 如果过滤失败，不影响应用启动
-    console.warn('错误过滤初始化失败:', e)
-  }
-}
-// #endif
-
-// 需要尽早执行：mp.esm.js 可能在 onLaunch 前就初始化日志 socket
-// #ifdef MP-WEIXIN
-filterWeChatErrors()
-// #endif
-
 onShow(() => {
   console.log('App Show')
 })
 
 onHide(() => {
   console.log('App Hide')
-  // 应用进入后台时可以选择断开WebSocket连接
-  // if (wsHelper.isReady()) {
-  //   wsHelper.closeConnection()
-  // }
 })
 </script>
 

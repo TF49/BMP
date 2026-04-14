@@ -180,18 +180,29 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
         }
       },
       fail: (err) => {
+        // 过滤掉微信小程序框架内部的 timeout 错误（不是真正的请求超时）
+        const errMsg = err?.errMsg || ''
+        const isFrameworkTimeout = errMsg.includes('timeout') && !errMsg.includes('request:fail')
+        
+        if (isFrameworkTimeout) {
+          // 这是微信框架内部的超时，不是真正的请求失败，静默处理
+          console.warn('[Request] 微信框架内部超时（非请求失败）:', options.url)
+          reject(new Error('framework_timeout'))
+          return
+        }
+
         console.error('网络请求错误:', err)
         // #region agent log
         reportDebug({sessionId:'dd076f',runId:'post-fix',hypothesisId:'H5',location:'utils/request.ts:request:fail',message:'uni.request failed',data:{url:options.url,errMsg:err?.errMsg||''},timestamp:Date.now()})
         // #endregion
         let errorMessage = '网络请求失败，请检查网络连接'
         
-        if (err.errMsg) {
-          if (err.errMsg.includes('502') || err.errMsg.includes('Bad Gateway')) {
+        if (errMsg) {
+          if (errMsg.includes('502') || errMsg.includes('Bad Gateway')) {
             errorMessage = '服务器连接失败，请检查后端服务是否正常运行'
-          } else if (err.errMsg.includes('timeout')) {
+          } else if (errMsg.includes('request:fail timeout')) {
             errorMessage = '请求超时，请检查网络连接或服务器状态'
-          } else if (err.errMsg.includes('fail')) {
+          } else if (errMsg.includes('fail')) {
             errorMessage = '网络请求失败，请检查网络连接和后端服务'
           }
         }

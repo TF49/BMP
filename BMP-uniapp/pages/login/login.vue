@@ -124,6 +124,7 @@ const formData = ref({
 })
 
 onShow(async () => {
+  // 检查本地存储的 token
   if (!userStore.token) {
     const savedToken = uni.getStorageSync('token')
     if (savedToken) {
@@ -132,18 +133,42 @@ onShow(async () => {
     }
   }
 
+  // 如果有 token，静默验证（不阻塞 UI）
   if (userStore.token) {
-    await userStore.checkLogin()
+    // 使用 Promise.race 添加超时控制，避免长时间等待
+    const checkLoginWithTimeout = Promise.race([
+      userStore.checkLogin(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('check_timeout')), 5000)
+      )
+    ])
+
+    try {
+      await checkLoginWithTimeout
+    } catch (error: any) {
+      // 如果是超时或网络错误，不影响用户体验，静默处理
+      if (error?.message === 'check_timeout' || error?.message === 'framework_timeout') {
+        console.warn('[Login] 登录状态检查超时，使用本地缓存')
+        // 继续使用本地缓存的用户信息
+      } else {
+        // 其他错误（如 401），清除登录状态
+        userStore.logout()
+        return
+      }
+    }
   }
 
+  // 如果没有 token，停止后续逻辑
   if (!userStore.token) return
 
+  // 验证角色权限
   const role = userStore.userInfo?.role
   if (!role || !isAllowedRole(role)) {
     userStore.logout()
     return
   }
 
+  // 跳转到首页
   setTimeout(() => {
     safeReLaunch('/pages/index/index')
   }, 50)
@@ -160,60 +185,69 @@ const handleLogin = async () => {
 
   loading.value = true
 
-  login({
-    username: formData.value.username,
-    password: formData.value.password
-  })
-    .then((res: any) => {
-      const role = res.user?.role
-      if (res.user && role && !isAllowedRole(role)) {
-        uni.showToast({
-          title: '该角色请使用网页端管理系统登录',
-          icon: 'none',
-          duration: 3000
-        })
-        loading.value = false
-        return
-      }
-
-      uni.setStorageSync('token', res.token)
-      if (res.refreshToken) {
-        uni.setStorageSync('refreshToken', res.refreshToken)
-      }
-
-      const userInfo = {
-        id: res.user.id,
-        userId: res.user.id,
-        username: res.user.username,
-        role: res.user.role,
-        status: res.user.status
-      }
-      uni.setStorageSync('userInfo', userInfo)
-
-      const userStore = useUserStore()
-      userStore.token = res.token
-      userStore.userInfo = userInfo as any
-
-      uni.showToast({
-        title: '登录成功',
-        icon: 'success',
-        duration: 1500
-      })
-
-      setTimeout(() => {
-        safeReLaunch('/pages/index/index')
-      }, 1500)
+  try {
+    const res = await login({
+      username: formData.value.username,
+      password: formData.value.password
     })
-    .catch((err: any) => {
-      const errorMessage = err.message || '登录失败，请稍后重试'
+
+    const role = res.user?.role
+    if (res.user && role && !isAllowedRole(role)) {
       uni.showToast({
-        title: errorMessage,
+        title: '该角色请使用网页端管理系统登录',
         icon: 'none',
-        duration: 2000
+        duration: 3000
       })
-      console.error('登录错误:', err)
       loading.value = false
+      return
+    }
+
+    // 保存登录信息
+    uni.setStorageSync('token', res.token)
+    if (res.refreshToken) {
+      uni.setStorageSync('refreshToken', res.refreshToken)
+    }
+
+    const userInfo = {
+      id: res.user.id,
+      userId: res.user.id,
+      username: res.user.username,
+      role: res.user.role,
+      status: res.user.status
+    }
+    uni.setStorageSync('userInfo', userInfo)
+
+    const userStore = useUserStore()
+    userStore.token = res.token
+    userStore.userInfo = userInfo as any
+
+    uni.showToast({
+      title: '登录成功',
+      icon: 'success',
+      duration: 1000
     })
+
+    // 缩短延迟时间，提升用户体验
+    setTimeout(() => {
+      safeReLaunch('/pages/index/index')
+    }, 1000)
+  } catch (err: any) {
+    // 过滤框架内部超时错误
+    if (err?.message === 'framework_timeout') {
+      console.warn('[Login] 微信框架内部超时，忽略')
+      loading.value = false
+      return
+    }
+
+    const errorMessage = err.message || '登录失败，请稍后重试'
+    uni.showToast({
+      title: errorMessage,
+      icon: 'none',
+      duration: 2000
+    })
+    console.error('登录错误:', err)
+    loading.value = false
+  }
 }
 
 const handleRegister = () => {

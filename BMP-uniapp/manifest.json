@@ -77,7 +77,9 @@
             "showES6CompileOption" : false,
             "minifyWXML" : true,
             "useStaticServer" : true,
-            "useCompilerPlugins" : false
+            "useCompilerPlugins" : false,
+            "disableUseStrict" : false,
+            "useCompilerModule" : true
         },
         "usingComponents" : true,
         "permission" : {
@@ -92,8 +94,11 @@
         "lazyCodeLoading" : "requiredComponents",
         "networkTimeout" : {
             "request" : 60000,
-            "downloadFile" : 60000
-        }
+            "downloadFile" : 60000,
+            "connectSocket" : 60000,
+            "uploadFile" : 60000
+        },
+        "__usePrivacyCheck__" : false
     },
     "mp-alipay" : {
         "usingComponents" : true
