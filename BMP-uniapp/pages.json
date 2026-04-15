@@ -142,6 +142,20 @@
       }
     },
     {
+      "path": "pages/president/booking/list",
+      "style": {
+        "navigationBarTitleText": "场地预约管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/president/booking/detail",
+      "style": {
+        "navigationBarTitleText": "预约详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/finance/list",
       "style": {
         "navigationBarTitleText": "财务列表",

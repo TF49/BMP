@@ -161,7 +161,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getTournamentDetail, getTournamentRegistrationList, type TournamentItem, type TournamentRegistrationItem } from '@/api/tournament'
+import { getTournamentDetail, getTournamentRegistrationList, type TournamentItem, type TournamentRegistrationItem } from '@/api/president/tournament'
 
 const loading = ref(true)
 const regLoading = ref(true)

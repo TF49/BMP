@@ -238,7 +238,7 @@ const formData = ref<CreateStringingParams>({
 })
 
 const stringList = ref<(StringInfo & { displayName: string })[]>([])
-const selectedString = ref<StringInfo | null>(null)
+const selectedString = ref<(StringInfo & { displayName?: string }) | null>(null)
 const selectedStringIndex = ref(-1)
 const priceInfo = ref<PriceCalculation>({
   stringPrice: 0,
@@ -250,7 +250,7 @@ const submitting = ref(false)
 const hasDraft = ref(false)
 const showBalanceWarning = ref(false)
 const priceCalculating = ref(false)
-let priceDebounceTimer: number | null = null
+let priceDebounceTimer: ReturnType<typeof setTimeout> | null = null
 const userBalance = ref<number | null>(null)
 
 // Payment methods
@@ -267,8 +267,8 @@ const canSubmit = computed(() => {
     formData.value.racketBrand.trim() !== '' &&
     formData.value.racketModel.trim() !== '' &&
     (formData.value.ownString || formData.value.stringId !== undefined) &&
-    formData.value.tension >= TENSION_RANGE.MIN &&
-    formData.value.tension <= TENSION_RANGE.MAX &&
+    Number(formData.value.tension ?? 0) >= TENSION_RANGE.MIN &&
+    Number(formData.value.tension ?? 0) <= TENSION_RANGE.MAX &&
     !showBalanceWarning.value &&
     Object.keys(errors.value).length === 0
   )
@@ -326,7 +326,7 @@ const calculateServicePrice = () => {
       priceCalculating.value = true
       const result = await calculatePrice({
         stringId: formData.value.stringId,
-        ownString: formData.value.ownString
+        ownString: Boolean(formData.value.ownString)
       })
       priceInfo.value = result
     } catch (error) {
@@ -359,7 +359,7 @@ const validateField = (field: string) => {
       }
       break
     case 'tension':
-      if (!validateTension(formData.value.tension)) {
+      if (!validateTension(Number(formData.value.tension ?? 0))) {
         errors.value.tension = '磅数范围为18-35'
       } else {
         delete errors.value.tension
@@ -398,7 +398,7 @@ const validateForm = (): boolean => {
     errors.value.stringId = '请选择线材'
   }
   
-  if (!validateTension(formData.value.tension)) {
+  if (!validateTension(Number(formData.value.tension ?? 0))) {
     errors.value.tension = '磅数范围为18-35'
   }
   

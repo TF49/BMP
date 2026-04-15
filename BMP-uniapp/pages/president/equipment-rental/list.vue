@@ -100,7 +100,7 @@ import {
   processEquipmentRentalRefund,
   type EquipmentRentalItem,
   updateEquipmentRentalStatus
-} from '@/api/equipment'
+} from '@/api/president/equipment'
 import { formatDate } from '@/utils/format'
 import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 
@@ -117,7 +117,7 @@ const list = ref<EquipmentRentalItem[]>([])
 const page = ref(1)
 const size = 20
 const total = ref(0)
-let searchTimer: number | null = null
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const hasMore = computed(() => list.value.length < total.value)
 

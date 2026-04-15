@@ -48,7 +48,7 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getNotificationDetail, type NotificationItem } from '@/api/notification'
+import { getNotificationDetail, type NotificationItem } from '@/api/president/notification'
 import { getVenueList } from '@/api/president/venue'
 import { formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'

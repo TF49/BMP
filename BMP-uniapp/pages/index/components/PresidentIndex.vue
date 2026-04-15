@@ -113,6 +113,7 @@ const summary = ref<PresidentDashboardSummary | null>(null)
 const shortcuts = [
   { label: '场馆管理', path: PRESIDENT_PAGES.VENUE_LIST, icon: 'location' },
   { label: '场地管理', path: PRESIDENT_PAGES.COURT_LIST, icon: 'calendar' },
+  { label: '预约管理', path: PRESIDENT_PAGES.BOOKING_LIST, icon: 'list' },
   { label: '教练管理', path: PRESIDENT_PAGES.COACH_LIST, icon: 'staff' },
   { label: '课程管理', path: PRESIDENT_PAGES.COURSE_LIST, icon: 'compose' },
   { label: '会员中心', path: PRESIDENT_PAGES.MEMBER_LIST, icon: 'person' },
@@ -192,11 +193,23 @@ const alerts = computed<AlertItem[]>(() => {
   const items: AlertItem[] = []
 
   const pendingBookingCount = pickNumber(bookingSummary.value, ['pendingCount', 'pendingBookings'])
-  if (pendingBookingCount !== null) {
+  if (pendingBookingCount !== null && pendingBookingCount > 0) {
     items.push({
-      title: `待处理预约 ${pendingBookingCount} 条`,
-      description: '进入课程预约列表查看真实待处理记录',
+      title: `待处理场地预约 ${pendingBookingCount} 条`,
+      description: '进入场地预约管理查看待处理预约',
       icon: 'calendar',
+      iconColor: '#a33e00',
+      bgClass: 'bg-soft-orange',
+      path: PRESIDENT_PAGES.BOOKING_LIST
+    })
+  }
+
+  const pendingCourseBookingCount = pickNumber(bookingSummary.value, ['pendingCourseCount', 'pendingCourseBookings'])
+  if (pendingCourseBookingCount !== null && pendingCourseBookingCount > 0) {
+    items.push({
+      title: `待处理课程预约 ${pendingCourseBookingCount} 条`,
+      description: '进入课程预约列表查看待处理记录',
+      icon: 'compose',
       iconColor: '#a33e00',
       bgClass: 'bg-soft-orange',
       path: PRESIDENT_PAGES.COURSE_BOOKING_LIST
@@ -204,7 +217,7 @@ const alerts = computed<AlertItem[]>(() => {
   }
 
   const pendingFinanceCount = pickNumber(financeSummary.value, ['pendingCount', 'pendingAuditCount', 'auditCount'])
-  if (pendingFinanceCount !== null) {
+  if (pendingFinanceCount !== null && pendingFinanceCount > 0) {
     items.push({
       title: `财务相关记录 ${pendingFinanceCount} 条`,
       description: '进入财务列表或审计日志查看详情',
@@ -216,7 +229,7 @@ const alerts = computed<AlertItem[]>(() => {
   }
 
   const totalMembers = pickNumber(memberSummary.value, ['totalMembers', 'total'])
-  if (totalMembers !== null) {
+  if (totalMembers !== null && totalMembers > 0) {
     items.push({
       title: `会员总数 ${totalMembers} 人`,
       description: '进入会员中心查看当前会员明细',

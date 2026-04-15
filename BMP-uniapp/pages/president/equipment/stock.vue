@@ -104,7 +104,7 @@
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getEquipmentDetail, updateEquipment, type EquipmentItem } from '@/api/equipment'
+import { getEquipmentDetail, updateEquipment, type EquipmentItem } from '@/api/president/equipment'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { getEquipmentStatusMeta } from '@/utils/presidentStatus'

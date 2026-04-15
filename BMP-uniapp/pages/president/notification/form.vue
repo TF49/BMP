@@ -86,7 +86,7 @@
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { createNotification, updateNotification, getNotificationDetail } from '@/api/notification'
+import { createNotification, updateNotification, getNotificationDetail } from '@/api/president/notification'
 import { getVenueList } from '@/api/president/venue'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'

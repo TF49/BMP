@@ -135,6 +135,13 @@
       }
     },
     {
+      "path": "pages/president/booking/list",
+      "style": {
+        "navigationBarTitleText": "场地预约管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/finance/list",
       "style": {
         "navigationBarTitleText": "财务管理",

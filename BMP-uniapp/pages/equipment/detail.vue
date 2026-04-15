@@ -177,8 +177,8 @@ const totalPrice = computed(() => {
 })
 
 // 页面加载
-onLoad((options) => {
-  if (options.id) {
+onLoad((options?: Record<string, string | undefined>) => {
+  if (options?.id) {
     equipmentId.value = Number(options.id)
   }
 })

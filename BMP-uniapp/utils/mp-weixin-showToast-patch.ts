@@ -1,8 +1,3 @@
-// #ifndef MP-WEIXIN
-export function installShowToastSanitizer() {}
-// #endif
-
-// #ifdef MP-WEIXIN
 /** 指向真正的原生 showToast，避免多次 install 叠代理后链路过长 */
 const BMP_NATIVE_SHOW_TOAST = Symbol('bmpNativeShowToast')
 
@@ -67,6 +62,11 @@ export function sanitizeShowToastOptions(opts: any): Record<string, any> {
 }
 
 export function installShowToastSanitizer() {
+  // 非微信小程序环境无需处理。
+  // #ifndef MP-WEIXIN
+  return
+  // #endif
+
   const wrap = (target: { showToast?: (opts: any) => void } | null | undefined) => {
     if (!target || typeof target.showToast !== 'function') return
     const current = target.showToast as any
@@ -82,4 +82,3 @@ export function installShowToastSanitizer() {
 }
 
 installShowToastSanitizer()
-// #endif

@@ -175,7 +175,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { addTournament, getTournamentDetail, updateTournament } from '@/api/tournament'
+import { addTournament, getTournamentDetail, updateTournament } from '@/api/president/tournament'
 import { useUserStore } from '@/store/modules/user'
 import { getVenueList, type VenueItem as PresidentVenueItem } from '@/api/president/venue'
 
@@ -445,4 +445,3 @@ onLoad(async (q?: Record<string, string | undefined>) => {
 .btn.primary { background: #ff6600; color: #561d00; box-shadow: 0 16rpx 40rpx rgba(234,88,12,.22); }
 .btn.primary.disabled { opacity: .6; pointer-events: none; }
 </style>
-

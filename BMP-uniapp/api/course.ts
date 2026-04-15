@@ -18,6 +18,14 @@ export interface CourseItem {
   currentStudents: number
   status: number
   createTime: string
+  level?: string
+  location?: string
+  venueName?: string
+  description?: string
+  coachInfo?: string
+  coachRating?: number
+  coachExperience?: string
+  reviews?: any[]
 }
 
 export interface CoursePayload {

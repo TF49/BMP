@@ -191,7 +191,7 @@ import {
   createEquipmentRental,
   getEquipmentList,
   type EquipmentItem
-} from '@/api/equipment'
+} from '@/api/president/equipment'
 import { getMemberList, type MemberListItem } from '@/api/president/member'
 import { formatAmount, formatDate } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'

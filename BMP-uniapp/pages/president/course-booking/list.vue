@@ -112,7 +112,7 @@ import {
   processCourseBookingRefund,
   type CourseBookingItem,
   updateCourseBookingStatus
-} from '@/api/course'
+} from '@/api/president/course'
 import { parsePagedList } from '@/utils/parsePagedList'
 import { formatDate, formatDateTime, formatTime } from '@/utils/format'
 import { getCourseBookingStatusMeta } from '@/utils/presidentStatus'

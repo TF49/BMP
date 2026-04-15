@@ -202,7 +202,7 @@ import {
   processStringingRefund,
   updateStringingStatus,
   type StringingService
-} from '@/api/stringing'
+} from '@/api/president/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
@@ -230,7 +230,7 @@ const drawerOpen = ref(false)
 const loading = ref(false)
 const records = ref<StringingService[]>([])
 const keyword = ref('')
-let searchTimer: number | null = null
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const drawerNav = ref([
   { label: '仪表盘', icon: 'home', active: false, action: 'dashboard' as const },

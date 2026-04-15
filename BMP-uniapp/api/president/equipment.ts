@@ -1,0 +1,5 @@
+/**
+ * 会长端器材管理 API
+ * 复用普通端实现，保持页面层调用签名一致。
+ */
+export * from '@/api/equipment'

@@ -1,0 +1,207 @@
+﻿
+> bmp-miniprogram@1.0.0 type-check
+> vue-tsc --noEmit
+
+api/president/coach.ts(29,24): error TS2339: Property 'COACH' does not exist on type '{ AUTH: { LOGIN: string; REGISTER: string; CURRENT: string; REFRESH: string; LOGOUT: string; UPDATE_INFO: string; UPDATE_PASSWORD: string; SEND_CODE: string; UPDATE_PHONE: string; SUBMIT_FEEDBACK: string; }; ... 10 more ...; STRINGING: { ...; }; }'.
+api/president/coach.ts(33,27): error TS2339: Property 'COACH' does not exist on type '{ AUTH: { LOGIN: string; REGISTER: string; CURRENT: string; REFRESH: string; LOGOUT: string; UPDATE_INFO: string; UPDATE_PASSWORD: string; SEND_CODE: string; UPDATE_PHONE: string; SUBMIT_FEEDBACK: string; }; ... 10 more ...; STRINGING: { ...; }; }'.
+api/president/coach.ts(37,25): error TS2339: Property 'COACH' does not exist on type '{ AUTH: { LOGIN: string; REGISTER: string; CURRENT: string; REFRESH: string; LOGOUT: string; UPDATE_INFO: string; UPDATE_PASSWORD: string; SEND_CODE: string; UPDATE_PHONE: string; SUBMIT_FEEDBACK: string; }; ... 10 more ...; STRINGING: { ...; }; }'.
+api/president/coach.ts(41,27): error TS2339: Property 'COACH' does not exist on type '{ AUTH: { LOGIN: string; REGISTER: string; CURRENT: string; REFRESH: string; LOGOUT: string; UPDATE_INFO: string; UPDATE_PASSWORD: string; SEND_CODE: string; UPDATE_PHONE: string; SUBMIT_FEEDBACK: string; }; ... 10 more ...; STRINGING: { ...; }; }'.
+api/president/coach.ts(45,27): error TS2339: Property 'COACH' does not exist on type '{ AUTH: { LOGIN: string; REGISTER: string; CURRENT: string; REFRESH: string; LOGOUT: string; UPDATE_INFO: string; UPDATE_PASSWORD: string; SEND_CODE: string; UPDATE_PHONE: string; SUBMIT_FEEDBACK: string; }; ... 10 more ...; STRINGING: { ...; }; }'.
+api/president/stringing.ts(47,37): error TS2339: Property 'DETAIL' does not exist on type '{ LIST: string; INFO: string; INFO_NO: string; ADD: string; STATUS: string; STRINGS: string; CALCULATE_PRICE: string; }'.
+api/president/stringing.ts(55,37): error TS2339: Property 'DETAIL' does not exist on type '{ LIST: string; INFO: string; INFO_NO: string; ADD: string; STATUS: string; STRINGS: string; CALCULATE_PRICE: string; }'.
+api/president/stringing.ts(59,37): error TS2339: Property 'DETAIL' does not exist on type '{ LIST: string; INFO: string; INFO_NO: string; ADD: string; STATUS: string; STRINGS: string; CALCULATE_PRICE: string; }'.
+api/president/stringing.ts(63,38): error TS2339: Property 'DETAIL' does not exist on type '{ LIST: string; INFO: string; INFO_NO: string; ADD: string; STATUS: string; STRINGS: string; CALCULATE_PRICE: string; }'.
+api/president/tournament.ts(66,35): error TS2551: Property 'REGISTRATION_LIST' does not exist on type '{ LIST: string; DETAIL: string; REGISTRATION: { LIST: string; ADD: string; DETAIL: string; }; }'. Did you mean 'REGISTRATION'?
+api/president/tournament.ts(70,39): error TS2339: Property 'REGISTRATION_DETAIL' does not exist on type '{ LIST: string; DETAIL: string; REGISTRATION: { LIST: string; ADD: string; DETAIL: string; }; }'.
+api/president/tournament.ts(74,39): error TS2339: Property 'REGISTRATION_DETAIL' does not exist on type '{ LIST: string; DETAIL: string; REGISTRATION: { LIST: string; ADD: string; DETAIL: string; }; }'.
+App.vue(20,28): error TS2304: Cannot find name 'wx'.
+App.vue(22,7): error TS2304: Cannot find name 'wx'.
+App.vue(35,32): error TS2304: Cannot find name 'wx'.
+components/common/AnimatedBackground.vue(83,8): error TS2554: Expected 2 arguments, but got 1.
+directives/lazyLoad.ts(42,10): error TS2339: Property 'src' does not exist on type 'LazyLoadElement'.
+main.ts(9,23): error TS7016: Could not find a declaration file for module 'uview-plus'. 'D:/Developer Tool/IDEA/JAVAEE/BMP/BMP-uniapp/node_modules/uview-plus/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/uview-plus` if it exists or add a new declaration (.d.ts) file containing `declare module 'uview-plus';`
+pages/booking/detail.vue(77,7): error TS18048: 'options' is possibly 'undefined'.
+pages/booking/detail.vue(78,30): error TS18048: 'options' is possibly 'undefined'.
+pages/course/booking.vue(156,7): error TS18048: 'options' is possibly 'undefined'.
+pages/course/booking.vue(157,29): error TS18048: 'options' is possibly 'undefined'.
+pages/course/detail.vue(161,7): error TS18048: 'options' is possibly 'undefined'.
+pages/course/detail.vue(162,29): error TS18048: 'options' is possibly 'undefined'.
+pages/course/detail.vue(180,21): error TS2339: Property 'level' does not exist on type 'CourseItem'.
+pages/course/detail.vue(181,24): error TS2339: Property 'location' does not exist on type 'CourseItem'.
+pages/course/detail.vue(181,43): error TS2339: Property 'venueName' does not exist on type 'CourseItem'.
+pages/course/detail.vue(184,27): error TS2339: Property 'description' does not exist on type 'CourseItem'.
+pages/course/detail.vue(185,25): error TS2339: Property 'coachInfo' does not exist on type 'CourseItem'.
+pages/course/detail.vue(186,27): error TS2339: Property 'coachRating' does not exist on type 'CourseItem'.
+pages/course/detail.vue(187,31): error TS2339: Property 'coachExperience' does not exist on type 'CourseItem'.
+pages/course/detail.vue(188,23): error TS2339: Property 'reviews' does not exist on type 'CourseItem'.
+pages/equipment/detail.vue(181,7): error TS18048: 'options' is possibly 'undefined'.
+pages/equipment/detail.vue(182,32): error TS18048: 'options' is possibly 'undefined'.
+pages/equipment/detail.vue(197,52): error TS2339: Property 'quantity' does not exist on type 'EquipmentItem'.
+pages/equipment/detail.vue(198,22): error TS2339: Property 'rating' does not exist on type 'EquipmentItem'.
+pages/equipment/detail.vue(200,21): error TS2339: Property 'model' does not exist on type 'EquipmentItem'.
+pages/equipment/detail.vue(201,30): error TS2339: Property 'specifications' does not exist on type 'EquipmentItem'.
+pages/equipment/detail.vue(202,21): error TS2339: Property 'usage' does not exist on type 'EquipmentItem'.
+pages/equipment/detail.vue(204,22): error TS2339: Property 'images' does not exist on type 'EquipmentItem'.
+pages/equipment/rental.vue(165,7): error TS18048: 'options' is possibly 'undefined'.
+pages/equipment/rental.vue(166,32): error TS18048: 'options' is possibly 'undefined'.
+pages/equipment/rental.vue(168,7): error TS18048: 'options' is possibly 'undefined'.
+pages/equipment/rental.vue(169,33): error TS18048: 'options' is possibly 'undefined'.
+pages/equipment/rental.vue(171,7): error TS18048: 'options' is possibly 'undefined'.
+pages/equipment/rental.vue(172,29): error TS18048: 'options' is possibly 'undefined'.
+pages/equipment/rental.vue(196,52): error TS2339: Property 'quantity' does not exist on type 'EquipmentItem'.
+pages/equipment/rental.vue(281,48): error TS2345: Argument of type '{ memberId: number; equipmentId: any; quantity: number; startDate: string; endDate: string; orderAmount: number; paymentMethod: string; }' is not assignable to parameter of type 'EquipmentRentalParams'.
+  Type '{ memberId: number; equipmentId: any; quantity: number; startDate: string; endDate: string; orderAmount: number; paymentMethod: string; }' is missing the following properties from type 'EquipmentRentalParams': rentalDate, expectedReturnDate, rentalAmount
+pages/president/booking/detail.vue(50,46): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | null | undefined'.
+pages/president/booking/detail.vue(61,57): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+pages/president/equipment-rental/list.vue(223,3): error TS2322: Type 'Timeout' is not assignable to type 'number'.
+pages/president/equipment/form.vue(90,16): error TS2345: Argument of type '{ checked: boolean; color: string; onChange: (e: { detail: { value: boolean; }; }) => void; }' is not assignable to parameter of type 'SVGAttributes & ReservedProps & Record<string, unknown>'.
+  Type '{ checked: boolean; color: string; onChange: (e: { detail: { value: boolean; }; }) => void; }' is not assignable to type 'SVGAttributes'.
+    Types of property 'onChange' are incompatible.
+      Type '(e: { detail: { value: boolean; }; }) => void' is not assignable to type '(payload: Event) => void'.
+        Types of parameters 'e' and 'payload' are incompatible.
+          Property 'detail' is missing in type 'Event' but required in type '{ detail: { value: boolean; }; }'.
+pages/president/finance/reconciliation.vue(67,60): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+pages/president/stringing/form.vue(86,20): error TS2345: Argument of type '{ type: "number"; value: number; class: string; onInput: (e: { detail?: { value?: string; }; }) => void; }' is not assignable to parameter of type 'InputHTMLAttributes & ReservedProps & Record<string, unknown>'.
+  Types of property 'onInput' are incompatible.
+    Type '(e: { detail?: { value?: string | undefined; } | undefined; }) => void' is not assignable to type '(payload: InputEvent) => void'.
+      Types of parameters 'e' and 'payload' are incompatible.
+        Type 'InputEvent' is not assignable to type '{ detail?: { value?: string | undefined; } | undefined; }'.
+          Types of property 'detail' are incompatible.
+            Type 'number' has no properties in common with type '{ value?: string | undefined; }'.
+pages/president/stringing/form.vue(131,20): error TS2345: Argument of type '{ type: "digit"; value: string; class: string; onInput: (e: { detail?: { value?: string; }; }) => void; }' is not assignable to parameter of type 'InputHTMLAttributes & ReservedProps & Record<string, unknown>'.
+  Types of property 'onInput' are incompatible.
+    Type '(e: { detail?: { value?: string | undefined; } | undefined; }) => void' is not assignable to type '(payload: InputEvent) => void'.
+      Types of parameters 'e' and 'payload' are incompatible.
+        Type 'InputEvent' is not assignable to type '{ detail?: { value?: string | undefined; } | undefined; }'.
+          Types of property 'detail' are incompatible.
+            Type 'number' has no properties in common with type '{ value?: string | undefined; }'.
+pages/president/stringing/list.vue(353,3): error TS2322: Type 'Timeout' is not assignable to type 'number'.
+pages/president/tournament/list.vue(321,36): error TS2345: Argument of type '(item: TournamentItem) => Tournament' is not assignable to parameter of type '(value: SearchResult, index: number, array: SearchResult[]) => Tournament'.
+  Types of parameters 'item' and 'value' are incompatible.
+    Type 'SearchResult' is missing the following properties from type 'TournamentItem': tournamentName, tournamentType, venueId, venueName, and 10 more.
+pages/president/venue/detail.vue(291,8): error TS2345: Argument of type '(options: Record<string, string> | undefined) => void' is not assignable to parameter of type '(query?: Record<string, string | undefined> | undefined) => void'.
+  Types of parameters 'options' and 'query' are incompatible.
+    Type 'Record<string, string | undefined> | undefined' is not assignable to type 'Record<string, string> | undefined'.
+      Type 'Record<string, string | undefined>' is not assignable to type 'Record<string, string>'.
+        'string' index signatures are incompatible.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+pages/profile/info.vue(161,19): error TS2339: Property 'phone' does not exist on type 'UserInfo'.
+pages/profile/info.vue(162,20): error TS2339: Property 'gender' does not exist on type 'UserInfo'.
+pages/profile/info.vue(163,22): error TS2339: Property 'birthday' does not exist on type 'UserInfo'.
+pages/profile/info.vue(164,19): error TS2339: Property 'email' does not exist on type 'UserInfo'.
+pages/recharge/index.vue(150,37): error TS2367: This comparison appears to be unintentional because the types 'Ref<number, number>' and 'number' have no overlap.
+pages/recharge/index.vue(220,46): error TS2345: Argument of type '{ memberId: number; amount: number; paymentMethod: string; orderType: string; }' is not assignable to parameter of type 'RechargeParams'.
+  Type '{ memberId: number; amount: number; paymentMethod: string; orderType: string; }' is missing the following properties from type 'RechargeParams': rechargeAmount, rechargeMethod
+pages/recharge/index.vue(229,25): error TS2339: Property 'orderId' does not exist on type 'RechargeRecord'.
+pages/search/result.vue(210,7): error TS18048: 'options' is possibly 'undefined'.
+pages/search/result.vue(211,46): error TS18048: 'options' is possibly 'undefined'.
+pages/settings/account.vue(216,22): error TS2339: Property 'nickname' does not exist on type 'UserInfo'.
+pages/settings/account.vue(217,19): error TS2339: Property 'phone' does not exist on type 'UserInfo'.
+pages/settings/account.vue(218,19): error TS2339: Property 'email' does not exist on type 'UserInfo'.
+pages/settings/account.vue(219,20): error TS2339: Property 'gender' does not exist on type 'UserInfo'.
+pages/settings/account.vue(220,22): error TS2339: Property 'birthday' does not exist on type 'UserInfo'.
+pages/settings/account.vue(257,26): error TS2339: Property 'nickname' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
+pages/settings/account.vue(258,26): error TS2339: Property 'phone' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
+pages/settings/account.vue(259,26): error TS2339: Property 'email' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
+pages/settings/account.vue(260,26): error TS2339: Property 'gender' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
+pages/settings/account.vue(261,26): error TS2339: Property 'birthday' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
+pages/settings/account.vue(275,3): error TS2304: Cannot find name 'safeNavigateBack'.
+pages/settings/change-phone.vue(78,46): error TS2339: Property 'phone' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
+pages/settings/notification.vue(134,3): error TS2322: Type 'boolean' is not assignable to type 'never'.
+pages/settings/security.vue(300,27): error TS2339: Property 'phone' does not exist on type 'UserInfo'.
+pages/settings/security.vue(301,27): error TS2339: Property 'email' does not exist on type 'UserInfo'.
+pages/stringing/create.vue(53,46): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(61,31): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(73,54): error TS2339: Property 'displayName' does not exist on type '{ id: number; equipmentName?: string | undefined; equipmentCode?: string | undefined; price: number; }'.
+pages/stringing/create.vue(85,60): error TS2339: Property 'brand' does not exist on type '{ id: number; equipmentName?: string | undefined; equipmentCode?: string | undefined; price: number; }'.
+pages/stringing/create.vue(89,60): error TS2339: Property 'gauge' does not exist on type '{ id: number; equipmentName?: string | undefined; equipmentCode?: string | undefined; price: number; }'.
+pages/stringing/create.vue(106,32): error TS2339: Property 'tension' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'.
+pages/stringing/create.vue(160,33): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(234,3): error TS2353: Object literal may only specify known properties, and 'tension' does not exist in type 'CreateStringingParams'.
+pages/stringing/create.vue(269,21): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(270,20): error TS2339: Property 'tension' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'.
+pages/stringing/create.vue(271,20): error TS2339: Property 'tension' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'.
+pages/stringing/create.vue(291,28): error TS2339: Property 'stringName' does not exist on type 'StringInfo'.
+pages/stringing/create.vue(291,49): error TS2339: Property 'brand' does not exist on type 'StringInfo'.
+pages/stringing/create.vue(315,3): error TS2322: Type 'Timeout' is not assignable to type 'number'.
+pages/stringing/create.vue(316,25): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(329,35): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(362,43): error TS2339: Property 'tension' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'.
+pages/stringing/create.vue(376,27): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(397,23): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(401,39): error TS2339: Property 'tension' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'.
+pages/stringing/create.vue(414,18): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(415,22): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/create.vue(434,18): error TS2339: Property 'tension' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'.
+pages/stringing/create.vue(523,11): error TS2353: Object literal may only specify known properties, and 'tension' does not exist in type 'CreateStringingParams | { memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; ... 14 more ...; remark?: string | undefined; }'.
+pages/stringing/create.vue(566,9): error TS2353: Object literal may only specify known properties, and 'tension' does not exist in type 'CreateStringingParams | { memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; ... 14 more ...; remark?: string | undefined; }'.
+pages/stringing/create.vue(591,60): error TS2551: Property 'ownString' does not exist on type '{ memberId?: number | undefined; memberPhone?: string | undefined; userId: number; userName?: string | undefined; venueId: number; racketBrand: string; racketModel: string; racketDescription?: string | undefined; ... 11 more ...; remark?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/detail.vue(32,56): error TS2551: Property 'ownString' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/detail.vue(37,59): error TS2339: Property 'stringBrand' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/detail.vue(38,31): error TS2339: Property 'stringBrand' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/detail.vue(38,59): error TS2339: Property 'stringGauge' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/detail.vue(45,51): error TS2339: Property 'tension' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/detail.vue(47,52): error TS2551: Property 'ownString' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/detail.vue(47,73): error TS2339: Property 'stringPrice' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/detail.vue(49,58): error TS2339: Property 'stringPrice' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/detail.vue(61,64): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+pages/stringing/detail.vue(122,3): error TS2353: Object literal may only specify known properties, and 'tension' does not exist in type 'StringingService'.
+pages/stringing/detail.vue(142,7): error TS18048: 'options' is possibly 'undefined'.
+pages/stringing/detail.vue(143,30): error TS18048: 'options' is possibly 'undefined'.
+pages/stringing/detail.vue(182,10): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ readonly 0: "宸插彇娑?; readonly 1: "绛夊緟绌跨嚎"; readonly 2: "姝ｅ湪绌跨嚎"; readonly 3: "宸插畬鎴?; }'.
+  No index signature with a parameter of type 'number' was found on type '{ readonly 0: "宸插彇娑?; readonly 1: "绛夊緟绌跨嚎"; readonly 2: "姝ｅ湪绌跨嚎"; readonly 3: "宸插畬鎴?; }'.
+pages/stringing/detail.vue(186,10): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ readonly 0: "#999999"; readonly 1: "#ff9800"; readonly 2: "#2196f3"; readonly 3: "#3cc51f"; }'.
+  No index signature with a parameter of type 'number' was found on type '{ readonly 0: "#999999"; readonly 1: "#ff9800"; readonly 2: "#2196f3"; readonly 3: "#3cc51f"; }'.
+pages/stringing/detail.vue(200,10): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ readonly CASH: "鐜伴噾"; readonly ALIPAY: "鏀粯瀹?; readonly WECHAT: "寰俊"; readonly BALANCE: "浣欓"; }'.
+  No index signature with a parameter of type 'string' was found on type '{ readonly CASH: "鐜伴噾"; readonly ALIPAY: "鏀粯瀹?; readonly WECHAT: "寰俊"; readonly BALANCE: "浣欓"; }'.
+pages/stringing/list.vue(85,27): error TS2551: Property 'ownString' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/list.vue(92,50): error TS2339: Property 'tension' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/query.vue(60,60): error TS2551: Property 'ownString' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/query.vue(65,63): error TS2339: Property 'stringBrand' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/query.vue(66,35): error TS2339: Property 'stringBrand' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/query.vue(66,67): error TS2339: Property 'stringGauge' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/query.vue(73,55): error TS2339: Property 'tension' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/query.vue(75,56): error TS2551: Property 'ownString' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'. Did you mean 'isOwnString'?
+pages/stringing/query.vue(75,81): error TS2339: Property 'stringPrice' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/query.vue(77,62): error TS2339: Property 'stringPrice' does not exist on type '{ id: number; serviceNo: string; memberId?: number | undefined; memberName?: string | undefined; memberPhone?: string | undefined; userId?: number | undefined; userName?: string | undefined; ... 21 more ...; startTime?: string | undefined; }'.
+pages/stringing/query.vue(89,64): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+pages/stringing/query.vue(133,10): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ readonly 0: "宸插彇娑?; readonly 1: "绛夊緟绌跨嚎"; readonly 2: "姝ｅ湪绌跨嚎"; readonly 3: "宸插畬鎴?; }'.
+  No index signature with a parameter of type 'number' was found on type '{ readonly 0: "宸插彇娑?; readonly 1: "绛夊緟绌跨嚎"; readonly 2: "姝ｅ湪绌跨嚎"; readonly 3: "宸插畬鎴?; }'.
+pages/stringing/query.vue(137,10): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ readonly 0: "#999999"; readonly 1: "#ff9800"; readonly 2: "#2196f3"; readonly 3: "#3cc51f"; }'.
+  No index signature with a parameter of type 'number' was found on type '{ readonly 0: "#999999"; readonly 1: "#ff9800"; readonly 2: "#2196f3"; readonly 3: "#3cc51f"; }'.
+pages/stringing/query.vue(151,10): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ readonly CASH: "鐜伴噾"; readonly ALIPAY: "鏀粯瀹?; readonly WECHAT: "寰俊"; readonly BALANCE: "浣欓"; }'.
+  No index signature with a parameter of type 'string' was found on type '{ readonly CASH: "鐜伴噾"; readonly ALIPAY: "鏀粯瀹?; readonly WECHAT: "寰俊"; readonly BALANCE: "浣欓"; }'.
+pages/tournament/detail.vue(182,7): error TS18048: 'options' is possibly 'undefined'.
+pages/tournament/detail.vue(183,33): error TS18048: 'options' is possibly 'undefined'.
+pages/tournament/detail.vue(218,20): error TS2339: Property 'startDate' does not exist on type 'TournamentItem'.
+pages/tournament/detail.vue(219,20): error TS2339: Property 'startTime' does not exist on type 'TournamentItem'.
+pages/tournament/detail.vue(220,24): error TS2339: Property 'location' does not exist on type 'TournamentItem'.
+pages/tournament/detail.vue(221,21): error TS2339: Property 'level' does not exist on type 'TournamentItem'.
+pages/tournament/detail.vue(226,36): error TS2551: Property 'registrationDeadline' does not exist on type 'TournamentItem'. Did you mean 'registrationEnd'?
+pages/tournament/detail.vue(227,25): error TS2339: Property 'organizer' does not exist on type 'TournamentItem'.
+pages/tournament/detail.vue(229,21): error TS2339: Property 'rules' does not exist on type 'TournamentItem'.
+pages/tournament/detail.vue(230,28): error TS2339: Property 'requirements' does not exist on type 'TournamentItem'.
+pages/tournament/detail.vue(231,22): error TS2339: Property 'prizes' does not exist on type 'TournamentItem'.
+pages/tournament/detail.vue(232,32): error TS2339: Property 'participantsList' does not exist on type 'TournamentItem'.
+pages/tournament/register.vue(238,7): error TS18048: 'options' is possibly 'undefined'.
+pages/tournament/register.vue(239,33): error TS18048: 'options' is possibly 'undefined'.
+pages/tournament/register.vue(251,20): error TS2339: Property 'startDate' does not exist on type 'TournamentItem'.
+pages/tournament/register.vue(252,20): error TS2339: Property 'startTime' does not exist on type 'TournamentItem'.
+pages/tournament/register.vue(317,55): error TS2345: Argument of type '{ memberId: number; tournamentId: any; name: string; phone: string; gender: number; age: number; skillLevel: string; emergencyContact: string; emergencyPhone: string; orderAmount: any; paymentMethod: string; }' is not assignable to parameter of type 'TournamentRegistrationParams'.
+  Property 'entryFee' is missing in type '{ memberId: number; tournamentId: any; name: string; phone: string; gender: number; age: number; skillLevel: string; emergencyContact: string; emergencyPhone: string; orderAmount: any; paymentMethod: string; }' but required in type 'TournamentRegistrationParams'.
+pages/venue/detail.vue(246,8): error TS2345: Argument of type '(options: Record<string, string> | undefined) => Promise<void>' is not assignable to parameter of type '(query?: Record<string, string | undefined> | undefined) => void'.
+  Types of parameters 'options' and 'query' are incompatible.
+    Type 'Record<string, string | undefined> | undefined' is not assignable to type 'Record<string, string> | undefined'.
+      Type 'Record<string, string | undefined>' is not assignable to type 'Record<string, string>'.
+        'string' index signatures are incompatible.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+utils/mp-weixin-showToast-patch.ts(2,17): error TS2323: Cannot redeclare exported variable 'installShowToastSanitizer'.
+utils/mp-weixin-showToast-patch.ts(2,17): error TS2393: Duplicate function implementation.
+utils/mp-weixin-showToast-patch.ts(69,17): error TS2323: Cannot redeclare exported variable 'installShowToastSanitizer'.
+utils/mp-weixin-showToast-patch.ts(69,17): error TS2393: Duplicate function implementation.
+utils/systemInfo.ts(32,29): error TS2339: Property 'pixelRatio' does not exist on type 'GetDeviceInfoResult'.

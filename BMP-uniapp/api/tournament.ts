@@ -17,6 +17,17 @@ export interface TournamentItem {
   status: number
   description: string
   createTime: string
+  startDate?: string
+  startTime?: string
+  location?: string
+  level?: string
+  registrationDeadline?: string
+  organizer?: string
+  rules?: string
+  requirements?: string
+  prizes?: string
+  prizeInfo?: string
+  participantsList?: any[]
 }
 
 export interface TournamentPayload {
@@ -39,8 +50,16 @@ export interface TournamentRegistrationParams {
   tournamentId: number
   memberId: number
   partnerId?: number
-  entryFee: number
+  entryFee?: number
   paymentMethod: string
+  name?: string
+  phone?: string
+  gender?: number
+  age?: number
+  skillLevel?: string
+  emergencyContact?: string
+  emergencyPhone?: string
+  orderAmount?: number
 }
 
 export interface TournamentRegistrationItem {

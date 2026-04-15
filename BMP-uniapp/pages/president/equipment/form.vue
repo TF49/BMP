@@ -125,7 +125,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { addEquipment, getEquipmentDetail, updateEquipment } from '@/api/equipment'
+import { addEquipment, getEquipmentDetail, updateEquipment } from '@/api/president/equipment'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
@@ -155,7 +155,7 @@ function onTypeChange(e: { detail: { value: string } }) {
   typeIndex.value = Number(e.detail.value)
 }
 
-function onStatusChange(e: { detail: { value: boolean } }) {
+function onStatusChange(e: any) {
   form.status = e.detail.value ? 1 : 0
 }
 

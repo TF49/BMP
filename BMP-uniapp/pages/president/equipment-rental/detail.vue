@@ -107,7 +107,7 @@ import {
   processEquipmentRentalRefund,
   type EquipmentRentalItem,
   updateEquipmentRentalStatus
-} from '@/api/equipment'
+} from '@/api/president/equipment'
 import { formatAmount, formatDate, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'

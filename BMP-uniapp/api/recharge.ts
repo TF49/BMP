@@ -11,9 +11,12 @@ export interface AdminRechargeResult {
 
 export interface RechargeParams {
   memberId: number
-  rechargeAmount: number
-  rechargeMethod: string
+  rechargeAmount?: number
+  rechargeMethod?: string
   remark?: string
+  amount?: number
+  paymentMethod?: string
+  orderType?: string
 }
 
 export interface RechargeRecord {
@@ -30,6 +33,7 @@ export interface RechargeRecord {
   isUpgraded?: number
   /** 是否等级升级（本笔充值使会员等级 Lv1~Lv5 提升），0-否，1-是 */
   isLevelUpgraded?: number
+  orderId?: number
 }
 
 /**

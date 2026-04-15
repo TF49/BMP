@@ -10,3 +10,22 @@ export * from './venue'
 export * from './finance'
 export * from './booking'
 export * from './member'
+export * from './coach'
+export {
+  getCourseList,
+  getCourseDetail,
+  addCourse,
+  updateCourse,
+  updateCourseStatus,
+  getCourseBookingList,
+  createCourseBooking,
+  getCourseBookingDetail,
+  updateCourseBookingStatus,
+  processCourseBookingPayment,
+  processCourseBookingRefund,
+  deleteCourseBooking
+} from './course'
+export * from './tournament'
+export * from './notification'
+export * from './equipment'
+export * from './stringing'

@@ -35,6 +35,11 @@ export interface UserInfo {
   status: number
   avatar?: string
   venueId?: number
+  phone?: string
+  email?: string
+  gender?: number
+  birthday?: string
+  nickname?: string
 }
 
 /**

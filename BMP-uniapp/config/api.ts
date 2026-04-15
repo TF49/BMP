@@ -66,10 +66,22 @@ export const API_PATHS = {
     COACHES: '/course/coaches',
     COURTS: '/course/courts'
   },
+  // 教练相关
+  COACH: {
+    LIST: '/coach/list',
+    DETAIL: '/coach/info',
+    ADD: '/coach/add',
+    UPDATE: '/coach/update',
+    DELETE: '/coach'
+  },
   // 器材相关
   EQUIPMENT: {
     LIST: '/equipment/list',
     DETAIL: '/equipment/info',
+    ADD: '/equipment/add',
+    UPDATE: '/equipment/update',
+    DELETE: '/equipment',
+    STOCK: '/equipment/stock',
     RENTAL: {
       LIST: '/equipment/rental/list',
       ADD: '/equipment/rental/add',
@@ -80,10 +92,15 @@ export const API_PATHS = {
   TOURNAMENT: {
     LIST: '/tournament/list',
     DETAIL: '/tournament/info',
+    ADD: '/tournament/add',
+    UPDATE: '/tournament/update',
+    DELETE: '/tournament',
     REGISTRATION: {
       LIST: '/tournament/registration/list',
       ADD: '/tournament/registration/add',
-      DETAIL: '/tournament/registration/info'
+      DETAIL: '/tournament/registration/info',
+      APPROVE: '/tournament/registration/approve',
+      REJECT: '/tournament/registration/reject'
     }
   },
   // 充值相关
@@ -115,6 +132,9 @@ export const API_PATHS = {
     INFO: '/stringing/info',
     INFO_NO: '/stringing/info/no',
     ADD: '/stringing/add',
+    DETAIL: '/stringing/info',
+    UPDATE: '/stringing/update',
+    DELETE: '/stringing',
     STATUS: '/stringing/status',
     STRINGS: '/stringing/strings',
     CALCULATE_PRICE: '/stringing/calculate-price'

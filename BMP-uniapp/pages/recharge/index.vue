@@ -147,7 +147,7 @@ const currentAmount = computed(() => {
 })
 
 const canRecharge = computed(() => {
-  return currentAmount.value > 0 && selectedMethod !== -1
+  return currentAmount.value > 0 && selectedMethod.value !== -1
 })
 
 // 选择金额

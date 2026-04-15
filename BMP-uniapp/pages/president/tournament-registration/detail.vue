@@ -87,7 +87,7 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getTournamentRegistrationDetail, type TournamentRegistrationItem } from '@/api/tournament'
+import { getTournamentRegistrationDetail, type TournamentRegistrationItem } from '@/api/president/tournament'
 import { formatAmount, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'

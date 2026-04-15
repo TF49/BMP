@@ -225,39 +225,39 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
 // GET请求
 export function get<T = any>(url: string, data: any = {}, options: Partial<RequestOptions> = {}): Promise<T> {
   return request<T>({
-    ...options,
     url,
     method: 'GET',
-    data
+    data,
+    ...options
   })
 }
 
 // POST请求
 export function post<T = any>(url: string, data: any = {}, options: Partial<RequestOptions> = {}): Promise<T> {
   return request<T>({
-    ...options,
     url,
     method: 'POST',
-    data
+    data,
+    ...options
   })
 }
 
 // PUT请求
 export function put<T = any>(url: string, data: any = {}, options: Partial<RequestOptions> = {}): Promise<T> {
   return request<T>({
-    ...options,
     url,
     method: 'PUT',
-    data
+    data,
+    ...options
   })
 }
 
 // DELETE请求
 export function del<T = any>(url: string, data: any = {}, options: Partial<RequestOptions> = {}): Promise<T> {
   return request<T>({
-    ...options,
     url,
     method: 'DELETE',
-    data
+    data,
+    ...options
   })
 }

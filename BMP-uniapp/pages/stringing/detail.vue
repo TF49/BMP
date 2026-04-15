@@ -120,7 +120,7 @@ const service = ref<StringingService>({
   racketBrand: '',
   racketModel: '',
   tension: 0,
-  ownString: false,
+  ownString: 0,
   servicePrice: 0,
   totalPrice: 0,
   paymentMethod: '',
@@ -138,8 +138,8 @@ const managerStatusOptions = [
   { value: STRINGING_STATUS.COMPLETED, label: STRINGING_STATUS_TEXT[STRINGING_STATUS.COMPLETED] }
 ]
 
-onLoad((options) => {
-  if (options.id) {
+onLoad((options?: Record<string, string | undefined>) => {
+  if (options?.id) {
     serviceId.value = Number(options.id)
   }
 })
@@ -196,8 +196,9 @@ const getStatusBgColor = (status: number) => {
   return colorMap[status] || '#f5f5f5'
 }
 
-const getPaymentMethodText = (method: string) => {
-  return PAYMENT_METHOD_TEXT[method] || method
+const getPaymentMethodText = (method?: string) => {
+  if (!method) return '未知'
+  return PAYMENT_METHOD_TEXT[method as keyof typeof PAYMENT_METHOD_TEXT] || method
 }
 
 const handleBack = () => {

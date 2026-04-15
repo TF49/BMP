@@ -208,7 +208,7 @@ import {
   type CreateStringingParams,
   type StringInfo,
   type StringingPaymentMethod
-} from '@/api/stringing'
+} from '@/api/president/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
@@ -331,7 +331,7 @@ function onStringPick(e: { detail: { value: string } }) {
   void syncPrice()
 }
 
-function onTensionInput(e: { detail?: { value?: string } }) {
+function onTensionInput(e: any) {
   const raw = e.detail?.value ?? ''
   const n = parseInt(String(raw).replace(/\D/g, ''), 10)
   if (Number.isFinite(n)) {
@@ -353,7 +353,7 @@ function onTensionSliderChange(e: { detail?: { value?: number | string } }) {
   tensionLbs.value = clampTension(readSliderValue(e))
 }
 
-function onServiceFeeInput(e: { detail?: { value?: string } }) {
+function onServiceFeeInput(e: any) {
   const raw = (e.detail?.value ?? '').replace(/[^\d.]/g, '')
   serviceFeeInput.value = raw
   const n = parseFloat(raw)

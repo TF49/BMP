@@ -111,7 +111,7 @@ import MobileLayout from '@/components/MobileLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 
 // 通知设置
-const settings = reactive({
+const settingsDefaults = {
   bookingSuccess: true,
   bookingChange: true,
   bookingReminder: true,
@@ -125,13 +125,18 @@ const settings = reactive({
   vibrationAlert: true,
   dndStart: '22:00',
   dndEnd: '08:00'
-})
+}
+const settings = reactive(settingsDefaults)
+type NotificationSettingKey = keyof typeof settingsDefaults
 
 const userStore = useUserStore()
 
 // 切换设置
-const toggleSetting = (key: keyof typeof settings) => {
-  settings[key] = !settings[key]
+const toggleSetting = (key: NotificationSettingKey) => {
+  const current = settings[key]
+  if (typeof current === 'boolean') {
+    ;(settings as Record<NotificationSettingKey, string | boolean>)[key] = !current
+  }
   saveSettings()
 }
 

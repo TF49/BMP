@@ -93,7 +93,7 @@ import {
   processStringingRefund,
   type StringingService,
   updateStringingStatus
-} from '@/api/stringing'
+} from '@/api/president/stringing'
 import { formatAmount, formatDateTime, formatPhone } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'

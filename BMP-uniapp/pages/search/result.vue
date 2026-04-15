@@ -206,8 +206,8 @@ const showEmptyState = computed(() => {
 })
 
 // 页面加载
-onLoad((options) => {
-  if (options.keyword) {
+onLoad((options?: Record<string, string | undefined>) => {
+  if (options?.keyword) {
     searchKeyword.value = decodeURIComponent(options.keyword)
   }
 })

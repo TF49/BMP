@@ -7,6 +7,7 @@ import type { DirectiveBinding } from 'vue'
 
 interface LazyLoadElement extends HTMLElement {
   _lazyLoadHandler?: IntersectionObserverCallback
+  src?: string
 }
 
 let observer: IntersectionObserver | null = null

@@ -16,6 +16,12 @@ export interface EquipmentItem {
   description: string
   createTime: string
   venueName?: string
+  quantity?: number
+  rating?: number
+  model?: string
+  specifications?: string
+  usage?: string
+  images?: string[]
 }
 
 export interface EquipmentPayload {
@@ -38,9 +44,9 @@ export interface EquipmentRentalParams {
   memberId: number
   equipmentId: number
   quantity: number
-  rentalDate: string
-  expectedReturnDate: string
-  rentalAmount: number
+  rentalDate?: string
+  expectedReturnDate?: string
+  rentalAmount?: number
   paymentMethod: string
   unitPrice?: number
   depositAmount?: number
@@ -48,6 +54,9 @@ export interface EquipmentRentalParams {
   paymentStatus?: number
   status?: number
   remark?: string
+  startDate?: string
+  endDate?: string
+  orderAmount?: number
 }
 
 export interface EquipmentRentalItem {

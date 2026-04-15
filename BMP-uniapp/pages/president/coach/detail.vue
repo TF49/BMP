@@ -175,7 +175,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getCoachDetail, type CoachDto } from '@/api/coach'
+import { getCoachDetail, type CoachDto } from '@/api/president/coach'
 import { getCoachStatusMeta } from '@/utils/presidentStatus'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
 

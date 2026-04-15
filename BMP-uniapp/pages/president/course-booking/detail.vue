@@ -110,7 +110,7 @@ import {
   processCourseBookingRefund,
   type CourseBookingItem,
   updateCourseBookingStatus
-} from '@/api/course'
+} from '@/api/president/course'
 import { formatAmount, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'

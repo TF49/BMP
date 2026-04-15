@@ -78,10 +78,10 @@ const initCanvas = () => {
   // 微信小程序使用Canvas 2D
   try {
     const query = uni.createSelectorQuery()
-    query
-      .select(`#${canvasId}`)
+    ;(query
+      .select(`#${canvasId}`) as any)
       .fields({ node: true, size: true })
-      .exec((res) => {
+      .exec((res: any[]) => {
         if (res && res[0] && res[0].node) {
           canvas = res[0].node
           ctx = canvas.getContext('2d')

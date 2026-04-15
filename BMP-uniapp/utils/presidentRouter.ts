@@ -19,6 +19,8 @@ export const PRESIDENT_PAGES = {
   COURT_LIST: '/pages/president/court/list',
   COURT_DETAIL: '/pages/president/court/detail',
   COURT_FORM: '/pages/president/court/form',
+  BOOKING_LIST: '/pages/president/booking/list',
+  BOOKING_DETAIL: '/pages/president/booking/detail',
   MEMBER_LIST: '/pages/president/member/list',
   MEMBER_FORM: '/pages/president/member/form',
   MEMBER_DETAIL: '/pages/president/member/detail',

@@ -288,7 +288,7 @@ async function load() {
   }
 }
 
-onLoad((options: Record<string, string> | undefined) => {
+onLoad((options?: Record<string, string | undefined>) => {
   if (options?.id) id.value = Number(options.id)
   load()
 })

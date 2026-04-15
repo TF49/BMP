@@ -225,7 +225,7 @@ import { ref, computed, onMounted } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getTournamentList, type TournamentItem } from '@/api/tournament'
+import { getTournamentList, type TournamentItem } from '@/api/president/tournament'
 import { searchTournaments } from '@/api/search'
 import { getTournamentStatusMeta } from '@/utils/presidentStatus'
 import { parsePagedList } from '@/utils/parsePagedList'
@@ -317,7 +317,7 @@ async function loadTournaments() {
         page: 1,
         size: 100
       })
-      const list = res.data || []
+      const list = Array.isArray(res.data) ? (res.data as unknown as TournamentItem[]) : []
       tournaments.value = list.map(transformTournament)
     } else {
       // 否则使用列表接口

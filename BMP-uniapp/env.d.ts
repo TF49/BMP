@@ -12,3 +12,16 @@ declare module '@dcloudio/uni-app' {
   export function onPullDownRefresh(callback: () => void): void
   export function onReachBottom(callback: () => void): void
 }
+
+/**
+ * 微信小程序全局对象类型声明
+ */
+declare const wx: any
+
+/**
+ * uview-plus 模块类型声明
+ */
+declare module 'uview-plus' {
+  const uviewPlus: any
+  export default uviewPlus
+}

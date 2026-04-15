@@ -152,8 +152,8 @@ const getCourseBookingErrorMessage = (error: any): string => {
 }
 
 // 页面加载
-onLoad((options) => {
-  if (options.id) {
+onLoad((options?: Record<string, string | undefined>) => {
+  if (options?.id) {
     courseId.value = Number(options.id)
   }
 })

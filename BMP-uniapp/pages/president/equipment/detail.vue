@@ -102,7 +102,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getEquipmentDetail, type EquipmentItem } from '@/api/equipment'
+import { getEquipmentDetail, type EquipmentItem } from '@/api/president/equipment'
 import { getEquipmentStatusMeta } from '@/utils/presidentStatus'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
 

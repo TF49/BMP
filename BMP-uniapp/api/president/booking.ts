@@ -1,23 +1,24 @@
-/**
- * 会长端 - 预约管理 API
- * 取消预约：后端为 PUT /booking/status?id=xx&status=0（0=已取消）
- */
 import { get, put } from '@/utils/request'
 
 export interface BookingItem {
   id: number
-  venueId?: number
-  venueName?: string
+  bookingNo?: string
+  memberId?: number
+  memberName?: string
   courtId?: number
   courtName?: string
-  userId?: number
-  userName?: string
+  venueId?: number
+  venueName?: string
   bookingDate?: string
   startTime?: string
   endTime?: string
-  status?: number
+  orderAmount?: number
   amount?: number
+  paymentMethod?: string
+  paymentStatus?: number
+  status?: number
   createTime?: string
+  updateTime?: string
   [key: string]: unknown
 }
 
@@ -29,22 +30,47 @@ export interface BookingListResult {
   pages?: number
 }
 
+export interface BookingStatistics {
+  total?: number
+  cancelled?: number
+  pending?: number
+  paid?: number
+  ongoing?: number
+  finished?: number
+  todayBookings?: number
+  bookingTrend?: number
+  peakHours?: string
+  [key: string]: unknown
+}
+
 export function getBookingList(params?: {
   venueId?: number
+  memberId?: number
+  courtId?: number
   status?: number
-  startDate?: string
-  endDate?: string
+  memberKeyword?: string
+  startTime?: string
+  endTime?: string
   page?: number
   size?: number
 }) {
-  return get<BookingListResult>('/booking/list', params || {})
+  const cleanParams = params
+    ? Object.fromEntries(
+        Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')
+      )
+    : {}
+
+  return get<BookingListResult>('/booking/list', cleanParams)
 }
 
 export function getBookingDetail(id: number) {
   return get<BookingItem>(`/booking/info/${id}`)
 }
 
-/** 取消预约：将状态更新为 0（已取消） */
+export function getBookingStatistics() {
+  return get<BookingStatistics>('/booking/statistics')
+}
+
 export function cancelBooking(id: number) {
   return put<unknown>(`/booking/status?id=${id}&status=0`, {})
 }

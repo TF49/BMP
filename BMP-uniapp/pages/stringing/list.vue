@@ -238,7 +238,7 @@ const switchTab = (index: number) => {
 }
 
 // Search with debounce (for managers)
-let searchTimer: number | null = null
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 const handleSearch = () => {
   if (searchTimer) {
     clearTimeout(searchTimer)
@@ -246,7 +246,7 @@ const handleSearch = () => {
   
   searchTimer = setTimeout(() => {
     loadServiceList(true)
-  }, 500) as unknown as number
+  }, 500)
 }
 
 // Get status text

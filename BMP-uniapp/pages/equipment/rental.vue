@@ -161,14 +161,14 @@ const canSubmit = computed(() => {
 })
 
 // 页面加载
-onLoad((options) => {
-  if (options.id) {
+onLoad((options?: Record<string, string | undefined>) => {
+  if (options?.id) {
     equipmentId.value = Number(options.id)
   }
-  if (options.quantity) {
+  if (options?.quantity) {
     rentQuantity.value = Number(options.quantity)
   }
-  if (options.days) {
+  if (options?.days) {
     rentDays.value = Number(options.days)
   }
 })

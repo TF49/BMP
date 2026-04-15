@@ -73,8 +73,8 @@ const booking = ref<any>({
 })
 const userStore = useUserStore()
 
-onLoad((options) => {
-  if (options.id) {
+onLoad((options?: Record<string, string | undefined>) => {
+  if (options?.id) {
     bookingId.value = Number(options.id)
   }
 })

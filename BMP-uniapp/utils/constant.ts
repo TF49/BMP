@@ -117,14 +117,14 @@ export const STRINGING_STATUS = {
   COMPLETED: 3       // 已完成
 } as const
 
-export const STRINGING_STATUS_TEXT = {
+export const STRINGING_STATUS_TEXT: Record<number, string> = {
   [STRINGING_STATUS.CANCELLED]: '已取消',
   [STRINGING_STATUS.WAITING]: '等待穿线',
   [STRINGING_STATUS.IN_PROGRESS]: '正在穿线',
   [STRINGING_STATUS.COMPLETED]: '已完成'
 } as const
 
-export const STRINGING_STATUS_COLOR = {
+export const STRINGING_STATUS_COLOR: Record<number, string> = {
   [STRINGING_STATUS.CANCELLED]: '#999999',
   [STRINGING_STATUS.WAITING]: '#ff9800',
   [STRINGING_STATUS.IN_PROGRESS]: '#2196f3',

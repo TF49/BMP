@@ -243,7 +243,7 @@ async function loadVenueDetail() {
   }
 }
 
-onLoad(async (options: Record<string, string> | undefined) => {
+onLoad(async (options?: Record<string, string | undefined>) => {
   if (options?.id) venueId.value = Number(options.id)
   if (!userStore.isLoggedIn) {
     uni.redirectTo({ url: '/pages/login/login' })

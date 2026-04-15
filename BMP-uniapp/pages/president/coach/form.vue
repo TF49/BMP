@@ -161,7 +161,7 @@ import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
-import { addCoach, getCoachDetail, getCoachVenueOptions, updateCoach, type CoachDto, type CoachVenueOption } from '@/api/coach'
+import { addCoach, getCoachDetail, getCoachVenueOptions, updateCoach, type CoachDto, type CoachVenueOption } from '@/api/president/coach'
 
 const HERO_AVATAR =
   '/static/placeholders/hero.svg'

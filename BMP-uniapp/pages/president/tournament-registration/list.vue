@@ -129,7 +129,7 @@ import {
   getTournamentRegistrationList,
   updateTournamentRegistrationStatus,
   type TournamentRegistrationItem
-} from '@/api/tournament'
+} from '@/api/president/tournament'
 import { parsePagedList } from '@/utils/parsePagedList'
 
 type RegStatus = 'pending' | 'approved' | 'rejected' | 'readonly'

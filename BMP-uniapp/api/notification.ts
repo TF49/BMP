@@ -1,4 +1,4 @@
-import { get, post } from '@/utils/request'
+import { get, post, put, del } from '@/utils/request'
 import { API_PATHS } from '@/config/api'
 
 export interface NotificationItem {
@@ -32,10 +32,10 @@ export function createNotification(payload: Pick<NotificationItem, 'title' | 'co
 }
 
 export function updateNotification(id: number, payload: Pick<NotificationItem, 'title' | 'content' | 'publisherId' | 'publisherName' | 'venueId'>) {
-  return post<{ id: number }>(`${API_PATHS.NOTIFICATION.DETAIL}/${id}`, payload, 'PUT')
+  return put<{ id: number }>(`${API_PATHS.NOTIFICATION.DETAIL}/${id}`, payload)
 }
 
 export function deleteNotification(id: number) {
-  return post<string>(`${API_PATHS.NOTIFICATION.DETAIL}/${id}`, {}, 'DELETE')
+  return del<string>(`${API_PATHS.NOTIFICATION.DETAIL}/${id}`)
 }
 

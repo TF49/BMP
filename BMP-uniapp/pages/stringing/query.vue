@@ -147,8 +147,9 @@ const getStatusBgColor = (status: number) => {
   return colorMap[status] || '#f5f5f5'
 }
 
-const getPaymentMethodText = (method: string) => {
-  return PAYMENT_METHOD_TEXT[method] || method
+const getPaymentMethodText = (method?: string) => {
+  if (!method) return '未知'
+  return PAYMENT_METHOD_TEXT[method as keyof typeof PAYMENT_METHOD_TEXT] || method
 }
 
 const handleQuery = async () => {

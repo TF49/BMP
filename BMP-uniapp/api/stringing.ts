@@ -18,7 +18,9 @@ export interface StringingService {
   stringName?: string
   stringEquipmentName?: string
   pound?: number | string
+  tension?: number
   isOwnString?: number
+  ownString?: number
   stringingMethod?: 'TWO_SECTION' | 'FOUR_SECTION' | 'AUTO' | string
   hasBreakage?: number
   hasCollapse?: number
@@ -31,6 +33,9 @@ export interface StringingService {
   createTime: string
   updateTime: string
   startTime?: string
+  stringBrand?: string
+  stringGauge?: string
+  stringPrice?: number
 }
 
 export interface StringInfo {
@@ -38,6 +43,9 @@ export interface StringInfo {
   equipmentName?: string
   equipmentCode?: string
   price: number
+  stringName?: string
+  brand?: string
+  gauge?: string
 }
 
 export interface StringingListParams {
@@ -62,21 +70,23 @@ export interface StringInfoWithDisplay extends StringInfo {
 export interface CreateStringingParams {
   memberId?: number
   memberPhone?: string
-  userId: number
+  userId?: number
   userName?: string
-  venueId: number
+  venueId?: number
   racketBrand: string
   racketModel: string
   racketDescription?: string
   stringId?: number
   stringName?: string
-  isOwnString: 0 | 1
-  pound: number
-  stringingMethod: StringingMethod
+  isOwnString?: 0 | 1 | boolean
+  ownString?: 0 | 1 | boolean
+  pound?: number
+  tension?: number
+  stringingMethod?: StringingMethod
   hasBreakage?: 0 | 1
   hasCollapse?: 0 | 1
   status?: number
-  servicePrice: number
+  servicePrice?: number
   paymentMethod?: StringingPaymentMethod
   paymentStatus?: number
   remark?: string

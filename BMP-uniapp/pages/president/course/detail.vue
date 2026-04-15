@@ -132,7 +132,7 @@ import {
   updateCourseStatus,
   type CourseBookingItem,
   type CourseItem
-} from '@/api/course'
+} from '@/api/president/course'
 import { formatDate, formatDateTime, formatTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { parsePagedList } from '@/utils/parsePagedList'

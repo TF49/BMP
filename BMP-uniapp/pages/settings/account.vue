@@ -136,6 +136,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { getCurrentUser, updateUserInfo } from '@/api/auth'
+import { safeNavigateBack } from '@/utils/navigation'
 
 // 用户信息
 const userInfo = reactive({

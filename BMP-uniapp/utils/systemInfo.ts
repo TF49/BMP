@@ -23,13 +23,13 @@ function tryCall<T>(fn?: () => T): T | undefined {
 
 export function getSafeSystemInfo(): SafeSystemInfo {
   const windowInfo = tryCall(() => uni.getWindowInfo())
-  const deviceInfo = tryCall(() => uni.getDeviceInfo())
+  const systemInfo = tryCall(() => uni.getSystemInfoSync())
 
   return {
     statusBarHeight: windowInfo?.statusBarHeight ?? 0,
     windowWidth: windowInfo?.windowWidth ?? 0,
     windowHeight: windowInfo?.windowHeight ?? 0,
-    pixelRatio: deviceInfo?.pixelRatio ?? 1,
+    pixelRatio: systemInfo?.pixelRatio ?? 1,
     safeAreaInsets: windowInfo?.safeAreaInsets ?? {}
   }
 }

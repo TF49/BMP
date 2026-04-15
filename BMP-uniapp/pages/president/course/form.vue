@@ -138,7 +138,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { safeNavigateBack } from '@/utils/navigation'
-import { addCourse, getCoachList, getCourseDetail, updateCourse } from '@/api/course'
+import { addCourse, getCoachList, getCourseDetail, updateCourse } from '@/api/president/course'
 import { getCourtList } from '@/api/court'
 
 const heroImg =
@@ -345,4 +345,3 @@ onLoad(async (q?: Record<string, string | undefined>) => {
 .save-btn.disabled { opacity: .6; pointer-events: none; }
 .suite { display: block; text-align: center; margin-top: 12rpx; font-size: 14rpx; letter-spacing: .18em; color: #a1a1aa; font-weight: 700; }
 </style>
-
