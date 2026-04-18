@@ -142,6 +142,13 @@
       }
     },
     {
+      "path": "pages/president/booking/form",
+      "style": {
+        "navigationBarTitleText": "立即预约",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/finance/list",
       "style": {
         "navigationBarTitleText": "财务管理",

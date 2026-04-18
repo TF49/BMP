@@ -149,6 +149,13 @@
       }
     },
     {
+      "path": "pages/president/booking/form",
+      "style": {
+        "navigationBarTitleText": "立即预约",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/booking/detail",
       "style": {
         "navigationBarTitleText": "预约详情",
@@ -663,7 +670,6 @@
       "titleNView": false
     }
   },
-
   "condition": {
     "current": 0,
     "list": [

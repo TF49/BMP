@@ -1,4 +1,4 @@
-import { get, put } from '@/utils/request'
+import { get, post, put } from '@/utils/request'
 
 export interface BookingItem {
   id: number
@@ -43,6 +43,33 @@ export interface BookingStatistics {
   [key: string]: unknown
 }
 
+export interface BookingPayload {
+  memberId: number
+  courtId: number
+  bookingDate: string
+  startTime: string
+  endTime: string
+  orderAmount: number
+  paymentMethod: string
+  remark?: string
+}
+
+export interface BookingOccupancyUser {
+  bookingId?: number
+  memberName?: string
+  memberType?: string
+  memberLevel?: number
+  startTime?: string
+  endTime?: string
+  status?: number
+  statusText?: string
+}
+
+export interface BookingOccupancyResult {
+  count: number
+  users: BookingOccupancyUser[]
+}
+
 export function getBookingList(params?: {
   venueId?: number
   memberId?: number
@@ -73,4 +100,17 @@ export function getBookingStatistics() {
 
 export function cancelBooking(id: number) {
   return put<unknown>(`/booking/status?id=${id}&status=0`, {})
+}
+
+export function createBooking(data: BookingPayload) {
+  return post<{ id: number; bookingNo?: string }>('/booking/add', data)
+}
+
+export function getBookingRangeOccupancy(params: {
+  courtId: number
+  bookingDate: string
+  startTime: string
+  endTime: string
+}) {
+  return get<BookingOccupancyResult>('/booking/occupancy/range', params)
 }

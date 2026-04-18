@@ -312,7 +312,7 @@ function handleCall(phone: string) {
 }
 
 function handleBook() {
-  uni.navigateTo({ url: `/pages/venue/booking?venueId=${venue.value.id}` })
+  uni.navigateTo({ url: `${PRESIDENT_PAGES.BOOKING_FORM}?venueId=${venue.value.id}` })
 }
 
 function onDelete() {

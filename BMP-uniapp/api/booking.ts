@@ -2,13 +2,30 @@ import { request } from '../utils/request'
 import { API_PATHS } from '../config/api'
 
 export interface BookingParams {
-  memberId: number
+  memberId?: number
   courtId: number
   bookingDate: string
   startTime: string
   endTime: string
   orderAmount: number
   paymentMethod: string
+  remark?: string
+}
+
+export interface BookingOccupancyUser {
+  bookingId?: number
+  memberName?: string
+  memberType?: string
+  memberLevel?: number
+  startTime?: string
+  endTime?: string
+  status?: number
+  statusText?: string
+}
+
+export interface BookingOccupancyResult {
+  count: number
+  users: BookingOccupancyUser[]
 }
 
 export interface BookingItem {
@@ -137,6 +154,19 @@ export function updateBooking(params: Partial<BookingParams> & { id: number }) {
   return request<BookingItem>({
     url: API_PATHS.BOOKING.UPDATE,
     method: 'PUT',
+    data: params
+  })
+}
+
+export function getBookingRangeOccupancy(params: {
+  courtId: number
+  bookingDate: string
+  startTime: string
+  endTime: string
+}) {
+  return request<BookingOccupancyResult>({
+    url: '/booking/occupancy/range',
+    method: 'GET',
     data: params
   })
 }

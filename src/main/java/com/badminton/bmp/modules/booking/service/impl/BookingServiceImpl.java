@@ -271,6 +271,18 @@ public class BookingServiceImpl implements BookingService {
             throw new BusinessException("预约日期不能为空");
         }
 
+        // 冲突检测：同一场地在同一时间段不可重复预约
+        List<Booking> conflictingBookings = bookingMapper.findConflictingBookings(
+            booking.getCourtId(),
+            booking.getBookingDate(),
+            booking.getStartTime(),
+            booking.getEndTime(),
+            null
+        );
+        if (!conflictingBookings.isEmpty()) {
+            throw new BusinessException("该场地在所选时间段已被预约，请调整时间");
+        }
+
         // 冲突检测：仅限制同一会员在同一时间段、同一场地重复预约
         List<Booking> memberConflictingBookings = bookingMapper.findMemberConflictingBookings(
             booking.getMemberId(),
@@ -367,7 +379,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setPaymentStatus(existing.getPaymentStatus());
         Integer newStatus = existing.getStatus();
 
-        // 如果修改了场地ID或时间，需要重新进行冲突检测（仅限制同一会员重复预约）
+        // 如果修改了场地ID或时间，需要重新进行冲突检测
         boolean needConflictCheck = false;
         if (booking.getCourtId() != null && !booking.getCourtId().equals(existing.getCourtId())) {
             needConflictCheck = true;
@@ -388,6 +400,17 @@ public class BookingServiceImpl implements BookingService {
             LocalTime checkStartTime = booking.getStartTime() != null ? booking.getStartTime() : existing.getStartTime();
             LocalTime checkEndTime = booking.getEndTime() != null ? booking.getEndTime() : existing.getEndTime();
             Long checkMemberId = booking.getMemberId() != null ? booking.getMemberId() : existing.getMemberId();
+
+            List<Booking> conflictingBookingsForUpdate = bookingMapper.findConflictingBookings(
+                checkCourtId,
+                checkDate,
+                checkStartTime,
+                checkEndTime,
+                booking.getId()
+            );
+            if (!conflictingBookingsForUpdate.isEmpty()) {
+                throw new BusinessException("该场地在所选时间段已被预约，请调整时间");
+            }
 
             List<Booking> memberConflictingBookingsForUpdate = bookingMapper.findMemberConflictingBookings(
                 checkMemberId,
