@@ -201,13 +201,13 @@
               placeholder="请选择场馆"
               style="width: 100%"
               :disabled="isVenueManager"
-              @change="loadCourtsForForm"
+              @change="handleFormVenueChange"
             >
               <el-option v-for="item in venueOptions" :key="item.id" :label="item.venueName" :value="item.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="场地" prop="courtId" class="modern-form-item">
-            <el-select v-model="form.courtId" placeholder="请选择场地" style="width: 100%">
+            <el-select v-model="form.courtId" placeholder="请选择场地" style="width: 100%" @change="checkFormOccupancy">
               <el-option v-for="item in formCourtOptions" :key="item.id" :label="item.courtName || item.courtCode" :value="item.id" />
             </el-select>
           </el-form-item>
@@ -239,8 +239,28 @@
               end-placeholder="结束时间"
               value-format="YYYY-MM-DD HH:mm:ss"
               style="width: 100%"
+              @change="checkFormOccupancy"
             />
           </el-form-item>
+          <div v-if="showFormConflictAlert" class="booking-conflict-alert">
+            <div class="booking-conflict-alert__head">
+              <el-icon><WarningFilled /></el-icon>
+              <span>该时段已被占用</span>
+            </div>
+            <div class="booking-conflict-alert__body">
+              当前有 {{ formOccupancy.count }} 条重叠预约，请调整时间后再提交。
+            </div>
+            <div v-if="formOccupancy.users.length" class="booking-conflict-alert__list">
+              <div
+                v-for="item in formOccupancy.users"
+                :key="`${item.bookingId}-${item.startTime}-${item.endTime}`"
+                class="booking-conflict-alert__item"
+              >
+                <span>{{ item.memberName || '已预约会员' }}</span>
+                <span>{{ item.startTime }} - {{ item.endTime }}</span>
+              </div>
+            </div>
+          </div>
           <el-form-item v-if="isAdmin" label="状态" class="modern-form-item">
             <template v-if="isEdit">
               <el-tag :type="getStatusType(form.status)" size="default">{{ getStatusText(form.status) }}</el-tag>
@@ -325,7 +345,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete, DataLine } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, DataLine, WarningFilled } from '@element-plus/icons-vue'
 import {
   getBookingList,
   getBookingInfo,
@@ -336,6 +356,7 @@ import {
   getBookingVenues,
   getBookingCourts,
   getBookingMembers,
+  getBookingRangeOccupancy,
   payBooking,
   refundBooking
 } from '@/api/booking'
@@ -422,6 +443,13 @@ const submitLoading = ref(false)
 const memberKeyword = ref('')
 const memberOptions = ref([])
 const formCourtOptions = ref([])
+const formOccupancyLoading = ref(false)
+const formOccupancy = reactive({
+  count: 0,
+  users: []
+})
+let formOccupancyRequestId = 0
+const showFormConflictAlert = computed(() => formOccupancy.count > 0)
 
 // 支付/退款
 const payDialogVisible = ref(false)
@@ -578,8 +606,10 @@ const loadCourts = async () => {
 }
 
 // 场地（用于表单）
-const loadCourtsForForm = async () => {
-  form.courtId = null
+const loadCourtsForForm = async (resetCourt = true) => {
+  if (resetCourt) {
+    form.courtId = null
+  }
   formCourtOptions.value = []
   if (!form.venueId) return
   try {
@@ -589,6 +619,57 @@ const loadCourtsForForm = async () => {
     }
   } catch (e) {
     console.error('加载表单场地失败:', e)
+  }
+}
+
+const resetFormOccupancy = () => {
+  formOccupancy.count = 0
+  formOccupancy.users = []
+  formOccupancyLoading.value = false
+}
+
+const handleFormVenueChange = async () => {
+  resetFormOccupancy()
+  await loadCourtsForForm(true)
+}
+
+const extractFormRangePayload = () => {
+  const [start, end] = form.timeRange || []
+  const bookingDate = start ? start.slice(0, 10) : null
+  const startTime = start ? start.slice(11, 19) : null
+  const endTime = end ? end.slice(11, 19) : null
+  return { bookingDate, startTime, endTime }
+}
+
+const checkFormOccupancy = async () => {
+  resetFormOccupancy()
+  const { bookingDate, startTime, endTime } = extractFormRangePayload()
+  if (!form.courtId || !bookingDate || !startTime || !endTime) return
+  if (endTime <= startTime) return
+
+  const requestId = ++formOccupancyRequestId
+  formOccupancyLoading.value = true
+  try {
+    const res = await getBookingRangeOccupancy({
+      courtId: form.courtId,
+      bookingDate,
+      startTime,
+      endTime
+    })
+    if (requestId !== formOccupancyRequestId) return
+    if (res.code === 200) {
+      const users = Array.isArray(res.data?.users) ? res.data.users : []
+      const currentId = isEdit.value ? form.id : null
+      const filteredUsers = currentId ? users.filter(item => item.bookingId !== currentId) : users
+      formOccupancy.count = filteredUsers.length
+      formOccupancy.users = filteredUsers
+    }
+  } catch (e) {
+    console.error('检查预约占用失败:', e)
+  } finally {
+    if (requestId === formOccupancyRequestId) {
+      formOccupancyLoading.value = false
+    }
   }
 }
 
@@ -643,6 +724,10 @@ const handleAdd = () => {
   dialogTitle.value = '新增预约'
   isEdit.value = false
   resetForm()
+  if (isVenueManager.value && currentVenueId.value) {
+    form.venueId = currentVenueId.value
+    loadCourtsForForm(true)
+  }
   dialogVisible.value = true
 }
 
@@ -682,7 +767,8 @@ const handleEdit = async (row) => {
         ]
         memberKeyword.value = data.memberName
       }
-      await loadCourtsForForm()
+      await loadCourtsForForm(false)
+      await checkFormOccupancy()
     }
   } catch (e) {
     console.error('加载预约详情失败:', e)
@@ -718,10 +804,13 @@ const handleSubmit = async () => {
     if (!valid) return
     submitLoading.value = true
     try {
-      const [start, end] = form.timeRange || []
-      const bookingDate = start ? start.slice(0, 10) : null
-      const startTime = start ? start.slice(11, 19) : null
-      const endTime = end ? end.slice(11, 19) : null
+      const { bookingDate, startTime, endTime } = extractFormRangePayload()
+
+      if (formOccupancy.count > 0) {
+        ElMessage.warning('该时段已被占用，请调整时间后再提交')
+        submitLoading.value = false
+        return
+      }
 
       const payload = {
         id: form.id,
@@ -756,9 +845,10 @@ const handleSubmit = async () => {
 }
 
 const resetForm = () => {
+  formOccupancyRequestId += 1
   Object.assign(form, {
     id: null,
-    venueId: null,
+    venueId: isVenueManager.value && currentVenueId.value ? currentVenueId.value : null,
     courtId: null,
     memberId: null,
     status: null,
@@ -770,6 +860,7 @@ const resetForm = () => {
   formCourtOptions.value = []
   memberOptions.value = []
   memberKeyword.value = ''
+  resetFormOccupancy()
   if (formRef.value) formRef.value.resetFields()
 }
 
@@ -1277,6 +1368,47 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.booking-conflict-alert {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  background: linear-gradient(180deg, rgba(254, 242, 242, 0.96) 0%, rgba(255, 255, 255, 0.96) 100%);
+}
+
+.booking-conflict-alert__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.booking-conflict-alert__body {
+  margin-top: 8px;
+  color: #7f1d1d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.booking-conflict-alert__list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.booking-conflict-alert__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #7f1d1d;
+  font-size: 12px;
 }
 
 .modern-btn-cancel {
