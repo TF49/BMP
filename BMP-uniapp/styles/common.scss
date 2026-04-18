@@ -1,7 +1,9 @@
 /* 全局样式 - 基于 Pixso 设计 */
 
 /* 颜色变量 - ui-ux-pro-max 设计摘要，对比度 ≥4.5:1 */
-$primary-color: #3cc51f;
+$primary-color: #ea580c;
+$primary-color-light: #fb923c;
+$primary-color-dark: #c2410c;
 $primary-foreground: #ffffff;
 $text-color: #1E293B; /* slate-800 */
 $text-color-secondary: #475569; /* slate-600 */
@@ -159,7 +161,7 @@ $spacing-xxl: 40rpx;
 }
 
 .shadow-custom-primary {
-  box-shadow: 0px 2px 8px 0px rgba(60, 197, 31, 0.3);
+  box-shadow: 0px 6px 18px 0px rgba(234, 88, 12, 0.22);
 }
 
 /* 圆角工具类 */
@@ -204,7 +206,7 @@ $spacing-xxl: 40rpx;
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 
   &.btn-primary {
-    background-color: $primary-color;
+    background: linear-gradient(135deg, $primary-color-dark 0%, $primary-color 45%, $primary-color-light 100%);
     color: #fff;
   }
 

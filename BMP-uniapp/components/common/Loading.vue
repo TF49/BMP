@@ -26,7 +26,7 @@ defineProps<Props>()
     width: 60rpx;
     height: 60rpx;
     border: 4rpx solid #f3f3f3;
-    border-top: 4rpx solid #3cc51f;
+    border-top: 4rpx solid #ea580c;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }

@@ -94,12 +94,12 @@ defineEmits<{
 
 .action-btn {
   padding: 24rpx 48rpx;
-  background: linear-gradient(135deg, #3cc51f 0%, #4ade80 100%);
+  background: linear-gradient(135deg, #c2410c 0%, #ea580c 55%, #fb923c 100%);
   color: #ffffff;
   border-radius: 36rpx;
   font-size: 28rpx;
   font-weight: 500;
   border: none;
-  box-shadow: 0 4rpx 12rpx rgba(60, 197, 31, 0.3);
+  box-shadow: 0 8rpx 20rpx rgba(234, 88, 12, 0.24);
 }
 </style>

@@ -36,7 +36,7 @@ withDefaults(defineProps<Props>(), {
       position: absolute;
       width: 8rpx;
       height: 8rpx;
-      background: #3cc51f;
+      background: #ea580c;
       border-radius: 50%;
     }
   }
@@ -58,15 +58,15 @@ withDefaults(defineProps<Props>(), {
 
   // 环形加载动画
   .spinner-ring {
-    border: 4rpx solid rgba(60, 197, 31, 0.1);
-    border-top-color: #3cc51f;
+    border: 4rpx solid rgba(234, 88, 12, 0.12);
+    border-top-color: #ea580c;
     border-radius: 50%;
     animation: spinner-ring-animation 1s linear infinite;
   }
 
   // 脉冲加载动画
   .spinner-pulse {
-    background: #3cc51f;
+    background: linear-gradient(135deg, #c2410c 0%, #ea580c 60%, #fb923c 100%);
     border-radius: 50%;
     animation: spinner-pulse-animation 1.5s ease-in-out infinite;
   }
