@@ -53,10 +53,10 @@
       <view class="mb-10">
         <view class="flex flex-row items-center justify-between mb-4 px-1">
           <text class="text-[11px] font-black uppercase tracking-[0.15em] text-secondary/70">
-            {{ isPresidentFlow ? '确认结算方式' : '选择支付方式' }}
+            {{ isPresidentFlow ? '创建结果确认' : '订单创建确认' }}
           </text>
           <text class="text-[10px] text-primary font-bold">
-            {{ isPresidentFlow ? '管理权限确认' : '安全加密支付' }}
+            {{ isPresidentFlow ? '待支付状态保留' : '订单已创建待支付' }}
           </text>
         </view>
         <view class="space-y-3">
@@ -72,11 +72,11 @@
               </view>
               <view>
                 <text class="font-bold text-on-surface text-base block">
-                  {{ isPresidentFlow ? '会员余额代扣' : '余额支付' }}
+                  {{ isPresidentFlow ? '默认支付方式' : '默认支付方式' }}
                 </text>
                 <view class="flex flex-row items-center">
                   <text class="text-[11px] text-secondary font-medium">
-                    {{ isPresidentFlow ? '会员可用: ' : '可用余额: ' }}
+                    {{ isPresidentFlow ? '会员余额参考: ' : '可用余额参考: ' }}
                   </text>
                   <text class="text-[11px] text-primary font-bold ml-1">{{ balanceLabel }}</text>
                 </view>
@@ -97,7 +97,7 @@
               <view class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
                 <uni-icons type="weixin" size="24" color="#07C160"></uni-icons>
               </view>
-              <text class="font-bold text-on-surface text-base">微信支付</text>
+              <text class="font-bold text-on-surface text-base">微信支付（待后续支付）</text>
             </view>
             <uni-icons v-if="selectedPayment === 'wechat'" type="checkbox-filled" size="24" color="#FF6600"></uni-icons>
             <view v-else class="w-6 h-6 rounded-full border-2 border-neutral-200 shrink-0"></view>
@@ -114,7 +114,7 @@
               <view class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
                 <uni-icons type="phone-filled" size="24" color="#1677FF"></uni-icons>
               </view>
-              <text class="font-bold text-on-surface text-base">支付宝</text>
+              <text class="font-bold text-on-surface text-base">支付宝（待后续支付）</text>
             </view>
             <uni-icons v-if="selectedPayment === 'alipay'" type="checkbox-filled" size="24" color="#FF6600"></uni-icons>
             <view v-else class="w-6 h-6 rounded-full border-2 border-neutral-200 shrink-0"></view>
@@ -131,7 +131,7 @@
               <view class="w-12 h-12 rounded-xl bg-neutral-50 flex items-center justify-center shrink-0">
                 <uni-icons type="paperplane-filled" size="24" color="#5f5e5e"></uni-icons>
               </view>
-              <text class="font-bold text-on-surface text-base">线下/免额登记</text>
+              <text class="font-bold text-on-surface text-base">线下/免额登记（待后续处理）</text>
             </view>
             <uni-icons v-if="selectedPayment === 'offline'" type="checkbox-filled" size="24" color="#FF6600"></uni-icons>
             <view v-else class="w-6 h-6 rounded-full border-2 border-neutral-200 shrink-0"></view>
@@ -212,10 +212,10 @@
         >
           <view class="absolute inset-0 bg-white-10 opacity-0 active-opacity-20 transition-opacity"></view>
           <text class="font-headline font-black text-base uppercase tracking-widest leading-none block">
-            {{ isPresidentFlow ? '确认并结算' : '立即支付' }}
+            {{ isPresidentFlow ? '完成创建' : '完成创建' }}
           </text>
           <text class="text-[9px] font-bold opacity-80 mt-1 uppercase tracking-tighter block">
-            {{ isPresidentFlow ? 'ADMIN CHECKOUT' : 'SECURE CHECKOUT' }} • ¥{{ bookingInfo.payableAmount.toFixed(2) }}
+            {{ isPresidentFlow ? 'ORDER CREATED' : 'ORDER CREATED' }} • ¥{{ bookingInfo.payableAmount.toFixed(2) }}
           </text>
         </button>
       </view>
@@ -318,10 +318,14 @@ const handlePayment = () => {
     return
   }
   
-  uni.showLoading({ title: '支付中...' })
+  uni.showLoading({ title: '确认中...' })
   setTimeout(() => {
     uni.hideLoading()
-    uni.showToast({ title: '支付成功', icon: 'success' })
+    uni.showToast({
+      title: isPresidentFlow.value ? '预约已创建，当前为待支付' : '预约已创建，请前往我的预约完成支付',
+      icon: 'none',
+      duration: 2200
+    })
     setTimeout(() => {
       uni.reLaunch({ url: returnUrl.value })
     }, 1500)

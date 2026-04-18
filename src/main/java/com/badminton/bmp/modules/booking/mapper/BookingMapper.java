@@ -155,7 +155,7 @@ public interface BookingMapper {
     /**
      * 查询冲突预约（同一场地、同一日期、时间重叠）
      * 时间段重叠判断：(start_time < #{endTime} AND end_time > #{startTime})
-     * 排除已取消的预约（status=0）
+     * 有效占用状态：1-待支付，2-已支付，3-进行中
      *
      * 注意：该方法用于统计/查询指定场地在某个时间段的所有预约记录，
      * 不再作为“全局唯一性”校验使用。
@@ -164,7 +164,7 @@ public interface BookingMapper {
             "SELECT * FROM biz_booking " +
             "WHERE court_id = #{courtId} " +
             "AND booking_date = #{bookingDate} " +
-            "AND status != 0 " +
+            "AND status IN (1, 2, 3) " +
             "AND start_time &lt; #{endTime} AND end_time &gt; #{startTime} " +
             "AND del_flag = 0 " +
             "<if test='excludeId != null'> AND id != #{excludeId} </if>" +
@@ -184,7 +184,7 @@ public interface BookingMapper {
             "WHERE member_id = #{memberId} " +
             "AND court_id = #{courtId} " +
             "AND booking_date = #{bookingDate} " +
-            "AND status != 0 " +
+            "AND status IN (1, 2, 3) " +
             "AND start_time &lt; #{endTime} AND end_time &gt; #{startTime} " +
             "AND del_flag = 0 " +
             "<if test='excludeId != null'> AND id != #{excludeId} </if>" +
@@ -197,14 +197,14 @@ public interface BookingMapper {
                                                @Param("excludeId") Long excludeId);
 
     /**
-     * 统计同一场地、同一日期、时间重叠的预约数量（排除已取消）
+     * 统计同一场地、同一日期、时间重叠的有效预约数量
      * 可用于展示当前时段已有多少人预约
      */
     @Select("<script>" +
             "SELECT COUNT(*) FROM biz_booking " +
             "WHERE court_id = #{courtId} " +
             "AND booking_date = #{bookingDate} " +
-            "AND status != 0 " +
+            "AND status IN (1, 2, 3) " +
             "AND start_time &lt; #{endTime} AND end_time &gt; #{startTime} " +
             "AND del_flag = 0 " +
             "</script>")

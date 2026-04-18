@@ -36,7 +36,7 @@
                 v-model.trim="memberKeyword"
                 class="search-input"
                 type="text"
-                placeholder="输入会员姓名或手机号"
+                placeholder="输入会员姓名或手机号（纯数字按手机号搜索）"
                 confirm-type="search"
                 @confirm="searchMembers"
               />
@@ -314,8 +314,11 @@ async function loadCourts() {
 async function searchMembers() {
   memberLoading.value = true
   try {
+    const keyword = memberKeyword.value.trim()
+    const isPhoneKeyword = /^\d+$/.test(keyword)
     const res = await getMemberList({
-      memberName: memberKeyword.value || undefined,
+      memberName: keyword && !isPhoneKeyword ? keyword : undefined,
+      phone: keyword && isPhoneKeyword ? keyword : undefined,
       page: 1,
       size: 10
     })
