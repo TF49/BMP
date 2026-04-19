@@ -120,7 +120,7 @@
       </view>
     </scroll-view>
 
-    <CustomTabBar :current="-1" />
+    <CustomTabBar :current="1" />
   </view>
 </template>
 

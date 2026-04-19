@@ -39,22 +39,25 @@
     {
       "path": "pages/course/list",
       "style": {
-        "navigationBarTitleText": "课程预约",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "课程中心",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/equipment/list",
       "style": {
         "navigationBarTitleText": "器材租借",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/tournament/list",
       "style": {
-        "navigationBarTitleText": "赛事报名",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "赛事中心",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -530,7 +533,8 @@
       "path": "pages/recharge/records",
       "style": {
         "navigationBarTitleText": "充值记录",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {

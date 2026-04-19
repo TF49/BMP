@@ -14,7 +14,7 @@
         </view>
       </view>
 
-      <view class="px-6 space-y-8 pb-32 pt-2">
+      <view class="px-6 space-y-8 pb-24 pt-2">
         <!-- Account & Booking Reminder Section -->
         <view class="grid-section flex flex-col gap-4">
           <!-- Account Summary -->
@@ -165,7 +165,7 @@
     </scroll-view>
 
     <!-- Floating Action Button -->
-    <view class="fixed right-6 bottom-24 w-14 h-14 gradient-cta text-white rounded-full flex items-center justify-center shadow-2xl transition-transform z-60" hover-class="scale-95" @tap="navigateTo('/pages/venue/list')">
+    <view class="fixed right-6 bottom-10 w-14 h-14 gradient-cta text-white rounded-full flex items-center justify-center shadow-2xl transition-transform z-60" hover-class="scale-95" @tap="navigateTo('/pages/venue/list')">
       <uni-icons type="plusempty" size="24" color="#ffffff"></uni-icons>
     </view>
 
@@ -333,7 +333,7 @@ const navigateTo = (url: string) => {
 
 .top-0 { top: 0; }
 .right-6 { right: 24rpx; }
-.bottom-24 { bottom: 240rpx; } /* Raised to avoid overlap with bottom TabBar */
+.bottom-10 { bottom: 40rpx; } /* 首页无底部 TabBar，FAB 贴近安全区 */
 .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
 .absolute-bottom-right { position: absolute; right: -16rpx; bottom: -16rpx; }
 

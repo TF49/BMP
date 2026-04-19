@@ -1,5 +1,24 @@
 /**
- * 会长端课程与课程预约 API
- * 复用普通端实现，提供统一的会长端入口。
+ * 会长端课程 API（仅从 internal 转发）
  */
-export * from '@/api/course'
+export type {
+  CourseItem,
+  CoursePayload,
+  CourseBookingParams,
+  CourseBookingItem
+} from '@/api/internal/course'
+export {
+  getCourseList,
+  getCourseDetail,
+  addCourse,
+  updateCourse,
+  updateCourseStatus,
+  getCourseBookingList,
+  createCourseBooking,
+  getCourseBookingDetail,
+  updateCourseBookingStatus,
+  processCourseBookingPayment,
+  processCourseBookingRefund,
+  deleteCourseBooking,
+  getCoachList
+} from '@/api/internal/course'

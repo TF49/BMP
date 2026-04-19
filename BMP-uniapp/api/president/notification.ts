@@ -1,5 +1,11 @@
 /**
- * 会长端通知管理 API
- * 复用普通端实现，保持页面层调用签名一致。
+ * 会长端通知 API（仅从 internal 转发）
  */
-export * from '@/api/notification'
+export type { NotificationItem, NotificationListResult } from '@/api/internal/notification'
+export {
+  getNotificationList,
+  getNotificationDetail,
+  createNotification,
+  updateNotification,
+  deleteNotification
+} from '@/api/internal/notification'

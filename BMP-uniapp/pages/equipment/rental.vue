@@ -1,120 +1,142 @@
 <template>
   <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
+    <view class="page">
+      <!-- Header -->
+      <view class="header">
+        <view class="icon-btn" @click="handleBack">
+          <uni-icons type="left" size="22" color="#1a1c1c" />
+        </view>
         <text class="header-title">租借确认</text>
-        <view class="header-placeholder"></view>
-      </view>
-    </view>
-
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Equipment Info -->
-      <view class="section equipment-info">
-        <view class="equipment-card">
-          <view class="equipment-image">
-            <text class="image-placeholder">Equipment Image</text>
-          </view>
-          <view class="equipment-details">
-            <text class="equipment-name">{{ equipment.name }}</text>
-            <text class="equipment-brand">品牌: {{ equipment.brand }}</text>
-            <text class="equipment-price">¥{{ equipment.price }}/天</text>
-          </view>
-        </view>
+        <view class="icon-btn placeholder" />
       </view>
 
-      <!-- Rental Details -->
-      <view class="section rental-details">
-        <view class="detail-item">
-          <text class="detail-label">租借天数</text>
-          <view class="quantity-selector">
-            <text class="quantity-btn" @click="decreaseDays">-</text>
-            <text class="quantity">{{ rentDays }}</text>
-            <text class="quantity-btn" @click="increaseDays">+</text>
-          </view>
-        </view>
-        <view class="detail-item">
-          <text class="detail-label">租借数量</text>
-          <view class="quantity-selector">
-            <text class="quantity-btn" @click="decreaseQuantity">-</text>
-            <text class="quantity">{{ rentQuantity }}</text>
-            <text class="quantity-btn" @click="increaseQuantity">+</text>
-          </view>
-        </view>
-        <view class="detail-item">
-          <text class="detail-label">取货时间</text>
-          <picker mode="date" :value="pickupDate" @change="onPickupDateChange">
-            <view class="picker">
-              <text class="picker-value">{{ pickupDate }}</text>
-              <text class="chevron">›</text>
+      <scroll-view class="main" scroll-y :show-scrollbar="false">
+        <!-- 商品摘要 -->
+        <view class="card card-row">
+          <image class="thumb" :src="coverUrl" mode="aspectFill" />
+          <view class="summary-body">
+            <view class="title-row">
+              <text class="item-title">{{ equipment.equipmentName }}</text>
+              <text class="tag">{{ typeTag }}</text>
             </view>
-          </picker>
-        </view>
-        <view class="detail-item">
-          <text class="detail-label">归还时间</text>
-          <picker mode="date" :value="returnDate" @change="onReturnDateChange">
-            <view class="picker">
-              <text class="picker-value">{{ returnDate }}</text>
-              <text class="chevron">›</text>
+            <text class="subtitle">{{ subtitle }}</text>
+            <view class="price-row">
+              <text class="price-num">¥{{ formatMoney(hourlyPrice) }}</text>
+              <text class="price-unit">/ 小时</text>
             </view>
-          </picker>
-        </view>
-        <view class="detail-item">
-          <text class="detail-label">支付方式</text>
-          <picker mode="selector" :range="paymentMethods" @change="onPaymentMethodChange">
-            <view class="picker">
-              <text class="picker-value">{{ paymentMethods[selectedPaymentMethod] }}</text>
-              <text class="chevron">›</text>
-            </view>
-          </picker>
-        </view>
-      </view>
-
-      <!-- Rental Agreement -->
-      <view class="section agreement-section">
-        <view class="agreement-item">
-          <text class="agreement-title">租借协议</text>
-          <view class="agreement-content">
-            <text class="agreement-text">1. 请妥善保管租借器材，如有损坏需照价赔偿</text>
-            <text class="agreement-text">2. 请按时归还，逾期将收取滞纳金</text>
-            <text class="agreement-text">3. 如有争议，可通过客服协商解决</text>
           </view>
         </view>
-      </view>
 
-      <!-- Price Summary -->
-      <view class="section price-summary">
-        <view class="summary-item">
-          <text class="summary-label">单价</text>
-          <text class="summary-value">¥{{ equipment.price }}</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">天数</text>
-          <text class="summary-value">{{ rentDays }} 天</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">数量</text>
-          <text class="summary-value">{{ rentQuantity }} 件</text>
-        </view>
-        <view class="summary-divider"></view>
-        <view class="summary-item total">
-          <text class="summary-label">总计</text>
-          <text class="summary-value total-price">¥{{ totalPrice }}</text>
-        </view>
-      </view>
-    </scroll-view>
+        <!-- 数量 + 时段 -->
+        <view class="card card-stack">
+          <view class="row-between">
+            <view>
+              <text class="block-title">租借数量</text>
+              <text class="hint">最多可借 {{ maxQuantity }} 把</text>
+            </view>
+            <view class="stepper">
+              <view class="step-btn" @click="decreaseQuantity">
+                <text class="step-symbol">−</text>
+              </view>
+              <text class="step-val">{{ rentQuantity }}</text>
+              <view class="step-btn step-btn-strong" @click="increaseQuantity">
+                <text class="step-symbol strong">+</text>
+              </view>
+            </view>
+          </view>
 
-    <!-- Action Bar -->
-    <view class="action-bar">
-      <view class="total-price-display">
-        <text class="total-label">应付</text>
-        <text class="total-amount">¥{{ totalPrice }}</text>
+          <view class="divider-gap" />
+
+          <view class="slot-block">
+            <view class="row-between">
+              <text class="block-title">租借时段</text>
+              <view class="edit-btn" @click="slotEditing = !slotEditing">
+                <text class="edit-text">修改</text>
+                <uni-icons type="compose" size="16" color="#a33e00" />
+              </view>
+            </view>
+
+            <view v-if="slotEditing" class="picker-panel">
+              <view class="picker-row">
+                <text class="picker-label">开始日期</text>
+                <picker mode="date" :value="startDate" @change="onStartDate">
+                  <view class="picker-value">{{ startDate }}</view>
+                </picker>
+              </view>
+              <view class="picker-row">
+                <text class="picker-label">开始时间</text>
+                <picker mode="time" :value="startTime" @change="onStartTime">
+                  <view class="picker-value">{{ startTime }}</view>
+                </picker>
+              </view>
+              <view class="picker-row">
+                <text class="picker-label">结束日期</text>
+                <picker mode="date" :value="endDate" @change="onEndDate">
+                  <view class="picker-value">{{ endDate }}</view>
+                </picker>
+              </view>
+              <view class="picker-row">
+                <text class="picker-label">结束时间</text>
+                <picker mode="time" :value="endTime" @change="onEndTime">
+                  <view class="picker-value">{{ endTime }}</view>
+                </picker>
+              </view>
+            </view>
+
+            <view class="time-row">
+              <view class="time-box time-box-start">
+                <view class="accent-bar" />
+                <text class="time-cap">提取时间 (START)</text>
+                <text class="time-date">{{ startDateLabel }}</text>
+                <text class="time-clock start">{{ startTime }}</text>
+              </view>
+              <view class="arrow-wrap">
+                <uni-icons type="right" size="22" color="#5f5e5e" />
+              </view>
+              <view class="time-box">
+                <text class="time-cap">归还时间 (END)</text>
+                <text class="time-date">{{ endDateLabel }}</text>
+                <text class="time-clock">{{ endTime }}</text>
+              </view>
+            </view>
+            <text class="duration-hint">总时长: {{ durationHours }} 小时</text>
+          </view>
+        </view>
+
+        <!-- 费用明细 -->
+        <view class="card card-stack fee-card">
+          <text class="block-title fee-title">费用明细</text>
+          <view class="fee-line">
+            <text class="fee-label">基础租金 (¥{{ formatMoney(hourlyPrice) }} × {{ durationHours }}小时 × {{ rentQuantity }}件)</text>
+            <text class="fee-value">¥{{ formatMoney(baseRent) }}</text>
+          </view>
+          <view class="fee-line">
+            <view class="fee-label-row" @click="onDepositInfo">
+              <text class="fee-label">可退还押金</text>
+              <uni-icons type="info" size="14" color="#5f5e5e" />
+            </view>
+            <text class="fee-value">¥{{ formatMoney(depositTotal) }}</text>
+          </view>
+          <view class="fee-line">
+            <text class="fee-label">平台服务费</text>
+            <text class="fee-value">¥{{ formatMoney(platformFee) }}</text>
+          </view>
+        </view>
+
+        <view class="scroll-spacer" />
+      </scroll-view>
+
+      <!-- 底部栏 -->
+      <view class="footer">
+        <view class="footer-left">
+          <text class="total-cap">应付总计 (含押金)</text>
+          <view class="total-row">
+            <text class="currency">¥</text>
+            <text class="total-num">{{ formatMoney(totalPayable) }}</text>
+          </view>
+        </view>
+        <button class="cta" :disabled="!canSubmit" @click="handleSubmit">立即租借</button>
       </view>
-      <button class="submit-btn" :disabled="!canSubmit" @click="handleSubmit">
-        确认租借
-      </button>
     </view>
   </MobileLayout>
 </template>
@@ -122,202 +144,227 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
-import { getEquipmentDetail } from '@/api/equipment'
-import { createEquipmentRental } from '@/api/equipment'
+import { useUserStore } from '@/store/modules/user'
+import { createEquipmentRental, getEquipmentDetail, type EquipmentItem } from '@/api/equipment'
 import { safeNavigateBack } from '@/utils/navigation'
-
-// 响应式数据
-const equipmentId = ref<number>(0)
-const equipment = ref<any>({
-  id: 0,
-  name: '',
-  brand: '',
-  price: 0,
-  quantity: 0
-})
-
-const rentDays = ref<number>(1)
-const rentQuantity = ref<number>(1)
-const pickupDate = ref<string>('')
-const returnDate = ref<string>('')
-const selectedPaymentMethod = ref<number>(0)
-const paymentMethods = ref(['余额支付', '微信支付', '支付宝'])
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
 
 const userStore = useUserStore()
 
-// 计算属性
-const totalPrice = computed(() => {
-  return equipment.value.price * rentDays.value * rentQuantity.value
+const equipmentId = ref(0)
+const equipment = ref<EquipmentItem>({
+  id: 0,
+  equipmentCode: '',
+  equipmentName: '',
+  equipmentType: 'OTHER',
+  brand: '',
+  price: 0,
+  rentalPrice: 0,
+  totalQuantity: 0,
+  availableQuantity: 0,
+  status: 1,
+  description: '',
+  createTime: '1970-01-01T00:00:00'
 })
+
+const rentQuantity = ref(1)
+const slotEditing = ref(false)
+
+const startDate = ref('')
+const startTime = ref('14:00')
+const endDate = ref('')
+const endTime = ref('16:00')
+
+const platformFee = ref(5)
+
+const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`)
+
+function todayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+
+const hourlyPrice = computed(() => {
+  const p = equipment.value.rentalPrice ?? equipment.value.price ?? 0
+  return Number(p) || 0
+})
+
+const maxQuantity = computed(() =>
+  Math.max(1, equipment.value.availableQuantity ?? equipment.value.quantity ?? 1)
+)
+
+const coverUrl = computed(
+  () => resolveImageUrl(equipment.value.equipmentImage) || '/static/placeholders/hero.svg'
+)
+
+const typeTag = computed(() => {
+  const t = equipment.value.equipmentType
+  const map: Record<string, string> = {
+    RACKET: '专业',
+    SHUTTLE: '球',
+    STRING: '穿线',
+    OTHER: '器材'
+  }
+  return map[t] || '器材'
+})
+
+const subtitle = computed(() => {
+  const spec = (equipment.value as EquipmentItem & { specifications?: string }).specifications
+  if (spec) return spec
+  const d = equipment.value.description
+  if (!d) return '高品质运动器材'
+  return d.length > 36 ? `${d.slice(0, 36)}…` : d
+})
+
+const startMs = computed(() => new Date(`${startDate.value}T${startTime.value}:00`).getTime())
+const endMs = computed(() => new Date(`${endDate.value}T${endTime.value}:00`).getTime())
+
+const durationHours = computed(() => {
+  const diff = (endMs.value - startMs.value) / (1000 * 60 * 60)
+  if (!Number.isFinite(diff) || diff <= 0) return 0
+  return Math.max(1, Math.ceil(diff))
+})
+
+const baseRent = computed(() => hourlyPrice.value * durationHours.value * rentQuantity.value)
+
+const depositPerUnit = computed(() => {
+  const d = equipment.value.rentalDeposit
+  if (d != null && Number(d) >= 0) return Number(d)
+  return 0
+})
+
+const depositTotal = computed(() => depositPerUnit.value * rentQuantity.value)
+
+const totalPayable = computed(() => baseRent.value + depositTotal.value + platformFee.value)
+
+const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+
+function formatDateLabel(isoDate: string) {
+  if (!isoDate) return ''
+  const [y, m, d] = isoDate.split('-').map(Number)
+  if (!y || !m || !d) return isoDate
+  const dt = new Date(y, m - 1, d)
+  const w = weekdays[dt.getDay()]
+  return `${m}月${d}日 (周${w})`
+}
+
+const startDateLabel = computed(() => formatDateLabel(startDate.value))
+const endDateLabel = computed(() => formatDateLabel(endDate.value))
+
+function formatMoney(n: number) {
+  return (Math.round(n * 100) / 100).toFixed(2)
+}
 
 const canSubmit = computed(() => {
-  return rentQuantity.value > 0 && 
-         rentQuantity.value <= equipment.value.quantity &&
-         pickupDate.value && 
-         returnDate.value &&
-         equipment.value.id > 0
+  if (!equipment.value.id) return false
+  if (rentQuantity.value < 1 || rentQuantity.value > maxQuantity.value) return false
+  if (durationHours.value < 1) return false
+  if (endMs.value <= startMs.value) return false
+  if (hourlyPrice.value <= 0) return false
+  return true
 })
 
-// 页面加载
 onLoad((options?: Record<string, string | undefined>) => {
-  if (options?.id) {
-    equipmentId.value = Number(options.id)
-  }
+  if (options?.id) equipmentId.value = Number(options.id)
   if (options?.quantity) {
-    rentQuantity.value = Number(options.quantity)
+    const q = Number(options.quantity)
+    if (q > 0) rentQuantity.value = q
   }
-  if (options?.days) {
-    rentDays.value = Number(options.days)
-  }
+  const t = todayStr()
+  startDate.value = t
+  endDate.value = t
 })
 
-// 日期初始化
-onMounted(() => {
-  const today = new Date()
-  const tomorrow = new Date()
-  tomorrow.setDate(today.getDate() + 1)
-  
-  pickupDate.value = today.toISOString().split('T')[0]
-  returnDate.value = tomorrow.toISOString().split('T')[0]
-})
+function onStartDate(e: { detail: { value: string } }) {
+  startDate.value = e.detail.value
+}
+function onStartTime(e: { detail: { value: string } }) {
+  startTime.value = e.detail.value
+}
+function onEndDate(e: { detail: { value: string } }) {
+  endDate.value = e.detail.value
+}
+function onEndTime(e: { detail: { value: string } }) {
+  endTime.value = e.detail.value
+}
 
-// 加载器材详情
-const loadEquipmentDetail = async () => {
+function decreaseQuantity() {
+  if (rentQuantity.value > 1) rentQuantity.value--
+}
+
+function increaseQuantity() {
+  if (rentQuantity.value < maxQuantity.value) rentQuantity.value++
+}
+
+function onDepositInfo() {
+  uni.showModal({
+    title: '可退还押金',
+    content: '押金在器材完好归还后按原支付路径退回；如有损坏或逾期，将按协议扣减。',
+    showCancel: false
+  })
+}
+
+async function loadEquipmentDetail() {
   try {
     const result = await getEquipmentDetail(equipmentId.value)
-    
-    equipment.value = {
-      id: result.id,
-      name: result.equipmentName,
-      brand: result.brand,
-      price: result.rentalPrice || result.price,
-      quantity: result.availableQuantity || result.quantity
-    }
+    equipment.value = result
   } catch (error) {
     console.error('加载器材详情失败:', error)
-    uni.showToast({
-      title: '加载器材详情失败',
-      icon: 'none'
-    })
+    uni.showToast({ title: '加载器材详情失败', icon: 'none' })
   }
 }
 
-// 减少租借天数
-const decreaseDays = () => {
-  if (rentDays.value > 1) {
-    rentDays.value--
-  }
-}
-
-// 增加租借天数
-const increaseDays = () => {
-  if (rentDays.value < 30) {
-    rentDays.value++
-  }
-}
-
-// 减少租借数量
-const decreaseQuantity = () => {
-  if (rentQuantity.value > 1) {
-    rentQuantity.value--
-  }
-}
-
-// 增加租借数量
-const increaseQuantity = () => {
-  if (rentQuantity.value < equipment.value.quantity) {
-    rentQuantity.value++
-  }
-}
-
-// 取货日期变化
-const onPickupDateChange = (e: any) => {
-  pickupDate.value = e.detail.value
-  // 自动计算归还日期（比取货日期晚一天）
-  const pickup = new Date(pickupDate.value)
-  const returnDay = new Date(pickup)
-  returnDay.setDate(pickup.getDate() + 1)
-  returnDate.value = returnDay.toISOString().split('T')[0]
-}
-
-// 归还日期变化
-const onReturnDateChange = (e: any) => {
-  returnDate.value = e.detail.value
-}
-
-// 支付方式变化
-const onPaymentMethodChange = (e: any) => {
-  selectedPaymentMethod.value = parseInt(e.detail.value)
-}
-
-// 提交租借
-const handleSubmit = async () => {
-  if (!canSubmit.value) {
-    uni.showToast({
-      title: '请完善租借信息',
-      icon: 'none'
-    })
-    return
-  }
-
-  try {
-    uni.showLoading({
-      title: '租借中...'
-    })
-
-    const rentalData = {
-      memberId: userStore.userId,
-      equipmentId: equipment.value.id,
-      quantity: rentQuantity.value,
-      startDate: pickupDate.value,
-      endDate: returnDate.value,
-      orderAmount: totalPrice.value,
-      paymentMethod: paymentMethods.value[selectedPaymentMethod.value] === '余额支付' ? 'BALANCE' : 
-                    paymentMethods.value[selectedPaymentMethod.value] === '微信支付' ? 'WECHAT' : 'ALIPAY'
-    }
-
-    const result = await createEquipmentRental(rentalData)
-
-    uni.hideLoading()
-    uni.showToast({
-      title: '租借成功',
-      icon: 'success'
-    })
-
-    // 延迟跳转到租借记录页
-    setTimeout(() => {
-      uni.redirectTo({
-        url: `/pages/profile/records`
-      })
-    }, 1500)
-  } catch (error) {
-    console.error('租借器材失败:', error)
-    uni.hideLoading()
-    uni.showToast({
-      title: '租借失败，请重试',
-      icon: 'none'
-    })
-  }
-}
-
-// 返回上一页
-const handleBack = () => {
+function handleBack() {
   safeNavigateBack()
 }
 
-// 页面加载时获取数据
-onMounted(async () => {
-  // 检查用户是否已登录
-  if (!userStore.isLoggedIn) {
-    // 未登录用户重定向到登录页
-    uni.redirectTo({
-      url: '/pages/login/login'
+async function handleSubmit() {
+  if (!canSubmit.value) {
+    uni.showToast({
+      title: endMs.value <= startMs.value ? '归还时间需晚于提取时间' : '请完善租借信息',
+      icon: 'none'
     })
     return
   }
-  
+
+  const rentalAmountNum = baseRent.value + platformFee.value
+  const payload = {
+    memberId: userStore.userId,
+    equipmentId: equipment.value.id,
+    quantity: rentQuantity.value,
+    rentalDate: startDate.value,
+    expectedReturnDate: endDate.value,
+    rentalAmount: rentalAmountNum,
+    unitPrice: hourlyPrice.value,
+    depositAmount: depositTotal.value,
+    durationHours: durationHours.value,
+    paymentMethod: 'BALANCE',
+    paymentStatus: 0,
+    status: 1,
+    remark: `按小时计费；平台服务费¥${formatMoney(platformFee.value)}`
+  }
+
+  try {
+    uni.showLoading({ title: '提交中...' })
+    await createEquipmentRental(payload)
+    uni.hideLoading()
+    uni.showToast({ title: '租借成功', icon: 'success' })
+    setTimeout(() => {
+      uni.redirectTo({ url: '/pages/profile/records' })
+    }, 1200)
+  } catch (error) {
+    console.error('租借器材失败:', error)
+    uni.hideLoading()
+    uni.showToast({ title: '租借失败，请重试', icon: 'none' })
+  }
+}
+
+onMounted(async () => {
+  if (!userStore.isLoggedIn) {
+    uni.redirectTo({ url: '/pages/login/login' })
+    return
+  }
   if (equipmentId.value) {
     await loadEquipmentDetail()
   }
@@ -325,274 +372,427 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9f9f9;
+  color: #1a1c1c;
 }
 
-.header-content {
+.header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 48rpx;
+  background-color: #f9f9f9;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.icon-btn {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 9999rpx;
+  background-color: #f3f3f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn.placeholder {
+  visibility: hidden;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.main {
+  flex: 1;
+  height: 0;
+  padding: 0 32rpx;
+  box-sizing: border-box;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  margin-bottom: 48rpx;
+}
+
+.card-row {
+  padding: 32rpx;
+  display: flex;
+  flex-direction: row;
+  gap: 40rpx;
+  align-items: center;
+}
+
+.thumb {
+  width: 192rpx;
+  height: 192rpx;
+  border-radius: 16rpx;
+  background-color: #f3f3f3;
+  flex-shrink: 0;
+}
+
+.summary-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180rpx;
+}
+
+.title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.item-title {
+  flex: 1;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+  line-height: 1.35;
+}
+
+.tag {
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #636262;
+  background-color: #e2dfde;
+  padding: 8rpx 16rpx;
+  border-radius: 9999rpx;
+  flex-shrink: 0;
+}
+
+.subtitle {
+  font-size: 28rpx;
+  color: #5f5e5e;
+  margin-top: 8rpx;
+}
+
+.price-row {
+  margin-top: 24rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8rpx;
+}
+
+.price-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #a33e00;
+}
+
+.price-unit {
+  font-size: 24rpx;
+  color: #5f5e5e;
+}
+
+.card-stack {
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+}
+
+.row-between {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
+.block-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1c1c;
 }
 
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
+.hint {
+  display: block;
+  font-size: 24rpx;
+  color: #5f5e5e;
+  margin-top: 4rpx;
+}
+
+.stepper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: #f3f3f3;
+  border-radius: 16rpx;
+  padding: 8rpx;
+}
+
+.step-btn {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-btn-strong {
+  background-color: #e8e8e8;
+}
+
+.step-symbol {
+  font-size: 36rpx;
+  line-height: 1;
+  color: #5f5e5e;
+  font-weight: 600;
+}
+
+.step-symbol.strong {
+  color: #1a1c1c;
+}
+
+.step-val {
+  min-width: 80rpx;
   text-align: center;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1c1c;
 }
 
-.header-placeholder {
-  width: 56rpx;
+.divider-gap {
+  height: 8rpx;
 }
 
-.content {
+.slot-block {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.edit-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.edit-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #a33e00;
+}
+
+.picker-panel {
+  background-color: #f9f9f9;
+  border-radius: 16rpx;
+  padding: 16rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.picker-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0;
+}
+
+.picker-label {
+  font-size: 26rpx;
+  color: #5f5e5e;
+}
+
+.picker-value {
+  font-size: 28rpx;
+  color: #1a1c1c;
+  font-weight: 500;
+}
+
+.time-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.time-box {
   flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
+  background-color: #f3f3f3;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  position: relative;
+  overflow: hidden;
 }
 
-.section {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-  padding: 28rpx;
+.time-box-start {
+  padding-left: 28rpx;
 }
 
-.equipment-info {
-  .equipment-card {
-    display: flex;
-    gap: 20rpx;
-  }
-
-  .equipment-image {
-    width: 120rpx;
-    height: 120rpx;
-    background-color: #f5f5f5;
-    border-radius: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(153, 153, 153, 0.3);
-    font-size: 20rpx;
-  }
-
-  .equipment-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .equipment-name {
-    font-size: 26rpx;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 8rpx;
-  }
-
-  .equipment-brand {
-    font-size: 22rpx;
-    color: #666666;
-    margin-bottom: 8rpx;
-  }
-
-  .equipment-price {
-    font-size: 24rpx;
-    font-weight: bold;
-    color: #ef4444;
-  }
-}
-
-.rental-details {
-  .detail-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16rpx 0;
-    border-bottom: 1rpx solid #f3f4f6;
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  .detail-label {
-    font-size: 24rpx;
-    color: #333333;
-    width: 120rpx;
-  }
-
-  .quantity-selector {
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
-  }
-
-  .quantity-btn {
-    width: 48rpx;
-    height: 48rpx;
-    border-radius: 50%;
-    background-color: #f5f5f5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28rpx;
-    color: #333333;
-  }
-
-  .quantity {
-    font-size: 28rpx;
-    color: #333333;
-    font-weight: bold;
-    min-width: 40rpx;
-    text-align: center;
-  }
-
-  .picker {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .picker-value {
-    flex: 1;
-    text-align: right;
-    color: #666666;
-  }
-
-  .chevron {
-    font-size: 26rpx;
-    color: #999999;
-    margin-left: 12rpx;
-  }
-}
-
-.agreement-section {
-  .agreement-item {
-    padding: 16rpx 0;
-  }
-
-  .agreement-title {
-    font-size: 24rpx;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 16rpx;
-    display: block;
-  }
-
-  .agreement-content {
-    display: flex;
-    flex-direction: column;
-    gap: 8rpx;
-  }
-
-  .agreement-text {
-    font-size: 22rpx;
-    color: #999999;
-    line-height: 1.5;
-  }
-}
-
-.price-summary {
-  .summary-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16rpx 0;
-
-    &.total {
-      margin-top: 10rpx;
-    }
-  }
-
-  .summary-label {
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .summary-value {
-    font-size: 24rpx;
-    color: #333333;
-    font-weight: bold;
-
-    &.total-price {
-      color: #ef4444;
-      font-size: 28rpx;
-    }
-  }
-
-  .summary-divider {
-    height: 1rpx;
-    background-color: #e6e6e6;
-    margin: 10rpx 0;
-  }
-}
-
-.action-bar {
-  position: fixed;
+.accent-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
   bottom: 0;
+  width: 8rpx;
+  background-color: #a33e00;
+}
+
+.time-cap {
+  font-size: 20rpx;
+  color: #5f5e5e;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.time-date {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.time-clock {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.time-clock.start {
+  color: #a33e00;
+}
+
+.arrow-wrap {
+  width: 64rpx;
+  height: 64rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duration-hint {
+  font-size: 24rpx;
+  color: #5f5e5e;
+  text-align: right;
+}
+
+.fee-card {
+  gap: 28rpx;
+}
+
+.fee-title {
+  margin-bottom: 8rpx;
+}
+
+.fee-line {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.fee-label {
+  flex: 1;
+  font-size: 28rpx;
+  color: #5f5e5e;
+  line-height: 1.45;
+}
+
+.fee-label-row {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.fee-value {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1c1c;
+}
+
+.scroll-spacer {
+  height: 280rpx;
+}
+
+.footer {
+  position: fixed;
   left: 0;
   right: 0;
+  bottom: 0;
+  z-index: 50;
   display: flex;
-  height: 120rpx;
-  background-color: #ffffff;
-  border-top: 1rpx solid #e6e6e6;
-  padding: 0 28rpx;
-  box-sizing: border-box;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 48rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  background-color: rgba(249, 249, 249, 0.92);
+  box-shadow: 0 -20rpx 80rpx rgba(26, 28, 28, 0.06);
 }
 
-.total-price-display {
-  flex: 1;
+.footer-left {
   display: flex;
   flex-direction: column;
 }
 
-.total-label {
-  font-size: 20rpx;
-  color: #999999;
+.total-cap {
+  font-size: 24rpx;
+  color: #5f5e5e;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-bottom: 4rpx;
 }
 
-.total-amount {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #ef4444;
+.total-row {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 4rpx;
 }
 
-.submit-btn {
-  flex: 1;
-  height: 80rpx;
-  background-color: #3cc51f;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
+.currency {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #a33e00;
+}
+
+.total-num {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #a33e00;
+  letter-spacing: -1px;
+}
+
+.cta {
+  margin: 0;
   border: none;
-  margin-left: 28rpx;
-  box-shadow: 0 2rpx 6rpx rgba(60, 197, 31, 0.2);
+  border-radius: 24rpx;
+  padding: 28rpx 56rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #561d00;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  box-shadow: 0 8rpx 24rpx rgba(163, 62, 0, 0.2);
+}
 
-  &:disabled {
-    background-color: #cccccc;
-    color: #999999;
-  }
+.cta:disabled {
+  opacity: 0.45;
+  box-shadow: none;
 }
 </style>

@@ -32,22 +32,25 @@
     {
       "path": "pages/course/list",
       "style": {
-        "navigationBarTitleText": "课程预约",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "课程中心",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/equipment/list",
       "style": {
         "navigationBarTitleText": "器材租借",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/tournament/list",
       "style": {
-        "navigationBarTitleText": "赛事报名",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "赛事中心",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -495,7 +498,8 @@
       "path": "pages/recharge/records",
       "style": {
         "navigationBarTitleText": "充值记录",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -600,8 +604,8 @@
     }
   },
   "tabBar": {
-    "color": "#475569",
-    "selectedColor": "#3cc51f",
+    "color": "#64748b",
+    "selectedColor": "#ea580c",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
@@ -612,14 +616,14 @@
         "selectedIconPath": "static/tabbar/tab-home-active.png"
       },
       {
-        "pagePath": "pages/venue/list",
-        "text": "场馆",
+        "pagePath": "pages/booking/list",
+        "text": "预约",
         "iconPath": "static/tabbar/tab-venue.png",
         "selectedIconPath": "static/tabbar/tab-venue-active.png"
       },
       {
         "pagePath": "pages/course/list",
-        "text": "课程",
+        "text": "培训",
         "iconPath": "static/tabbar/tab-course.png",
         "selectedIconPath": "static/tabbar/tab-course-active.png"
       },

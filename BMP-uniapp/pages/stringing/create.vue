@@ -1,947 +1,935 @@
 <template>
-  <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">新增穿线服务</text>
-        <view class="header-placeholder"></view>
+  <view class="page">
+    <!-- Top bar -->
+    <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="top-inner">
+        <image class="avatar" :src="avatarUrl" mode="aspectFill" @tap="goProfile" />
+        <text class="brand">KINETIC LOGIC</text>
+        <view class="notify-btn" @tap="goNotice">
+          <uni-icons type="notification" size="22" color="#a33e00" />
+        </view>
       </view>
     </view>
 
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Racket Info Section -->
-      <view class="section">
-        <text class="section-title">球拍信息</text>
-        <view class="form-group">
-          <view class="form-item">
-            <text class="form-label required">球拍品牌</text>
-            <input 
-              class="form-input" 
-              v-model="formData.racketBrand" 
-              placeholder="请输入球拍品牌"
-              maxlength="50"
-              @blur="validateField('racketBrand')"
-            />
+    <scroll-view scroll-y class="main" :style="{ paddingTop: topOffset + 'px' }" :show-scrollbar="false">
+      <view class="inner">
+        <view class="hero">
+          <view class="pill">
+            <uni-icons type="gear" size="14" color="#5a4136" />
+            <text class="pill-t">Professional Service</text>
           </view>
-          <text v-if="errors.racketBrand" class="error-text">{{ errors.racketBrand }}</text>
-          
-          <view class="form-item">
-            <text class="form-label required">球拍型号</text>
-            <input 
-              class="form-input" 
-              v-model="formData.racketModel" 
-              placeholder="请输入球拍型号"
-              maxlength="50"
-              @blur="validateField('racketModel')"
-            />
-          </view>
-          <text v-if="errors.racketModel" class="error-text">{{ errors.racketModel }}</text>
+          <text class="h1">穿线服务预约</text>
+          <text class="sub">选择最适合您的球线与磅数，我们的专业穿线师将为您提供顶级竞技体验。</text>
         </view>
-      </view>
 
-      <!-- String Selection Section -->
-      <view class="section">
-        <text class="section-title">线材选择</text>
-        
-        <!-- Own String Toggle -->
-        <view class="form-group">
-          <view class="form-item checkbox-item">
-            <checkbox-group @change="handleOwnStringChange">
-              <label class="checkbox-label">
-                <checkbox :checked="formData.ownString" color="#3cc51f" />
-                <text class="checkbox-text">自带线材</text>
-              </label>
-            </checkbox-group>
+        <!-- 01 球拍型号 -->
+        <view class="card">
+          <view class="card-head">
+            <uni-icons type="loop" size="16" color="#5a4136" />
+            <text class="card-title">01. Racket Model 球拍型号</text>
+          </view>
+          <view class="field-wrap">
+            <text class="float-label">输入您的球拍型号</text>
+            <input
+              v-model="racketFullLine"
+              class="field-input"
+              placeholder="例如: Yonex Astrox 99 Pro"
+              placeholder-class="ph"
+              maxlength="80"
+            />
           </view>
         </view>
 
-        <!-- String Selector (if not own string) -->
-        <view v-if="!formData.ownString" class="form-group">
-          <view class="form-item">
-            <text class="form-label required">选择线材</text>
-            <picker 
-              mode="selector" 
-              :range="stringList" 
-              range-key="displayName"
-              @change="handleStringChange"
-              :value="selectedStringIndex"
+        <!-- 02 球线 -->
+        <view class="card">
+          <view class="card-head-between">
+            <view class="card-head">
+              <uni-icons type="bars" size="16" color="#5a4136" />
+              <text class="card-title">02. String Selection 球线选择</text>
+            </view>
+            <text class="stock-pill">库存充足</text>
+          </view>
+
+          <view v-if="stringList.length === 0 && !stringsLoading" class="empty-strings">
+            <text>暂无可选线材，请稍后再试</text>
+          </view>
+
+          <view v-else class="string-grid">
+            <view
+              v-for="(s, idx) in gridStrings"
+              :key="s.id"
+              class="string-tile"
+              :class="{ active: selectedStringId === s.id }"
+              @tap="selectString(s.id)"
             >
-              <view class="picker">
-                <text class="picker-value" :class="{ placeholder: !selectedString }">
-                  {{ selectedString ? selectedString.displayName : '请选择线材' }}
-                </text>
-                <text class="picker-arrow">▼</text>
+              <view class="tile-glow" />
+              <view class="tile-top">
+                <text class="tile-name">{{ displayName(s) }}</text>
+                <uni-icons
+                  v-if="selectedStringId === s.id"
+                  type="checkbox-filled"
+                  size="22"
+                  color="#561d00"
+                />
               </view>
-            </picker>
-          </view>
-          <text v-if="errors.stringId" class="error-text">{{ errors.stringId }}</text>
-          
-          <!-- String Details -->
-          <view v-if="selectedString" class="string-details">
-            <view class="detail-row">
-              <text class="detail-label">品牌：</text>
-              <text class="detail-value">{{ selectedString.brand }}</text>
+              <text class="tile-tag">{{ stringMeta(s).tag }}</text>
+              <text class="tile-spec">{{ stringMeta(s).spec }}</text>
             </view>
-            <view class="detail-row">
-              <text class="detail-label">粗细：</text>
-              <text class="detail-value">{{ selectedString.gauge }}</text>
-            </view>
-            <view class="detail-row">
-              <text class="detail-label">价格：</text>
-              <text class="detail-value price">¥{{ selectedString.price }}</text>
+
+            <view v-if="hasMoreStrings" class="string-tile more-tile" @tap="openMoreStrings">
+              <text class="more-plus">+</text>
+              <text class="more-text">查看更多型号</text>
             </view>
           </view>
         </view>
-      </view>
 
-      <!-- Tension Section -->
-      <view class="section">
-        <text class="section-title">磅数设置</text>
-        <view class="form-group">
-          <view class="form-item">
-            <text class="form-label required">磅数 (18-35)</text>
-            <slider 
-              :value="formData.tension" 
-              :min="18" 
-              :max="35" 
-              :step="1"
-              show-value
-              activeColor="#3cc51f"
-              @change="handleTensionChange"
-            />
+        <view class="two-col">
+          <!-- 03 磅数 -->
+          <view class="card half">
+            <view class="card-head">
+              <uni-icons type="settings" size="16" color="#5a4136" />
+              <text class="card-title">03. Tension 磅数</text>
+            </view>
+            <view class="tension-display">
+              <text class="tension-num">{{ tensionDisplay }}</text>
+              <text class="tension-unit">lbs</text>
+            </view>
+            <view class="tension-btns">
+              <view
+                v-for="opt in tensionOptions"
+                :key="opt.value"
+                class="tbtn"
+                :class="{ on: selectedPound === opt.value }"
+                @tap="selectedPound = opt.value"
+              >
+                <text>{{ opt.label }}</text>
+              </view>
+            </view>
           </view>
-          <text v-if="errors.tension" class="error-text">{{ errors.tension }}</text>
-        </view>
-      </view>
 
-      <!-- Payment Method Section -->
-      <view class="section">
-        <text class="section-title">支付方式</text>
-        <view class="form-group">
-          <radio-group @change="handlePaymentMethodChange">
-            <label v-for="method in paymentMethods" :key="method.value" class="radio-item">
-              <radio :value="method.value" :checked="formData.paymentMethod === method.value" color="#3cc51f" />
-              <text class="radio-text">{{ method.label }}</text>
-            </label>
-          </radio-group>
-          
-          <!-- Balance Warning -->
-          <view v-if="formData.paymentMethod === 'BALANCE' && showBalanceWarning" class="warning-box">
-            <text class="warning-text">余额不足，请选择其他支付方式</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Remark Section -->
-      <view class="section">
-        <text class="section-title">备注信息</text>
-        <view class="form-group">
-          <textarea 
-            class="form-textarea" 
-            v-model="formData.remark" 
-            placeholder="请输入备注信息（选填）"
-            maxlength="200"
-            :show-confirm-bar="false"
-            @blur="validateField('remark')"
-          />
-          <view class="char-count">
-            <text>{{ formData.remark?.length || 0 }}/200</text>
-          </view>
-          <text v-if="errors.remark" class="error-text">{{ errors.remark }}</text>
-        </view>
-      </view>
-
-      <!-- Price Calculation Section -->
-      <view class="section price-section">
-        <text class="section-title">费用明细</text>
-        <view class="price-breakdown">
-          <view v-if="!formData.ownString && priceInfo.stringPrice > 0" class="price-item">
-            <text class="price-label">线材价格</text>
-            <text class="price-value">¥{{ priceInfo.stringPrice }}</text>
-          </view>
-          <view class="price-item">
-            <text class="price-label">服务费</text>
-            <text class="price-value">¥{{ priceInfo.servicePrice }}</text>
-          </view>
-          <view class="price-divider"></view>
-          <view class="price-item total">
-            <text class="price-label">总计</text>
-            <text class="price-value total-price">¥{{ priceInfo.totalPrice }}</text>
+          <!-- 04 取拍时间 -->
+          <view class="card half">
+            <view class="card-head">
+              <uni-icons type="calendar" size="16" color="#5a4136" />
+              <text class="card-title">04. Pickup 取拍时间</text>
+            </view>
+            <view class="pick-row">
+              <text class="pick-label">期望取拍日期</text>
+              <picker mode="date" :value="pickupDate" @change="onPickDate">
+                <view class="pick-val">{{ pickupDate }}</view>
+              </picker>
+            </view>
+            <view class="pick-row">
+              <text class="pick-label">期望取拍时间</text>
+              <picker mode="time" :value="pickupTime" @change="onPickTime">
+                <view class="pick-val">{{ pickupTime }}</view>
+              </picker>
+            </view>
+            <view class="info-line">
+              <uni-icons type="info" size="12" color="#a33e00" />
+              <text class="info-t">加急服务需额外支付 ¥30</text>
+            </view>
           </view>
         </view>
-      </view>
 
-      <!-- Draft Actions -->
-      <view v-if="hasDraft" class="draft-actions">
-        <text class="draft-hint">检测到未提交的草稿</text>
-        <button class="clear-draft-btn" @click="handleClearDraft">清除草稿</button>
+        <view v-if="priceHint" class="price-hint">
+          <text>预估费用 ¥{{ priceHint }}</text>
+        </view>
+
+        <button class="cta" :disabled="submitting || !canSubmit" @tap="handleSubmit">
+          <text>{{ submitting ? '提交中…' : '确认预约提交' }}</text>
+          <uni-icons type="arrow-right" size="22" color="#561d00" />
+        </button>
+
+        <!-- Tension guide -->
+        <view class="guide">
+          <view class="guide-head">
+            <uni-icons type="compose" size="18" color="#a33e00" />
+            <text class="guide-title">Tension Guide</text>
+          </view>
+          <view class="guide-block">
+            <view class="guide-range">
+              <text class="guide-num">27+</text>
+              <text class="guide-unit">lbs</text>
+            </view>
+            <text class="guide-tag">专业 / 精准控球</text>
+            <text class="guide-desc">甜区较小，需要使用者具备优秀的爆发力和发力技巧。击球感硬朗，落点控制极佳。</text>
+          </view>
+          <view class="guide-block">
+            <view class="guide-range">
+              <text class="guide-num">24-26</text>
+              <text class="guide-unit">lbs</text>
+            </view>
+            <text class="guide-tag dim">进阶 / 攻守兼备</text>
+            <text class="guide-desc">大众最常用的磅数区间。兼顾了球线的弹性和击球的硬度，适合有一定基础的业余爱好者。</text>
+          </view>
+          <view class="guide-block">
+            <view class="guide-range">
+              <text class="guide-num">20-23</text>
+              <text class="guide-unit">lbs</text>
+            </view>
+            <text class="guide-tag dim">初级 / 轻松借力</text>
+            <text class="guide-desc">甜区面积大，击球容易。弹性极佳，适合初学者、力量较小的女性或青少年球友。</text>
+          </view>
+          <view class="guide-foot">
+            <text>Kinetic Logic</text>
+            <text>Est. 2024</text>
+          </view>
+        </view>
+
+        <view class="bottom-spacer" />
       </view>
     </scroll-view>
 
-    <!-- Bottom Action Bar -->
-    <view class="action-bar">
-      <view class="total-price-display">
-        <text class="total-label">合计</text>
-        <text class="total-amount">¥{{ priceInfo.totalPrice }}</text>
-      </view>
-      <button 
-        class="submit-btn" 
-        :disabled="!canSubmit || submitting" 
-        @click="handleSubmit"
-      >
-        {{ submitting ? '提交中...' : '提交申请' }}
-      </button>
-    </view>
-  </MobileLayout>
+    <CustomTabBar :current="1" />
+  </view>
 </template>
-
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
-import { 
-  getStringList, 
-  calculatePrice, 
+import {
+  getStringList,
+  calculatePrice,
   createStringing,
   type StringInfo,
-  type CreateStringingParams,
-  type PriceCalculation
+  type CreateStringingParams
 } from '@/api/stringing'
-import { safeNavigateBack } from '@/utils/navigation'
-import { 
-  validateRacketBrand, 
-  validateRacketModel, 
-  validateTension, 
-  validateRemark 
-} from '@/utils/validate'
-import { PAYMENT_METHOD_TEXT, TENSION_RANGE } from '@/utils/constant'
-import { getMemberInfo } from '@/api/member'
+import { getVenueList } from '@/api/venue'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { getAvatarImage } from '@/utils/displayImage'
+import { validateRacketBrand, validateRacketModel, validateRemark } from '@/utils/validate'
 
-// Constants
-const DRAFT_KEY = 'stringing_draft'
-const CACHE_KEY = 'stringing_string_list_cache'
-const CACHE_DURATION = 30 * 60 * 1000 // 30分钟
-
-// State
 const userStore = useUserStore()
-const formData = ref<CreateStringingParams>({
-  racketBrand: '',
-  racketModel: '',
-  stringId: undefined,
-  tension: 24,
-  ownString: false,
-  paymentMethod: 'ALIPAY',
-  remark: ''
-})
 
-const stringList = ref<(StringInfo & { displayName: string })[]>([])
-const selectedString = ref<(StringInfo & { displayName?: string }) | null>(null)
-const selectedStringIndex = ref(-1)
-const priceInfo = ref<PriceCalculation>({
-  stringPrice: 0,
-  servicePrice: 0,
-  totalPrice: 0
-})
-const errors = ref<Record<string, string>>({})
-const submitting = ref(false)
-const hasDraft = ref(false)
-const showBalanceWarning = ref(false)
-const priceCalculating = ref(false)
-let priceDebounceTimer: ReturnType<typeof setTimeout> | null = null
-const userBalance = ref<number | null>(null)
+const statusBarHeight = ref(44)
+const topOffset = computed(() => statusBarHeight.value + 52)
+const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 
-// Payment methods
-const paymentMethods = [
-  { value: 'ALIPAY', label: PAYMENT_METHOD_TEXT.ALIPAY },
-  { value: 'WECHAT', label: PAYMENT_METHOD_TEXT.WECHAT },
-  { value: 'BALANCE', label: PAYMENT_METHOD_TEXT.BALANCE },
-  { value: 'CASH', label: PAYMENT_METHOD_TEXT.CASH }
+const racketFullLine = ref('')
+const stringList = ref<StringInfo[]>([])
+const stringsLoading = ref(false)
+const selectedStringId = ref<number | null>(null)
+const selectedPound = ref(26)
+const tensionOptions = [
+  { label: '24', value: 24 },
+  { label: '26', value: 26 },
+  { label: '28', value: 28 },
+  { label: '30+', value: 32 }
 ]
 
-// Computed
+const pickupDate = ref('')
+const pickupTime = ref('18:00')
+
+const defaultVenueId = ref<number>(0)
+const submitting = ref(false)
+const priceHint = ref('')
+
+const gridStrings = computed(() => stringList.value.slice(0, 3))
+const hasMoreStrings = computed(() => stringList.value.length > 3)
+
+const tensionDisplay = computed(() => (selectedPound.value === 32 ? '30+' : String(selectedPound.value)))
+
+function pad2(n: number) {
+  return n < 10 ? `0${n}` : `${n}`
+}
+
+function todayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+
+function displayName(s: StringInfo) {
+  return s.stringName || s.equipmentName || s.equipmentCode || `线材 #${s.id}`
+}
+
+const STRING_COPY: Record<string, { tag: string; spec: string }> = {
+  BG80: { tag: 'Offensive Power', spec: '0.68mm | 高弹性 | 硬击球感' },
+  EXBOLT63: { tag: 'Repulsion Sound', spec: '0.63mm | 极细 | 高音效' },
+  'EXBOLT 63': { tag: 'Repulsion Sound', spec: '0.63mm | 极细 | 高音效' },
+  AEROSONIC: { tag: 'Ultimate Control', spec: '0.61mm | 控球 | 极佳弹性' }
+}
+
+function stringMeta(s: StringInfo) {
+  const key = displayName(s).replace(/\s+/g, '').toUpperCase()
+  for (const k of Object.keys(STRING_COPY)) {
+    if (key.includes(k.replace(/\s+/g, ''))) {
+      return STRING_COPY[k]!
+    }
+  }
+  const p = Number(s.price ?? 0)
+  return { tag: 'Recommended', spec: p > 0 ? `门店价 ¥${p.toFixed(0)}` : '专业球线' }
+}
+
+function splitRacketLabel(input: string) {
+  const text = input.trim()
+  if (!text) return { brand: '', model: '' }
+  const parts = text.split(/\s+/).filter(Boolean)
+  if (parts.length === 1) return { brand: parts[0]!, model: parts[0]! }
+  return { brand: parts[0]!, model: parts.slice(1).join(' ') }
+}
+
+function selectString(id: number) {
+  selectedStringId.value = id
+}
+
+function openMoreStrings() {
+  const rest = stringList.value.slice(3)
+  if (rest.length === 0) return
+  uni.showActionSheet({
+    itemList: rest.map((s) => displayName(s)),
+    success: (res) => {
+      const s = rest[res.tapIndex]
+      if (s) selectedStringId.value = s.id
+    }
+  })
+}
+
+function onPickDate(e: { detail: { value: string } }) {
+  pickupDate.value = e.detail.value
+}
+
+function onPickTime(e: { detail: { value: string } }) {
+  pickupTime.value = e.detail.value
+}
+
+function goNotice() {
+  uni.navigateTo({ url: '/pages/notice/index' })
+}
+
+function goProfile() {
+  uni.navigateTo({ url: '/pages/profile/index' })
+}
+
 const canSubmit = computed(() => {
-  return (
-    formData.value.racketBrand.trim() !== '' &&
-    formData.value.racketModel.trim() !== '' &&
-    (formData.value.ownString || formData.value.stringId !== undefined) &&
-    Number(formData.value.tension ?? 0) >= TENSION_RANGE.MIN &&
-    Number(formData.value.tension ?? 0) <= TENSION_RANGE.MAX &&
-    !showBalanceWarning.value &&
-    Object.keys(errors.value).length === 0
-  )
+  const { brand, model } = splitRacketLabel(racketFullLine.value)
+  if (!validateRacketBrand(brand) || !validateRacketModel(model)) return false
+  if (!selectedStringId.value) return false
+  if (!defaultVenueId.value) return false
+  if (!Number(userStore.userId || 0)) return false
+  return true
 })
 
-// Load string list
-const loadStringList = async () => {
+async function syncPrice() {
+  if (!selectedStringId.value) {
+    priceHint.value = ''
+    return
+  }
   try {
-    // 检查缓存
-    const cached = uni.getStorageSync(CACHE_KEY)
-    if (cached && cached.timestamp && Date.now() - cached.timestamp < CACHE_DURATION) {
-      stringList.value = cached.data
-      return
-    }
-    
-    // 从 API 加载
+    const r = await calculatePrice({ stringId: selectedStringId.value, ownString: false })
+    priceHint.value = (r.totalPrice ?? 0).toFixed(2)
+  } catch {
+    priceHint.value = ''
+  }
+}
+
+watch([selectedStringId], () => {
+  void syncPrice()
+})
+
+async function loadStrings() {
+  stringsLoading.value = true
+  try {
     const result = await getStringList()
-    const data = result.map(item => ({
-      ...item,
-      displayName: `${item.stringName} - ${item.brand} (¥${item.price})`
-    }))
-    
-    stringList.value = data
-    
-    // 保存到缓存
-    uni.setStorageSync(CACHE_KEY, {
-      data,
-      timestamp: Date.now()
-    })
-  } catch (error) {
-    console.error('加载线材列表失败:', error)
-    uni.showToast({ title: '加载线材列表失败', icon: 'none' })
-  }
-}
-
-// Calculate price with debounce (300ms)
-const calculateServicePrice = () => {
-  // Clear previous timer
-  if (priceDebounceTimer) {
-    clearTimeout(priceDebounceTimer)
-  }
-
-  // Set new timer
-  priceDebounceTimer = setTimeout(async () => {
-    if (!formData.value.ownString && !formData.value.stringId) {
-      priceInfo.value = {
-        stringPrice: 0,
-        servicePrice: 0,
-        totalPrice: 0
-      }
-      return
-    }
-
-    try {
-      priceCalculating.value = true
-      const result = await calculatePrice({
-        stringId: formData.value.stringId,
-        ownString: Boolean(formData.value.ownString)
-      })
-      priceInfo.value = result
-    } catch (error) {
-      console.error('计算价格失败:', error)
-      uni.showToast({
-        title: '计算价格失败',
-        icon: 'none'
-      })
-    } finally {
-      priceCalculating.value = false
-    }
-  }, 300)
-}
-
-// Validate field
-const validateField = (field: string) => {
-  switch (field) {
-    case 'racketBrand':
-      if (!validateRacketBrand(formData.value.racketBrand)) {
-        errors.value.racketBrand = '请输入球拍品牌（1-50字符）'
-      } else {
-        delete errors.value.racketBrand
-      }
-      break
-    case 'racketModel':
-      if (!validateRacketModel(formData.value.racketModel)) {
-        errors.value.racketModel = '请输入球拍型号（1-50字符）'
-      } else {
-        delete errors.value.racketModel
-      }
-      break
-    case 'tension':
-      if (!validateTension(Number(formData.value.tension ?? 0))) {
-        errors.value.tension = '磅数范围为18-35'
-      } else {
-        delete errors.value.tension
-      }
-      break
-    case 'remark':
-      if (formData.value.remark && !validateRemark(formData.value.remark)) {
-        errors.value.remark = '备注长度不能超过200字符'
-      } else {
-        delete errors.value.remark
-      }
-      break
-    case 'stringId':
-      if (!formData.value.ownString && !formData.value.stringId) {
-        errors.value.stringId = '请选择线材'
-      } else {
-        delete errors.value.stringId
-      }
-      break
-  }
-}
-
-// Validate all fields
-const validateForm = (): boolean => {
-  errors.value = {}
-  
-  if (!validateRacketBrand(formData.value.racketBrand)) {
-    errors.value.racketBrand = '请输入球拍品牌（1-50字符）'
-  }
-  
-  if (!validateRacketModel(formData.value.racketModel)) {
-    errors.value.racketModel = '请输入球拍型号（1-50字符）'
-  }
-  
-  if (!formData.value.ownString && !formData.value.stringId) {
-    errors.value.stringId = '请选择线材'
-  }
-  
-  if (!validateTension(Number(formData.value.tension ?? 0))) {
-    errors.value.tension = '磅数范围为18-35'
-  }
-  
-  if (formData.value.remark && !validateRemark(formData.value.remark)) {
-    errors.value.remark = '备注长度不能超过200字符'
-  }
-  
-  return Object.keys(errors.value).length === 0
-}
-
-// Handle own string change
-const handleOwnStringChange = (e: any) => {
-  formData.value.ownString = e.detail.value.length > 0
-  if (formData.value.ownString) {
-    formData.value.stringId = undefined
-    selectedString.value = null
-    selectedStringIndex.value = -1
-    delete errors.value.stringId
-  }
-}
-
-// Handle string selection
-const handleStringChange = (e: any) => {
-  const index = e.detail.value
-  selectedStringIndex.value = index
-  selectedString.value = stringList.value[index]
-  formData.value.stringId = selectedString.value.id
-  validateField('stringId')
-}
-
-// Handle tension change
-const handleTensionChange = (e: any) => {
-  formData.value.tension = e.detail.value
-  validateField('tension')
-}
-
-// Handle payment method change
-const handlePaymentMethodChange = (e: any) => {
-  formData.value.paymentMethod = e.detail.value
-  
-  // Check balance if BALANCE is selected
-  if (formData.value.paymentMethod === 'BALANCE') {
-    if (userBalance.value !== null && priceInfo.value.totalPrice > userBalance.value) {
-      showBalanceWarning.value = true
-      uni.showToast({
-        title: '余额不足，请选择其他支付方式',
-        icon: 'none'
-      })
+    const list = Array.isArray(result) ? result : []
+    stringList.value = list
+    if (list.length > 0) {
+      selectedStringId.value = list[0]!.id
     } else {
-      showBalanceWarning.value = false
+      selectedStringId.value = null
     }
-  } else {
-    showBalanceWarning.value = false
+  } catch (e) {
+    console.error(e)
+    uni.showToast({ title: '线材加载失败', icon: 'none' })
+  } finally {
+    stringsLoading.value = false
   }
 }
 
-// Handle submit
-const handleSubmit = async () => {
-  if (!validateForm()) {
-    uni.showToast({
-      title: '请完善表单信息',
-      icon: 'none'
-    })
+async function loadDefaultVenue() {
+  const fromUser = Number((userStore.userInfo as { venueId?: number } | null)?.venueId || 0)
+  if (fromUser > 0) {
+    defaultVenueId.value = fromUser
     return
   }
-
-  if (!canSubmit.value) {
-    return
-  }
-
   try {
-    submitting.value = true
-    uni.showLoading({
-      title: '提交中...'
-    })
+    const res = await getVenueList({ status: 1, page: 1, size: 1 })
+    const first = res.data?.[0]
+    if (first?.id) {
+      defaultVenueId.value = first.id
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
 
-    const result = await createStringing(formData.value)
-    
+async function handleSubmit() {
+  if (!canSubmit.value || submitting.value) {
+    uni.showToast({ title: '请完善预约信息', icon: 'none' })
+    return
+  }
+  const { brand, model } = splitRacketLabel(racketFullLine.value)
+  const sel = stringList.value.find((x) => x.id === selectedStringId.value)
+  if (!sel) {
+    uni.showToast({ title: '请选择线材', icon: 'none' })
+    return
+  }
+
+  const pickupRemark = `期望取拍: ${pickupDate.value} ${pickupTime.value}`
+  const remarkParts = [pickupRemark]
+  const remark = remarkParts.join('；')
+  if (!validateRemark(remark)) {
+    uni.showToast({ title: '取拍信息过长', icon: 'none' })
+    return
+  }
+
+  const uid = Number(userStore.userId || 0)
+  const memberId = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || 0)
+
+  const payload: CreateStringingParams = {
+    userId: uid,
+    ...(memberId > 0 ? { memberId } : {}),
+    venueId: defaultVenueId.value,
+    racketBrand: brand,
+    racketModel: model,
+    stringId: sel.id,
+    stringName: displayName(sel),
+    isOwnString: 0,
+    pound: selectedPound.value,
+    stringingMethod: 'AUTO',
+    status: 1,
+    paymentMethod: 'BALANCE',
+    paymentStatus: 0,
+    remark
+  }
+
+  submitting.value = true
+  try {
+    uni.showLoading({ title: '提交中…' })
+    const result = await createStringing(payload)
     uni.hideLoading()
-    
-    // Clear draft after successful submission
-    uni.removeStorageSync(DRAFT_KEY)
-    hasDraft.value = false
-    
-    uni.showToast({
-      title: '提交成功',
-      icon: 'success'
-    })
-
-    // Navigate to detail page
+    uni.showToast({ title: '预约已提交', icon: 'success' })
+    const id = result?.id
     setTimeout(() => {
-      uni.redirectTo({
-        url: `/pages/stringing/detail?id=${result.id}`
-      })
-    }, 1500)
-  } catch (error) {
-    console.error('提交失败:', error)
+      if (id) {
+        uni.redirectTo({ url: `/pages/stringing/detail?id=${id}` })
+      } else {
+        uni.redirectTo({ url: '/pages/stringing/list' })
+      }
+    }, 800)
+  } catch (e) {
+    console.error(e)
     uni.hideLoading()
-    uni.showToast({
-      title: '提交失败，请重试',
-      icon: 'none'
-    })
+    uni.showToast({ title: '提交失败，请重试', icon: 'none' })
   } finally {
     submitting.value = false
   }
 }
 
-// Handle clear draft
-const handleClearDraft = () => {
-  uni.showModal({
-    title: '提示',
-    content: '确定要清除草稿吗？',
-    success: (res) => {
-      if (res.confirm) {
-        uni.removeStorageSync(DRAFT_KEY)
-        hasDraft.value = false
-        // Reset form
-        formData.value = {
-          racketBrand: '',
-          racketModel: '',
-          stringId: undefined,
-          tension: 24,
-          ownString: false,
-          paymentMethod: 'ALIPAY',
-          remark: ''
-        }
-        selectedString.value = null
-        selectedStringIndex.value = -1
-        errors.value = {}
-        uni.showToast({
-          title: '草稿已清除',
-          icon: 'success'
-        })
-      }
-    }
-  })
-}
-
-// Handle back
-const handleBack = () => {
-  safeNavigateBack()
-}
-
-// Save draft
-const saveDraft = () => {
-  try {
-    uni.setStorageSync(DRAFT_KEY, {
-      ...formData.value,
-      selectedStringIndex: selectedStringIndex.value
-    })
-  } catch (error) {
-    console.error('保存草稿失败:', error)
-  }
-}
-
-// Restore draft
-const restoreDraft = () => {
-  try {
-    const draft = uni.getStorageSync(DRAFT_KEY)
-    if (draft) {
-      formData.value = {
-        racketBrand: draft.racketBrand || '',
-        racketModel: draft.racketModel || '',
-        stringId: draft.stringId,
-        tension: draft.tension || 24,
-        ownString: draft.ownString || false,
-        paymentMethod: draft.paymentMethod || 'ALIPAY',
-        remark: draft.remark || ''
-      }
-      
-      // Restore selected string
-      if (draft.selectedStringIndex >= 0 && stringList.value.length > 0) {
-        selectedStringIndex.value = draft.selectedStringIndex
-        selectedString.value = stringList.value[draft.selectedStringIndex]
-      }
-      
-      hasDraft.value = true
-    }
-  } catch (error) {
-    console.error('恢复草稿失败:', error)
-  }
-}
-
-// Watch form data changes and save draft
-watch(formData, () => {
-  saveDraft()
-}, { deep: true })
-
-// Watch string selection and own string to trigger price calculation
-watch([() => formData.value.stringId, () => formData.value.ownString], () => {
-  calculateServicePrice()
-})
-
-// Page mounted
 onMounted(async () => {
-  // Check if user is logged in
+  try {
+    const sys = getSafeSystemInfo()
+    statusBarHeight.value = sys.statusBarHeight || 44
+  } catch {
+    statusBarHeight.value = 44
+  }
+
   if (!userStore.isLoggedIn) {
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+    uni.redirectTo({ url: '/pages/login/login' })
     return
   }
 
-  // Load string list
-  await loadStringList()
-  
-  // Load member balance if user has memberId
-  try {
-    const currentUser = userStore.userInfo
-    const memberId = (currentUser as any)?.memberId || (currentUser as any)?.id
-    if (memberId) {
-      const memberInfo = await getMemberInfo(memberId)
-      userBalance.value = memberInfo.balance
-    }
-  } catch (error) {
-    console.error('加载会员信息失败:', error)
+  pickupDate.value = todayStr()
+  await loadDefaultVenue()
+  if (!defaultVenueId.value) {
+    uni.showToast({ title: '未获取到场馆，请稍后再试', icon: 'none' })
   }
-  
-  // Restore draft
-  restoreDraft()
-  
-  // Calculate initial price
-  calculateServicePrice()
+  await loadStrings()
+  await syncPrice()
 })
 </script>
 
-
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
-}
-
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
-}
-
-.header-placeholder {
-  width: 56rpx;
-}
-
-.content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
-}
-
-.section {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-  padding: 28rpx;
-}
-
-.section-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  margin-bottom: 24rpx;
-  display: block;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-.form-item {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.form-label {
-  font-size: 24rpx;
-  color: #666666;
-  
-  &.required::before {
-    content: '*';
-    color: #ef4444;
-    margin-right: 4rpx;
-  }
-}
-
-.form-input {
-  padding: 16rpx;
-  border: 1rpx solid #e6e6e6;
-  border-radius: 12rpx;
-  font-size: 24rpx;
-  color: #333333;
-  background-color: #ffffff;
-}
-
-.form-textarea {
-  padding: 16rpx;
-  border: 1rpx solid #e6e6e6;
-  border-radius: 12rpx;
-  font-size: 24rpx;
-  color: #333333;
-  background-color: #ffffff;
-  min-height: 160rpx;
-}
-
-.char-count {
-  text-align: right;
-  font-size: 20rpx;
-  color: #999999;
-}
-
-.error-text {
-  font-size: 20rpx;
-  color: #ef4444;
-  margin-top: -12rpx;
-}
-
-.checkbox-item {
-  flex-direction: row;
-  align-items: center;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.checkbox-text {
-  font-size: 24rpx;
-  color: #333333;
-}
-
-.picker {
-  padding: 16rpx;
-  border: 1rpx solid #e6e6e6;
-  border-radius: 12rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #ffffff;
-}
-
-.picker-value {
-  font-size: 24rpx;
-  color: #333333;
-  
-  &.placeholder {
-    color: #999999;
-  }
-}
-
-.picker-arrow {
-  font-size: 20rpx;
-  color: #999999;
-}
-
-.string-details {
-  padding: 16rpx;
+.page {
+  min-height: 100vh;
   background-color: #f9f9f9;
-  border-radius: 12rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
+  color: #1a1c1c;
 }
 
-.detail-row {
-  display: flex;
-  align-items: center;
-  font-size: 22rpx;
-}
-
-.detail-label {
-  color: #999999;
-  min-width: 80rpx;
-}
-
-.detail-value {
-  color: #333333;
-  
-  &.price {
-    color: #ef4444;
-    font-weight: bold;
-  }
-}
-
-.radio-item {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 12rpx 0;
-}
-
-.radio-text {
-  font-size: 24rpx;
-  color: #333333;
-}
-
-.warning-box {
-  padding: 16rpx;
-  background-color: #fff3e0;
-  border-radius: 12rpx;
-  border-left: 4rpx solid #ff9800;
-}
-
-.warning-text {
-  font-size: 22rpx;
-  color: #ff9800;
-}
-
-.price-section {
-  background-color: #f9f9f9;
-}
-
-.price-breakdown {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.price-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 24rpx;
-  
-  &.total {
-    margin-top: 10rpx;
-  }
-}
-
-.price-label {
-  color: #666666;
-}
-
-.price-value {
-  font-weight: bold;
-  color: #333333;
-  
-  &.total-price {
-    color: #ef4444;
-    font-size: 28rpx;
-  }
-}
-
-.price-divider {
-  height: 1rpx;
-  background-color: #e6e6e6;
-  margin: 10rpx 0;
-}
-
-.draft-actions {
-  background-color: #e3f2fd;
-  padding: 20rpx 28rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
-}
-
-.draft-hint {
-  font-size: 22rpx;
-  color: #2196f3;
-}
-
-.clear-draft-btn {
-  padding: 8rpx 20rpx;
-  background-color: #ffffff;
-  color: #2196f3;
-  font-size: 22rpx;
-  border-radius: 8rpx;
-  border: 1rpx solid #2196f3;
-}
-
-.action-bar {
+.top-bar {
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
-  display: flex;
-  height: 120rpx;
-  background-color: #ffffff;
-  border-top: 1rpx solid #e6e6e6;
-  padding: 0 28rpx;
-  box-sizing: border-box;
-  align-items: center;
+  z-index: 40;
+  background-color: #fafafa;
+  box-shadow: 0 20rpx 80rpx rgba(0, 0, 0, 0.04);
 }
 
-.total-price-display {
+.top-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 48rpx 20rpx;
+}
+
+.avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 9999rpx;
+  background-color: #e8e8e8;
+}
+
+.brand {
   flex: 1;
+  text-align: center;
+  font-size: 36rpx;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: -1rpx;
+  color: #18181b;
+}
+
+.notify-btn {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main {
+  box-sizing: border-box;
+  height: 100vh;
+}
+
+.inner {
+  padding: 0 48rpx 48rpx;
+}
+
+.hero {
+  margin-bottom: 48rpx;
+}
+
+.pill {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 20rpx;
+  background-color: #e8e8e8;
+  border-radius: 9999rpx;
+  margin-bottom: 16rpx;
+}
+
+.pill-t {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5a4136;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.h1 {
+  display: block;
+  font-size: 72rpx;
+  font-weight: 800;
+  letter-spacing: -2rpx;
+  line-height: 1.1;
+  color: #1a1c1c;
+}
+
+.sub {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #5f5e5e;
+  line-height: 1.55;
+  max-width: 640rpx;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 32rpx;
+  padding: 48rpx;
+  margin-bottom: 48rpx;
+  box-shadow: 0 16rpx 60rpx rgba(26, 28, 28, 0.03);
+}
+
+.card-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 32rpx;
+}
+
+.card-head-between {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
+}
+
+.card-title {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5a4136;
+  letter-spacing: 1rpx;
+  text-transform: uppercase;
+}
+
+.stock-pill {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #a33e00;
+  background-color: #ffdbcd;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.field-wrap {
+  position: relative;
+  background-color: #f3f3f3;
+  border-radius: 16rpx 16rpx 0 0;
+  border-bottom: 4rpx solid #e8e8e8;
+  padding: 40rpx 28rpx 20rpx;
+}
+
+.field-wrap:focus-within {
+  border-bottom-color: #a33e00;
+  background-color: #e8e8e8;
+}
+
+.float-label {
+  position: absolute;
+  top: 16rpx;
+  left: 28rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5f5e5e;
+  letter-spacing: 1rpx;
+  text-transform: uppercase;
+}
+
+.field-input {
+  font-size: 30rpx;
+  color: #1a1c1c;
+  width: 100%;
+}
+
+.ph {
+  color: #9ca3af;
+}
+
+.empty-strings {
+  padding: 40rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: #9ca3af;
+}
+
+.string-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 24rpx;
+}
+
+.string-tile {
+  width: calc(50% - 12rpx);
+  box-sizing: border-box;
+  padding: 32rpx;
+  border-radius: 24rpx;
+  background-color: #f3f3f3;
+  position: relative;
+  overflow: hidden;
+}
+
+.string-tile.active {
+  background: linear-gradient(135deg, #ff6600 0%, #ff8533 100%);
+  box-shadow: 0 16rpx 48rpx rgba(255, 102, 0, 0.15);
+}
+
+.string-tile.active .tile-name,
+.string-tile.active .tile-tag,
+.string-tile.active .tile-spec {
+  color: #561d00;
+}
+
+.tile-glow {
+  position: absolute;
+  right: -32rpx;
+  top: -32rpx;
+  width: 96rpx;
+  height: 96rpx;
+  background: #ffffff;
+  opacity: 0.12;
+  border-radius: 9999rpx;
+}
+
+.tile-top {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
+}
+
+.tile-name {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+  letter-spacing: -1rpx;
+}
+
+.tile-tag {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #5a4136;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+  margin-bottom: 8rpx;
+}
+
+.tile-spec {
+  font-size: 22rpx;
+  color: #5f5e5e;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.more-tile {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200rpx;
+  border: 2rpx dashed rgba(142, 113, 100, 0.25);
+  background-color: #fafafa;
 }
 
-.total-label {
-  font-size: 20rpx;
-  color: #999999;
+.more-plus {
+  font-size: 48rpx;
+  color: #5f5e5e;
+  margin-bottom: 8rpx;
 }
 
-.total-amount {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #ef4444;
+.more-text {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #5f5e5e;
 }
 
-.submit-btn {
+.two-col {
+  display: flex;
+  flex-direction: column;
+  gap: 48rpx;
+  margin-bottom: 32rpx;
+}
+
+.card.half {
+  margin-bottom: 0;
+}
+
+.tension-display {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 24rpx 0 32rpx;
+}
+
+.tension-num {
+  font-size: 96rpx;
+  font-weight: 900;
+  color: #a33e00;
+  letter-spacing: -4rpx;
+}
+
+.tension-unit {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #5a4136;
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
+}
+
+.tension-btns {
+  display: flex;
+  flex-direction: row;
+  gap: 12rpx;
+}
+
+.tbtn {
   flex: 1;
-  height: 80rpx;
-  background-color: #3cc51f;
+  text-align: center;
+  padding: 20rpx 0;
+  border-radius: 16rpx;
+  background-color: #f3f3f3;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.tbtn.on {
+  background-color: #a33e00;
   color: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(163, 62, 0, 0.2);
+}
+
+.pick-row {
+  margin-bottom: 20rpx;
+}
+
+.pick-label {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5f5e5e;
+  margin-bottom: 8rpx;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+}
+
+.pick-val {
+  padding: 20rpx 24rpx;
+  background-color: #f3f3f3;
+  border-radius: 16rpx;
   font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
+  font-weight: 600;
+  color: #1a1c1c;
+}
+
+.info-line {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 16rpx;
+}
+
+.info-t {
+  font-size: 22rpx;
+  color: #5f5e5e;
+}
+
+.price-hint {
+  text-align: center;
+  font-size: 26rpx;
+  color: #5f5e5e;
+  margin-bottom: 24rpx;
+}
+
+.cta {
+  width: 100%;
   border: none;
-  margin-left: 28rpx;
-  box-shadow: 0 2rpx 6rpx rgba(60, 197, 31, 0.2);
-  
-  &:disabled {
-    background-color: #cccccc;
-    color: #999999;
-    box-shadow: none;
-  }
+  border-radius: 24rpx;
+  padding: 36rpx 32rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #561d00;
+  background: linear-gradient(90deg, #a33e00 0%, #ff6600 100%);
+  box-shadow: 0 16rpx 80rpx rgba(163, 62, 0, 0.2);
+  margin-bottom: 48rpx;
+}
+
+.cta:disabled {
+  opacity: 0.45;
+}
+
+.guide {
+  background-color: #eeeeee;
+  border-radius: 32rpx;
+  padding: 48rpx;
+  margin-bottom: 32rpx;
+}
+
+.guide-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 40rpx;
+}
+
+.guide-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.guide-block {
+  margin-bottom: 48rpx;
+}
+
+.guide-range {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.guide-num {
+  font-size: 56rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+  letter-spacing: -2rpx;
+}
+
+.guide-unit {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5f5e5e;
+  text-transform: uppercase;
+}
+
+.guide-tag {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #a33e00;
+  margin-bottom: 12rpx;
+}
+
+.guide-tag.dim {
+  color: #5a4136;
+}
+
+.guide-desc {
+  font-size: 24rpx;
+  color: #5f5e5e;
+  line-height: 1.55;
+}
+
+.guide-foot {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding-top: 32rpx;
+  border-top: 1rpx solid rgba(142, 113, 100, 0.2);
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5f5e5e;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.bottom-spacer {
+  height: 200rpx;
 }
 </style>

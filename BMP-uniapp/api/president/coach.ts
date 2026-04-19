@@ -1,5 +1,11 @@
 /**
- * 会长端教练管理 API
- * 复用普通端实现，提供统一的会长端入口。
+ * 会长端教练 API（仅从 internal 转发）
  */
-export * from '@/api/coach'
+export type { CoachDto, CoachVenueOption } from '@/api/internal/coach'
+export {
+  getCoachDetail,
+  getCoachVenueOptions,
+  getCoachList,
+  addCoach,
+  updateCoach
+} from '@/api/internal/coach'

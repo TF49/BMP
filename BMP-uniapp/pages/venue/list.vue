@@ -103,7 +103,7 @@
     </view>
 
     <!-- Custom BottomNavBar -->
-    <CustomTabBar :current="1" />
+    <CustomTabBar :current="-1" />
   </MobileLayout>
 </template>
 
