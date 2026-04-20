@@ -1,635 +1,739 @@
 <template>
-  <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">充值中心</text>
-        <view class="header-placeholder"></view>
-      </view>
-    </view>
-
-    <!-- Balance Card -->
-    <view class="balance-card">
-      <view class="card-content">
-        <view class="balance-info">
-          <text class="balance-label">当前余额</text>
-          <text class="balance-amount">¥{{ balance }}</text>
-        </view>
-        <view class="balance-actions">
-          <text class="balance-action" @click="handleRecharge">立即充值</text>
-          <text class="balance-action" @click="handleRecords">充值记录</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- Recharge Amounts -->
-    <view class="section recharge-section">
-      <text class="section-title">快速充值</text>
-      <view class="recharge-grid">
-        <view 
-          v-for="(amount, index) in quickAmounts" 
-          :key="index"
-          class="recharge-item"
-          :class="{ active: selectedAmount === amount.value }"
-          @click="selectAmount(amount.value)"
-        >
-          <text class="recharge-amount">¥{{ amount.value }}</text>
-          <text class="recharge-bonus" v-if="amount.bonus">送¥{{ amount.bonus }}</text>
-          <text class="recharge-text">{{ amount.text }}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- Custom Amount -->
-    <view class="section custom-section">
-      <text class="section-title">自定义金额</text>
-      <view class="custom-input">
-        <text class="currency-symbol">¥</text>
-        <input 
-          class="amount-input" 
-          type="digit" 
-          v-model="customAmount"
-          placeholder="请输入充值金额"
-          @input="onCustomAmountInput"
-        />
-      </view>
-      <view class="recommendations">
-        <text class="recommend-text">推荐：单次充值50元以上享受9.8折优惠</text>
-      </view>
-    </view>
-
-    <!-- Payment Methods -->
-    <view class="section payment-section">
-      <text class="section-title">支付方式</text>
-      <view class="payment-list">
-        <view 
-          v-for="(method, index) in paymentMethods" 
-          :key="index"
-          class="payment-item"
-          :class="{ active: selectedMethod === index }"
-          @click="selectPaymentMethod(index)"
-        >
-          <view class="payment-icon" :class="method.iconClass">
-            <uni-icons :type="method.iconType" size="22" :color="selectedMethod === index ? '#3cc51f' : '#475569'"></uni-icons>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-inner">
+        <view class="header-left">
+          <view class="icon-btn" @tap="handleBack">
+            <uni-icons type="left" size="22" color="#ea580c" />
           </view>
-          <view class="payment-info">
-            <text class="payment-name">{{ method.name }}</text>
-            <text class="payment-desc">{{ method.desc }}</text>
-          </view>
-          <view class="radio" :class="{ checked: selectedMethod === index }">
-            <uni-icons :type="selectedMethod === index ? 'checkbox-filled' : 'circle'" size="18" :color="selectedMethod === index ? '#3cc51f' : '#94a3b8'"></uni-icons>
-          </view>
+          <text class="header-title">充值中心</text>
         </view>
+        <image class="header-avatar" :src="avatarUrl" mode="aspectFill" />
       </view>
     </view>
 
-    <!-- Promotion Banner -->
-    <view class="promotion-banner" @click="handlePromotion">
-      <view class="banner-content">
-        <text class="banner-title">充值优惠</text>
-        <text class="banner-desc">充值满100送10，满200送25，多充多送！</text>
-        <text class="banner-action">立即参与 ›</text>
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+    >
+      <view class="content">
+        <view v-if="loading && !member" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">加载账户信息中…</text>
+        </view>
+
+        <view v-else-if="!loading && !member" class="state-card">
+          <text class="state-text">无法加载会员信息，请返回重试</text>
+          <view class="state-action" @tap="loadMember">重新加载</view>
+        </view>
+
+        <template v-else-if="member">
+          <view class="identity-card">
+            <view class="card-bg-icon">
+              <uni-icons type="wallet" size="120" color="rgba(0,0,0,0.12)" />
+            </view>
+            <view class="identity-top">
+              <view>
+                <text class="identity-label">Current Member</text>
+                <view class="identity-name-row">
+                  <text class="identity-name">{{ member.memberName || displayName }}</text>
+                  <text class="identity-id">#{{ member.id }}</text>
+                </view>
+              </view>
+              <text class="vip-pill" :class="{ muted: member.memberType !== 'MEMBER' }">
+                {{ member.memberType === 'MEMBER' ? 'VIP CLASS' : 'NORMAL' }}
+              </text>
+            </view>
+            <view class="balance-block">
+              <text class="balance-label">Available Balance</text>
+              <view class="balance-row">
+                <text class="currency">¥</text>
+                <text class="balance-num">{{ formatBalance(member.balance) }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="section-card">
+            <view class="section-head">
+              <text class="section-title">选择金额</text>
+              <text class="reward-tag">充值奖励 +10%</text>
+            </view>
+
+            <view class="amount-grid">
+              <view
+                v-for="(amt, idx) in presetAmounts"
+                :key="amt"
+                class="amount-cell"
+                :class="{ active: isPresetActive(idx) }"
+                @tap="selectPreset(idx)"
+              >
+                <text class="amount-yen">¥</text>
+                <text class="amount-val">{{ amt }}</text>
+              </view>
+            </view>
+
+            <view class="custom-wrap">
+              <text class="custom-yen">¥</text>
+              <input
+                v-model="customAmount"
+                class="custom-input"
+                type="digit"
+                placeholder="其他金额"
+                @input="onCustomInput"
+              />
+            </view>
+          </view>
+
+          <view class="section-card">
+            <text class="section-title solo">支付方式</text>
+            <view class="pay-list">
+              <view
+                v-for="(m, i) in payMethods"
+                :key="m.code"
+                class="pay-row"
+                @tap="selectedPay = i"
+              >
+                <view class="pay-left">
+                  <view class="pay-icon" :class="m.iconBg">
+                    <uni-icons :type="m.icon" size="24" :color="m.iconColor" />
+                  </view>
+                  <view>
+                    <text class="pay-title">{{ m.title }}</text>
+                    <text class="pay-sub">{{ m.sub }}</text>
+                  </view>
+                </view>
+                <uni-icons
+                  :type="selectedPay === i ? 'checkbox-filled' : 'circle'"
+                  size="22"
+                  :color="selectedPay === i ? '#ea580c' : '#d4d4d8'"
+                />
+              </view>
+            </view>
+          </view>
+
+          <view class="section-card promotion-card">
+            <text class="promotion-title">充值优惠</text>
+            <text class="promotion-desc">充值满100送10，满200送25，多充多送。</text>
+            <text class="promotion-link" @tap="goRecords">查看充值记录</text>
+          </view>
+        </template>
+      </view>
+    </scroll-view>
+
+    <view v-if="member" class="bottom-bar">
+      <view class="sum-row">
+        <text class="sum-label">充值总计</text>
+        <text class="sum-val">¥ {{ formatMoney(totalAmount) }}</text>
+      </view>
+      <view class="submit-btn" :class="{ disabled: submitting || totalAmount <= 0 }" @tap="onConfirm">
+        <uni-icons type="bolt" size="22" color="#561d00" />
+        <text class="submit-text">{{ submitting ? '充值中...' : '确认充值' }}</text>
       </view>
     </view>
-  </MobileLayout>
-
-  <!-- Action Bar -->
-  <view class="action-bar">
-    <view class="total-display">
-      <text class="total-label">充值金额</text>
-      <text class="total-amount">¥{{ currentAmount }}</text>
-    </view>
-    <button class="recharge-btn" :disabled="!canRecharge" @click="handleConfirmRecharge">
-      立即充值
-    </button>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { createRechargeOrder } from '@/api/recharge'
-import { getMemberInfo } from '@/api/member'
+import { getMemberInfo, type MemberInfo } from '@/api/member'
+import { useUserStore } from '@/store/modules/user'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { safeNavigateBack } from '@/utils/navigation'
-
-// 响应式数据
-const balance = ref<number>(0)
-const selectedAmount = ref<number | null>(null)
-const customAmount = ref<string>('')
-const selectedMethod = ref<number>(0)
-const quickAmounts = ref([
-  { value: 30, text: '小额度', bonus: 2 },
-  { value: 50, text: '常用', bonus: 5 },
-  { value: 100, text: '推荐', bonus: 12 },
-  { value: 200, text: '超值', bonus: 30 },
-  { value: 300, text: '大额', bonus: 50 },
-  { value: 500, text: '豪华', bonus: 100 }
-])
-const paymentMethods = ref([
-  { name: '微信支付', desc: '安全便捷', iconType: 'weixin', iconClass: 'wechat' },
-  { name: '支付宝', desc: '安全可靠', iconType: 'wallet', iconClass: 'alipay' },
-  { name: '银行卡', desc: '直接扣款', iconType: 'wallet', iconClass: 'bank' }
-])
+import { getAvatarImage } from '@/utils/displayImage'
 
 const userStore = useUserStore()
 
-// 计算属性
-const currentAmount = computed(() => {
-  if (selectedAmount.value) {
-    return selectedAmount.value
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+const refreshing = ref(false)
+const loading = ref(true)
+const submitting = ref(false)
+const member = ref<MemberInfo | null>(null)
+
+const presetAmounts = [100, 500, 1000, 2000, 5000, 10000]
+const selectedPreset = ref(1)
+const useCustom = ref(false)
+const customAmount = ref('')
+const selectedPay = ref(0)
+
+const payMethods = [
+  { code: 'WECHAT' as const, title: '微信支付', sub: '微信支付', icon: 'weixin', iconBg: 'green', iconColor: '#16a34a' },
+  { code: 'ALIPAY' as const, title: '支付宝', sub: '支付宝', icon: 'compose', iconBg: 'blue', iconColor: '#2563eb' },
+  { code: 'BANKCARD' as const, title: '银行卡', sub: '银行卡支付', icon: 'wallet', iconBg: 'slate', iconColor: '#475569' }
+]
+
+const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
+const displayName = computed(() => userStore.userInfo?.nickname || userStore.userInfo?.username || '会员')
+
+const totalAmount = computed(() => {
+  if (useCustom.value && customAmount.value.trim()) {
+    const n = parseFloat(customAmount.value)
+    return Number.isFinite(n) && n > 0 ? n : 0
   }
-  if (customAmount.value) {
-    return parseFloat(customAmount.value) || 0
-  }
-  return 0
+  return presetAmounts[selectedPreset.value] ?? 0
 })
 
-const canRecharge = computed(() => {
-  return currentAmount.value > 0 && selectedMethod.value !== -1
-})
+function resolveMemberId() {
+  const stored = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || 0)
+  if (stored > 0) return stored
+  return Number(userStore.userId || 0)
+}
 
-// 选择金额
-const selectAmount = (amount: number) => {
-  selectedAmount.value = amount
+function isPresetActive(idx: number) {
+  return !useCustom.value && selectedPreset.value === idx
+}
+
+function selectPreset(idx: number) {
+  selectedPreset.value = idx
+  useCustom.value = false
   customAmount.value = ''
 }
 
-// 自定义金额输入
-const onCustomAmountInput = (e: any) => {
-  const value = e.target.value
-  // 验证输入的金额是否合法
-  if (value === '' || /^\d*\.?\d*$/.test(value)) {
-    customAmount.value = value
-    selectedAmount.value = null
-  }
+function onCustomInput() {
+  useCustom.value = true
 }
 
-// 选择支付方式
-const selectPaymentMethod = (index: number) => {
-  selectedMethod.value = index
+function formatBalance(v: number | undefined) {
+  if (v == null || Number.isNaN(Number(v))) return '0.00'
+  return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// 加载用户信息
-const loadUserInfo = async () => {
-  try {
-    const result = await getMemberInfo(userStore.userId)
-    balance.value = result.balance || 0
-  } catch (error) {
-    console.error('加载用户信息失败:', error)
-    uni.showToast({
-      title: '加载用户信息失败',
-      icon: 'none'
-    })
-  }
+function formatMoney(v: number) {
+  return v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// 立即充值
-const handleRecharge = () => {
-  // 这个方法会在用户点击"立即充值"按钮时触发
-  if (!canRecharge.value) {
-    uni.showToast({
-      title: '请选择充值金额',
-      icon: 'none'
-    })
+async function loadMember() {
+  const memberId = resolveMemberId()
+  if (!memberId) {
+    loading.value = false
+    member.value = null
     return
   }
-  
-  confirmRecharge()
+  loading.value = true
+  try {
+    member.value = await getMemberInfo(memberId)
+  } catch (error) {
+    console.error('加载会员信息失败:', error)
+    member.value = null
+  } finally {
+    loading.value = false
+  }
 }
 
-// 确认充值
-const confirmRecharge = async () => {
+function handleBack() {
+  safeNavigateBack('/pages/profile/index')
+}
+
+function goRecords() {
+  uni.navigateTo({ url: '/pages/recharge/records' })
+}
+
+async function onConfirm() {
+  if (submitting.value || !member.value || totalAmount.value <= 0) {
+    if (totalAmount.value <= 0) {
+      uni.showToast({ title: '请选择或输入充值金额', icon: 'none' })
+    }
+    return
+  }
+
+  submitting.value = true
   try {
-    uni.showLoading({
-      title: '创建订单...'
-    })
-
-    const paymentMethod = paymentMethods.value[selectedMethod.value].name
-    const methodCode = paymentMethod === '微信支付' ? 'WECHAT' : 
-                      paymentMethod === '支付宝' ? 'ALIPAY' : 'BANKCARD'
-
-    const rechargeData = {
-      memberId: userStore.userId,
-      amount: currentAmount.value,
-      paymentMethod: methodCode,
+    await createRechargeOrder({
+      memberId: member.value.id,
+      amount: totalAmount.value,
+      paymentMethod: payMethods[selectedPay.value].code,
       orderType: 'RECHARGE'
-    }
-
-    const result = await createRechargeOrder(rechargeData)
-
-    uni.hideLoading()
-    
-    // 这里应该调用相应的支付接口
-    if (methodCode === 'WECHAT') {
-      // 调用微信支付
-      uni.requestPayment({
-        provider: 'wxpay',
-        orderId: result.orderId,
-        success: (res) => {
-          uni.showToast({
-            title: '充值成功',
-            icon: 'success'
-          })
-          // 刷新余额
-          loadUserInfo()
-        },
-        fail: (err) => {
-          console.error('支付失败:', err)
-          uni.showToast({
-            title: '支付失败',
-            icon: 'none'
-          })
-        }
-      })
-    } else if (methodCode === 'ALIPAY') {
-      // 调用支付宝支付
-      // 这里需要实现支付宝支付逻辑
-    }
+    })
+    uni.showToast({ title: '充值成功', icon: 'success' })
+    await loadMember()
+    setTimeout(() => {
+      uni.navigateTo({ url: '/pages/recharge/records' })
+    }, 900)
   } catch (error) {
     console.error('充值失败:', error)
-    uni.hideLoading()
-    uni.showToast({
-      title: '充值失败',
-      icon: 'none'
-    })
+    uni.showToast({ title: '充值失败，请稍后重试', icon: 'none' })
+  } finally {
+    submitting.value = false
   }
 }
 
-// 确认充值（从按钮触发）
-const handleConfirmRecharge = () => {
-  handleRecharge()
-}
-
-// 查看充值记录
-const handleRecords = () => {
-  uni.navigateTo({
-    url: '/pages/recharge/records'
+function handleRefresh() {
+  refreshing.value = true
+  loadMember().finally(() => {
+    refreshing.value = false
   })
 }
 
-// 优惠活动
-const handlePromotion = () => {
-  uni.showModal({
-    title: '充值优惠',
-    content: '充值满100送10，满200送25，多充多送！',
-    showCancel: false,
-    confirmText: '我知道了'
-  })
-}
+onLoad(async () => {
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
 
-// 返回上一页
-const handleBack = () => {
-  safeNavigateBack()
-}
-
-// 页面加载时获取数据
-onMounted(async () => {
-  // 检查用户是否已登录
   if (!userStore.isLoggedIn) {
-    // 未登录用户重定向到登录页
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+    uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  
-  await loadUserInfo()
+
+  await loadMember()
+})
+
+onPullDownRefresh(() => {
+  loadMember().finally(() => {
+    uni.stopPullDownRefresh()
+  })
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.page {
+  min-height: 100vh;
+  background: #f9f9f9;
+  color: #1a1c1c;
 }
 
-.header-content {
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(249, 249, 249, 0.92);
+  backdrop-filter: blur(16px);
+}
+
+.header-inner {
+  min-height: 112rpx;
+  padding: 14rpx 28rpx 18rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
-}
-
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
-}
-
-.header-placeholder {
-  width: 56rpx;
-}
-
-.balance-card {
-  background: linear-gradient(135deg, #3cc51f 0%, #4ade80 100%);
-  margin: 24rpx 28rpx;
-  border-radius: 24rpx;
-  padding: 40rpx 32rpx;
-  box-shadow: 0 4rpx 12rpx rgba(60, 197, 31, 0.3);
-}
-
-.card-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #ffffff;
-}
-
-.balance-info {
-  text-align: center;
-  margin-bottom: 32rpx;
-}
-
-.balance-label {
-  font-size: 24rpx;
-  opacity: 0.8;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.balance-amount {
-  font-size: 56rpx;
-  font-weight: bold;
-}
-
-.balance-actions {
-  display: flex;
-  gap: 32rpx;
-}
-
-.balance-action {
-  font-size: 24rpx;
-  padding: 8rpx 24rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.3);
-  border-radius: 9999rpx;
-}
-
-.section {
-  background-color: #ffffff;
-  margin: 20rpx 28rpx;
-  padding: 28rpx;
-  border-radius: 18rpx;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-}
-
-.section-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  margin-bottom: 24rpx;
-  display: block;
-}
-
-.recharge-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16rpx;
-}
-
-.recharge-item {
-  background-color: #f5f5f5;
-  border-radius: 12rpx;
-  padding: 24rpx 16rpx;
-  text-align: center;
-  transition: all 0.3s;
-  
-  &.active {
-    background-color: #3cc51f;
-    color: #ffffff;
-  }
-}
-
-.recharge-amount {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  display: block;
-  margin-bottom: 8rpx;
-  
-  .recharge-item.active & {
-    color: #ffffff;
-  }
-}
-
-.recharge-bonus {
-  font-size: 20rpx;
-  color: #ef4444;
-  display: block;
-  margin-bottom: 8rpx;
-  
-  .recharge-item.active & {
-    color: rgba(255, 255, 255, 0.8);
-  }
-}
-
-.recharge-text {
-  font-size: 20rpx;
-  color: #999999;
-  
-  .recharge-item.active & {
-    color: rgba(255, 255, 255, 0.8);
-  }
-}
-
-.custom-section {
-  .custom-input {
-    display: flex;
-    align-items: center;
-    background-color: #f5f5f5;
-    border-radius: 12rpx;
-    padding: 0 20rpx;
-  }
-
-  .currency-symbol {
-    font-size: 32rpx;
-    color: #333333;
-    margin-right: 8rpx;
-  }
-
-  .amount-input {
-    flex: 1;
-    height: 80rpx;
-    font-size: 32rpx;
-    color: #333333;
-  }
-}
-
-.recommendations {
-  margin-top: 16rpx;
-}
-
-.recommend-text {
-  font-size: 20rpx;
-  color: #999999;
-}
-
-.payment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.payment-item {
+.header-left {
   display: flex;
   align-items: center;
-  padding: 20rpx;
-  border: 1rpx solid #e6e6e6;
-  border-radius: 12rpx;
-  transition: all 0.3s;
-  
-  &.active {
-    border-color: #3cc51f;
-    background-color: #f0f9f2;
-  }
+  gap: 14rpx;
 }
 
-.payment-icon {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 20rpx;
-  font-size: 32rpx;
-  
-  &.wechat {
-    background-color: #e3f2fd;
-    color: #2196f3;
-  }
-  
-  &.alipay {
-    background-color: #fff3e0;
-    color: #ff9800;
-  }
-  
-  &.bank {
-    background-color: #e8f5e9;
-    color: #4caf50;
-  }
 }
 
-.payment-info {
-  flex: 1;
+.header-title {
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1a1c1c;
 }
 
-.payment-name {
-  font-size: 26rpx;
-  font-weight: bold;
-  color: #333333;
+.header-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 9999rpx;
+  background: #e8e8e8;
+}
+
+.main-scroll {
+  height: 100vh;
+}
+
+.content {
+  padding: 20rpx 18rpx 220rpx;
+}
+
+.identity-card,
+.section-card,
+.state-card {
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
+}
+
+.identity-card {
+  position: relative;
+  overflow: hidden;
+  padding: 30rpx 28rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #fff7f2 0%, #ffffff 100%);
+}
+
+.card-bg-icon {
+  position: absolute;
+  right: 22rpx;
+  top: 10rpx;
+}
+
+.identity-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.identity-label,
+.price-caption {
   display: block;
-  margin-bottom: 4rpx;
+  font-size: 20rpx;
+  color: #6b7280;
+  font-weight: 800;
+  letter-spacing: 1rpx;
 }
 
-.payment-desc {
+.identity-name-row {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+}
+
+.identity-name {
+  font-size: 42rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.identity-id {
+  font-size: 24rpx;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.vip-pill {
+  min-width: 140rpx;
+  height: 46rpx;
+  padding: 0 16rpx;
+  border-radius: 9999rpx;
+  background: #ff6600;
+  color: #561d00;
+  font-size: 20rpx;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vip-pill.muted {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.balance-block {
+  position: relative;
+  z-index: 1;
+  margin-top: 34rpx;
+}
+
+.balance-label {
+  display: block;
   font-size: 22rpx;
-  color: #999999;
+  color: #6b7280;
+  font-weight: 700;
 }
 
-.radio {
-  font-size: 40rpx;
-  color: #e6e6e6;
-  
-  &.checked {
-    color: #3cc51f;
-  }
+.balance-row {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: baseline;
+  gap: 6rpx;
 }
 
-.promotion-banner {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  margin: 20rpx 28rpx;
+.currency {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.balance-num {
+  font-size: 62rpx;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -1rpx;
+  color: #111111;
+}
+
+.section-card {
+  margin-top: 22rpx;
+  border-radius: 26rpx;
+  padding: 28rpx 26rpx;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.section-title.solo {
+  display: block;
+  margin-bottom: 24rpx;
+}
+
+.reward-tag {
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #a33e00;
+}
+
+.amount-grid {
+  margin-top: 24rpx;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+}
+
+.amount-cell {
+  min-height: 108rpx;
   border-radius: 18rpx;
-  padding: 28rpx;
+  background: #f3f3f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  color: #111111;
+}
+
+.amount-cell.active {
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
   color: #ffffff;
 }
 
-.banner-content {
+.amount-yen {
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.amount-val {
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.custom-wrap {
+  margin-top: 22rpx;
+  height: 92rpx;
+  border-radius: 18rpx;
+  background: #f9f9f9;
+  display: flex;
+  align-items: center;
+  padding: 0 22rpx;
+}
+
+.custom-yen {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #111111;
+  margin-right: 10rpx;
+}
+
+.custom-input {
+  flex: 1;
+  height: 100%;
+  font-size: 30rpx;
+  color: #111111;
+}
+
+.pay-list {
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 16rpx;
 }
 
-.banner-title {
-  font-size: 26rpx;
-  font-weight: bold;
+.pay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f1f1f1;
+}
+
+.pay-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.pay-left {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.pay-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-icon.green {
+  background: #dcfce7;
+}
+
+.pay-icon.blue {
+  background: #dbeafe;
+}
+
+.pay-icon.slate {
+  background: #e2e8f0;
+}
+
+.pay-title {
   display: block;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #111111;
 }
 
-.banner-desc {
-  font-size: 22rpx;
-  opacity: 0.9;
+.pay-sub {
   display: block;
-  margin-bottom: 8rpx;
-}
-
-.banner-action {
+  margin-top: 6rpx;
   font-size: 22rpx;
-  align-self: flex-end;
+  color: #6b7280;
 }
 
-.action-bar {
+.promotion-card {
+  background: linear-gradient(135deg, #fff3ec 0%, #ffffff 100%);
+}
+
+.promotion-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.promotion-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #5f5e5e;
+}
+
+.promotion-link {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #a33e00;
+  font-weight: 800;
+}
+
+.bottom-bar {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
+  bottom: 0;
+  z-index: 50;
   display: flex;
-  height: 120rpx;
-  background-color: #ffffff;
-  border-top: 1rpx solid #e6e6e6;
-  padding: 0 28rpx;
-  box-sizing: border-box;
   align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
 }
 
-.total-display {
-  flex: 1;
+.sum-row {
   display: flex;
   flex-direction: column;
+  min-width: 180rpx;
 }
 
-.total-label {
+.sum-label {
   font-size: 20rpx;
-  color: #999999;
+  color: #6b7280;
+  font-weight: 700;
 }
 
-.total-amount {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #ef4444;
+.sum-val {
+  margin-top: 6rpx;
+  font-size: 36rpx;
+  font-weight: 900;
+  color: #111111;
 }
 
-.recharge-btn {
+.submit-btn {
   flex: 1;
-  height: 80rpx;
-  background-color: #3cc51f;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
-  border: none;
-  margin-left: 28rpx;
-  box-shadow: 0 2rpx 6rpx rgba(60, 197, 31, 0.2);
+  height: 88rpx;
+  border-radius: 18rpx;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  color: #561d00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  box-shadow: 0 12rpx 28rpx rgba(163, 62, 0, 0.22);
+}
 
-  &:disabled {
-    background-color: #cccccc;
-    color: #999999;
+.submit-btn.disabled {
+  background: #d1d5db;
+  color: #9ca3af;
+  box-shadow: none;
+}
+
+.submit-text {
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.state-card {
+  border-radius: 28rpx;
+  padding: 90rpx 28rpx;
+  text-align: center;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #777777;
+}
+
+.state-action {
+  width: 220rpx;
+  height: 76rpx;
+  margin: 22rpx auto 0;
+  border-radius: 9999rpx;
+  background: #ff6600;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

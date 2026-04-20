@@ -1,536 +1,676 @@
 <template>
-  <MobileLayout>
-    <view class="stringing-list">
-      <!-- Header -->
-      <view class="header">
-        <text class="header-title">穿线服务</text>
-      </view>
-      
-      <!-- Filter Tabs -->
-      <view class="filter-tabs">
-        <view 
-          v-for="(tab, index) in tabs" 
-          :key="index"
-          class="tab-item"
-          :class="{ active: currentTab === index }"
-          @click="switchTab(index)"
-        >
-          {{ tab }}
-        </view>
-      </view>
-      
-      <!-- Search Box (Manager Only) -->
-      <view v-if="isManager" class="search-box">
-        <input 
-          v-model="searchKeyword"
-          class="search-input"
-          type="text"
-          placeholder="搜索会员姓名"
-          @input="handleSearch"
-        />
-      </view>
-
-      <!-- Content -->
-      <view class="stringing-content">
-        <!-- Loading State (Initial Load) -->
-        <view v-if="loading && serviceList.length === 0" class="loading-state">
-          <view class="loading-spinner"></view>
-          <text class="loading-text">加载中...</text>
-        </view>
-        
-        <!-- Empty State -->
-        <view v-else-if="serviceList.length === 0 && !loading" class="empty-state">
-          <text class="empty-text">暂无穿线服务记录</text>
-        </view>
-        
-        <!-- Service List -->
-        <view v-else class="service-items">
-          <view 
-            v-for="(item, index) in serviceList" 
-            :key="index"
-            class="service-card glass-card"
-            @click="handleServiceClick(item)"
-          >
-            <!-- Card Header -->
-            <view class="service-header">
-              <text class="service-no">{{ item.serviceNo }}</text>
-              <text 
-                class="service-status" 
-                :style="{ 
-                  backgroundColor: getStatusBgColor(item.status),
-                  color: getStatusColor(item.status)
-                }"
-              >
-                {{ getStatusText(item.status) }}
-              </text>
-            </view>
-            
-            <!-- Racket Info -->
-            <view class="service-info">
-              <!-- Member Name (Manager Only) -->
-              <view v-if="isManager" class="info-row">
-                <text class="info-label">会员：</text>
-                <text class="info-value info-member">{{ item.memberName || '-' }}</text>
-              </view>
-              
-              <view class="info-row">
-                <text class="info-label">球拍：</text>
-                <text class="info-value">{{ item.racketBrand }} {{ item.racketModel }}</text>
-              </view>
-              
-              <!-- String Info -->
-              <view class="info-row">
-                <text class="info-label">线材：</text>
-                <text class="info-value">
-                  {{ item.ownString ? '自带线材' : (item.stringName || '-') }}
-                </text>
-              </view>
-              
-              <!-- Tension -->
-              <view class="info-row">
-                <text class="info-label">磅数：</text>
-                <text class="info-value">{{ item.tension }}磅</text>
-              </view>
-              
-              <!-- Create Time -->
-              <view class="info-row">
-                <text class="info-label">时间：</text>
-                <text class="info-value info-time">{{ formatTime(item.createTime) }}</text>
-              </view>
-            </view>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-inner">
+        <view class="header-left">
+          <view class="icon-round" @tap="handleBack">
+            <uni-icons type="left" size="22" color="#ff6600" />
           </view>
-          
-          <!-- Load More Indicator -->
-          <view v-if="hasMore" class="load-more">
-            <view v-if="loadingMore" class="loading-more">
-              <view class="loading-spinner-small"></view>
-              <text class="loading-more-text">加载更多...</text>
-            </view>
-            <text v-else class="load-more-hint">上拉加载更多</text>
-          </view>
-          
-          <!-- No More Data -->
-          <view v-else class="no-more">
-            <text class="no-more-text">没有更多数据了</text>
-          </view>
+          <text class="screen-title">穿线服务</text>
         </view>
+        <view class="cta-btn" @tap="openCreate">+ 新增穿线</view>
       </view>
     </view>
-  </MobileLayout>
+
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+      @scrolltolower="loadMore"
+    >
+      <view class="content">
+        <view class="search-card">
+          <view class="search-field">
+            <uni-icons class="search-ico" type="search" size="20" color="#5f5e5e" />
+            <input
+              v-model="keyword"
+              class="search-input"
+              type="text"
+              placeholder="搜索球拍、线材或服务单号..."
+              @input="onSearchInput"
+            />
+            <view v-if="keyword" class="clear-btn" @tap="clearSearch">
+              <uni-icons type="clear" size="18" color="#5f5e5e" />
+            </view>
+          </view>
+        </view>
+
+        <view class="summary-block">
+          <view class="summary-hero">
+            <text class="summary-label">我的穿线工单</text>
+            <text class="summary-hero-num">{{ summary.total }}</text>
+            <view class="trend-row">
+              <uni-icons type="calendar" size="16" color="#a33e00" />
+              <text class="trend-text">当前账户真实工单数据</text>
+            </view>
+          </view>
+          <view class="summary-grid">
+            <view class="mini-stat border-primary">
+              <text class="mini-label">待处理</text>
+              <text class="mini-num">{{ pad2(summary.pending) }}</text>
+              <text class="mini-sub">等待穿线</text>
+            </view>
+            <view class="mini-stat border-tertiary">
+              <text class="mini-label">进行中</text>
+              <text class="mini-num">{{ pad2(summary.inProgress) }}</text>
+              <text class="mini-sub">正在穿线</text>
+            </view>
+            <view class="mini-stat solid-orange">
+              <text class="mini-label light">已完成</text>
+              <text class="mini-num light">{{ pad2(summary.ready) }}</text>
+              <text class="mini-sub light dim">可随时查看详情</text>
+            </view>
+          </view>
+        </view>
+
+        <scroll-view class="status-scroll" scroll-x :show-scrollbar="false">
+          <view class="status-pills">
+            <view
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="status-pill"
+              :class="{ active: currentTab === tab.key }"
+              @tap="switchTab(tab.key)"
+            >
+              <text>{{ tab.label }}</text>
+            </view>
+          </view>
+        </scroll-view>
+
+        <view v-if="loading && jobs.length === 0" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">正在同步穿线工单…</text>
+        </view>
+
+        <view v-else-if="jobs.length === 0" class="state-card">
+          <text class="state-text">暂无符合条件的穿线工单</text>
+          <view class="state-action" @tap="openCreate">去新增穿线</view>
+        </view>
+
+        <view v-else class="list-wrap">
+          <view v-for="job in jobs" :key="job.id" class="job-card" @tap="openDetail(job)">
+            <view class="job-top">
+              <view>
+                <text class="job-title">{{ job.racketLine }}</text>
+                <text class="job-no">{{ job.serviceNo }}</text>
+              </view>
+              <view class="status-badge" :class="`st-${job.status}`">
+                <text>{{ statusLabel(job.status) }}</text>
+              </view>
+            </view>
+
+            <view class="job-grid">
+              <view class="job-field">
+                <text class="job-label">线材</text>
+                <text class="job-value">{{ job.stringModel }}</text>
+              </view>
+              <view class="job-field">
+                <text class="job-label">磅数</text>
+                <text class="job-value">{{ job.tensionLabel }}</text>
+              </view>
+              <view class="job-field">
+                <text class="job-label">提交时间</text>
+                <text class="job-value">{{ job.timeLabel }}</text>
+              </view>
+              <view class="job-field">
+                <text class="job-label">订单金额</text>
+                <text class="job-value accent">¥{{ job.totalPrice }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="load-more">
+            <text>{{ hasMore ? (loadingMore ? '加载更多中...' : '上拉加载更多') : '没有更多工单了' }}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
-import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
+import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { getStringingList, type StringingService } from '@/api/stringing'
-import { 
-  STRINGING_STATUS, 
-  STRINGING_STATUS_TEXT, 
-  STRINGING_STATUS_COLOR,
-  USER_ROLES
-} from '@/utils/constant'
+import { useUserStore } from '@/store/modules/user'
+import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { STRINGING_STATUS } from '@/utils/constant'
 
-// State
-const currentTab = ref(0)
-const tabs = ref(['全部', '等待穿线', '正在穿线', '已完成', '已取消'])
-const serviceList = ref<StringingService[]>([])
+type JobStatus = 'pending' | 'in_progress' | 'ready' | 'cancelled'
+
+type JobVm = {
+  id: number
+  serviceNo: string
+  racketLine: string
+  stringModel: string
+  tensionLabel: string
+  timeLabel: string
+  totalPrice: string
+  status: JobStatus
+}
+
+const userStore = useUserStore()
+
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+const refreshing = ref(false)
 const loading = ref(false)
 const loadingMore = ref(false)
+const keyword = ref('')
 const page = ref(1)
-const hasMore = ref(true)
-const userStore = useUserStore()
-const searchKeyword = ref('')
+const pageSize = 10
+const total = ref(0)
+const rawList = ref<StringingService[]>([])
+const currentTab = ref<'all' | 'pending' | 'in_progress' | 'ready' | 'cancelled'>('all')
 
-// Check if user is manager (PRESIDENT or VENUE_MANAGER)
-const isManager = computed(() => {
-  return userStore.userRole === 'PRESIDENT' || userStore.userRole === 'VENUE_MANAGER'
+const tabs = [
+  { key: 'all' as const, label: '全部' },
+  { key: 'pending' as const, label: '等待穿线' },
+  { key: 'in_progress' as const, label: '正在穿线' },
+  { key: 'ready' as const, label: '已完成' },
+  { key: 'cancelled' as const, label: '已取消' }
+]
+
+function mapStatus(status: number): JobStatus {
+  if (status === STRINGING_STATUS.WAITING) return 'pending'
+  if (status === STRINGING_STATUS.IN_PROGRESS) return 'in_progress'
+  if (status === STRINGING_STATUS.COMPLETED) return 'ready'
+  return 'cancelled'
+}
+
+function statusLabel(status: JobStatus) {
+  if (status === 'pending') return '等待穿线'
+  if (status === 'in_progress') return '正在穿线'
+  if (status === 'ready') return '已完成'
+  return '已取消'
+}
+
+function formatDateTime(value: string) {
+  if (!value) return '未知时间'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  return `${m}-${d} ${hh}:${mm}`
+}
+
+function formatMoney(value: number | string | undefined) {
+  return (Math.round(Number(value || 0) * 100) / 100).toFixed(2)
+}
+
+const jobs = computed<JobVm[]>(() => {
+  const keywordText = keyword.value.trim().toLowerCase()
+  return rawList.value
+    .map((item) => ({
+      id: item.id,
+      serviceNo: item.serviceNo || `工单 #${item.id}`,
+      racketLine: [item.racketBrand, item.racketModel].filter(Boolean).join(' ') || '未填写球拍',
+      stringModel: item.ownString === 1 || item.isOwnString === 1 ? '自带线材' : item.stringName || item.stringEquipmentName || '未知线材',
+      tensionLabel: `${String(item.pound ?? item.tension ?? '-').replace(/\.0$/, '')} lbs`,
+      timeLabel: formatDateTime(item.createTime),
+      totalPrice: formatMoney(item.totalPrice || item.servicePrice),
+      status: mapStatus(Number(item.status))
+    }))
+    .filter((item) => (currentTab.value === 'all' ? true : item.status === currentTab.value))
+    .filter((item) => {
+      if (!keywordText) return true
+      return `${item.serviceNo} ${item.racketLine} ${item.stringModel}`.toLowerCase().includes(keywordText)
+    })
 })
 
-// Load service list
-const loadServiceList = async (refresh = false) => {
-  // Prevent duplicate requests
-  if (loading.value || loadingMore.value) return
-  
-  // If no more data and not refreshing, return
-  if (!refresh && !hasMore.value) return
-  
-  if (refresh) {
-    page.value = 1
-    hasMore.value = true
-    loading.value = true
-  } else {
-    loadingMore.value = true
+const summary = computed(() => {
+  const pending = rawList.value.filter((item) => mapStatus(Number(item.status)) === 'pending').length
+  const inProgress = rawList.value.filter((item) => mapStatus(Number(item.status)) === 'in_progress').length
+  const ready = rawList.value.filter((item) => mapStatus(Number(item.status)) === 'ready').length
+  return {
+    total: rawList.value.length,
+    pending,
+    inProgress,
+    ready
   }
-  
-  try {
-    // Ensure user is logged in
-    if (!userStore.userId) {
-      uni.showToast({
-        title: '请先登录',
-        icon: 'none'
-      })
-      uni.redirectTo({
-        url: '/pages/login/login'
-      })
-      return
-    }
-    
-    const params: any = {
-      page: page.value,
-      size: 10
-    }
-    
-    // For regular users, filter by their memberId
-    // For managers (PRESIDENT), show all records
-    if (!isManager.value) {
-      params.memberId = userStore.userId
-    }
-    
-    // Add search keyword if provided (for managers)
-    if (isManager.value && searchKeyword.value.trim()) {
-      params.keyword = searchKeyword.value.trim()
-    }
-    
-    // Map tab index to status
-    // 0: 全部 (no status filter)
-    // 1: 等待穿线 (status = 1)
-    // 2: 正在穿线 (status = 2)
-    // 3: 已完成 (status = 3)
-    // 4: 已取消 (status = 0)
-    if (currentTab.value !== 0) {
-      const statusMap = [null, STRINGING_STATUS.WAITING, STRINGING_STATUS.IN_PROGRESS, STRINGING_STATUS.COMPLETED, STRINGING_STATUS.CANCELLED]
-      params.status = statusMap[currentTab.value]
-    }
-    
-    const result = await getStringingList(params)
-    
-    if (refresh) {
-      serviceList.value = result.data
-    } else {
-      serviceList.value.push(...result.data)
-    }
-    
-    // Update pagination state
-    hasMore.value = page.value < result.pages
-    
-    // If there's more data, increment page for next load
-    if (hasMore.value) {
-      page.value++
-    }
-  } catch (error) {
-    console.error('加载穿线服务列表失败:', error)
-    uni.showToast({
-      title: '加载列表失败',
-      icon: 'none'
-    })
-  } finally {
-    loading.value = false
-    loadingMore.value = false
-  }
-}
+})
 
-// Switch tab
-const switchTab = (index: number) => {
-  currentTab.value = index
-  loadServiceList(true)
-}
+const hasMore = computed(() => rawList.value.length < total.value)
 
-// Search with debounce (for managers)
-let searchTimer: ReturnType<typeof setTimeout> | null = null
-const handleSearch = () => {
-  if (searchTimer) {
-    clearTimeout(searchTimer)
-  }
-  
-  searchTimer = setTimeout(() => {
-    loadServiceList(true)
-  }, 500)
-}
-
-// Get status text
-const getStatusText = (status: number) => {
-  return (STRINGING_STATUS_TEXT as unknown as Record<number, string>)[status] || '未知'
-}
-
-// Get status color
-const getStatusColor = (status: number) => {
-  return (STRINGING_STATUS_COLOR as unknown as Record<number, string>)[status] || '#999999'
-}
-
-// Get status background color (lighter version)
-const getStatusBgColor = (status: number) => {
-  const colorMap: Record<number, string> = {
-    [STRINGING_STATUS.CANCELLED]: '#f5f5f5',
-    [STRINGING_STATUS.WAITING]: '#fff3e0',
-    [STRINGING_STATUS.IN_PROGRESS]: '#e3f2fd',
-    [STRINGING_STATUS.COMPLETED]: '#e8f5e9'
-  }
-  return colorMap[status] || '#f5f5f5'
-}
-
-// Format time
-const formatTime = (timeStr: string) => {
-  if (!timeStr) return '-'
-  
-  try {
-    const date = new Date(timeStr)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    
-    return `${year}-${month}-${day} ${hours}:${minutes}`
-  } catch (error) {
-    return timeStr
-  }
-}
-
-// Handle service click
-const handleServiceClick = (item: StringingService) => {
-  uni.navigateTo({
-    url: `/pages/stringing/detail?id=${item.id}`
-  })
-}
-
-// Page mounted
-onMounted(async () => {
-  // Check if user is logged in
-  if (!userStore.isLoggedIn) {
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+async function fetchList(reset = false) {
+  const memberId = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || userStore.userId || 0)
+  if (!memberId) {
+    uni.showToast({ title: '未找到会员信息', icon: 'none' })
     return
   }
-  
-  await loadServiceList(true)
-})
 
-// Pull down refresh
-onPullDownRefresh(() => {
-  loadServiceList(true).finally(() => {
-    uni.stopPullDownRefresh()
+  if (reset) {
+    page.value = 1
+    total.value = 0
+  }
+
+  const targetLoading = reset ? loading : loadingMore
+  targetLoading.value = true
+  try {
+    const res = await getStringingList({
+      memberId,
+      page: page.value,
+      size: pageSize
+    })
+    rawList.value = reset ? (res.data || []) : rawList.value.concat(res.data || [])
+    total.value = Number(res.total || 0)
+  } catch (error) {
+    console.error('加载穿线工单失败:', error)
+    uni.showToast({ title: '加载工单失败', icon: 'none' })
+  } finally {
+    targetLoading.value = false
+  }
+}
+
+function pad2(value: number) {
+  return value < 10 ? `0${value}` : `${value}`
+}
+
+function switchTab(key: typeof currentTab.value) {
+  currentTab.value = key
+}
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+function onSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentTab.value = currentTab.value
+  }, 200)
+}
+
+function clearSearch() {
+  keyword.value = ''
+}
+
+function openCreate() {
+  uni.navigateTo({ url: '/pages/stringing/create' })
+}
+
+function openDetail(job: JobVm) {
+  uni.navigateTo({ url: `/pages/stringing/detail?id=${job.id}` })
+}
+
+function handleBack() {
+  safeNavigateBack('/pages/profile/index')
+}
+
+function loadMore() {
+  if (loading.value || loadingMore.value || !hasMore.value) return
+  page.value += 1
+  void fetchList(false)
+}
+
+function handleRefresh() {
+  refreshing.value = true
+  fetchList(true).finally(() => {
+    refreshing.value = false
   })
-})
+}
 
-// Reach bottom - load more
-onReachBottom(() => {
-  loadServiceList(false)
+onLoad(async () => {
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
+
+  if (!userStore.isLoggedIn) {
+    uni.redirectTo({ url: '/pages/login/login' })
+    return
+  }
+
+  await fetchList(true)
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.stringing-list {
+.page {
   min-height: 100vh;
-  background-color: transparent;
+  background: #f9f9f9;
 }
 
 .header {
-  background-color: #ffffff;
-  padding: 24rpx 28rpx;
-  text-align: center;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(249, 249, 249, 0.92);
+  backdrop-filter: blur(16px);
 }
 
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-}
-
-.filter-tabs {
-  background-color: #ffffff;
-  padding: 18rpx 28rpx;
+.header-inner {
+  min-height: 112rpx;
+  padding: 12rpx 28rpx 20rpx;
   display: flex;
-  gap: 18rpx;
-  overflow-x: auto;
-  border-bottom: 1rpx solid #e6e6e6;
-}
-
-.tab-item {
-  flex-shrink: 0;
-  padding: 10rpx 20rpx;
-  font-size: 24rpx;
-  color: #999999;
-  border-radius: 9999rpx;
-  transition: all 0.3s;
-  
-  &.active {
-    background-color: #3cc51f;
-    color: #ffffff;
-  }
-}
-
-.search-box {
-  background-color: #ffffff;
-  padding: 18rpx 28rpx;
-  border-bottom: 1rpx solid #e6e6e6;
-}
-
-.search-input {
-  width: 100%;
-  height: 64rpx;
-  padding: 0 24rpx;
-  font-size: 24rpx;
-  background-color: #f5f7fa;
-  border-radius: 32rpx;
-  border: none;
-}
-
-.stringing-content {
-  padding: 24rpx 28rpx;
-  padding-bottom: 180rpx;
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  padding: 160rpx 0;
-  gap: 24rpx;
-}
-
-.loading-spinner {
-  width: 60rpx;
-  height: 60rpx;
-  border: 4rpx solid #f3f3f3;
-  border-top: 4rpx solid #3cc51f;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.loading-text {
-  font-size: 24rpx;
-  color: #999999;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 160rpx 0;
-}
-
-.empty-text {
-  font-size: 24rpx;
-  color: #999999;
-}
-
-.service-items {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-.service-card {
-  border-radius: 24rpx;
-  padding: 28rpx;
-}
-
-.service-header {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16rpx;
-  padding-bottom: 12rpx;
-  border-bottom: 1rpx solid #f5f5f5;
-}
-
-.service-no {
-  font-size: 24rpx;
-  font-weight: bold;
-  color: #333333;
-}
-
-.service-status {
-  font-size: 20rpx;
-  padding: 6rpx 12rpx;
-  border-radius: 8rpx;
-  font-weight: 500;
-}
-
-.service-info {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  font-size: 24rpx;
-}
-
-.info-label {
-  color: #999999;
-  min-width: 100rpx;
-}
-
-.info-value {
-  color: #333333;
-  flex: 1;
-}
-
-.info-time {
-  color: #666666;
-}
-
-.info-member {
-  color: #3cc51f;
-  font-weight: 500;
-}
-
-.load-more {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 32rpx 0;
-}
-
-.loading-more {
-  display: flex;
-  align-items: center;
   gap: 16rpx;
 }
 
-.loading-spinner-small {
-  width: 32rpx;
-  height: 32rpx;
-  border: 3rpx solid #f3f3f3;
-  border-top: 3rpx solid #3cc51f;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.loading-more-text {
-  font-size: 24rpx;
-  color: #999999;
-}
-
-.load-more-hint {
-  font-size: 24rpx;
-  color: #cccccc;
-}
-
-.no-more {
+.header-left {
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 32rpx 0;
+  gap: 14rpx;
 }
 
-.no-more-text {
+.icon-round {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.screen-title {
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.cta-btn {
+  height: 72rpx;
+  padding: 0 22rpx;
+  border-radius: 18rpx;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 24rpx;
-  color: #cccccc;
+  font-weight: 800;
+}
+
+.main-scroll {
+  height: 100vh;
+}
+
+.content {
+  padding: 20rpx 18rpx 80rpx;
+}
+
+.search-card,
+.summary-block,
+.job-card,
+.state-card {
+  background: #ffffff;
+  border-radius: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
+}
+
+.search-card {
+  padding: 22rpx 24rpx;
+}
+
+.search-field {
+  position: relative;
+  height: 88rpx;
+  border-radius: 18rpx;
+  background: #f9f9f9;
+  display: flex;
+  align-items: center;
+  padding: 0 18rpx 0 54rpx;
+}
+
+.search-ico {
+  position: absolute;
+  left: 18rpx;
+}
+
+.search-input {
+  flex: 1;
+  height: 100%;
+  font-size: 28rpx;
+  color: #1a1c1c;
+}
+
+.clear-btn {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.summary-block {
+  margin-top: 20rpx;
+  padding: 28rpx 26rpx;
+}
+
+.summary-hero {
+  padding-bottom: 20rpx;
+}
+
+.summary-label {
+  display: block;
+  font-size: 22rpx;
+  color: #6b7280;
+  font-weight: 800;
+}
+
+.summary-hero-num {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 72rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #111111;
+}
+
+.trend-row {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.trend-text {
+  font-size: 22rpx;
+  color: #a33e00;
+  font-weight: 700;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+}
+
+.mini-stat {
+  min-height: 168rpx;
+  border-radius: 22rpx;
+  padding: 20rpx 18rpx;
+  background: #ffffff;
+  border-left: 6rpx solid #a33e00;
+  box-shadow: 0 6rpx 18rpx rgba(15, 23, 42, 0.04);
+}
+
+.mini-stat.border-tertiary { border-left-color: #0062a1; }
+.mini-stat.solid-orange {
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  border-left-color: transparent;
+}
+
+.mini-label {
+  display: block;
+  font-size: 20rpx;
+  color: #6b7280;
+  font-weight: 800;
+}
+
+.mini-num {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 56rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #111111;
+}
+
+.mini-sub {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  color: #5f5e5e;
+}
+
+.light { color: #ffffff; }
+.dim { opacity: 0.84; }
+
+.status-scroll {
+  margin-top: 18rpx;
+  white-space: nowrap;
+}
+
+.status-pills {
+  display: inline-flex;
+  gap: 12rpx;
+  padding-bottom: 8rpx;
+}
+
+.status-pill {
+  min-height: 70rpx;
+  padding: 0 28rpx;
+  border-radius: 9999rpx;
+  background: #e8e8e8;
+  color: #1a1c1c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.status-pill.active {
+  background: #a33e00;
+  color: #ffffff;
+}
+
+.list-wrap {
+  margin-top: 20rpx;
+}
+
+.job-card {
+  padding: 26rpx 24rpx;
+  margin-bottom: 18rpx;
+}
+
+.job-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.job-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.job-no {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.status-badge {
+  min-width: 118rpx;
+  height: 46rpx;
+  padding: 0 14rpx;
+  border-radius: 9999rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+  font-weight: 800;
+}
+
+.st-pending { background: #fff3ec; color: #a33e00; }
+.st-in_progress { background: #e0f2fe; color: #0062a1; }
+.st-ready { background: #dcfce7; color: #166534; }
+.st-cancelled { background: #f1f5f9; color: #64748b; }
+
+.job-grid {
+  margin-top: 22rpx;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18rpx 14rpx;
+}
+
+.job-label {
+  display: block;
+  font-size: 18rpx;
+  color: #6b7280;
+  font-weight: 800;
+}
+
+.job-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #111111;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.job-value.accent {
+  color: #a33e00;
+}
+
+.load-more {
+  padding: 20rpx 0 10rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.state-card {
+  margin-top: 22rpx;
+  padding: 90rpx 28rpx;
+  text-align: center;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #777777;
+}
+
+.state-action {
+  width: 220rpx;
+  height: 76rpx;
+  margin: 22rpx auto 0;
+  border-radius: 9999rpx;
+  background: #ff6600;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

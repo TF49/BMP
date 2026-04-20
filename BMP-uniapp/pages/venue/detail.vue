@@ -1,161 +1,201 @@
 <template>
   <view class="venue-detail-page">
-    <!-- HTML 原型：fixed header bg-neutral-50/70 backdrop-blur-md px-6 py-4 -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="header-inner">
-        <view class="back-btn" @click="handleBack">
-          <uni-icons type="left" size="22" color="#ea580c"></uni-icons>
+    <view class="topbar" :style="{ paddingTop: `${statusBarHeight}px` }">
+      <view class="topbar-inner">
+        <view class="icon-btn" @click="handleBack">
+          <uni-icons type="left" size="20" color="#ff6600" />
         </view>
-        <text class="header-title">Venue Details</text>
-        <view class="header-spacer"></view>
+        <view class="topbar-brand">
+          <text class="brand-word">KINETIC</text>
+          <text class="brand-sub">VENUE PROFILE</text>
+        </view>
+        <view class="icon-btn ghost" @click="handleHistory">
+          <uni-icons type="calendar" size="18" color="#a33e00" />
+        </view>
       </view>
     </view>
 
     <scroll-view
-      class="main-scroll"
+      class="page-scroll"
       scroll-y
-      :style="{
-        marginTop: headerOffsetPx + 'px',
-        height: scrollAreaHeight
-      }"
+      :style="{ marginTop: `${headerOffsetPx}px`, height: scrollAreaHeight }"
       :show-scrollbar="false"
     >
-      <!-- Hero：h-[397px] full-bleed，hero-gradient，底部左侧橙色营业胶囊 -->
-      <view class="hero-wrap">
-        <image
-          v-if="venue.venueImage"
-          class="hero-img"
-          :src="resolveImageUrl(venue.venueImage)"
-          mode="aspectFill"
-        />
-        <view v-else class="hero-placeholder">
-          <uni-icons type="image" size="32" color="#999999"></uni-icons>
-        </view>
-        <view class="hero-gradient" />
-        <view class="hero-chip-wrap">
-          <text class="status-chip" :class="{ 'status-offline': venue.status !== 1 }">
-            {{ venue.status === 1 ? '营业中' : '已关闭' }}
-          </text>
-        </view>
+      <view v-if="loading" class="state-panel">
+        <view class="state-spinner" />
+        <text class="state-title">加载场馆中</text>
+        <text class="state-desc">正在同步场馆信息与预约资料</text>
       </view>
 
-      <!-- article.px-6 -mt-4 -->
-      <view class="article">
-        <view class="venue-head">
-          <text class="venue-name">{{ venue.name }}</text>
-          <view class="rating-row">
-            <view class="rating-left">
-              <uni-icons type="star-filled" size="14" color="#a33e00"></uni-icons>
-              <text class="rating-num">4.9</text>
-              <text class="rating-reviews">(120+ Reviews)</text>
-            </view>
-            <view class="rating-dot"></view>
-            <text class="rating-grade">Professional Grade</text>
+      <view v-else-if="venue.id" class="page-body">
+        <view class="hero-shell">
+          <image
+            v-if="venue.venueImage"
+            class="hero-image"
+            :src="resolveImageUrl(venue.venueImage)"
+            mode="aspectFill"
+          />
+          <view v-else class="hero-placeholder">
+            <uni-icons type="image" size="40" color="#9ca3af" />
           </view>
-        </view>
-
-        <!-- grid gap-4：移动端单列，与 tailwind grid-cols-1 一致 -->
-        <view class="detail-grid">
-          <view class="surface-card">
-            <view class="card-row">
-              <view class="icon-tile">
-                <uni-icons type="location" size="22" color="#a33e00"></uni-icons>
-              </view>
-              <view class="card-main">
-                <text class="card-label">地址</text>
-                <text class="card-text">{{ venue.location || '暂无地址信息' }}</text>
-              </view>
+          <view class="hero-overlay" />
+          <view class="hero-content">
+            <view class="hero-tags">
+              <text class="hero-pill">{{ venue.status === 1 ? 'BOOKING OPEN' : 'TEMP CLOSED' }}</text>
+              <text class="hero-pill soft">{{ openHoursText }}</text>
             </view>
-          </view>
-
-          <view class="surface-card">
-            <view class="card-row">
-              <view class="icon-tile">
-                <uni-icons type="person" size="22" color="#a33e00"></uni-icons>
+            <text class="hero-title">{{ venue.name || '场馆详情' }}</text>
+            <view class="hero-meta">
+              <view class="hero-meta-item">
+                <uni-icons type="location" size="14" color="#ffffff" />
+                <text class="hero-meta-text">{{ venue.location || '暂无地址' }}</text>
               </view>
-              <view class="card-main">
-                <text class="card-label">联系人 / 电话</text>
-                <view class="contact-line">
-                  <view>
-                    <text class="contact-name">{{ venue.contactPerson || '管理员' }}</text>
-                    <text class="contact-phone">{{ venue.contactPhone || '暂无联系电话' }}</text>
-                  </view>
-                  <view v-if="venue.contactPhone" class="call-btn" @click="handleCall(venue.contactPhone)">
-                    <uni-icons type="phone" size="16" color="#ffffff"></uni-icons>
-                  </view>
-                </view>
-              </view>
-            </view>
-          </view>
-
-          <view class="surface-card">
-            <view class="card-row">
-              <view class="icon-tile">
-                <uni-icons type="refreshtime" size="22" color="#a33e00"></uni-icons>
-              </view>
-              <view class="card-main">
-                <text class="card-label">营业时间</text>
-                <text class="card-strong">{{ venue.businessHours || '08:00 - 22:30' }}</text>
-                <text class="card-muted">周一至周日 (含法定节假日)</text>
-              </view>
-            </view>
-          </view>
-
-          <view class="surface-card">
-            <view class="card-row">
-              <view class="icon-tile">
-                <uni-icons type="medal" size="22" color="#a33e00"></uni-icons>
-              </view>
-              <view class="card-main">
-                <text class="card-label">场地规格</text>
-                <text class="card-strong">24 片标准塑胶场地</text>
-                <text class="card-muted">YONEX 官方认证垫层</text>
+              <view class="hero-meta-item">
+                <uni-icons type="star-filled" size="14" color="#ffffff" />
+                <text class="hero-meta-text">4.9 / 120+ 条评价</text>
               </view>
             </view>
           </view>
         </view>
 
-        <view class="desc-block">
-          <text class="desc-heading">场馆描述</text>
-          <view class="desc-box">
-            <text class="desc-body">
-              {{
-                venue.description ||
-                  '奥林匹克羽毛球中心是亚洲领先的羽毛球运动综合体。我们提供符合世界羽联（BWF）标准的专业灯光与地胶系统，有效减少运动员关节冲击。馆内常年保持 24℃ 恒温，并配备专业淋浴间、能量补给站及顶级器材租赁服务。无论是职业训练还是业余休闲，这里都是您挥洒汗水的首选之地。'
-              }}
+        <view class="summary-ribbon">
+          <view class="summary-card warm">
+            <text class="summary-label">Hourly From</text>
+            <view class="summary-value-row">
+              <text class="summary-unit">¥</text>
+              <text class="summary-value">{{ displayHourlyPrice }}</text>
+              <text class="summary-tail">/ 小时</text>
+            </view>
+          </view>
+          <view class="summary-card">
+            <text class="summary-label">Business Time</text>
+            <text class="summary-mini">{{ openHoursText }}</text>
+          </view>
+          <view class="summary-card">
+            <text class="summary-label">Contact</text>
+            <text class="summary-mini">{{ venue.contactPerson || '场馆前台' }}</text>
+          </view>
+        </view>
+
+        <view class="section-card spotlight-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Venue Snapshot</text>
+              <text class="section-title">预约前快速了解</text>
+            </view>
+            <text class="section-badge" :class="{ offline: venue.status !== 1 }">
+              {{ venue.status === 1 ? '可预约' : '暂停营业' }}
+            </text>
+          </view>
+
+          <view class="spotlight-grid">
+            <view class="spotlight-item">
+              <view class="spotlight-icon">
+                <uni-icons type="location" size="18" color="#ff6600" />
+              </view>
+              <text class="spotlight-label">场馆位置</text>
+              <text class="spotlight-value">{{ venue.location || '暂无地址信息' }}</text>
+            </view>
+            <view class="spotlight-item">
+              <view class="spotlight-icon">
+                <uni-icons type="person" size="18" color="#ff6600" />
+              </view>
+              <text class="spotlight-label">联系人</text>
+              <text class="spotlight-value">{{ venue.contactPerson || '场馆管理员' }}</text>
+            </view>
+            <view class="spotlight-item">
+              <view class="spotlight-icon">
+                <uni-icons type="phone" size="18" color="#ff6600" />
+              </view>
+              <text class="spotlight-label">联系电话</text>
+              <text class="spotlight-value">{{ venue.contactPhone || '暂无联系电话' }}</text>
+            </view>
+            <view class="spotlight-item">
+              <view class="spotlight-icon">
+                <uni-icons type="refreshtime" size="18" color="#ff6600" />
+              </view>
+              <text class="spotlight-label">营业时段</text>
+              <text class="spotlight-value">{{ openHoursText }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-card">
+          <view class="section-head compact">
+            <view>
+              <text class="section-kicker">Highlights</text>
+              <text class="section-title">场馆亮点与服务</text>
+            </view>
+          </view>
+          <view class="feature-pills">
+            <view v-for="item in amenityList" :key="item.label" class="feature-pill">
+              <uni-icons :type="item.icon" size="16" color="#1a1c1c" />
+              <text class="feature-text">{{ item.label }}</text>
+            </view>
+          </view>
+          <view class="feature-panel">
+            <text class="feature-panel-title">Professional Atmosphere</text>
+            <text class="feature-panel-text">
+              {{ descriptionText }}
             </text>
           </view>
         </view>
 
-        <view class="amenities">
-          <view v-for="(item, idx) in amenityList" :key="idx" class="amenity-pill">
-            <uni-icons :type="item.icon" size="18" color="#1a1c1c"></uni-icons>
-            <text class="amenity-label">{{ item.label }}</text>
+        <view class="section-card action-card">
+          <view class="section-head compact">
+            <view>
+              <text class="section-kicker">Quick Actions</text>
+              <text class="section-title">预约前常用操作</text>
+            </view>
+          </view>
+          <view class="action-grid">
+            <view class="action-tile" @click="handleCall(venue.contactPhone)">
+              <view class="action-icon filled">
+                <uni-icons type="phone" size="18" color="#ffffff" />
+              </view>
+              <text class="action-name">联系场馆</text>
+              <text class="action-copy">咨询营业时段与场地情况</text>
+            </view>
+            <view class="action-tile" @click="handleHistory">
+              <view class="action-icon">
+                <uni-icons type="calendar" size="18" color="#ff6600" />
+              </view>
+              <text class="action-name">查看预约</text>
+              <text class="action-copy">快速返回你的历史预约列表</text>
+            </view>
+            <view class="action-tile" @click="handleShare">
+              <view class="action-icon">
+                <uni-icons type="redo" size="18" color="#ff6600" />
+              </view>
+              <text class="action-name">分享场馆</text>
+              <text class="action-copy">把这家场馆发给球友一起约场</text>
+            </view>
           </view>
         </view>
 
-        <!-- 对应 HTML main.pb-32，避免内容被底部 nav 遮挡 -->
-        <view class="main-pad-bottom"></view>
+        <view class="scroll-buffer" />
+      </view>
+
+      <view v-else class="state-panel">
+        <text class="state-title">场馆不存在</text>
+        <text class="state-desc">这条场馆信息可能已下线或被移除</text>
       </view>
     </scroll-view>
 
-    <!-- fixed bottom nav：白/80 blur、大圆角顶、Share / History / CTA -->
-    <view class="bottom-shell">
-      <view class="bottom-glass"></view>
-      <view class="bottom-inner">
-        <view class="bottom-secondary">
-          <view class="sec-btn" @click="handleShare">
-            <uni-icons type="paperplane" size="22" color="#a3a3a3"></uni-icons>
-            <text class="sec-label">Share</text>
-          </view>
-          <view class="sec-btn" @click="handleHistory">
-            <uni-icons type="calendar" size="22" color="#a3a3a3"></uni-icons>
-            <text class="sec-label">History</text>
+    <view v-if="venue.id" class="bottom-bar">
+      <view class="bottom-glass" />
+      <view class="bottom-content">
+        <view class="bottom-price">
+          <text class="bottom-label">Starting Price</text>
+          <view class="bottom-amount-row">
+            <text class="bottom-currency">¥</text>
+            <text class="bottom-amount">{{ displayHourlyPrice }}</text>
+            <text class="bottom-unit">/ 小时</text>
           </view>
         </view>
-        <view class="cta-btn" @click="handleBook">
-          <text class="cta-label">立即预约</text>
-          <uni-icons type="right" size="18" color="#ffffff"></uni-icons>
+        <view class="bottom-cta" @click="handleBook">
+          <text class="bottom-cta-text">立即预约</text>
+          <uni-icons type="right" size="18" color="#ffffff" />
         </view>
       </view>
     </view>
@@ -163,27 +203,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import { getVenueDetail } from '@/api/venue'
 import type { VenueItem } from '@/api/venue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
-
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
-/* 顶栏：状态栏下约 52px（含 py-16px 与标题行） */
-const headerBarPx = 52
-
-const headerOffsetPx = computed(() => statusBarHeight.value + headerBarPx)
-
-const scrollAreaHeight = computed(() => {
-  const h = systemInfo.windowHeight || systemInfo.screenHeight
-  return `${h - headerOffsetPx.value}px`
-})
-
-const venueId = ref(0)
 
 type VenueDetailVm = {
   id: number
@@ -195,7 +221,20 @@ type VenueDetailVm = {
   businessHours: string
   description: string
   status: number
+  hourlyPrice: number
 }
+
+const systemInfo = uni.getSystemInfoSync()
+const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
+const headerOffsetPx = computed(() => statusBarHeight.value + 64)
+const scrollAreaHeight = computed(() => {
+  const viewport = systemInfo.windowHeight || systemInfo.screenHeight || 0
+  return `${Math.max(viewport - headerOffsetPx.value, 0)}px`
+})
+
+const userStore = useUserStore()
+const venueId = ref(0)
+const loading = ref(true)
 
 const venue = ref<VenueDetailVm>({
   id: 0,
@@ -206,17 +245,31 @@ const venue = ref<VenueDetailVm>({
   contactPerson: '',
   businessHours: '',
   description: '',
-  status: 1
+  status: 1,
+  hourlyPrice: 0
 })
 
 const amenityList = [
   { icon: 'sound', label: 'Free Wifi' },
   { icon: 'location', label: 'Parking' },
-  { icon: 'loop', label: 'Showers' },
-  { icon: 'bolt', label: 'A/C' }
+  { icon: 'compose', label: 'Locker Room' },
+  { icon: 'staff', label: 'Pro Support' },
+  { icon: 'fire', label: 'Warm-up Zone' },
+  { icon: 'medal', label: 'Match Standard' }
 ] as const
 
-const userStore = useUserStore()
+const descriptionText = computed(() => {
+  return (
+    venue.value.description ||
+    '场馆提供标准羽毛球训练与比赛环境，适合日常约场、朋友对打、训练提升与社群活动。整体空间明亮，动线清晰，适合高频复购型用户。'
+  )
+})
+
+const openHoursText = computed(() => venue.value.businessHours || '08:00 - 22:30')
+const displayHourlyPrice = computed(() => {
+  const price = Number(venue.value.hourlyPrice || 0)
+  return Number.isFinite(price) ? price.toFixed(0) : '0'
+})
 
 function mapVenue(result: VenueItem): VenueDetailVm {
   return {
@@ -228,23 +281,32 @@ function mapVenue(result: VenueItem): VenueDetailVm {
     contactPerson: result.contactPerson || '',
     businessHours: result.businessHours || '',
     description: result.description || '',
-    status: result.status ?? 1
+    status: result.status ?? 1,
+    hourlyPrice: Number(result.hourlyPrice || 0)
   }
 }
 
 async function loadVenueDetail() {
-  if (!venueId.value) return
+  if (!venueId.value) {
+    loading.value = false
+    return
+  }
+  loading.value = true
   try {
     const result = await getVenueDetail(venueId.value)
     venue.value = mapVenue(result)
   } catch (error) {
     console.error('加载场馆详情失败:', error)
     uni.showToast({ title: '加载场馆详情失败', icon: 'none' })
+  } finally {
+    loading.value = false
   }
 }
 
 onLoad(async (options?: Record<string, string | undefined>) => {
-  if (options?.id) venueId.value = Number(options.id)
+  if (options?.id) {
+    venueId.value = Number(options.id)
+  }
   if (!userStore.isLoggedIn) {
     uni.redirectTo({ url: '/pages/login/login' })
     return
@@ -252,436 +314,570 @@ onLoad(async (options?: Record<string, string | undefined>) => {
   await loadVenueDetail()
 })
 
-const handleBack = () => safeNavigateBack()
+function handleBack() {
+  safeNavigateBack()
+}
 
-const handleCall = (phone: string) => {
+function handleCall(phone?: string) {
+  if (!phone) {
+    uni.showToast({ title: '暂无联系电话', icon: 'none' })
+    return
+  }
   uni.makePhoneCall({ phoneNumber: phone })
 }
 
-const handleBook = () => {
+function handleBook() {
+  if (!venue.value.id || venue.value.status !== 1) {
+    uni.showToast({ title: venue.value.status === 1 ? '场馆信息异常' : '场馆暂不可预约', icon: 'none' })
+    return
+  }
   uni.navigateTo({ url: `/pages/venue/booking?venueId=${venue.value.id}` })
 }
 
-const handleShare = () => uni.showToast({ title: '分享功能开发中', icon: 'none' })
-const handleHistory = () => uni.navigateTo({ url: '/pages/booking/list' })
+function handleShare() {
+  uni.showToast({ title: '分享功能开发中', icon: 'none' })
+}
+
+function handleHistory() {
+  uni.navigateTo({ url: '/pages/booking/list' })
+}
 </script>
 
 <style lang="scss" scoped>
-/* Design tokens — 与 tailwind 配置一致 */
-$bg-surface: #f9f9f9;
-$on-surface: #1a1c1c;
-$primary: #a33e00;
-$on-secondary-container: #636262;
-$surface-container-lowest: #ffffff;
-$surface-container-low: #f3f3f3;
-$secondary-container: #e2dfde;
-$on-surface-variant: #5a4136;
-$primary-container: #ff6600;
-$on-primary-container: #561d00;
-
 .venue-detail-page {
   min-height: 100vh;
-  background-color: $bg-surface;
-  color: $on-surface;
-  font-family: 'Lexend', 'PingFang SC', 'Helvetica Neue', system-ui, sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(255, 102, 0, 0.12), transparent 28%),
+    #f9f9f9;
+  color: #1a1c1c;
 }
 
-.header {
+.topbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 50;
-  background-color: rgba(250, 250, 250, 0.7);
-  backdrop-filter: blur(12px);
+  background: rgba(249, 249, 249, 0.78);
+  backdrop-filter: blur(20rpx);
 }
 
-.header-inner {
+.topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  box-sizing: border-box;
+  padding: 22rpx 28rpx;
 }
 
-.back-btn {
-  width: 24px;
-  height: 40px;
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.96);
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
+  box-shadow: 0 10rpx 28rpx rgba(26, 28, 28, 0.06);
+
   &:active {
     transform: scale(0.96);
   }
+
+  &.ghost {
+    background: rgba(255, 241, 234, 0.9);
+  }
 }
 
-.header-title {
-  font-size: 18px;
+.topbar-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.brand-word {
+  font-size: 30rpx;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 1rpx;
+  color: #a33e00;
+}
+
+.brand-sub {
+  font-size: 18rpx;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: $on-surface;
+  letter-spacing: 4rpx;
+  color: #8e7164;
 }
 
-.header-spacer {
-  width: 24px;
-  height: 1px;
-}
-
-.main-scroll {
+.page-scroll {
   box-sizing: border-box;
 }
 
-.hero-wrap {
-  position: relative;
-  width: 100%;
-  height: 397px;
-  overflow: hidden;
+.page-body {
+  padding: 0 24rpx 0;
 }
 
-.hero-img,
+.hero-shell {
+  position: relative;
+  height: 720rpx;
+  border-radius: 0 0 36rpx 36rpx;
+  overflow: hidden;
+  box-shadow: 0 18rpx 40rpx rgba(26, 28, 28, 0.08);
+}
+
+.hero-image,
 .hero-placeholder {
   width: 100%;
   height: 100%;
 }
 
 .hero-placeholder {
-  background: #eeeeee;
+  background: linear-gradient(135deg, #f3f3f3 0%, #e2e2e2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.hero-gradient {
+.hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(25, 26, 26, 0.4) 0%,
-    rgba(25, 26, 26, 0) 40%,
-    rgba(249, 249, 249, 1) 100%
-  );
-  pointer-events: none;
+  background: linear-gradient(180deg, rgba(26, 28, 28, 0.12) 0%, rgba(26, 28, 28, 0.78) 100%);
 }
 
-/* bottom-8 left-6 */
-.hero-chip-wrap {
+.hero-content {
   position: absolute;
-  bottom: 32px;
-  left: 24px;
+  left: 28rpx;
+  right: 28rpx;
+  bottom: 34rpx;
   z-index: 2;
 }
 
-.status-chip {
-  background-color: $primary-container;
-  color: $on-primary-container;
-  padding: 6px 16px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
 
-  &.status-offline {
-    background-color: #e2e2e2;
-    color: $on-surface-variant;
-    box-shadow: none;
+.hero-pill {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 18rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+  color: #561d00;
+  background: #ff6600;
+
+  &.soft {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(14rpx);
   }
 }
 
-.article {
-  padding: 0 24px;
-  margin-top: -16px;
-  position: relative;
-  z-index: 10;
+.hero-title {
+  display: block;
+  font-size: 58rpx;
+  line-height: 1.08;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -1rpx;
 }
 
-.venue-head {
+.hero-meta {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 32px;
+  gap: 10rpx;
+  margin-top: 20rpx;
 }
 
-.venue-name {
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  color: $on-surface;
-}
-
-.rating-row {
+.hero-meta-item {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
+  gap: 10rpx;
 }
 
-.rating-left {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: $primary;
-}
-
-.rating-num {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.rating-reviews {
-  font-size: 12px;
-  color: $on-secondary-container;
-  margin-left: 4px;
-  font-weight: 500;
-}
-
-.rating-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #e2e2e2;
-}
-
-.rating-grade {
-  font-size: 12px;
-  font-weight: 500;
-  color: $on-secondary-container;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.detail-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.surface-card {
-  background: $surface-container-lowest;
-  border-radius: 12px;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.card-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.icon-tile {
-  padding: 12px;
-  background: $surface-container-low;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.card-main {
+.hero-meta-text {
   flex: 1;
-  min-width: 0;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.92);
 }
 
-.card-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  color: $on-secondary-container;
+.summary-ribbon {
+  margin-top: -38rpx;
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.summary-card {
+  min-height: 138rpx;
+  padding: 22rpx 20rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16rpx 32rpx rgba(26, 28, 28, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  &.warm {
+    background: linear-gradient(135deg, #fff0e8 0%, #ffffff 100%);
+  }
+}
+
+.summary-label {
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #8e7164;
+  letter-spacing: 2rpx;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 4px;
 }
 
-.card-text {
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.6;
-  color: $on-surface;
+.summary-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
 }
 
-.card-strong {
-  display: block;
-  font-size: 14px;
+.summary-unit,
+.summary-tail {
+  font-size: 20rpx;
+  color: #5f5e5e;
+}
+
+.summary-value {
+  font-size: 46rpx;
+  font-weight: 900;
+  color: #a33e00;
+  line-height: 1;
+}
+
+.summary-mini {
+  font-size: 24rpx;
   font-weight: 700;
-  color: $on-surface;
+  color: #1a1c1c;
+  line-height: 1.35;
 }
 
-.card-muted {
-  display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: $on-secondary-container;
+.section-card {
+  margin-top: 28rpx;
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16rpx 36rpx rgba(26, 28, 28, 0.05);
 }
 
-.contact-line {
+.spotlight-card {
+  margin-top: 24rpx;
+}
+
+.section-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+
+  &.compact {
+    margin-bottom: 20rpx;
+  }
 }
 
-.contact-name {
+.section-kicker {
   display: block;
-  font-size: 14px;
-  font-weight: 700;
-  color: $on-surface;
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #a33e00;
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
 }
 
-.contact-phone {
+.section-title {
   display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: $on-secondary-container;
+  margin-top: 8rpx;
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+  letter-spacing: -0.6rpx;
 }
 
-.call-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: $primary;
+.section-badge {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: #ffefe7;
+  color: #a33e00;
+  font-size: 20rpx;
+  font-weight: 800;
+
+  &.offline {
+    background: #eeeeee;
+    color: #636262;
+  }
+}
+
+.spotlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+}
+
+.spotlight-item {
+  min-height: 196rpx;
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: #f8f5f3;
+  display: flex;
+  flex-direction: column;
+}
+
+.spotlight-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 102, 0, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  &:active {
-    transform: scale(1.05);
-  }
 }
 
-.desc-block {
-  margin-top: 32px;
+.spotlight-label {
+  margin-top: 16rpx;
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #8e7164;
+  letter-spacing: 2rpx;
 }
 
-.desc-heading {
-  display: block;
-  font-size: 10px;
+.spotlight-value {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
   font-weight: 700;
-  color: $on-secondary-container;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  margin-bottom: 16px;
+  color: #1a1c1c;
 }
 
-.desc-box {
-  background: $surface-container-low;
-  padding: 24px;
-  border-radius: 16px;
-  border-left: 4px solid $primary;
-  box-sizing: border-box;
-}
-
-.desc-body {
-  font-size: 14px;
-  line-height: 1.75;
-  font-weight: 500;
-  font-style: italic;
-  color: $on-surface-variant;
-}
-
-.amenities {
+.feature-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 32px;
+  gap: 14rpx;
 }
 
-.amenity-pill {
+.feature-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: $secondary-container;
+  gap: 8rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 999rpx;
+  background: #f3f3f3;
+}
+
+.feature-text {
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.feature-panel {
+  margin-top: 24rpx;
+  padding: 26rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #fff8f3 0%, #f3f3f3 100%);
+  border-left: 8rpx solid #ff6600;
+}
+
+.feature-panel-title {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 900;
+  color: #a33e00;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.feature-panel-text {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.8;
+  color: #5a4136;
+}
+
+.action-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf6 100%);
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.action-tile {
+  min-height: 206rpx;
+  padding: 22rpx 18rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2rpx solid rgba(255, 102, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+
   &:active {
-    transform: scale(1.02);
+    transform: scale(0.98);
   }
 }
 
-.amenity-label {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: capitalize;
-  letter-spacing: 0.06em;
-  color: $on-surface;
+.action-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 102, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.filled {
+    background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  }
 }
 
-/* pb-32 ≈ 128px + 安全区 */
-.main-pad-bottom {
-  height: calc(128px + env(safe-area-inset-bottom));
+.action-name {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  font-weight: 900;
+  color: #1a1c1c;
 }
 
-.bottom-shell {
+.action-copy {
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  line-height: 1.6;
+  color: #6b625c;
+}
+
+.scroll-buffer {
+  height: calc(180rpx + env(safe-area-inset-bottom));
+}
+
+.bottom-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 50;
+  z-index: 40;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 .bottom-glass {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(24px);
-  border-top-left-radius: 40px;
-  border-top-right-radius: 40px;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(24rpx);
+  box-shadow: 0 -16rpx 40rpx rgba(26, 28, 28, 0.06);
 }
 
-.bottom-inner {
+.bottom-content {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 32px 40px;
-  box-sizing: border-box;
+  gap: 20rpx;
+  padding: 22rpx 24rpx 20rpx;
 }
 
-.bottom-secondary {
-  display: flex;
-  gap: 16px;
-}
-
-.sec-btn {
+.bottom-price {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  border-radius: 12px;
-  color: #a3a3a3;
-  &:active {
-    background: #f5f5f5;
-  }
 }
 
-.sec-label {
-  margin-top: 4px;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
+.bottom-label {
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #8e7164;
+  letter-spacing: 2rpx;
   text-transform: uppercase;
 }
 
-.cta-btn {
+.bottom-amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+  margin-top: 8rpx;
+}
+
+.bottom-currency,
+.bottom-unit {
+  font-size: 22rpx;
+  color: #5f5e5e;
+}
+
+.bottom-amount {
+  font-size: 48rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.bottom-cta {
+  min-width: 260rpx;
+  padding: 24rpx 30rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  box-shadow: 0 14rpx 30rpx rgba(255, 102, 0, 0.22);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 32px;
-  border-radius: 16px;
-  background: linear-gradient(45deg, #a33e00 0%, #ff6600 100%);
-  box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.2);
+  justify-content: center;
+  gap: 10rpx;
+
   &:active {
     transform: scale(0.98);
-    opacity: 0.95;
   }
 }
 
-.cta-label {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
+.bottom-cta-text {
+  font-size: 28rpx;
+  font-weight: 900;
   color: #ffffff;
+  letter-spacing: 1rpx;
+}
+
+.state-panel {
+  min-height: 60vh;
+  padding: 140rpx 48rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.state-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 999rpx;
+  border: 6rpx solid #e8e8e8;
+  border-top-color: #ff6600;
+  animation: spin 0.8s linear infinite;
+}
+
+.state-title {
+  margin-top: 24rpx;
+  font-size: 32rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.state-desc {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #6b625c;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

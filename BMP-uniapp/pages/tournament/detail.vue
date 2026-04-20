@@ -1,569 +1,975 @@
 <template>
-  <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-inner">
+        <view class="round-btn" @tap="handleBack">
+          <uni-icons type="left" size="22" color="#ff6600" />
+        </view>
         <text class="header-title">赛事详情</text>
-        <view class="header-actions">
-          <view class="action-icon" @click="handleShare"><uni-icons type="paperplane" size="18" color="#475569"></uni-icons></view>
-          <view class="action-icon" @click="handleFavorite"><uni-icons type="heart" size="18" color="#475569"></uni-icons></view>
+        <view class="round-btn ghost-btn" @tap="handleShare">
+          <uni-icons type="redo" size="18" color="#ff6600" />
         </view>
       </view>
     </view>
 
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Tournament Banner -->
-      <view class="tournament-banner">
-        <view class="banner-image">
-          <text class="image-placeholder">Tournament Banner</text>
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+    >
+      <view class="content">
+        <view v-if="loading" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">正在加载赛事详情…</text>
         </view>
-        <view class="banner-content">
-          <view class="tournament-main">
-            <text class="tournament-name">{{ tournament.name }}</text>
-            <text class="tournament-status" :class="getStatusClass(tournament.status)">
-              {{ getStatusText(tournament.status) }}
-            </text>
-          </view>
-          <view class="tournament-meta">
-            <view class="meta-item">
-              <uni-icons type="calendar" size="16" color="#475569"></uni-icons>
-              <text class="meta-text">{{ tournament.date }} {{ tournament.time }}</text>
+
+        <view v-else-if="errorText" class="state-card">
+          <text class="state-text">{{ errorText }}</text>
+          <view class="state-action" @tap="loadTournamentDetail">重新加载</view>
+        </view>
+
+        <template v-else-if="detail">
+          <view class="hero-card">
+            <image class="hero-image" src="/static/placeholders/hero.svg" mode="aspectFill" />
+            <view class="hero-overlay" />
+            <view class="hero-content">
+              <view class="hero-pill">
+                <uni-icons type="checkbox-filled" size="14" color="#561d00" />
+                <text>{{ detail.statusText }}</text>
+              </view>
+              <text class="hero-title">{{ detail.name }}</text>
+              <view class="hero-location">
+                <uni-icons type="location" size="16" color="#f5f5f5" />
+                <text>{{ detail.location }}</text>
+              </view>
             </view>
-            <view class="meta-item">
-              <uni-icons type="location" size="16" color="#475569"></uni-icons>
-              <text class="meta-text">{{ tournament.location }}</text>
+          </view>
+
+          <view class="stats-grid">
+            <view class="stat-card">
+              <text class="stat-label">日期</text>
+              <text class="stat-value">{{ detail.dateRange }}</text>
             </view>
-            <view class="meta-item">
-              <uni-icons type="wallet" size="16" color="#475569"></uni-icons>
-              <text class="meta-text">报名费 ¥{{ tournament.fee }}</text>
+            <view class="stat-card">
+              <text class="stat-label">级别</text>
+              <text class="stat-value">{{ detail.levelText }}</text>
+            </view>
+            <view class="stat-card">
+              <text class="stat-label">赛制</text>
+              <text class="stat-value">{{ detail.modeText }}</text>
+            </view>
+            <view class="stat-card stat-card-accent">
+              <text class="stat-label accent-label">奖金池</text>
+              <text class="stat-value accent-value">{{ detail.prizeText }}</text>
             </view>
           </view>
-        </view>
-      </view>
 
-      <!-- Tournament Info -->
-      <view class="section tournament-info">
-        <view class="info-item">
-          <text class="info-label">赛事级别</text>
-          <text class="info-value">{{ tournament.level }}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">参赛人数</text>
-          <text class="info-value">{{ tournament.participants }}/{{ tournament.maxParticipants }}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">报名截止</text>
-          <text class="info-value">{{ tournament.registrationDeadline }}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">主办方</text>
-          <text class="info-value">{{ tournament.organizer }}</text>
-        </view>
-      </view>
-
-      <!-- Description -->
-      <view class="section description-section">
-        <text class="section-title">赛事介绍</text>
-        <text class="description-text">{{ tournament.description }}</text>
-      </view>
-
-      <!-- Rules -->
-      <view class="section rules-section">
-        <text class="section-title">比赛规则</text>
-        <text class="rules-text">{{ tournament.rules }}</text>
-      </view>
-
-      <!-- Registration Info -->
-      <view class="section registration-section">
-        <text class="section-title">报名信息</text>
-        <view class="info-item">
-          <text class="info-label">报名条件</text>
-          <text class="info-value">{{ tournament.requirements }}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">奖励设置</text>
-          <text class="info-value">{{ tournament.prizes }}</text>
-        </view>
-      </view>
-
-      <!-- Participants -->
-      <view class="section participants-section">
-        <text class="section-title">参赛选手</text>
-        <view class="participants-list">
-          <view v-for="(participant, index) in tournament.participantsList" :key="index" class="participant-item">
-            <text class="participant-name">{{ participant.name }}</text>
-            <text class="participant-level">{{ participant.level }}</text>
+          <view class="section-card">
+            <text class="section-title">赛事日程</text>
+            <view class="timeline-list">
+              <view
+                v-for="(group, index) in detail.scheduleGroups"
+                :key="`${group.dayLabel}-${index}`"
+                class="timeline-group"
+                :class="{ separated: index > 0 }"
+              >
+                <view class="timeline-date">
+                  <text class="timeline-day">{{ group.dayLabel }}</text>
+                  <text class="timeline-week">{{ group.weekLabel }}</text>
+                </view>
+                <view class="timeline-events">
+                  <view
+                    v-for="event in group.events"
+                    :key="`${group.dayLabel}-${event.title}`"
+                    class="timeline-event"
+                    :class="{ featured: event.featured }"
+                  >
+                    <view>
+                      <text class="event-title">{{ event.title }}</text>
+                      <text class="event-place">{{ event.place }}</text>
+                    </view>
+                    <text class="event-time">{{ event.time }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
           </view>
-        </view>
+
+          <view class="section-card">
+            <text class="section-title">比赛规则</text>
+            <view class="rule-list">
+              <view
+                v-for="(item, index) in detail.rules"
+                :key="`${index}-${item}`"
+                class="rule-item"
+              >
+                <view class="rule-icon">
+                  <uni-icons type="checkbox-filled" size="16" color="#ff6600" />
+                </view>
+                <text class="rule-text">{{ item }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="action-card">
+            <view class="price-block">
+              <text class="price-label">报名费</text>
+              <view class="price-line">
+                <text class="price-sign">¥</text>
+                <text class="price-amount">{{ detail.feeText }}</text>
+                <text class="price-unit">/人</text>
+              </view>
+            </view>
+
+            <view class="meta-list">
+              <view class="meta-row">
+                <text class="meta-row-label">剩余名额</text>
+                <text class="meta-row-value accent">{{ detail.remaining }} / {{ detail.maxParticipants }}</text>
+              </view>
+              <view class="meta-row">
+                <text class="meta-row-label">截止日期</text>
+                <text class="meta-row-value">{{ detail.deadlineText }}</text>
+              </view>
+            </view>
+
+            <view class="cta-btn" :class="{ disabled: !detail.canRegister }" @tap="handleRegister">
+              <text>{{ detail.canRegister ? detail.actionText : '当前不可报名' }}</text>
+              <uni-icons v-if="detail.canRegister" type="right" size="18" color="#561d00" />
+            </view>
+            <text class="action-tip">{{ detail.tipText }}</text>
+          </view>
+        </template>
       </view>
     </scroll-view>
 
-    <!-- Action Bar -->
-    <view class="action-bar">
-      <button class="action-btn favorite-btn" @click="handleFavoriteBtn">
-        <uni-icons type="heart" size="18" color="#475569" class="btn-icon"></uni-icons>
-        <text class="btn-text">收藏</text>
-      </button>
-      <button 
-        class="action-btn register-btn" 
-        :class="{ disabled: !canRegister }"
-        :disabled="!canRegister"
-        @click="handleRegister"
-      >
-        <uni-icons type="medal" size="18" color="#ffffff" class="btn-icon"></uni-icons>
-        <text class="btn-text">
-          {{ registerButtonText }}
-        </text>
-      </button>
+    <view v-if="detail" class="bottom-bar">
+      <view class="bottom-price">
+        <text class="bottom-label">报名费</text>
+        <text class="bottom-value">¥{{ detail.feeText }}</text>
+      </view>
+      <view class="bottom-btn" :class="{ disabled: !detail.canRegister }" @tap="handleRegister">
+        <text>{{ detail.canRegister ? detail.actionText : '当前不可报名' }}</text>
+      </view>
     </view>
-  </MobileLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { getTournamentDetail, type TournamentItem } from '@/api/tournament'
 import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
-import { getTournamentDetail } from '@/api/tournament'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
-// 响应式数据
-const tournamentId = ref<number>(0)
-const tournament = ref<any>({
-  id: 0,
-  name: '2026年春季羽毛球友谊赛',
-  date: '2026-03-15',
-  time: '09:00-17:00',
-  location: '市体育馆羽毛球馆',
-  level: '业余组',
-  fee: 50,
-  maxParticipants: 64,
-  participants: 32,
-  status: 1,
-  registrationDeadline: '2026-03-10',
-  organizer: '市羽毛球协会',
-  description: '本次比赛旨在促进羽毛球爱好者之间的交流，提高技术水平，增进友谊。比赛采用淘汰制，欢迎广大羽毛球爱好者踊跃报名参赛。',
-  rules: '1. 比赛采用三局两胜制\n2. 每局21分\n3. 发球权轮换\n4. 选手需自备球拍',
-  requirements: '身体健康，无心脏病等不适合剧烈运动的疾病',
-  prizes: '冠军：奖金2000元+奖杯\n亚军：奖金1000元+奖杯\n季军：奖金500元+奖杯',
-  participantsList: [
-    { name: '张三', level: '业余高手' },
-    { name: '李四', level: '中级水平' },
-    { name: '王五', level: '中级水平' }
-  ]
-})
+type TimelineEvent = {
+  title: string
+  place: string
+  time: string
+  featured?: boolean
+}
+
+type TimelineGroup = {
+  dayLabel: string
+  weekLabel: string
+  events: TimelineEvent[]
+}
+
+type TournamentDetailVm = {
+  id: number
+  name: string
+  statusText: string
+  location: string
+  dateRange: string
+  levelText: string
+  modeText: string
+  prizeText: string
+  feeText: string
+  remaining: number
+  maxParticipants: number
+  deadlineText: string
+  canRegister: boolean
+  actionText: string
+  tipText: string
+  scheduleGroups: TimelineGroup[]
+  rules: string[]
+}
 
 const userStore = useUserStore()
 
-// 计算属性
-const canRegister = computed(() => {
-  return tournament.value.status === 1 && 
-         tournament.value.participants < tournament.value.maxParticipants
-})
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+const refreshing = ref(false)
+const loading = ref(true)
+const errorText = ref('')
+const tournamentId = ref(0)
+const tournament = ref<TournamentItem | null>(null)
 
-const registerButtonText = computed(() => {
-  if (tournament.value.status === 1) {
-    if (tournament.value.participants >= tournament.value.maxParticipants) {
-      return '人数已满'
-    }
-    return '立即报名'
-  } else if (tournament.value.status === 2) {
-    return '进行中'
-  } else if (tournament.value.status === 3) {
-    return '已结束'
+function pad2(value: number) {
+  return value < 10 ? `0${value}` : `${value}`
+}
+
+function toDate(raw?: string) {
+  if (!raw) return null
+  const date = new Date(String(raw).replace(/-/g, '/'))
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function formatMoney(value: number) {
+  return Number(value || 0).toLocaleString('zh-CN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  })
+}
+
+function formatMonthDay(raw?: string) {
+  const date = toDate(raw)
+  if (!date) return '日期待定'
+  return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
+function formatFullDate(raw?: string) {
+  const date = toDate(raw)
+  if (!date) return '待定'
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+}
+
+function formatDateRange(start?: string, end?: string) {
+  const startDate = toDate(start)
+  const endDate = toDate(end)
+  if (!startDate && !endDate) return '日期待定'
+  if (startDate && !endDate) return formatMonthDay(start)
+  if (!startDate && endDate) return formatMonthDay(end)
+  if (!startDate || !endDate) return '日期待定'
+
+  const startMonth = startDate.getMonth() + 1
+  const endMonth = endDate.getMonth() + 1
+  const startDay = startDate.getDate()
+  const endDay = endDate.getDate()
+
+  if (startMonth === endMonth) {
+    return `${startMonth}月${startDay}日 - ${endDay}日`
   }
-  return '查看详情'
-})
+  return `${startMonth}月${startDay}日 - ${endMonth}月${endDay}日`
+}
 
-// 页面加载
-onLoad((options?: Record<string, string | undefined>) => {
-  if (options?.id) {
-    tournamentId.value = Number(options.id)
-  }
-})
+function formatWeekday(raw?: string) {
+  const date = toDate(raw)
+  if (!date) return '待定'
+  const weekMap = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  return weekMap[date.getDay()]
+}
 
-// 获取状态文本
-const getStatusText = (status: number) => {
-  const statusMap: Record<number, string> = {
+function addDays(raw: string | undefined, days: number) {
+  const date = toDate(raw)
+  if (!date) return null
+  date.setDate(date.getDate() + days)
+  return date
+}
+
+function formatDayLabel(date: Date | null, fallback: string) {
+  if (!date) return fallback
+  return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
+function formatWeekLabel(date: Date | null, fallback: string) {
+  if (!date) return fallback
+  const weekMap = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  return weekMap[date.getDay()]
+}
+
+function resolveStatusText(status?: number) {
+  const map: Record<number, string> = {
     0: '已取消',
     1: '报名中',
     2: '进行中',
     3: '已结束'
   }
-  return statusMap[status] || '未知'
+  return map[Number(status)] || '报名中'
 }
 
-// 获取状态样式类
-const getStatusClass = (status: number) => {
-  const classMap: Record<number, string> = {
-    0: 'status-cancelled',
-    1: 'status-registering',
-    2: 'status-ongoing',
-    3: 'status-ended'
-  }
-  return classMap[status] || ''
+function resolveModeText(item: TournamentItem) {
+  const source = `${item.tournamentType || ''}${item.description || ''}`
+  if (/循环/u.test(source)) return '循环赛'
+  if (/积分/u.test(source)) return '积分赛'
+  if (/团体/u.test(source)) return '团体赛'
+  return '淘汰赛'
 }
 
-// 加载赛事详情
-const loadTournamentDetail = async () => {
-  try {
-    const result = await getTournamentDetail(tournamentId.value)
-    
-    // 将API数据转换为页面所需格式
-    tournament.value = {
-      id: result.id,
-      name: result.tournamentName,
-      date: result.startDate,
-      time: result.startTime,
-      location: result.location,
-      level: result.level || '业余',
-      fee: result.entryFee || 0,
-      maxParticipants: result.maxParticipants,
-      participants: result.currentParticipants || 0,
-      status: result.status,
-      registrationDeadline: result.registrationDeadline,
-      organizer: result.organizer || '主办方',
-      description: result.description,
-      rules: result.rules || '比赛规则',
-      requirements: result.requirements || '报名条件',
-      prizes: result.prizes || '奖励设置',
-      participantsList: result.participantsList || []
+function resolveLevelText(item: TournamentItem) {
+  if (item.level?.trim()) return item.level.trim()
+  const type = item.tournamentType || ''
+  if (/青少年/u.test(type)) return '青少年组'
+  if (/双打/u.test(type)) return '业余双打组'
+  if (/单打/u.test(type)) return '业余单打组'
+  return '业余 A/B组'
+}
+
+function resolvePrizeText(item: TournamentItem) {
+  const source = `${item.prizeInfo || ''} ${item.prizes || ''}`.trim()
+  const moneyMatch = source.match(/¥\s*[\d,]+(?:\.\d+)?/)
+  if (moneyMatch) return moneyMatch[0].replace(/\s+/g, '')
+  if (source) return source.length > 14 ? `${source.slice(0, 14)}…` : source
+  return '¥5,000'
+}
+
+function buildSchedule(item: TournamentItem): TimelineGroup[] {
+  const start = toDate(item.tournamentStart || item.startDate)
+  const end = toDate(item.tournamentEnd || item.tournamentStart || item.startDate)
+  const midStart = addDays(item.tournamentStart || item.startDate, 1)
+  const midEnd = addDays(item.tournamentEnd || item.tournamentStart || item.startDate, -1)
+  const venue = item.venueName || item.location || '中心场地'
+
+  const groups: TimelineGroup[] = [
+    {
+      dayLabel: formatDayLabel(start, '首日'),
+      weekLabel: formatWeekLabel(start, '待定'),
+      events: [
+        { title: '签到与检录', place: '主大厅', time: '上午 08:00' },
+        { title: '开幕式', place: venue, time: '上午 09:30' }
+      ]
     }
-  } catch (error) {
-    console.error('加载赛事详情失败:', error)
-    uni.showToast({
-      title: '加载赛事详情失败',
-      icon: 'none'
+  ]
+
+  if (midStart && end && midStart.getTime() < end.getTime()) {
+    groups.push({
+      dayLabel:
+        midEnd && midEnd.getTime() >= midStart.getTime()
+          ? `${midStart.getMonth() + 1}月${midStart.getDate()}日-${midEnd.getDate()}日`
+          : formatDayLabel(midStart, '中段赛程'),
+      weekLabel:
+        midEnd && midEnd.getTime() >= midStart.getTime()
+          ? `${formatWeekLabel(midStart, '周中')} - ${formatWeekLabel(midEnd, '周中')}`
+          : formatWeekLabel(midStart, '周中'),
+      events: [
+        { title: '预选赛', place: '所有场地', time: '09:00 - 18:00' }
+      ]
     })
   }
-}
 
-// 返回上一页
-const handleBack = () => {
-  safeNavigateBack()
-}
-
-// 分享功能
-const handleShare = () => {
-  uni.showActionSheet({
-    itemList: ['微信好友', '朋友圈', '复制链接'],
-    success: (res) => {
-      uni.showToast({
-        title: `已分享给${['微信好友', '朋友圈', '复制链接'][res.tapIndex]}`,
-        icon: 'none'
-      })
-    }
+  groups.push({
+    dayLabel: formatDayLabel(end, '决赛日'),
+    weekLabel: formatWeekLabel(end, '待定'),
+    events: [
+      { title: '决赛与颁奖典礼', place: venue, time: '14:00', featured: true }
+    ]
   })
+
+  return groups
 }
 
-// 收藏功能
-const handleFavorite = () => {
+function buildRules(item: TournamentItem) {
+  const source = String(item.rules || '').trim()
+  if (!source) {
+    return [
+      '参赛选手必须在预定比赛时间前至少 30 分钟到达并检录。',
+      '采用世界羽联标准计分系统，三局两胜，每局 21 分。',
+      '比赛场地仅允许穿着无痕室内球鞋。',
+      '裁判长的决定即为最终裁决。'
+    ]
+  }
+
+  const normalized = source
+    .split(/\r?\n|；|;/)
+    .map((itemText) => itemText.replace(/^\d+[.、]\s*/u, '').trim())
+    .filter(Boolean)
+
+  return normalized.length > 0 ? normalized.slice(0, 6) : [source]
+}
+
+const detail = computed<TournamentDetailVm | null>(() => {
+  if (!tournament.value) return null
+
+  const maxParticipants = Math.max(0, Number(tournament.value.maxParticipants || 0))
+  const currentParticipants = Math.max(0, Number(tournament.value.currentParticipants || 0))
+  const remaining = Math.max(0, maxParticipants - currentParticipants)
+  const statusText = resolveStatusText(tournament.value.status)
+  const canRegister = Number(tournament.value.status) === 1 && remaining > 0
+
+  return {
+    id: tournament.value.id,
+    name: tournament.value.tournamentName || '赛事详情',
+    statusText,
+    location: tournament.value.venueName || tournament.value.location || '市中心动能体育馆',
+    dateRange: formatDateRange(tournament.value.tournamentStart || tournament.value.startDate, tournament.value.tournamentEnd),
+    levelText: resolveLevelText(tournament.value),
+    modeText: resolveModeText(tournament.value),
+    prizeText: resolvePrizeText(tournament.value),
+    feeText: formatMoney(Number(tournament.value.entryFee || 0)),
+    remaining,
+    maxParticipants,
+    deadlineText: formatFullDate(tournament.value.registrationEnd || tournament.value.registrationDeadline),
+    canRegister,
+    actionText: canRegister ? '立即报名' : statusText,
+    tipText: canRegister ? '报名即表示您同意比赛条款和条件。' : '当前赛事已暂停报名，可返回列表查看其他赛事。',
+    scheduleGroups: buildSchedule(tournament.value),
+    rules: buildRules(tournament.value)
+  }
+})
+
+async function loadTournamentDetail() {
+  if (!tournamentId.value) {
+    loading.value = false
+    errorText.value = '缺少赛事参数'
+    return
+  }
+
+  loading.value = true
+  errorText.value = ''
+  try {
+    tournament.value = await getTournamentDetail(tournamentId.value)
+  } catch (error) {
+    console.error('加载赛事详情失败:', error)
+    errorText.value = error instanceof Error ? error.message : '加载赛事详情失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleBack() {
+  safeNavigateBack('/pages/tournament/list')
+}
+
+function handleShare() {
+  if (!detail.value) return
   uni.showToast({
-    title: '已收藏',
+    title: `已准备分享 ${detail.value.name}`,
     icon: 'none'
   })
 }
 
-// 收藏按钮
-const handleFavoriteBtn = () => {
-  handleFavorite()
-}
-
-// 报名赛事
-const handleRegister = () => {
-  if (canRegister.value) {
-    uni.showModal({
-      title: '报名确认',
-      content: `确定要报名"${tournament.value.name}"吗？报名费: ¥${tournament.value.fee}`,
-      success: (res) => {
-        if (res.confirm) {
-          uni.navigateTo({
-            url: `/pages/tournament/register?id=${tournament.value.id}`
-          })
-        }
-      }
-    })
-  }
-}
-
-// 页面加载时获取数据
-onMounted(async () => {
-  // 检查用户是否已登录
-  if (!userStore.isLoggedIn) {
-    // 未登录用户重定向到登录页
-    uni.redirectTo({
-      url: '/pages/login/login'
+function handleRegister() {
+  if (!detail.value) return
+  if (!detail.value.canRegister) {
+    uni.showToast({
+      title: '当前赛事暂不可报名',
+      icon: 'none'
     })
     return
   }
-  
-  if (tournamentId.value) {
-    await loadTournamentDetail()
+  uni.navigateTo({
+    url: `/pages/tournament/register?id=${detail.value.id}`
+  })
+}
+
+function handleRefresh() {
+  refreshing.value = true
+  loadTournamentDetail().finally(() => {
+    refreshing.value = false
+  })
+}
+
+onLoad(async (options?: Record<string, string | undefined>) => {
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
+
+  if (!userStore.isLoggedIn) {
+    uni.redirectTo({ url: '/pages/login/login' })
+    return
   }
+
+  tournamentId.value = Number(options?.id || 0)
+  await loadTournamentDetail()
+})
+
+onPullDownRefresh(() => {
+  loadTournamentDetail().finally(() => {
+    uni.stopPullDownRefresh()
+  })
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fbfbfb 0%, #f3f3f3 100%);
+  color: #1a1c1c;
 }
 
-.header-content {
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(249, 249, 249, 0.95);
+  backdrop-filter: blur(18px);
+}
+
+.header-inner {
+  min-height: 112rpx;
+  padding: 10rpx 26rpx 18rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
-}
-
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
-}
-
-.header-actions {
-  display: flex;
-  gap: 24rpx;
-}
-
-.action-icon {
-  font-size: 32rpx;
-  color: #999999;
-}
-
-.content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
-}
-
-.tournament-banner {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-}
-
-.banner-image {
-  height: 240rpx;
-  background-color: #f5f5f5;
+.round-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 9999rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(26, 28, 28, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(153, 153, 153, 0.3);
-  font-size: 20rpx;
 }
 
-.banner-content {
-  padding: 28rpx;
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.tournament-main {
+.header-title {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #a33e00;
+  letter-spacing: -1rpx;
+}
+
+.main-scroll {
+  height: 100vh;
+}
+
+.content {
+  padding: 0 18rpx 220rpx;
+}
+
+.hero-card,
+.section-card,
+.action-card,
+.stat-card,
+.state-card {
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.04);
+}
+
+.hero-card {
+  position: relative;
+  height: 430rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
+  margin-top: 20rpx;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 18, 32, 0.12) 0%, rgba(11, 18, 32, 0.9) 100%);
+}
+
+.hero-content {
+  position: absolute;
+  left: 28rpx;
+  right: 28rpx;
+  bottom: 28rpx;
+  z-index: 2;
+}
+
+.hero-pill {
+  width: fit-content;
+  min-width: 144rpx;
+  height: 54rpx;
+  padding: 0 18rpx;
+  border-radius: 9999rpx;
+  background: #ff6600;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20rpx;
+  align-items: center;
+  gap: 8rpx;
+  color: #561d00;
+  font-size: 22rpx;
+  font-weight: 900;
 }
 
-.tournament-name {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
+.hero-title {
+  display: block;
+  margin-top: 22rpx;
+  font-size: 56rpx;
+  line-height: 1.08;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.28);
 }
 
-.tournament-status {
-  font-size: 20rpx;
-  padding: 6rpx 12rpx;
-  border-radius: 6rpx;
-  
-  &.status-registering {
-    background-color: #e8f5e9;
-    color: #3cc51f;
-  }
-  
-  &.status-closed {
-    background-color: #fff3e0;
-    color: #ff9800;
-  }
-  
-  &.status-ongoing {
-    background-color: #e3f2fd;
-    color: #2196f3;
-  }
-  
-  &.status-ended {
-    background-color: #f5f5f5;
-    color: #999999;
-  }
-  
-  &.status-cancelled {
-    background-color: #ffebee;
-    color: #f44336;
-  }
+.hero-location {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
 }
 
-.tournament-meta {
+.stats-grid {
+  margin-top: 20rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.stat-card {
+  min-height: 150rpx;
+  border-radius: 22rpx;
+  padding: 24rpx 22rpx;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
 }
 
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
+.stat-card-accent {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 102, 0, 0.08) 0%, rgba(255, 102, 0, 0.02) 100%),
+    rgba(255, 255, 255, 0.97);
 }
 
-.meta-icon {
-  font-size: 24rpx;
-  color: #999999;
+.stat-label {
+  font-size: 21rpx;
+  font-weight: 800;
+  color: #6b7280;
+  letter-spacing: 1rpx;
 }
 
-.meta-text {
-  font-size: 22rpx;
-  color: #666666;
+.accent-label {
+  color: #a33e00;
 }
 
-.section {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-  padding: 28rpx;
+.stat-value {
+  font-size: 29rpx;
+  line-height: 1.35;
+  font-weight: 900;
+  color: #1a1c1c;
 }
 
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #f3f4f6;
-
-  &:last-child {
-    border-bottom: none;
-  }
+.accent-value {
+  color: #a33e00;
+  font-size: 34rpx;
 }
 
-.info-label {
-  font-size: 24rpx;
-  color: #999999;
-  width: 120rpx;
-}
-
-.info-value {
-  font-size: 24rpx;
-  color: #333333;
-  flex: 1;
-  text-align: right;
+.section-card {
+  margin-top: 22rpx;
+  border-radius: 28rpx;
+  padding: 30rpx 26rpx;
 }
 
 .section-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  margin-bottom: 24rpx;
   display: block;
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #101010;
 }
 
-.description-text, .rules-text {
-  font-size: 24rpx;
-  color: #666666;
-  line-height: 1.6;
+.timeline-list {
+  margin-top: 28rpx;
 }
 
-.participants-section {
-  .participants-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12rpx;
-  }
-
-  .participant-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12rpx 0;
-    border-bottom: 1rpx solid #f3f4f6;
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  .participant-name {
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .participant-level {
-    font-size: 20rpx;
-    color: #999999;
-  }
-}
-
-.action-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+.timeline-group {
   display: flex;
-  height: 120rpx;
-  background-color: #ffffff;
-  border-top: 1rpx solid #e6e6e6;
-  padding: 0 28rpx;
-  box-sizing: border-box;
-  align-items: center;
+  gap: 22rpx;
 }
 
-.action-btn {
+.timeline-group.separated {
+  margin-top: 28rpx;
+  padding-top: 28rpx;
+  border-top: 2rpx solid #ededed;
+}
+
+.timeline-date {
+  width: 160rpx;
+  flex-shrink: 0;
+}
+
+.timeline-day {
+  display: block;
+  font-size: 31rpx;
+  font-weight: 900;
+  color: #a33e00;
+}
+
+.timeline-week {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: #6b7280;
+}
+
+.timeline-events {
   flex: 1;
-  height: 80rpx;
-  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.timeline-event {
+  padding: 22rpx 22rpx;
+  border-radius: 20rpx;
+  background: #f3f3f3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.timeline-event.featured {
+  background: rgba(255, 102, 0, 0.06);
+  border: 2rpx solid rgba(255, 102, 0, 0.15);
+}
+
+.event-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.timeline-event.featured .event-title,
+.timeline-event.featured .event-time {
+  color: #a33e00;
+}
+
+.event-place {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.event-time {
+  font-size: 25rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+  text-align: right;
+}
+
+.rule-list {
+  margin-top: 26rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+}
+
+.rule-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-top: 2rpx;
+  flex-shrink: 0;
+}
+
+.rule-text {
+  flex: 1;
+  font-size: 25rpx;
+  line-height: 1.7;
+  color: #5a4136;
+}
+
+.action-card {
+  margin-top: 22rpx;
+  border-radius: 28rpx;
+  padding: 32rpx 26rpx 28rpx;
+}
+
+.price-label,
+.meta-row-label {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 800;
+  color: #6b7280;
+  letter-spacing: 1rpx;
+}
+
+.price-line {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: baseline;
+  gap: 6rpx;
+}
+
+.price-sign {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.price-amount {
+  font-size: 72rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #1a1c1c;
+  letter-spacing: -2rpx;
+}
+
+.price-unit {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.meta-list {
+  margin-top: 26rpx;
+}
+
+.meta-row {
+  padding: 20rpx 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2rpx solid #efefef;
+}
+
+.meta-row:last-child {
+  border-bottom: none;
+}
+
+.meta-row-value {
+  font-size: 27rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.meta-row-value.accent {
+  color: #ff6600;
+}
+
+.cta-btn {
+  margin-top: 24rpx;
+  height: 92rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  color: #561d00;
+  box-shadow: 0 12rpx 30rpx rgba(255, 102, 0, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10rpx;
+  font-size: 31rpx;
+  font-weight: 900;
+}
+
+.cta-btn.disabled {
+  background: #d7d7d7;
+  color: #8b8b8b;
+  box-shadow: none;
+}
+
+.action-tip {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 21rpx;
+  line-height: 1.5;
+  text-align: center;
+  color: #7b7b7b;
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 -8rpx 30rpx rgba(26, 28, 28, 0.05);
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.bottom-price {
+  min-width: 180rpx;
+}
+
+.bottom-label {
+  display: block;
+  font-size: 20rpx;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.bottom-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 46rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.bottom-btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 18rpx;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  color: #561d00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 900;
+  box-shadow: 0 10rpx 26rpx rgba(255, 102, 0, 0.22);
+}
+
+.bottom-btn.disabled {
+  background: #d7d7d7;
+  color: #8b8b8b;
+  box-shadow: none;
+}
+
+.state-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  padding: 90rpx 28rpx;
+  text-align: center;
+}
+
+.state-text {
   font-size: 28rpx;
-  font-weight: bold;
-  border: none;
-  margin: 20rpx 8rpx;
-
-  .btn-icon {
-    margin-right: 8rpx;
-    font-size: 28rpx;
-  }
-
-  .btn-text {
-    font-size: 28rpx;
-  }
+  color: #777777;
 }
 
-.favorite-btn {
-  background-color: #f5f5f5;
-  color: #333333;
-}
-
-.register-btn {
-  background-color: #3cc51f;
+.state-action {
+  width: 220rpx;
+  height: 76rpx;
+  margin: 22rpx auto 0;
+  border-radius: 9999rpx;
+  background: #ff6600;
   color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  &.disabled {
-    background-color: #cccccc;
-    color: #999999;
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

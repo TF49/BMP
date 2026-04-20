@@ -1,55 +1,77 @@
 <template>
   <view class="booking-page">
-    <header class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="header-content">
-        <view class="left-section">
-          <view class="back-btn" @click="handleBack">
-            <uni-icons type="left" size="24" color="#ff6600" />
+    <view class="topbar" :style="{ paddingTop: `${statusBarHeight}px` }">
+      <view class="topbar-inner">
+        <view class="topbar-left">
+          <view class="icon-btn" @click="handleBack">
+            <uni-icons type="left" size="20" color="#ff6600" />
           </view>
-          <text class="title">场地预约</text>
+          <view class="topbar-copy">
+            <text class="topbar-title">场地预约</text>
+            <text class="topbar-sub">BOOKING FLOW</text>
+          </view>
         </view>
-        <text class="brand">KINETIC</text>
+        <text class="topbar-brand">KINETIC</text>
       </view>
-    </header>
+    </view>
 
-    <scroll-view class="main-content" scroll-y :style="{ height: scrollHeight }">
-      <section class="hero-section">
+    <scroll-view class="page-scroll" scroll-y :style="{ height: scrollHeight }" :show-scrollbar="false">
+      <view class="hero-shell">
         <image
           v-if="venue.venueImage"
           class="hero-image"
           :src="resolveImageUrl(venue.venueImage)"
           mode="aspectFill"
         />
-        <view v-else class="hero-image-placeholder">
-          <uni-icons type="image" size="48" color="#999999" />
+        <view v-else class="hero-placeholder">
+          <uni-icons type="image" size="44" color="#9ca3af" />
         </view>
         <view class="hero-overlay" />
-        <view class="hero-info">
-          <view class="status-row">
-            <text class="status-badge" :class="{ 'status-offline': venue.status !== 1 }">
-              {{ venue.status === 1 ? '营业中' : '已关闭' }}
-            </text>
-            <view class="rating-badge">
-              <uni-icons type="star-filled" size="12" color="#ffffff" />
-              <text class="rating-text">4.9 (120+)</text>
-            </view>
+        <view class="hero-content">
+          <view class="hero-badges">
+            <text class="hero-badge">{{ venue.status === 1 ? 'BOOKING OPEN' : 'UNAVAILABLE' }}</text>
+            <text class="hero-badge soft">{{ monthLabel || '本周可预约' }}</text>
           </view>
-          <text class="venue-name">{{ venue.name }}</text>
-          <view class="location-row">
-            <uni-icons type="location" size="14" color="#ffffff" />
-            <text class="location-text">{{ venue.location || '暂无地址' }}</text>
+          <text class="hero-title">{{ venue.name || '场地预约' }}</text>
+          <view class="hero-meta">
+            <view class="hero-meta-item">
+              <uni-icons type="location" size="14" color="#ffffff" />
+              <text class="hero-meta-text">{{ venue.location || '暂无地址' }}</text>
+            </view>
+            <view class="hero-meta-item">
+              <uni-icons type="star-filled" size="14" color="#ffffff" />
+              <text class="hero-meta-text">按场地规则自动计费</text>
+            </view>
           </view>
         </view>
-      </section>
+      </view>
 
-      <view class="selection-canvas">
-        <section class="date-picker-section">
-          <view class="section-header">
-            <view class="header-left">
-              <text class="label">预约排期</text>
-              <text class="h3">选择日期</text>
+      <view class="page-body">
+        <view class="overview-grid">
+          <view class="overview-card warm">
+            <text class="overview-kicker">Estimated</text>
+            <text class="overview-value">¥{{ totalPrice }}</text>
+            <text class="overview-hint">{{ canEstimate ? durationLabel : '完成选择后自动计算' }}</text>
+          </view>
+          <view class="overview-card">
+            <text class="overview-kicker">Selected Court</text>
+            <text class="overview-mini">{{ selectedCourt?.name || '待选择场地' }}</text>
+            <text class="overview-hint">{{ selectedCourt?.status === 1 ? '当前可预约' : '请先选择可用场地' }}</text>
+          </view>
+          <view class="overview-card">
+            <text class="overview-kicker">Booking Day</text>
+            <text class="overview-mini">{{ selectedDateDisplay }}</text>
+            <text class="overview-hint">支持未来 7 天自由预约</text>
+          </view>
+        </view>
+
+        <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Schedule</text>
+              <text class="section-title">选择日期</text>
             </view>
-            <text class="month-label">{{ monthLabel }}</text>
+            <text class="section-note">{{ monthLabel || '近期档期' }}</text>
           </view>
           <scroll-view class="date-scroll" scroll-x show-scrollbar="false">
             <view class="date-list">
@@ -60,20 +82,23 @@
                 :class="{ active: selectedDateIndex === index }"
                 @click="handleDateChange(index)"
               >
-                <text class="week">{{ item.isToday ? '今天' : item.week }}</text>
-                <text class="day">{{ item.day }}</text>
+                <text class="date-week">{{ item.isToday ? '今天' : item.week }}</text>
+                <text class="date-day">{{ item.day }}</text>
+                <text class="date-month">{{ item.monthText }}</text>
               </view>
             </view>
           </scroll-view>
-        </section>
+        </view>
 
-        <section class="court-section">
-          <view class="section-header">
-            <view class="header-left">
-              <text class="label">场地偏好</text>
-              <text class="h3">选择场地</text>
+        <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Court</text>
+              <text class="section-title">选择场地</text>
             </view>
+            <text class="section-note">共 {{ courts.length }} 片场地</text>
           </view>
+
           <view class="court-grid">
             <view
               v-for="(court, index) in courts"
@@ -82,40 +107,46 @@
               :class="{ selected: selectedCourtIndex === index, occupied: court.status !== 1 }"
               @click="handleCourtSelect(index)"
             >
-              <view class="card-header">
-                <text class="court-number">{{ court.number }}</text>
-                <text v-if="selectedCourtIndex === index" class="selected-badge">已选</text>
-                <text v-else-if="court.status !== 1" class="occupied-badge">不可约</text>
+              <view class="court-top">
+                <text class="court-code">COURT {{ court.number }}</text>
+                <text v-if="selectedCourtIndex === index" class="court-state active">已选</text>
+                <text v-else-if="court.status !== 1" class="court-state disabled">不可约</text>
+                <text v-else class="court-state normal">可预约</text>
               </view>
               <text class="court-name">{{ court.name }}</text>
               <text class="court-desc">{{ court.desc }}</text>
+              <view class="court-tags">
+                <text class="court-tag">{{ court.billingType === 'TIME' ? '按次计费' : '按小时计费' }}</text>
+                <text class="court-tag">{{ court.status === 1 ? '即时确认' : '暂停使用' }}</text>
+              </view>
               <text class="court-price">¥{{ court.displayPrice }}/{{ court.billingType === 'TIME' ? '次' : '小时' }}</text>
             </view>
           </view>
-        </section>
+        </view>
 
-        <section class="time-section">
-          <view class="section-header">
-            <view class="header-left">
-              <text class="label">时段状态</text>
-              <text class="h3">自由选择时间</text>
+        <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Time Slot</text>
+              <text class="section-title">选择时间</text>
             </view>
+            <text class="section-note">{{ isEndAfterStart ? durationLabel : '请选择有效时间段' }}</text>
           </view>
 
-          <view class="time-grid-panel">
+          <view class="time-grid">
             <view class="time-card">
-              <text class="time-card-label">开始时间</text>
+              <text class="time-label">开始时间</text>
               <picker mode="time" :value="startTime" @change="onStartTimeChange">
-                <view class="time-card-value">
+                <view class="time-value">
                   <uni-icons type="clock" size="16" color="#ff6600" />
                   <text>{{ startTime || '请选择开始时间' }}</text>
                 </view>
               </picker>
             </view>
             <view class="time-card">
-              <text class="time-card-label">结束时间</text>
+              <text class="time-label">结束时间</text>
               <picker mode="time" :value="endTime" @change="onEndTimeChange">
-                <view class="time-card-value">
+                <view class="time-value">
                   <uni-icons type="redo" size="16" color="#ff6600" />
                   <text>{{ endTime || '请选择结束时间' }}</text>
                 </view>
@@ -123,14 +154,30 @@
             </view>
           </view>
 
+          <view class="quick-slot-wrap">
+            <text class="quick-slot-title">常用时段</text>
+            <view class="quick-slot-list">
+              <view
+                v-for="slot in quickSlots"
+                :key="slot.label"
+                class="quick-slot-item"
+                :class="{ active: startTime === slot.start && endTime === slot.end }"
+                @click="applyQuickSlot(slot.start, slot.end)"
+              >
+                <text class="quick-slot-label">{{ slot.label }}</text>
+                <text class="quick-slot-time">{{ slot.start }} - {{ slot.end }}</text>
+              </view>
+            </view>
+          </view>
+
           <view class="tips-card">
             <view class="tips-row">
               <uni-icons type="info" size="14" color="#ff6600" />
-              <text>预约时间支持自由选择，最终金额按场地计费规则自动计算。</text>
+              <text>预约时间支持自由选择，金额会按场地计费方式自动计算。</text>
             </view>
             <view class="tips-row">
               <uni-icons type="calendar" size="14" color="#ff6600" />
-              <text>当前预计时长 {{ durationLabel }}</text>
+              <text>若该时间段已有预约，系统会在下方及时提醒。</text>
             </view>
           </view>
 
@@ -141,30 +188,68 @@
             </view>
             <text class="conflict-text">当前有 {{ occupancyCount }} 条重叠预约，请调整时间后再提交。</text>
             <view v-if="occupancyUsers.length" class="conflict-list">
-              <view v-for="item in occupancyUsers" :key="`${item.bookingId}-${item.startTime}-${item.endTime}`" class="conflict-item">
+              <view
+                v-for="item in occupancyUsers"
+                :key="`${item.bookingId}-${item.startTime}-${item.endTime}`"
+                class="conflict-item"
+              >
                 <text class="conflict-user">{{ item.memberName || '已预约会员' }}</text>
                 <text class="conflict-time">{{ item.startTime }} - {{ item.endTime }}</text>
               </view>
             </view>
           </view>
-        </section>
-      </view>
+        </view>
 
-      <view class="bottom-spacer" />
+        <view class="section-card summary-card">
+          <view class="section-head compact">
+            <view>
+              <text class="section-kicker">Booking Summary</text>
+              <text class="section-title">预约摘要</text>
+            </view>
+          </view>
+
+          <view class="summary-lines">
+            <view class="summary-line">
+              <text class="line-label">场馆</text>
+              <text class="line-value">{{ venue.name || '待确认' }}</text>
+            </view>
+            <view class="summary-line">
+              <text class="line-label">场地</text>
+              <text class="line-value">{{ selectedCourt?.name || '待选择' }}</text>
+            </view>
+            <view class="summary-line">
+              <text class="line-label">日期</text>
+              <text class="line-value">{{ selectedDateDisplay }}</text>
+            </view>
+            <view class="summary-line">
+              <text class="line-label">时段</text>
+              <text class="line-value">{{ `${startTime || '--:--'} - ${endTime || '--:--'}` }}</text>
+            </view>
+            <view class="summary-line strong">
+              <text class="line-label">预计金额</text>
+              <text class="line-price">¥{{ totalPrice }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="scroll-buffer" />
+      </view>
     </scroll-view>
 
-    <nav class="bottom-nav">
-      <view class="nav-content">
-        <view class="summary-info">
-          <text class="summary-label">{{ canEstimate ? durationLabel : '请选择完整时间段' }}</text>
-          <text class="total-price">¥{{ totalPrice }}</text>
+    <view class="bottom-bar">
+      <view class="bottom-glass" />
+      <view class="bottom-content">
+        <view class="bottom-info">
+          <text class="bottom-caption">{{ canEstimate ? selectedDateDisplay : '请选择完整预约信息' }}</text>
+          <text class="bottom-price">¥{{ totalPrice }}</text>
+          <text class="bottom-meta">{{ selectedCourt ? selectedCourt.name : '待选场地' }} · {{ durationMeta }}</text>
         </view>
-        <button class="book-btn" :class="{ disabled: submitDisabled }" @click="handleSubmit">
-          <text class="btn-top">去结算</text>
-          <text class="btn-bottom">立即预约</text>
+        <button class="bottom-cta" :class="{ disabled: submitDisabled }" @click="handleSubmit">
+          <text class="bottom-cta-top">去结算</text>
+          <text class="bottom-cta-bottom">立即预约</text>
         </button>
       </view>
-    </nav>
+    </view>
   </view>
 </template>
 
@@ -184,6 +269,7 @@ type DateOption = {
   date: string
   week: string
   day: string
+  monthText: string
   isToday: boolean
 }
 
@@ -197,6 +283,12 @@ type CourtCard = {
   pricePerHour: number
   displayPrice: string
 }
+
+const quickSlots = [
+  { label: '下班后', start: '18:00', end: '19:00' },
+  { label: '晚间双打', start: '19:00', end: '21:00' },
+  { label: '晨练档', start: '08:00', end: '09:00' }
+] as const
 
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
@@ -224,6 +316,11 @@ const occupancyLoading = ref(false)
 let occupancyToken = 0
 
 const selectedDate = computed(() => dates.value[selectedDateIndex.value]?.date || '')
+const selectedDateDisplay = computed(() => {
+  const item = dates.value[selectedDateIndex.value]
+  if (!item) return '待选择'
+  return `${item.isToday ? '今天' : item.week} · ${item.monthText}${item.day}日`
+})
 const selectedCourt = computed(() => (selectedCourtIndex.value >= 0 ? courts.value[selectedCourtIndex.value] : null))
 const monthLabel = computed(() => {
   if (!selectedDate.value) return ''
@@ -248,6 +345,11 @@ const durationLabel = computed(() => {
   const remain = minutes % 60
   if (remain === 0) return `预计时长 ${hours} 小时`
   return `预计时长 ${hours > 0 ? `${hours} 小时 ` : ''}${remain} 分钟`
+})
+
+const durationMeta = computed(() => {
+  if (!isEndAfterStart.value) return '待选时段'
+  return selectedCourt.value?.billingType === 'TIME' ? '按次计费' : durationLabel.value.replace('预计', '')
 })
 
 const totalPrice = computed(() => {
@@ -291,6 +393,7 @@ function generateDateList() {
       date: `${yyyy}-${mm}-${dd}`,
       week: weekDays[d.getDay()],
       day: dd,
+      monthText: `${Number(mm)}月`,
       isToday: i === 0
     })
   }
@@ -351,6 +454,11 @@ function onStartTimeChange(event: { detail: { value: string } }) {
 
 function onEndTimeChange(event: { detail: { value: string } }) {
   endTime.value = event.detail.value
+}
+
+function applyQuickSlot(start: string, end: string) {
+  startTime.value = start
+  endTime.value = end
 }
 
 function toMinutes(value: string) {
@@ -463,68 +571,86 @@ async function handleSubmit() {
 <style lang="scss" scoped>
 .booking-page {
   min-height: 100vh;
-  background-color: #f9f9f9;
+  background:
+    radial-gradient(circle at top, rgba(255, 102, 0, 0.14), transparent 28%),
+    #f9f9f9;
 }
 
-.header {
+.topbar {
   width: 100%;
-  background-color: #ffffff;
   position: sticky;
   top: 0;
-  z-index: 100;
-  border-bottom: 1px solid #eeeeee;
+  z-index: 50;
+  background: rgba(249, 249, 249, 0.82);
+  backdrop-filter: blur(20rpx);
 }
 
-.header-content {
+.topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 32rpx;
+  padding: 20rpx 28rpx;
 }
 
-.left-section {
+.topbar-left {
   display: flex;
   align-items: center;
   gap: 16rpx;
 }
 
-.back-btn {
-  padding: 8rpx;
-  border-radius: 50%;
-
-  &:active {
-    background-color: #f0f0f0;
-  }
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.96);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10rpx 28rpx rgba(26, 28, 28, 0.06);
 }
 
-.title {
-  font-size: 36rpx;
-  font-weight: 700;
+.topbar-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.topbar-title {
+  font-size: 34rpx;
+  font-weight: 900;
   color: #1a1c1c;
 }
 
-.brand {
-  font-size: 28rpx;
-  font-weight: 900;
-  color: #a33e00;
-  letter-spacing: -1px;
+.topbar-sub,
+.topbar-brand {
+  font-size: 18rpx;
+  font-weight: 800;
+  letter-spacing: 3rpx;
+  color: #8e7164;
 }
 
-.hero-section {
+.topbar-brand {
+  color: #a33e00;
+}
+
+.page-scroll {
+  box-sizing: border-box;
+}
+
+.hero-shell {
   position: relative;
-  height: 397rpx;
-  width: 100%;
+  height: 560rpx;
   overflow: hidden;
 }
 
 .hero-image,
-.hero-image-placeholder {
+.hero-placeholder {
   width: 100%;
   height: 100%;
 }
 
-.hero-image-placeholder {
-  background-color: #eeeeee;
+.hero-placeholder {
+  background: linear-gradient(135deg, #f3f3f3 0%, #e2e2e2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,103 +659,166 @@ async function handleSubmit() {
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(0deg, rgba(26, 28, 28, 0.8) 0%, rgba(26, 28, 28, 0) 100%);
+  background: linear-gradient(180deg, rgba(26, 28, 28, 0.18) 0%, rgba(26, 28, 28, 0.84) 100%);
 }
 
-.hero-info {
+.hero-content {
   position: absolute;
-  bottom: 32rpx;
-  left: 32rpx;
-  right: 32rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
+  left: 28rpx;
+  right: 28rpx;
+  bottom: 28rpx;
+  z-index: 2;
 }
 
-.status-row {
+.hero-badges {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 12rpx;
+  margin-bottom: 18rpx;
 }
 
-.status-badge {
-  background-color: #10b981;
-  color: #ffffff;
-  font-size: 20rpx;
-  font-weight: 700;
-  padding: 4rpx 16rpx;
+.hero-badge {
+  padding: 10rpx 18rpx;
   border-radius: 999rpx;
+  background: #ff6600;
+  color: #561d00;
+  font-size: 18rpx;
+  font-weight: 900;
   letter-spacing: 2rpx;
 
-  &.status-offline {
-    background-color: #e2e2e2 !important;
-    color: #5f5e5e !important;
+  &.soft {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    backdrop-filter: blur(14rpx);
   }
 }
 
-.rating-badge {
-  display: flex;
-  align-items: center;
-  gap: 4rpx;
-  background-color: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8rpx);
-  padding: 4rpx 16rpx;
-  border-radius: 999rpx;
-}
-
-.rating-text,
-.location-text {
+.hero-title {
+  display: block;
+  font-size: 56rpx;
+  line-height: 1.08;
+  font-weight: 900;
   color: #ffffff;
-  font-size: 20rpx;
 }
 
-.venue-name {
-  color: #ffffff;
-  font-size: 46rpx;
-  font-weight: 800;
-}
-
-.location-row {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.selection-canvas {
-  padding: 28rpx 24rpx 0;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
-}
-
-.header-left {
+.hero-meta {
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 10rpx;
+  margin-top: 18rpx;
 }
 
-.label {
+.hero-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.hero-meta-text {
+  flex: 1;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.page-body {
+  padding: 0 24rpx 0;
+}
+
+.overview-grid {
+  margin-top: -34rpx;
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.overview-card {
+  min-height: 150rpx;
+  padding: 22rpx 20rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14rpx 30rpx rgba(26, 28, 28, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  &.warm {
+    background: linear-gradient(135deg, #fff0e8 0%, #ffffff 100%);
+  }
+}
+
+.overview-kicker {
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #8e7164;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.overview-value {
+  font-size: 44rpx;
+  line-height: 1;
+  font-weight: 900;
   color: #a33e00;
+}
+
+.overview-mini {
+  font-size: 24rpx;
+  line-height: 1.4;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+
+.overview-hint {
+  font-size: 20rpx;
+  line-height: 1.5;
+  color: #6b625c;
+}
+
+.section-card {
+  margin-top: 28rpx;
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16rpx 34rpx rgba(26, 28, 28, 0.05);
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 22rpx;
+
+  &.compact {
+    margin-bottom: 18rpx;
+  }
+}
+
+.section-kicker {
+  display: block;
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #a33e00;
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
+}
+
+.section-title {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+  letter-spacing: -0.6rpx;
+}
+
+.section-note {
   font-size: 20rpx;
   font-weight: 700;
-  letter-spacing: 0.18em;
-}
-
-.h3,
-.month-label {
-  color: #1a1c1c;
-  font-size: 30rpx;
-  font-weight: 800;
-}
-
-.date-picker-section,
-.court-section,
-.time-section {
-  margin-bottom: 32rpx;
+  color: #8e7164;
+  line-height: 1.5;
 }
 
 .date-scroll {
@@ -642,32 +831,38 @@ async function handleSubmit() {
 }
 
 .date-item {
-  min-width: 116rpx;
+  min-width: 138rpx;
   padding: 18rpx 20rpx;
   border-radius: 28rpx;
-  background: #ffffff;
+  background: #f7f3f1;
   border: 2rpx solid transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8rpx;
-  box-shadow: 0 12rpx 28rpx rgba(0, 0, 0, 0.05);
 
   &.active {
+    background: linear-gradient(180deg, #fff0e8 0%, #ffffff 100%);
     border-color: #ff6600;
-    background: #fff3eb;
+    box-shadow: 0 12rpx 26rpx rgba(255, 102, 0, 0.12);
   }
 }
 
-.week {
-  color: #7a7a7a;
+.date-week {
   font-size: 20rpx;
+  color: #8e7164;
 }
 
-.day {
+.date-day {
+  font-size: 40rpx;
+  line-height: 1;
+  font-weight: 900;
   color: #1a1c1c;
-  font-size: 36rpx;
-  font-weight: 800;
+}
+
+.date-month {
+  font-size: 18rpx;
+  color: #6b625c;
 }
 
 .court-grid {
@@ -677,63 +872,100 @@ async function handleSubmit() {
 }
 
 .court-card {
+  min-height: 252rpx;
   padding: 22rpx;
   border-radius: 28rpx;
-  background: #ffffff;
-  box-shadow: 0 12rpx 28rpx rgba(0, 0, 0, 0.05);
+  background: #faf8f6;
   border: 2rpx solid transparent;
+  display: flex;
+  flex-direction: column;
 
   &.selected {
     border-color: #ff6600;
-    background: #fff3eb;
+    background: linear-gradient(180deg, #fff1e8 0%, #ffffff 100%);
+    box-shadow: 0 14rpx 26rpx rgba(255, 102, 0, 0.1);
   }
 
   &.occupied {
-    opacity: 0.6;
+    opacity: 0.62;
   }
 }
 
-.card-header {
+.court-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14rpx;
+  gap: 12rpx;
 }
 
-.court-number,
-.selected-badge,
-.occupied-badge,
-.court-price {
-  font-size: 20rpx;
-  font-weight: 700;
+.court-code {
+  font-size: 18rpx;
+  font-weight: 900;
+  letter-spacing: 2rpx;
+  color: #8e7164;
 }
 
-.selected-badge {
-  color: #ff6600;
-}
+.court-state {
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  font-size: 18rpx;
+  font-weight: 800;
 
-.occupied-badge {
-  color: #b42318;
+  &.active {
+    background: #ff6600;
+    color: #ffffff;
+  }
+
+  &.disabled {
+    background: #ffdad6;
+    color: #93000a;
+  }
+
+  &.normal {
+    background: #e8f7ee;
+    color: #0f8f54;
+  }
 }
 
 .court-name {
-  font-size: 28rpx;
-  font-weight: 700;
+  margin-top: 18rpx;
+  font-size: 30rpx;
+  font-weight: 900;
   color: #1a1c1c;
 }
 
 .court-desc {
   margin-top: 8rpx;
-  color: #666666;
   font-size: 22rpx;
+  line-height: 1.55;
+  color: #6b625c;
+}
+
+.court-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.court-tag {
+  padding: 8rpx 12rpx;
+  border-radius: 999rpx;
+  background: #ece8e6;
+  font-size: 18rpx;
+  font-weight: 700;
+  color: #5a4136;
 }
 
 .court-price {
-  margin-top: 14rpx;
+  margin-top: auto;
+  padding-top: 18rpx;
+  font-size: 28rpx;
+  font-weight: 900;
   color: #a33e00;
 }
 
-.time-grid-panel {
+.time-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16rpx;
@@ -742,30 +974,78 @@ async function handleSubmit() {
 .time-card,
 .tips-card,
 .conflict-card {
-  background: #ffffff;
   border-radius: 28rpx;
+  background: #faf8f6;
   padding: 24rpx;
-  box-shadow: 0 12rpx 28rpx rgba(0, 0, 0, 0.05);
 }
 
-.time-card-label {
+.time-label {
   display: block;
-  color: #7a7a7a;
-  font-size: 22rpx;
-  margin-bottom: 12rpx;
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #8e7164;
+  letter-spacing: 2rpx;
+  margin-bottom: 14rpx;
 }
 
-.time-card-value {
-  min-height: 84rpx;
+.time-value {
+  min-height: 88rpx;
   border-radius: 22rpx;
-  background: #f6f7f8;
+  background: #ffffff;
   padding: 0 20rpx;
   display: flex;
   align-items: center;
   gap: 10rpx;
-  color: #1a1c1c;
   font-size: 28rpx;
-  font-weight: 700;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+
+.quick-slot-wrap {
+  margin-top: 20rpx;
+}
+
+.quick-slot-title {
+  display: block;
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #8e7164;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.quick-slot-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14rpx;
+  margin-top: 16rpx;
+}
+
+.quick-slot-item {
+  padding: 18rpx 16rpx;
+  border-radius: 24rpx;
+  background: #f7f3f1;
+  border: 2rpx solid transparent;
+
+  &.active {
+    border-color: #ff6600;
+    background: #fff0e8;
+  }
+}
+
+.quick-slot-label {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.quick-slot-time {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 18rpx;
+  line-height: 1.5;
+  color: #6b625c;
 }
 
 .tips-card,
@@ -775,10 +1055,11 @@ async function handleSubmit() {
 
 .tips-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10rpx;
-  color: #5f5e5e;
   font-size: 22rpx;
+  line-height: 1.6;
+  color: #5f5e5e;
 
   &:not(:first-child) {
     margin-top: 12rpx;
@@ -797,16 +1078,17 @@ async function handleSubmit() {
 }
 
 .conflict-title {
-  color: #b42318;
   font-size: 26rpx;
-  font-weight: 800;
+  font-weight: 900;
+  color: #b42318;
 }
 
 .conflict-text {
   display: block;
   margin-top: 12rpx;
-  color: #7a271a;
   font-size: 22rpx;
+  line-height: 1.6;
+  color: #7a271a;
 }
 
 .conflict-list {
@@ -817,7 +1099,7 @@ async function handleSubmit() {
 }
 
 .conflict-item {
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.82);
   border-radius: 18rpx;
   padding: 16rpx 18rpx;
   display: flex;
@@ -831,71 +1113,136 @@ async function handleSubmit() {
   color: #7a271a;
 }
 
-.bottom-spacer {
-  height: 180rpx;
+.summary-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf6 100%);
 }
 
-.bottom-nav {
+.summary-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 2rpx solid #f2ece8;
+
+  &.strong {
+    border-bottom: none;
+    padding-bottom: 0;
+    padding-top: 8rpx;
+  }
+}
+
+.line-label {
+  font-size: 22rpx;
+  color: #6b625c;
+}
+
+.line-value {
+  flex: 1;
+  text-align: right;
+  font-size: 24rpx;
+  line-height: 1.5;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+
+.line-price {
+  font-size: 34rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #a33e00;
+}
+
+.scroll-buffer {
+  height: calc(200rpx + env(safe-area-inset-bottom));
+}
+
+.bottom-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(16rpx);
-  border-top: 1rpx solid rgba(0, 0, 0, 0.06);
-  padding: 22rpx 24rpx calc(env(safe-area-inset-bottom) + 22rpx);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.nav-content {
+.bottom-glass {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24rpx);
+  box-shadow: 0 -16rpx 40rpx rgba(26, 28, 28, 0.06);
+}
+
+.bottom-content {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  gap: 18rpx;
+  padding: 22rpx 24rpx 20rpx;
 }
 
-.summary-info {
+.bottom-info {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.summary-label {
-  color: #7a7a7a;
-  font-size: 22rpx;
+.bottom-caption {
+  font-size: 20rpx;
+  line-height: 1.45;
+  color: #8e7164;
 }
 
-.total-price {
-  color: #1a1c1c;
-  font-size: 40rpx;
+.bottom-price {
+  margin-top: 4rpx;
+  font-size: 46rpx;
+  line-height: 1;
   font-weight: 900;
+  color: #1a1c1c;
 }
 
-.book-btn {
-  width: 240rpx;
+.bottom-meta {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  line-height: 1.5;
+  color: #6b625c;
+}
+
+.bottom-cta {
+  width: 248rpx;
   border: none;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #ff6600 0%, #ff8b2c 100%);
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
   color: #ffffff;
   padding: 18rpx 12rpx;
   display: flex;
   flex-direction: column;
   gap: 4rpx;
+  box-shadow: 0 14rpx 30rpx rgba(255, 102, 0, 0.22);
 
   &.disabled {
     opacity: 0.45;
   }
 }
 
-.btn-top,
-.btn-bottom {
+.bottom-cta-top,
+.bottom-cta-bottom {
   color: #ffffff;
 }
 
-.btn-top {
+.bottom-cta-top {
   font-size: 20rpx;
 }
 
-.btn-bottom {
+.bottom-cta-bottom {
   font-size: 28rpx;
-  font-weight: 800;
+  font-weight: 900;
 }
 </style>

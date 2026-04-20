@@ -1,146 +1,263 @@
 <template>
-  <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">预约课程</text>
-        <view class="header-placeholder"></view>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-inner">
+        <view class="header-left">
+          <view class="icon-btn icon-btn-ghost" @tap="handleBack">
+            <uni-icons type="left" size="22" color="#5f5e5e" />
+          </view>
+          <text class="brand-title">KINETIC LOGIC</text>
+        </view>
+        <view class="icon-btn icon-btn-ghost" @tap="openNotice">
+          <uni-icons type="notification-filled" size="20" color="#ff6600" />
+        </view>
       </view>
     </view>
 
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Course Info -->
-      <view class="section course-info">
-        <view class="course-card">
-          <view class="course-image">
-            <text class="image-placeholder">Course Image</text>
-          </view>
-          <view class="course-details">
-            <text class="course-name">{{ course.name }}</text>
-            <text class="course-coach">教练: {{ course.coachName }}</text>
-            <text class="course-time">{{ course.date }} {{ course.time }}</text>
-            <view class="course-stats">
-              <text class="capacity">已约 {{ course.currentStudents }}/{{ course.maxStudents }}</text>
-              <view class="progress-bar">
-                <view class="progress" :style="{ width: course.progress + '%' }"></view>
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+    >
+      <view class="content">
+        <view class="hero-copy">
+          <text class="page-title">提交订单</text>
+          <text class="page-subtitle">请核对以下课程信息及支付明细</text>
+        </view>
+
+        <view v-if="loading" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">正在加载课程订单…</text>
+        </view>
+
+        <view v-else-if="errorText" class="state-card">
+          <text class="state-text">{{ errorText }}</text>
+          <view class="state-action" @tap="loadCourseDetail">重新加载</view>
+        </view>
+
+        <template v-else-if="detail">
+          <view class="course-card">
+            <view class="card-orbit" />
+            <image class="course-image" src="/static/placeholders/hero.svg" mode="aspectFill" />
+
+            <view class="course-info">
+              <view class="course-head">
+                <text class="course-name">{{ detail.name }}</text>
+                <text class="status-badge">CONFIRMED</text>
+              </view>
+
+              <view class="coach-line">
+                <uni-icons type="person-filled" size="14" color="#6b7280" />
+                <text>主教练: {{ detail.coachText }}</text>
+              </view>
+
+              <view class="meta-panel">
+                <view class="meta-item">
+                  <view class="meta-icon">
+                    <uni-icons type="clock-filled" size="16" color="#a33e00" />
+                  </view>
+                  <view class="meta-copy">
+                    <text class="meta-main">{{ detail.dateText }}</text>
+                    <text class="meta-sub">{{ detail.timeText }}</text>
+                  </view>
+                </view>
+
+                <view class="meta-item">
+                  <view class="meta-icon">
+                    <uni-icons type="location-filled" size="16" color="#a33e00" />
+                  </view>
+                  <view class="meta-copy">
+                    <text class="meta-main">{{ detail.venueText }}</text>
+                    <text class="meta-sub">{{ detail.courtText }}</text>
+                  </view>
+                </view>
               </view>
             </view>
           </view>
-        </view>
-      </view>
 
-      <!-- Booking Info -->
-      <view class="section booking-info">
-        <view class="info-item">
-          <text class="info-label">课程费用</text>
-          <text class="info-value">¥{{ course.price }}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">预约数量</text>
-          <view class="quantity-selector">
-            <text class="quantity-btn" @click="decreaseQuantity">-</text>
-            <text class="quantity">{{ quantity }}</text>
-            <text class="quantity-btn" @click="increaseQuantity">+</text>
-          </view>
-        </view>
-        <view class="info-item">
-          <text class="info-label">支付方式</text>
-          <picker mode="selector" :range="paymentMethods" @change="onPaymentMethodChange">
-            <view class="picker">
-              <text class="picker-value">{{ paymentMethods[selectedPaymentMethod] }}</text>
-              <text class="chevron">›</text>
+          <view class="section-card">
+            <text class="section-title">学员信息</text>
+
+            <view class="field-block">
+              <text class="field-label">STUDENT NAME</text>
+              <text class="field-value">{{ detail.studentName }}</text>
             </view>
-          </picker>
-        </view>
-      </view>
 
-      <!-- Price Summary -->
-      <view class="section price-summary">
-        <view class="summary-item">
-          <text class="summary-label">课程费用</text>
-          <text class="summary-value">¥{{ course.price }}</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">预约数量</text>
-          <text class="summary-value">{{ quantity }} 个</text>
-        </view>
-        <view class="summary-divider"></view>
-        <view class="summary-item total">
-          <text class="summary-label">总计</text>
-          <text class="summary-value total-price">¥{{ totalPrice }}</text>
-        </view>
-      </view>
+            <view class="field-block">
+              <text class="field-label">CONTACT NUMBER</text>
+              <text class="field-value">{{ detail.contactNumber }}</text>
+            </view>
+          </view>
 
-      <!-- Terms -->
-      <view class="section terms-section">
-        <view class="terms-item">
-          <text class="terms-text">预约后请准时参加，如需取消请提前2小时联系教练</text>
-        </view>
+          <view class="section-card">
+            <text class="section-title">支付明细</text>
+
+            <view class="price-list">
+              <view class="price-row">
+                <text class="price-key">课程原价</text>
+                <text class="price-val">¥ {{ detail.originalPrice }}</text>
+              </view>
+              <view class="price-row">
+                <text class="price-key">{{ detail.discountLabel }}</text>
+                <text class="price-val discount">- ¥ {{ detail.discountAmount }}</text>
+              </view>
+              <view class="price-row">
+                <text class="price-key">装备租赁费</text>
+                <text class="price-val">¥ 0.00</text>
+              </view>
+            </view>
+
+            <view class="total-row">
+              <text class="total-key">实付款</text>
+              <text class="total-val">¥ {{ detail.payableAmount }}</text>
+            </view>
+          </view>
+        </template>
       </view>
     </scroll-view>
 
-    <!-- Action Bar -->
-    <view class="action-bar">
-      <view class="total-price-display">
-        <text class="total-label">应付</text>
-        <text class="total-amount">¥{{ totalPrice }}</text>
+    <view v-if="detail" class="bottom-bar">
+      <view class="bottom-total desktop-total">
+        <text class="bottom-total-label">总计应付</text>
+        <text class="bottom-total-value">¥ {{ detail.payableAmount }}</text>
       </view>
-      <button class="submit-btn" :disabled="!canSubmit || isSubmitting" @click="handleSubmit">
-        {{ isSubmitting ? '预约中...' : '确认预约' }}
-      </button>
+      <view class="pay-btn" :class="{ disabled: !canSubmit || isSubmitting }" @tap="handleSubmit">
+        <text>{{ isSubmitting ? '支付中...' : '确认支付 Confirm & Pay' }}</text>
+        <uni-icons v-if="!isSubmitting" type="right" size="18" color="#561d00" />
+      </view>
     </view>
-  </MobileLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { createCourseBooking, getCourseDetail, type CourseItem } from '@/api/course'
 import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
-import { getCourseDetail } from '@/api/course'
-import { createCourseBooking } from '@/api/course'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
-// 响应式数据
-const courseId = ref<number>(0)
-const course = ref<any>({
-  id: 0,
-  name: '',
-  coachName: '',
-  price: 0,
-  date: '',
-  time: '',
-  maxStudents: 0,
-  currentStudents: 0,
-  progress: 0
-})
-
-const quantity = ref<number>(1)
-const selectedPaymentMethod = ref<number>(0)
-const paymentMethods = ref(['余额支付', '微信支付', '支付宝'])
-const isSubmitting = ref(false)
+type CourseBookingVm = {
+  id: number
+  name: string
+  coachText: string
+  dateText: string
+  timeText: string
+  venueText: string
+  courtText: string
+  studentName: string
+  contactNumber: string
+  originalPrice: string
+  discountLabel: string
+  discountAmount: string
+  payableAmount: string
+}
 
 const userStore = useUserStore()
 
-// 计算属性
-const totalPrice = computed(() => {
-  return course.value.price * quantity.value
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+const refreshing = ref(false)
+const loading = ref(true)
+const errorText = ref('')
+const isSubmitting = ref(false)
+const courseId = ref(0)
+const course = ref<CourseItem | null>(null)
+
+function pad2(value: number) {
+  return value < 10 ? `0${value}` : `${value}`
+}
+
+function toDate(raw?: string) {
+  if (!raw) return null
+  const date = new Date(String(raw).replace(/-/g, '/'))
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function normalizeTime(value?: string) {
+  if (!value) return '--:--'
+  return String(value).slice(0, 5)
+}
+
+function formatDate(raw?: string) {
+  const date = toDate(raw)
+  if (!date) return '待定日期'
+  const weeks = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return `${date.getFullYear()}年${pad2(date.getMonth() + 1)}月${pad2(date.getDate())}日 (${weeks[date.getDay()]})`
+}
+
+function formatMoney(value: number) {
+  return Number(value || 0).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+function resolveStudentName() {
+  const user = userStore.userInfo
+  return user?.nickname || user?.username || '未登录学员'
+}
+
+function resolvePhone() {
+  return userStore.userInfo?.phone || '未绑定手机号'
+}
+
+function resolveDiscountRate() {
+  return 0.8
+}
+
+const discountAmountValue = computed(() => {
+  if (!course.value) return 0
+  const origin = Number(course.value.coursePrice || 0)
+  return Number((origin * (1 - resolveDiscountRate())).toFixed(2))
+})
+
+const payableValue = computed(() => {
+  if (!course.value) return 0
+  const origin = Number(course.value.coursePrice || 0)
+  return Number((origin - discountAmountValue.value).toFixed(2))
 })
 
 const canSubmit = computed(() => {
-  return quantity.value > 0 && 
-         course.value.id > 0 && 
-         course.value.currentStudents + quantity.value <= course.value.maxStudents
+  if (!course.value) return false
+  return Number(course.value.status ?? 1) === 1 && Number(course.value.currentStudents || 0) < Number(course.value.maxStudents || 0)
 })
 
-const getCourseBookingErrorMessage = (error: any): string => {
-  const rawMsg = String(error?.message || error?.errMsg || '')
+const detail = computed<CourseBookingVm | null>(() => {
+  if (!course.value) return null
+
+  const durationText = Number(course.value.courseDuration || 0) > 0 ? `${course.value.courseDuration}分钟` : '时长待定'
+  const venueText = course.value.venueName || '奥体中心羽毛球馆'
+  const courtText = course.value.courtName || course.value.location || '3号VIP场地'
+  const coachRole = course.value.coachInfo?.trim() || '国家一级运动员'
+
+  return {
+    id: course.value.id,
+    name: course.value.courseName || '课程预约',
+    coachText: `${course.value.coachName || '待定教练'} (${coachRole})`,
+    dateText: formatDate(course.value.courseDate),
+    timeText: `${normalizeTime(course.value.startTime)} - ${normalizeTime(course.value.endTime)} (${durationText})`,
+    venueText,
+    courtText,
+    studentName: resolveStudentName(),
+    contactNumber: resolvePhone(),
+    originalPrice: formatMoney(Number(course.value.coursePrice || 0)),
+    discountLabel: 'VIP 会员折扣 (8折)',
+    discountAmount: formatMoney(discountAmountValue.value),
+    payableAmount: formatMoney(payableValue.value)
+  }
+})
+
+const getCourseBookingErrorMessage = (error: unknown): string => {
+  const rawMsg = String((error as { message?: string; errMsg?: string })?.message || (error as { errMsg?: string })?.errMsg || '')
   const msg = rawMsg.toLowerCase()
 
   if (msg.includes('full') || rawMsg.includes('满员') || rawMsg.includes('名额')) {
-    return '课程名额不足，请调整预约数量'
+    return '课程名额已满，请选择其他课程'
   }
   if (msg.includes('duplicate') || rawMsg.includes('重复') || rawMsg.includes('已预约')) {
     return '您已预约该课程，请勿重复提交'
@@ -151,64 +268,31 @@ const getCourseBookingErrorMessage = (error: any): string => {
   return rawMsg || '预约失败，请重试'
 }
 
-// 页面加载
-onLoad((options?: Record<string, string | undefined>) => {
-  if (options?.id) {
-    courseId.value = Number(options.id)
+async function loadCourseDetail() {
+  if (!courseId.value) {
+    loading.value = false
+    errorText.value = '缺少课程参数'
+    return
   }
-})
 
-// 加载课程详情
-const loadCourseDetail = async () => {
+  loading.value = true
+  errorText.value = ''
   try {
-    const result = await getCourseDetail(courseId.value)
-    
-    course.value = {
-      id: result.id,
-      name: result.courseName,
-      coachName: result.coachName,
-      price: result.coursePrice,
-      date: result.courseDate,
-      time: `${result.startTime} - ${result.endTime}`,
-      maxStudents: result.maxStudents,
-      currentStudents: result.currentStudents,
-      progress: result.maxStudents > 0 ? Math.round((result.currentStudents / result.maxStudents) * 100) : 0
-    }
+    course.value = await getCourseDetail(courseId.value)
   } catch (error) {
     console.error('加载课程详情失败:', error)
-    uni.showToast({
-      title: '加载课程详情失败',
-      icon: 'none'
-    })
+    errorText.value = error instanceof Error ? error.message : '加载课程详情失败'
+  } finally {
+    loading.value = false
   }
 }
 
-// 减少数量
-const decreaseQuantity = () => {
-  if (quantity.value > 1) {
-    quantity.value--
-  }
-}
-
-// 增加数量
-const increaseQuantity = () => {
-  if (course.value.currentStudents + quantity.value < course.value.maxStudents) {
-    quantity.value++
-  }
-}
-
-// 支付方式变化
-const onPaymentMethodChange = (e: any) => {
-  selectedPaymentMethod.value = parseInt(e.detail.value)
-}
-
-// 提交预约
-const handleSubmit = async () => {
-  if (isSubmitting.value) return
+async function handleSubmit() {
+  if (isSubmitting.value || !detail.value) return
 
   if (!canSubmit.value) {
     uni.showToast({
-      title: '请检查预约信息',
+      title: '当前课程暂不可预约',
       icon: 'none'
     })
     return
@@ -216,20 +300,14 @@ const handleSubmit = async () => {
 
   try {
     isSubmitting.value = true
-    uni.showLoading({
-      title: '预约中...'
+    uni.showLoading({ title: '支付中...' })
+
+    await createCourseBooking({
+      memberId: Number(userStore.userId || 0),
+      courseId: detail.value.id,
+      orderAmount: payableValue.value,
+      paymentMethod: 'BALANCE'
     })
-
-    const bookingData = {
-      memberId: userStore.userId,
-      courseId: course.value.id,
-      quantity: quantity.value,
-      orderAmount: totalPrice.value,
-      paymentMethod: paymentMethods.value[selectedPaymentMethod.value] === '余额支付' ? 'BALANCE' : 
-                    paymentMethods.value[selectedPaymentMethod.value] === '微信支付' ? 'WECHAT' : 'ALIPAY'
-    }
-
-    const result = await createCourseBooking(bookingData)
 
     uni.hideLoading()
     uni.showToast({
@@ -237,12 +315,11 @@ const handleSubmit = async () => {
       icon: 'success'
     })
 
-    // 延迟跳转到预约详情页
     setTimeout(() => {
       uni.redirectTo({
-        url: `/pages/course/detail?id=${course.value.id}`
+        url: `/pages/course/detail?id=${detail.value?.id}`
       })
-    }, 1500)
+    }, 1200)
   } catch (error) {
     console.error('预约课程失败:', error)
     uni.hideLoading()
@@ -255,312 +332,448 @@ const handleSubmit = async () => {
   }
 }
 
-// 返回上一页
-const handleBack = () => {
-  safeNavigateBack()
+function handleBack() {
+  safeNavigateBack('/pages/course/detail')
 }
 
-// 页面加载时获取数据
-onMounted(async () => {
-  // 检查用户是否已登录
+function openNotice() {
+  uni.navigateTo({
+    url: '/pages/notice/index'
+  })
+}
+
+function handleRefresh() {
+  refreshing.value = true
+  loadCourseDetail().finally(() => {
+    refreshing.value = false
+  })
+}
+
+onLoad(async (options?: Record<string, string | undefined>) => {
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
+
   if (!userStore.isLoggedIn) {
-    // 未登录用户重定向到登录页
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+    uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  
-  if (courseId.value) {
-    await loadCourseDetail()
-  }
+
+  courseId.value = Number(options?.id || 0)
+  await loadCourseDetail()
+})
+
+onPullDownRefresh(() => {
+  loadCourseDetail().finally(() => {
+    uni.stopPullDownRefresh()
+  })
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f7f7f7 0%, #f3f3f3 100%);
+  color: #1a1c1c;
 }
 
-.header-content {
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(243, 243, 243, 0.9);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20rpx 40rpx rgba(26, 28, 28, 0.04);
+}
+
+.header-inner {
+  min-height: 112rpx;
+  padding: 10rpx 28rpx 18rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
 }
 
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.header-placeholder {
-  width: 56rpx;
+.icon-btn-ghost {
+  border-radius: 9999rpx;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.brand-title {
+  font-size: 38rpx;
+  line-height: 1;
+  font-weight: 900;
+  font-style: italic;
+  color: #ff6600;
+  letter-spacing: -1rpx;
+}
+
+.main-scroll {
+  height: 100vh;
 }
 
 .content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
+  padding: 24rpx 18rpx 240rpx;
 }
 
-.section {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-  padding: 28rpx;
+.hero-copy {
+  padding: 8rpx 6rpx 18rpx;
+}
+
+.page-title {
+  display: block;
+  font-size: 60rpx;
+  line-height: 1.08;
+  font-weight: 900;
+  color: #101010;
+}
+
+.page-subtitle {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 25rpx;
+  color: #5f5e5e;
+  font-weight: 500;
+}
+
+.course-card,
+.section-card,
+.state-card {
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12rpx 36rpx rgba(26, 28, 28, 0.04);
+}
+
+.course-card {
+  position: relative;
+  margin-top: 16rpx;
+  padding: 24rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
+}
+
+.card-orbit {
+  position: absolute;
+  top: -40rpx;
+  right: -38rpx;
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 0 0 0 9999rpx;
+  background: rgba(255, 102, 0, 0.05);
+}
+
+.course-image {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 420rpx;
+  border-radius: 24rpx;
+  background: #111111;
 }
 
 .course-info {
-  .course-card {
-    display: flex;
-    gap: 20rpx;
-  }
-
-  .course-image {
-    width: 140rpx;
-    height: 140rpx;
-    background-color: #f5f5f5;
-    border-radius: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(153, 153, 153, 0.3);
-    font-size: 20rpx;
-  }
-
-  .course-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .course-name {
-    font-size: 28rpx;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 12rpx;
-  }
-
-  .course-coach {
-    font-size: 24rpx;
-    color: #666666;
-    margin-bottom: 8rpx;
-  }
-
-  .course-time {
-    font-size: 24rpx;
-    color: #999999;
-    margin-bottom: 12rpx;
-  }
-
-  .course-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 8rpx;
-  }
-
-  .capacity {
-    font-size: 20rpx;
-    color: #999999;
-  }
-
-  .progress-bar {
-    height: 8rpx;
-    background-color: #f3f4f6;
-    border-radius: 4rpx;
-    overflow: hidden;
-  }
-
-  .progress {
-    height: 100%;
-    background-color: #3cc51f;
-    border-radius: 4rpx;
-    transition: width 0.3s;
-  }
+  position: relative;
+  z-index: 1;
+  margin-top: 24rpx;
 }
 
-.booking-info {
-  .info-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16rpx 0;
-    border-bottom: 1rpx solid #f3f4f6;
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  .info-label {
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .info-value {
-    font-size: 24rpx;
-    color: #333333;
-    font-weight: bold;
-  }
-
-  .quantity-selector {
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
-  }
-
-  .quantity-btn {
-    width: 48rpx;
-    height: 48rpx;
-    border-radius: 50%;
-    background-color: #f5f5f5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28rpx;
-    color: #333333;
-  }
-
-  .quantity {
-    font-size: 28rpx;
-    color: #333333;
-    font-weight: bold;
-    min-width: 40rpx;
-    text-align: center;
-  }
-
-  .picker {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .picker-value {
-    flex: 1;
-    text-align: right;
-    color: #666666;
-  }
-
-  .chevron {
-    font-size: 26rpx;
-    color: #999999;
-    margin-left: 12rpx;
-  }
-}
-
-.price-summary {
-  .summary-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16rpx 0;
-
-    &.total {
-      margin-top: 10rpx;
-    }
-  }
-
-  .summary-label {
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .summary-value {
-    font-size: 24rpx;
-    color: #333333;
-    font-weight: bold;
-
-    &.total-price {
-      color: #ef4444;
-      font-size: 28rpx;
-    }
-  }
-
-  .summary-divider {
-    height: 1rpx;
-    background-color: #e6e6e6;
-    margin: 10rpx 0;
-  }
-}
-
-.terms-section {
-  .terms-item {
-    padding: 16rpx 0;
-  }
-
-  .terms-text {
-    font-size: 22rpx;
-    color: #999999;
-    line-height: 1.5;
-  }
-}
-
-.action-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+.course-head {
   display: flex;
-  height: 120rpx;
-  background-color: #ffffff;
-  border-top: 1rpx solid #e6e6e6;
-  padding: 0 28rpx;
-  box-sizing: border-box;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
-.total-price-display {
+.course-name {
   flex: 1;
+  font-size: 46rpx;
+  line-height: 1.15;
+  font-weight: 900;
+  color: #111111;
+}
+
+.status-badge {
+  flex-shrink: 0;
+  padding: 10rpx 18rpx;
+  border-radius: 9999rpx;
+  background: #e2dfde;
+  color: #636262;
+  font-size: 20rpx;
+  font-weight: 900;
+  letter-spacing: 2rpx;
+}
+
+.coach-line {
+  margin-top: 18rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 25rpx;
+  color: #5f5e5e;
+}
+
+.meta-panel {
+  margin-top: 24rpx;
+  padding: 20rpx;
+  border-radius: 20rpx;
+  background: #f3f3f3;
   display: flex;
   flex-direction: column;
+  gap: 18rpx;
 }
 
-.total-label {
-  font-size: 20rpx;
-  color: #999999;
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
 }
 
-.total-amount {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #ef4444;
+.meta-icon {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 9999rpx;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.submit-btn {
+.meta-copy {
   flex: 1;
-  height: 80rpx;
-  background-color: #3cc51f;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
-  border: none;
-  margin-left: 28rpx;
-  box-shadow: 0 2rpx 6rpx rgba(60, 197, 31, 0.2);
+}
 
-  &:disabled {
-    background-color: #cccccc;
-    color: #999999;
+.meta-main {
+  display: block;
+  font-size: 29rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.meta-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  color: #5f5e5e;
+}
+
+.section-card {
+  margin-top: 22rpx;
+  border-radius: 28rpx;
+  padding: 30rpx 26rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 42rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.field-block {
+  padding: 28rpx 0 22rpx;
+  border-top: 2rpx solid #ececec;
+}
+
+.field-block:first-of-type {
+  margin-top: 24rpx;
+}
+
+.field-label {
+  display: block;
+  font-size: 20rpx;
+  font-weight: 900;
+  letter-spacing: 4rpx;
+  color: #5f5e5e;
+}
+
+.field-value {
+  display: block;
+  margin-top: 24rpx;
+  font-size: 42rpx;
+  font-weight: 900;
+  color: #111111;
+  line-height: 1.2;
+}
+
+.price-list {
+  margin-top: 24rpx;
+}
+
+.price-row {
+  padding: 18rpx 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.price-key {
+  font-size: 27rpx;
+  color: #5f5e5e;
+}
+
+.price-val {
+  font-size: 27rpx;
+  font-weight: 800;
+  color: #111111;
+}
+
+.price-val.discount {
+  color: #a33e00;
+}
+
+.total-row {
+  margin-top: 10rpx;
+  padding-top: 22rpx;
+  border-top: 2rpx solid #ececec;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.total-key {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.total-val {
+  font-size: 64rpx;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -2rpx;
+  color: #a33e00;
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  padding: 18rpx 22rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: rgba(249, 249, 249, 0.92);
+  backdrop-filter: blur(18px);
+  border-top: 2rpx solid #eeeeee;
+  box-shadow: 0 -20rpx 40rpx rgba(26, 28, 28, 0.05);
+}
+
+.desktop-total {
+  display: none;
+}
+
+.pay-btn {
+  width: 100%;
+  height: 96rpx;
+  border-radius: 18rpx;
+  background: linear-gradient(90deg, #a33e00 0%, #ff6600 100%);
+  color: #561d00;
+  box-shadow: 0 10rpx 30rpx rgba(255, 102, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.pay-btn.disabled {
+  background: #d7d7d7;
+  color: #8c8c8c;
+  box-shadow: none;
+}
+
+.bottom-total-label {
+  display: block;
+  font-size: 20rpx;
+  color: #5f5e5e;
+  font-weight: 600;
+}
+
+.bottom-total-value {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 36rpx;
+  font-weight: 900;
+  color: #a33e00;
+}
+
+.state-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  padding: 90rpx 28rpx;
+  text-align: center;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #777777;
+}
+
+.state-action {
+  width: 220rpx;
+  height: 76rpx;
+  margin: 22rpx auto 0;
+  border-radius: 9999rpx;
+  background: #ff6600;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20rpx;
+    padding-left: 40rpx;
+    padding-right: 40rpx;
+  }
+
+  .desktop-total {
+    display: block;
+    min-width: 180rpx;
+  }
+
+  .pay-btn {
+    flex: 1;
+    max-width: 460rpx;
   }
 }
 </style>

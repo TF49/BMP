@@ -1,224 +1,271 @@
 <template>
-  <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">报名确认</text>
-        <view class="header-placeholder"></view>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-inner">
+        <view class="round-btn" @tap="handleBack">
+          <uni-icons type="left" size="22" color="#1a1c1c" />
+        </view>
+        <text class="header-title">赛事报名</text>
+        <view class="header-spacer" />
       </view>
     </view>
 
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Tournament Info -->
-      <view class="section tournament-info">
-        <view class="tournament-card">
-          <view class="tournament-image">
-            <text class="image-placeholder">Tournament Image</text>
-          </view>
-          <view class="tournament-details">
-            <text class="tournament-name">{{ tournament.name }}</text>
-            <view class="tournament-date">
-              <uni-icons type="calendar" size="14" color="#475569"></uni-icons>
-              <text>{{ tournament.date }} {{ tournament.time }}</text>
-            </view>
-            <view class="tournament-fee">
-              <uni-icons type="wallet" size="14" color="#475569"></uni-icons>
-              <text>报名费: ¥{{ tournament.fee }}</text>
-            </view>
-          </view>
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+    >
+      <view class="content">
+        <view v-if="loading" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">正在加载赛事报名信息…</text>
         </view>
-      </view>
 
-      <!-- Registration Form -->
-      <view class="section form-section">
-        <view class="form-item">
-          <text class="form-label">姓名</text>
-          <input 
-            class="form-input" 
-            type="text" 
-            v-model="registrationInfo.name"
-            placeholder="请输入真实姓名"
-          />
+        <view v-else-if="errorText" class="state-card">
+          <text class="state-text">{{ errorText }}</text>
+          <view class="state-action" @tap="loadTournamentDetail">重新加载</view>
         </view>
-        <view class="form-item">
-          <text class="form-label">手机号</text>
-          <input 
-            class="form-input" 
-            type="number" 
-            v-model="registrationInfo.phone"
-            placeholder="请输入手机号码"
-          />
-        </view>
-        <view class="form-item">
-          <text class="form-label">性别</text>
-          <picker mode="selector" :range="genders" @change="onGenderChange">
-            <view class="picker">
-              <text class="picker-value">{{ registrationInfo.gender ? '男' : '女' }}</text>
-              <text class="chevron">›</text>
-            </view>
-          </picker>
-        </view>
-        <view class="form-item">
-          <text class="form-label">年龄</text>
-          <input 
-            class="form-input" 
-            type="number" 
-            v-model="registrationInfo.age"
-            placeholder="请输入年龄"
-          />
-        </view>
-        <view class="form-item">
-          <text class="form-label">技术水平</text>
-          <picker mode="selector" :range="skillLevels" @change="onSkillLevelChange">
-            <view class="picker">
-              <text class="picker-value">{{ registrationInfo.skillLevel || '请选择' }}</text>
-              <text class="chevron">›</text>
-            </view>
-          </picker>
-        </view>
-        <view class="form-item">
-          <text class="form-label">紧急联系人</text>
-          <input 
-            class="form-input" 
-            type="text" 
-            v-model="registrationInfo.emergencyContact"
-            placeholder="请输入紧急联系人姓名"
-          />
-        </view>
-        <view class="form-item">
-          <text class="form-label">紧急联系电话</text>
-          <input 
-            class="form-input" 
-            type="number" 
-            v-model="registrationInfo.emergencyPhone"
-            placeholder="请输入紧急联系电话"
-          />
-        </view>
-      </view>
 
-      <!-- Agreement -->
-      <view class="section agreement-section">
-        <view class="agreement-item">
-          <text class="agreement-title">报名须知</text>
-          <view class="agreement-content">
-            <text class="agreement-text">1. 参赛者必须身体健康，无心脏病等不适合剧烈运动的疾病</text>
-            <text class="agreement-text">2. 参赛者需遵守比赛规则和裁判判罚</text>
-            <text class="agreement-text">3. 如有身体不适，应立即停止比赛并寻求医疗帮助</text>
-            <text class="agreement-text">4. 主办方有权根据实际情况调整比赛安排</text>
-          </view>
-          <view class="checkbox-container" @click="toggleAgreement">
-            <view class="checkbox" :class="{ checked: agreementChecked }"><uni-icons :type="agreementChecked ? 'checkbox-filled' : 'circle'" size="18" :color="agreementChecked ? '#3cc51f' : '#94a3b8'"></uni-icons></view>
-            <text class="checkbox-label">我已阅读并同意以上条款</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Payment -->
-      <view class="section payment-section">
-        <view class="payment-method">
-          <text class="method-label">支付方式</text>
-          <view class="method-options">
-            <view 
-              v-for="(method, index) in paymentMethods" 
-              :key="index"
-              class="method-item"
-              :class="{ active: selectedPaymentMethod === index }"
-              @click="selectPaymentMethod(index)"
-            >
-              <uni-icons :type="method.iconType" size="20" :color="selectedPaymentMethod === index ? '#3cc51f' : '#475569'" class="method-icon"></uni-icons>
-              <text class="method-name">{{ method.name }}</text>
+        <template v-else-if="detail">
+          <view class="hero-card">
+            <image class="hero-image" src="/static/placeholders/hero.svg" mode="aspectFill" />
+            <view class="hero-overlay" />
+            <view class="hero-content">
+              <text class="hero-tag">官方排名赛</text>
+              <text class="hero-title">{{ detail.name }}</text>
+              <view class="hero-meta">
+                <view class="hero-meta-item">
+                  <uni-icons type="calendar" size="14" color="#ffffff" />
+                  <text>{{ detail.dateRange }}</text>
+                </view>
+                <view class="hero-meta-item">
+                  <uni-icons type="location" size="14" color="#ffffff" />
+                  <text>{{ detail.location }}</text>
+                </view>
+              </view>
             </view>
           </view>
-        </view>
-      </view>
 
-      <!-- Price Summary -->
-      <view class="section price-summary">
-        <view class="summary-item">
-          <text class="summary-label">报名费</text>
-          <text class="summary-value">¥{{ tournament.fee }}</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">优惠</text>
-          <text class="summary-value">-¥0</text>
-        </view>
-        <view class="summary-divider"></view>
-        <view class="summary-item total">
-          <text class="summary-label">总计</text>
-          <text class="summary-value total-price">¥{{ tournament.fee }}</text>
-        </view>
+          <view class="section-card">
+            <view class="section-head">
+              <uni-icons type="person-filled" size="20" color="#a33e00" />
+              <text class="section-title">基本信息</text>
+            </view>
+
+            <view class="field-wrap">
+              <text class="field-label">参赛者姓名</text>
+              <input
+                v-model="form.name"
+                class="field-input"
+                type="text"
+                placeholder="请输入真实姓名"
+                maxlength="20"
+              />
+            </view>
+
+            <view class="field-wrap">
+              <text class="field-label">身份证号码 (用于购买保险)</text>
+              <input
+                v-model="form.idCard"
+                class="field-input"
+                type="text"
+                placeholder="请输入18位身份证号"
+                maxlength="18"
+              />
+            </view>
+
+            <view class="field-wrap">
+              <text class="field-label">参赛组别</text>
+              <view class="category-grid">
+                <view
+                  v-for="item in categories"
+                  :key="item.value"
+                  class="category-item"
+                  :class="{ active: form.category === item.value }"
+                  @tap="form.category = item.value"
+                >
+                  <text>{{ item.label }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="section-card partner-card">
+            <view class="partner-indicator" />
+            <view class="section-head section-head-between">
+              <view class="section-head-left">
+                <uni-icons type="staff-filled" size="20" color="#a33e00" />
+                <text class="section-title">搭档信息</text>
+              </view>
+              <text class="optional-tag">选填</text>
+            </view>
+
+            <text class="partner-tip">
+              如果您报名的是双打项目，请在此填写搭档信息。如暂无搭档可留空，后续由系统随机分配。
+            </text>
+
+            <view class="field-wrap">
+              <text class="field-label">搭档姓名</text>
+              <input
+                v-model="form.partnerName"
+                class="field-input"
+                type="text"
+                placeholder="搭档真实姓名"
+                maxlength="20"
+              />
+            </view>
+
+            <view class="field-wrap">
+              <text class="field-label">联系电话</text>
+              <input
+                v-model="form.partnerPhone"
+                class="field-input"
+                type="number"
+                placeholder="搭档手机号"
+                maxlength="11"
+              />
+            </view>
+          </view>
+
+          <view class="section-card agreement-card">
+            <view class="agreement-row" @tap="toggleAgreement">
+              <view class="agreement-box" :class="{ checked: agreementChecked }">
+                <uni-icons
+                  v-if="agreementChecked"
+                  type="checkbox-filled"
+                  size="18"
+                  color="#ff6600"
+                />
+              </view>
+              <text class="agreement-text">
+                本人已阅读并完全理解
+                <text class="agreement-link" @tap.stop="openRule('rule')">《2023秋季公开赛竞赛规程》</text>
+                及
+                <text class="agreement-link" @tap.stop="openRule('disclaimer')">《参赛免责声明》</text>。
+                我确认本人身体健康，适合参加剧烈体育运动，并自愿承担比赛期间可能发生的任何意外风险。
+              </text>
+            </view>
+          </view>
+        </template>
       </view>
     </scroll-view>
 
-    <!-- Action Bar -->
-    <view class="action-bar">
-      <view class="total-price-display">
-        <text class="total-label">应付</text>
-        <text class="total-amount">¥{{ tournament.fee }}</text>
+    <view v-if="detail" class="bottom-bar">
+      <view class="bottom-price">
+        <text class="bottom-label">报名费用合计</text>
+        <view class="bottom-amount-row">
+          <text class="bottom-currency">¥</text>
+          <text class="bottom-amount">{{ detail.feeText }}</text>
+        </view>
       </view>
-      <button class="submit-btn" :disabled="!canSubmit || isSubmitting" @click="handleSubmit">
-        {{ isSubmitting ? '报名中...' : '确认报名' }}
-      </button>
+      <view class="submit-btn" :class="{ disabled: !canSubmit || isSubmitting }" @tap="handleSubmit">
+        <text>{{ isSubmitting ? '提交中...' : '提交报名' }}</text>
+      </view>
     </view>
-  </MobileLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { createTournamentRegistration, getTournamentDetail, type TournamentItem } from '@/api/tournament'
 import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
-import { getTournamentDetail } from '@/api/tournament'
-import { createTournamentRegistration } from '@/api/tournament'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
-// 响应式数据
-const tournamentId = ref<number>(0)
-const tournament = ref<any>({
-  id: 0,
-  name: '',
-  date: '',
-  time: '',
-  fee: 0
-})
+type CategoryOption = {
+  label: string
+  value: string
+}
 
-const registrationInfo = ref({
-  name: '',
-  phone: '',
-  gender: 1,
-  age: 0,
-  skillLevel: '',
-  emergencyContact: '',
-  emergencyPhone: ''
-})
-
-const agreementChecked = ref(false)
-const selectedPaymentMethod = ref(0)
-const isSubmitting = ref(false)
-const genders = ['女', '男']
-const skillLevels = ['初学者', '中级', '高级', '专业']
-const paymentMethods = [
-  { name: '余额支付', iconType: 'wallet' },
-  { name: '微信支付', iconType: 'weixin' },
-  { name: '支付宝', iconType: 'wallet' }
-]
+type TournamentRegisterVm = {
+  id: number
+  name: string
+  dateRange: string
+  location: string
+  feeText: string
+}
 
 const userStore = useUserStore()
 
-// 计算属性
-const canSubmit = computed(() => {
-  return registrationInfo.value.name &&
-         registrationInfo.value.phone &&
-         registrationInfo.value.emergencyContact &&
-         registrationInfo.value.emergencyPhone &&
-         agreementChecked.value &&
-         tournament.value.id > 0
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+const refreshing = ref(false)
+const loading = ref(true)
+const errorText = ref('')
+const isSubmitting = ref(false)
+const agreementChecked = ref(false)
+const tournamentId = ref(0)
+const tournament = ref<TournamentItem | null>(null)
+
+const categories: CategoryOption[] = [
+  { label: '男子单打', value: 'MS' },
+  { label: '女子单打', value: 'WS' },
+  { label: '男子双打', value: 'MD' }
+]
+
+const form = ref({
+  name: '',
+  idCard: '',
+  category: 'MD',
+  partnerName: '',
+  partnerPhone: ''
 })
 
-const getTournamentErrorMessage = (error: any): string => {
-  const rawMsg = String(error?.message || error?.errMsg || '')
+function toDate(raw?: string) {
+  if (!raw) return null
+  const date = new Date(String(raw).replace(/-/g, '/'))
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function formatMoney(value: number) {
+  return Number(value || 0).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+function formatDateRange(start?: string, end?: string) {
+  const startDate = toDate(start)
+  const endDate = toDate(end)
+  if (!startDate && !endDate) return '日期待定'
+  if (startDate && !endDate) return `${startDate.getMonth() + 1}月${startDate.getDate()}日`
+  if (!startDate && endDate) return `${endDate.getMonth() + 1}月${endDate.getDate()}日`
+  if (!startDate || !endDate) return '日期待定'
+  return `${startDate.getMonth() + 1}月${startDate.getDate()}日 - ${endDate.getMonth() + 1}月${endDate.getDate()}日`
+}
+
+function resolvePhone() {
+  return userStore.userInfo?.phone || ''
+}
+
+const detail = computed<TournamentRegisterVm | null>(() => {
+  if (!tournament.value) return null
+  return {
+    id: tournament.value.id,
+    name: tournament.value.tournamentName || '赛事报名',
+    dateRange: formatDateRange(tournament.value.tournamentStart || tournament.value.startDate, tournament.value.tournamentEnd),
+    location: tournament.value.venueName || tournament.value.location || '奥体中心羽毛球馆',
+    feeText: formatMoney(Number(tournament.value.entryFee || 0))
+  }
+})
+
+const canSubmit = computed(() => {
+  return Boolean(
+    detail.value &&
+      form.value.name.trim() &&
+      form.value.idCard.trim().length >= 15 &&
+      agreementChecked.value &&
+      resolvePhone()
+  )
+})
+
+const getTournamentErrorMessage = (error: unknown): string => {
+  const rawMsg = String((error as { message?: string; errMsg?: string })?.message || (error as { errMsg?: string })?.errMsg || '')
   const msg = rawMsg.toLowerCase()
 
   if (msg.includes('full') || rawMsg.includes('满员') || rawMsg.includes('名额')) {
@@ -233,57 +280,47 @@ const getTournamentErrorMessage = (error: any): string => {
   return rawMsg || '报名失败，请重试'
 }
 
-// 页面加载
-onLoad((options?: Record<string, string | undefined>) => {
-  if (options?.id) {
-    tournamentId.value = Number(options.id)
+async function loadTournamentDetail() {
+  if (!tournamentId.value) {
+    loading.value = false
+    errorText.value = '缺少赛事参数'
+    return
   }
-})
 
-// 加载赛事详情
-const loadTournamentDetail = async () => {
+  loading.value = true
+  errorText.value = ''
   try {
-    const result = await getTournamentDetail(tournamentId.value)
-    
-    tournament.value = {
-      id: result.id,
-      name: result.tournamentName,
-      date: result.startDate,
-      time: result.startTime,
-      fee: result.entryFee || 0
-    }
+    tournament.value = await getTournamentDetail(tournamentId.value)
+    form.value.name = form.value.name || userStore.userInfo?.nickname || userStore.userInfo?.username || ''
   } catch (error) {
     console.error('加载赛事详情失败:', error)
-    uni.showToast({
-      title: '加载赛事详情失败',
-      icon: 'none'
-    })
+    errorText.value = error instanceof Error ? error.message : '加载赛事详情失败'
+  } finally {
+    loading.value = false
   }
 }
 
-// 性别变化
-const onGenderChange = (e: any) => {
-  registrationInfo.value.gender = parseInt(e.detail.value)
-}
-
-// 技术水平变化
-const onSkillLevelChange = (e: any) => {
-  registrationInfo.value.skillLevel = skillLevels[parseInt(e.detail.value)]
-}
-
-// 切换协议勾选
-const toggleAgreement = () => {
+function toggleAgreement() {
   agreementChecked.value = !agreementChecked.value
 }
 
-// 选择支付方式
-const selectPaymentMethod = (index: number) => {
-  selectedPaymentMethod.value = index
+function openRule(type: 'rule' | 'disclaimer') {
+  uni.showToast({
+    title: type === 'rule' ? '竞赛规程将于后续接入' : '免责声明将于后续接入',
+    icon: 'none'
+  })
 }
 
-// 提交报名
-const handleSubmit = async () => {
-  if (isSubmitting.value) return
+async function handleSubmit() {
+  if (isSubmitting.value || !detail.value) return
+
+  if (!resolvePhone()) {
+    uni.showToast({
+      title: '请先在个人资料中补充手机号',
+      icon: 'none'
+    })
+    return
+  }
 
   if (!canSubmit.value) {
     uni.showToast({
@@ -295,26 +332,19 @@ const handleSubmit = async () => {
 
   try {
     isSubmitting.value = true
-    uni.showLoading({
-      title: '报名中...'
+    uni.showLoading({ title: '报名中...' })
+
+    await createTournamentRegistration({
+      memberId: Number(userStore.userId || 0),
+      tournamentId: detail.value.id,
+      name: form.value.name.trim(),
+      phone: resolvePhone(),
+      skillLevel: form.value.category,
+      emergencyContact: form.value.partnerName.trim() || undefined,
+      emergencyPhone: form.value.partnerPhone.trim() || undefined,
+      orderAmount: Number(tournament.value?.entryFee || 0),
+      paymentMethod: 'BALANCE'
     })
-
-    const registrationData = {
-      memberId: userStore.userId,
-      tournamentId: tournament.value.id,
-      name: registrationInfo.value.name,
-      phone: registrationInfo.value.phone,
-      gender: registrationInfo.value.gender,
-      age: registrationInfo.value.age,
-      skillLevel: registrationInfo.value.skillLevel,
-      emergencyContact: registrationInfo.value.emergencyContact,
-      emergencyPhone: registrationInfo.value.emergencyPhone,
-      orderAmount: tournament.value.fee,
-      paymentMethod: paymentMethods[selectedPaymentMethod.value].name === '余额支付' ? 'BALANCE' : 
-                   paymentMethods[selectedPaymentMethod.value].name === '微信支付' ? 'WECHAT' : 'ALIPAY'
-    }
-
-    const result = await createTournamentRegistration(registrationData)
 
     uni.hideLoading()
     uni.showToast({
@@ -322,12 +352,11 @@ const handleSubmit = async () => {
       icon: 'success'
     })
 
-    // 延迟跳转到赛事详情页
     setTimeout(() => {
       uni.redirectTo({
-        url: `/pages/tournament/detail?id=${tournament.value.id}`
+        url: `/pages/tournament/detail?id=${detail.value?.id}`
       })
-    }, 1500)
+    }, 1200)
   } catch (error) {
     console.error('赛事报名失败:', error)
     uni.hideLoading()
@@ -340,362 +369,434 @@ const handleSubmit = async () => {
   }
 }
 
-// 返回上一页
-const handleBack = () => {
-  safeNavigateBack()
+function handleBack() {
+  safeNavigateBack('/pages/tournament/detail')
 }
 
-// 页面加载时获取数据
-onMounted(async () => {
-  // 检查用户是否已登录
+function handleRefresh() {
+  refreshing.value = true
+  loadTournamentDetail().finally(() => {
+    refreshing.value = false
+  })
+}
+
+onLoad(async (options?: Record<string, string | undefined>) => {
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
+
   if (!userStore.isLoggedIn) {
-    // 未登录用户重定向到登录页
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+    uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  
-  if (tournamentId.value) {
-    await loadTournamentDetail()
-  }
+
+  tournamentId.value = Number(options?.id || 0)
+  await loadTournamentDetail()
+})
+
+onPullDownRefresh(() => {
+  loadTournamentDetail().finally(() => {
+    uni.stopPullDownRefresh()
+  })
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fafafa 0%, #f4f4f4 100%);
+  color: #1a1c1c;
 }
 
-.header-content {
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(249, 249, 249, 0.88);
+  backdrop-filter: blur(18px);
+}
+
+.header-inner {
+  min-height: 112rpx;
+  padding: 10rpx 28rpx 18rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
+.round-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 9999rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(26, 28, 28, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
+  font-size: 40rpx;
+  font-weight: 900;
+  color: #111111;
+  letter-spacing: -1rpx;
 }
 
-.header-placeholder {
-  width: 56rpx;
+.header-spacer {
+  width: 72rpx;
+  height: 72rpx;
+}
+
+.main-scroll {
+  height: 100vh;
 }
 
 .content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
+  padding: 22rpx 18rpx 240rpx;
 }
 
-.section {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-  padding: 28rpx;
+.hero-card,
+.section-card,
+.state-card {
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.04);
 }
 
-.tournament-info {
-  .tournament-card {
-    display: flex;
-    gap: 20rpx;
-  }
-
-  .tournament-image {
-    width: 120rpx;
-    height: 120rpx;
-    background-color: #f5f5f5;
-    border-radius: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(153, 153, 153, 0.3);
-    font-size: 20rpx;
-  }
-
-  .tournament-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .tournament-name {
-    font-size: 26rpx;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 8rpx;
-  }
-
-  .tournament-date {
-    display: flex;
-    align-items: center;
-    gap: 8rpx;
-    font-size: 22rpx;
-    color: #475569;
-    margin-bottom: 8rpx;
-  }
-  .tournament-date text { flex: 1; }
-
-  .tournament-fee {
-    display: flex;
-    align-items: center;
-    gap: 8rpx;
-    font-size: 24rpx;
-    font-weight: bold;
-    color: #ef4444;
-  }
-  .tournament-fee text { flex: 1; }
+.hero-card {
+  position: relative;
+  height: 440rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
 }
 
-.form-section {
-  .form-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16rpx 0;
-    border-bottom: 1rpx solid #f3f4f6;
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  .form-label {
-    font-size: 24rpx;
-    color: #333333;
-    width: 140rpx;
-  }
-
-  .form-input {
-    flex: 1;
-    font-size: 24rpx;
-    color: #333333;
-    text-align: right;
-  }
-
-  .picker {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .picker-value {
-    flex: 1;
-    text-align: right;
-    color: #666666;
-  }
-
-  .chevron {
-    font-size: 26rpx;
-    color: #999999;
-    margin-left: 12rpx;
-  }
+.hero-image {
+  width: 100%;
+  height: 100%;
 }
 
-.agreement-section {
-  .agreement-item {
-    padding: 16rpx 0;
-  }
-
-  .agreement-title {
-    font-size: 24rpx;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 16rpx;
-    display: block;
-  }
-
-  .agreement-content {
-    display: flex;
-    flex-direction: column;
-    gap: 8rpx;
-    margin-bottom: 20rpx;
-  }
-
-  .agreement-text {
-    font-size: 22rpx;
-    color: #999999;
-    line-height: 1.5;
-  }
-
-  .checkbox-container {
-    display: flex;
-    align-items: center;
-    gap: 12rpx;
-  }
-
-  .checkbox {
-    width: 36rpx;
-    height: 36rpx;
-    border: 2rpx solid #ccc;
-    border-radius: 6rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20rpx;
-    color: transparent;
-    
-    &.checked {
-      border-color: #3cc51f;
-      background-color: #3cc51f;
-      color: #ffffff;
-    }
-  }
-
-  .checkbox-label {
-    font-size: 22rpx;
-    color: #666666;
-  }
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(10, 10, 10, 0.84) 100%);
 }
 
-.payment-section {
-  .payment-method {
-    padding: 16rpx 0;
-  }
-
-  .method-label {
-    font-size: 24rpx;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 16rpx;
-    display: block;
-  }
-
-  .method-options {
-    display: flex;
-    gap: 20rpx;
-  }
-
-  .method-item {
-    flex: 1;
-    padding: 16rpx;
-    border: 2rpx solid #e6e6e6;
-    border-radius: 12rpx;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s;
-    
-    &.active {
-      border-color: #3cc51f;
-      background-color: #f0f9f2;
-    }
-  }
-
-  .method-icon {
-    font-size: 32rpx;
-    margin-bottom: 8rpx;
-  }
-
-  .method-name {
-    font-size: 22rpx;
-    color: #333333;
-  }
+.hero-content {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 24rpx;
+  z-index: 2;
 }
 
-.price-summary {
-  .summary-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16rpx 0;
-
-    &.total {
-      margin-top: 10rpx;
-    }
-  }
-
-  .summary-label {
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .summary-value {
-    font-size: 24rpx;
-    color: #333333;
-    font-weight: bold;
-
-    &.total-price {
-      color: #ef4444;
-      font-size: 28rpx;
-    }
-  }
-
-  .summary-divider {
-    height: 1rpx;
-    background-color: #e6e6e6;
-    margin: 10rpx 0;
-  }
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140rpx;
+  height: 50rpx;
+  padding: 0 18rpx;
+  border-radius: 8rpx;
+  background: #ff6600;
+  color: #561d00;
+  font-size: 22rpx;
+  font-weight: 900;
 }
 
-.action-bar {
-  position: fixed;
+.hero-title {
+  display: block;
+  margin-top: 20rpx;
+  font-size: 58rpx;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
+}
+
+.hero-meta {
+  margin-top: 18rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.hero-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+}
+
+.section-card {
+  margin-top: 22rpx;
+  border-radius: 28rpx;
+  padding: 30rpx 26rpx;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.section-head-between {
+  justify-content: space-between;
+}
+
+.section-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.section-title {
+  font-size: 40rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.field-wrap {
+  margin-top: 28rpx;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 12rpx;
+  font-size: 22rpx;
+  color: #5f5e5e;
+  font-weight: 500;
+}
+
+.field-input {
+  width: 100%;
+  height: 96rpx;
+  padding: 0 22rpx;
+  border-radius: 8rpx 8rpx 0 0;
+  background: #f3f3f3;
+  color: #1a1c1c;
+  font-size: 28rpx;
+  border: none;
+  border-bottom: 2rpx solid #8e7164;
+  box-sizing: border-box;
+}
+
+.field-input:focus {
+  border-bottom-color: #a33e00;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.category-item {
+  min-height: 88rpx;
+  border-radius: 18rpx;
+  background: #f3f3f3;
+  color: #1a1c1c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 12rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.category-item.active {
+  background: #ff6600;
+  color: #561d00;
+  box-shadow: 0 8rpx 16rpx rgba(163, 62, 0, 0.15);
+}
+
+.partner-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.partner-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
   bottom: 0;
+  width: 6rpx;
+  background: #a33e00;
+}
+
+.optional-tag {
+  min-width: 64rpx;
+  height: 38rpx;
+  padding: 0 12rpx;
+  border-radius: 9999rpx;
+  background: #eeeeee;
+  color: #5f5e5e;
+  font-size: 18rpx;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.partner-tip {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #5f5e5e;
+}
+
+.agreement-card {
+  padding-top: 28rpx;
+  padding-bottom: 28rpx;
+}
+
+.agreement-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.agreement-box {
+  width: 34rpx;
+  height: 34rpx;
+  margin-top: 4rpx;
+  border-radius: 4rpx;
+  background: #f3f3f3;
+  border: 2rpx solid #f3f3f3;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agreement-box.checked {
+  background: #ffffff;
+  border-color: #ff6600;
+}
+
+.agreement-text {
+  flex: 1;
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: #474746;
+}
+
+.agreement-link {
+  color: #a33e00;
+  font-weight: 700;
+}
+
+.bottom-bar {
+  position: fixed;
   left: 0;
   right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: rgba(249, 249, 249, 0.92);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 -10rpx 30rpx rgba(0, 0, 0, 0.05);
+  padding: 18rpx 26rpx calc(26rpx + env(safe-area-inset-bottom));
   display: flex;
-  height: 120rpx;
-  background-color: #ffffff;
-  border-top: 1rpx solid #e6e6e6;
-  padding: 0 28rpx;
-  box-sizing: border-box;
   align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
 }
 
-.total-price-display {
-  flex: 1;
+.bottom-price {
+  min-width: 210rpx;
+}
+
+.bottom-label {
+  display: block;
+  font-size: 18rpx;
+  color: #5f5e5e;
+  font-weight: 500;
+}
+
+.bottom-amount-row {
+  margin-top: 8rpx;
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  gap: 6rpx;
 }
 
-.total-label {
-  font-size: 20rpx;
-  color: #999999;
+.bottom-currency {
+  font-size: 30rpx;
+  font-weight: 900;
+  color: #111111;
 }
 
-.total-amount {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #ef4444;
+.bottom-amount {
+  font-size: 62rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #111111;
+  letter-spacing: -2rpx;
 }
 
 .submit-btn {
-  flex: 1;
-  height: 80rpx;
-  background-color: #3cc51f;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
-  border: none;
-  margin-left: 28rpx;
-  box-shadow: 0 2rpx 6rpx rgba(60, 197, 31, 0.2);
+  min-width: 250rpx;
+  height: 92rpx;
+  padding: 0 26rpx;
+  border-radius: 18rpx;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  color: #561d00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
+  font-weight: 900;
+  box-shadow: 0 8rpx 20rpx rgba(163, 62, 0, 0.2);
+}
 
-  &:disabled {
-    background-color: #cccccc;
-    color: #999999;
+.submit-btn.disabled {
+  background: #d7d7d7;
+  color: #8c8c8c;
+  box-shadow: none;
+}
+
+.state-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  padding: 90rpx 28rpx;
+  text-align: center;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #777777;
+}
+
+.state-action {
+  width: 220rpx;
+  height: 76rpx;
+  margin: 22rpx auto 0;
+  border-radius: 9999rpx;
+  background: #ff6600;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

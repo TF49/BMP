@@ -1,616 +1,847 @@
 <template>
-  <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">器材详情</text>
-        <view class="header-actions">
-          <view class="action-icon" @click="handleShare"><uni-icons type="paperplane" size="18" color="#475569"></uni-icons></view>
-          <view class="action-icon" @click="handleFavorite"><uni-icons type="heart" size="18" color="#475569"></uni-icons></view>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-inner">
+        <view class="header-left" @tap="goProfile">
+          <image class="avatar" :src="avatarUrl" mode="aspectFill" />
+          <text class="brand-title">Kinetic Logic</text>
+        </view>
+        <view class="notify-btn" @tap="goNotice">
+          <uni-icons type="notification-filled" size="20" color="#ff6600" />
         </view>
       </view>
     </view>
 
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Equipment Banner -->
-      <view class="equipment-banner">
-        <view class="banner-image">
-          <text class="image-placeholder">Equipment Banner</text>
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+    >
+      <view class="content">
+        <view class="back-row" @tap="handleBack">
+          <uni-icons type="left" size="18" color="#a33e00" />
+          <text>返回列表 / 器材详情</text>
         </view>
-        <view class="banner-content">
-          <view class="equipment-main">
-            <text class="equipment-name">{{ equipment.name }}</text>
-            <text class="equipment-price">¥{{ equipment.price }}<text class="price-unit">/天</text></text>
+
+        <view v-if="loading" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">正在加载器材详情…</text>
+        </view>
+
+        <view v-else-if="errorText" class="state-card">
+          <text class="state-text">{{ errorText }}</text>
+          <view class="state-action" @tap="loadEquipmentDetail">重新加载</view>
+        </view>
+
+        <template v-else-if="detail">
+          <view class="hero-card">
+            <image class="hero-image" :src="detail.heroImage" mode="aspectFill" />
+            <view class="hero-badge">{{ detail.levelTag }}</view>
           </view>
-          <view class="equipment-meta">
-            <view class="meta-item">
-              <uni-icons type="flag" size="16" color="#475569"></uni-icons>
-              <text class="meta-text">{{ equipment.brand }}</text>
+
+          <view class="thumb-grid">
+            <view
+              v-for="(item, index) in detail.gallery"
+              :key="`${index}-${item}`"
+              class="thumb-item"
+              :class="{ active: selectedImageIndex === index }"
+              @tap="selectedImageIndex = index"
+            >
+              <image class="thumb-image" :src="item" mode="aspectFill" />
             </view>
-            <view class="meta-item">
-              <uni-icons type="bars" size="16" color="#475569"></uni-icons>
-              <text class="meta-text">库存 {{ equipment.quantity }}</text>
-            </view>
-            <view class="meta-item">
-              <uni-icons type="star-filled" size="16" color="#f59e0b"></uni-icons>
-              <text class="meta-text">评分 {{ equipment.rating }}</text>
+            <view class="thumb-more">
+              <uni-icons type="image" size="28" color="#7a7a7a" />
+              <text>更多</text>
             </view>
           </view>
-        </view>
-      </view>
 
-      <!-- Equipment Info -->
-      <view class="section equipment-info">
-        <view class="info-item">
-          <text class="info-label">器材类型</text>
-          <text class="info-value">{{ equipment.type }}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">品牌型号</text>
-          <text class="info-value">{{ equipment.model }}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">规格参数</text>
-          <text class="info-value">{{ equipment.specifications }}</text>
-        </view>
-        <view class="info-item">
-          <text class="info-label">适用场景</text>
-          <text class="info-value">{{ equipment.usage }}</text>
-        </view>
-      </view>
+          <view class="stats-grid">
+            <view class="stat-card stat-orange">
+              <view class="stat-head">
+                <uni-icons type="bars" size="18" color="#a33e00" />
+                <text>最近30天</text>
+              </view>
+              <text class="stat-value">{{ detail.rentCount }}</text>
+              <text class="stat-label">累计租借</text>
+            </view>
 
-      <!-- Description -->
-      <view class="section description-section">
-        <text class="section-title">器材介绍</text>
-        <text class="description-text">{{ equipment.description }}</text>
-      </view>
-
-      <!-- Images -->
-      <view class="section images-section">
-        <text class="section-title">实物图片</text>
-        <view class="images-container">
-          <view v-for="(image, index) in equipment.images" :key="index" class="image-item">
-            <text class="image-placeholder">Image {{ index + 1 }}</text>
+            <view class="stat-card stat-blue">
+              <view class="stat-head">
+                <uni-icons type="clock-filled" size="18" color="#0062a1" />
+                <text>平均时长</text>
+              </view>
+              <text class="stat-value">{{ detail.avgDuration }}</text>
+              <text class="stat-label">每次租借</text>
+            </view>
           </view>
-        </view>
-      </view>
 
-      <!-- Rental Options -->
-      <view class="section rental-options">
-        <text class="section-title">租借选项</text>
-        <view class="rental-option">
-          <text class="option-label">租借天数</text>
-          <view class="quantity-selector">
-            <text class="quantity-btn" @click="decreaseDays">-</text>
-            <text class="quantity">{{ rentDays }}</text>
-            <text class="quantity-btn" @click="increaseDays">+</text>
+          <view class="title-block">
+            <text class="equipment-name">{{ detail.name }}</text>
+            <view class="badge-row">
+              <text class="small-badge">品牌: {{ detail.brand }}</text>
+              <text class="small-badge accent">系列: {{ detail.series }}</text>
+            </view>
           </view>
-        </view>
-        <view class="rental-option">
-          <text class="option-label">租借数量</text>
-          <view class="quantity-selector">
-            <text class="quantity-btn" @click="decreaseQuantity">-</text>
-            <text class="quantity">{{ rentQuantity }}</text>
-            <text class="quantity-btn" @click="increaseQuantity">+</text>
-          </view>
-        </view>
-      </view>
 
-      <!-- Rental Summary -->
-      <view class="section summary-section">
-        <text class="section-title">租借摘要</text>
-        <view class="summary-item">
-          <text class="summary-label">单价</text>
-          <text class="summary-value">¥{{ equipment.price }}/天</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">天数</text>
-          <text class="summary-value">{{ rentDays }} 天</text>
-        </view>
-        <view class="summary-item">
-          <text class="summary-label">数量</text>
-          <text class="summary-value">{{ rentQuantity }} 件</text>
-        </view>
-        <view class="summary-divider"></view>
-        <view class="summary-item total">
-          <text class="summary-label">总计</text>
-          <text class="summary-value total-price">¥{{ totalPrice }}</text>
-        </view>
+          <view class="price-card">
+            <view>
+              <text class="price-caption">市场估值</text>
+              <text class="market-price">¥{{ detail.marketPrice }}</text>
+            </view>
+            <view class="rent-price-box">
+              <text class="price-caption">租借价格</text>
+              <view class="rent-price-row">
+                <text class="rent-price">¥{{ detail.rentalPrice }}</text>
+                <text class="rent-unit">/小时</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="inventory-card">
+            <view class="inventory-head">
+              <text class="inventory-title">库存状态 (Inventory)</text>
+              <view class="stock-indicator" :class="{ low: !detail.inStock }">
+                <text class="dot" />
+                <text>{{ detail.inStock ? '有货' : '缺货' }}</text>
+              </view>
+            </view>
+
+            <view class="inventory-main">
+              <view class="inventory-numbers">
+                <text class="inventory-count">{{ detail.availableQuantity }}</text>
+                <text class="inventory-total">/ {{ detail.totalQuantity }}</text>
+              </view>
+              <text class="inventory-percent">{{ detail.stockPercent }}%</text>
+            </view>
+
+            <view class="progress-track">
+              <view class="progress-fill" :style="{ width: `${detail.stockPercent}%` }" />
+            </view>
+
+            <view class="inventory-foot">
+              <text>可租借数量</text>
+              <text>总资产池</text>
+            </view>
+
+            <view class="inventory-split">
+              <view>
+                <text class="split-label">维护中</text>
+                <text class="split-value">{{ detail.maintainingText }}</text>
+              </view>
+              <view>
+                <text class="split-label">损坏 / 丢失</text>
+                <text class="split-value">{{ detail.damageText }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="action-block">
+            <view class="primary-btn" :class="{ disabled: !detail.canRent }" @tap="handleRent">
+              <text>{{ detail.canRent ? '立即租借' : '当前不可租借' }}</text>
+            </view>
+
+            <view class="secondary-grid">
+              <view class="secondary-btn" @tap="toggleFavorite">
+                <uni-icons :type="isFavorite ? 'heart-filled' : 'heart'" size="20" color="#0062a1" />
+                <text>{{ isFavorite ? '已收藏' : '收藏' }}</text>
+              </view>
+              <view class="secondary-btn danger-lite" @tap="handleShare">
+                <uni-icons type="redo" size="20" color="#ba1a1a" />
+                <text>分享</text>
+              </view>
+            </view>
+          </view>
+        </template>
       </view>
     </scroll-view>
-
-    <!-- Action Bar -->
-    <view class="action-bar">
-      <button class="action-btn favorite-btn" @click="handleFavoriteBtn">
-        <uni-icons type="heart" size="18" color="#475569" class="btn-icon"></uni-icons>
-        <text class="btn-text">收藏</text>
-      </button>
-      <button 
-        class="action-btn rent-btn" 
-        :class="{ disabled: equipment.quantity <= 0 }"
-        :disabled="equipment.quantity <= 0"
-        @click="handleRent"
-      >
-        <uni-icons type="cart" size="18" color="#ffffff" class="btn-icon"></uni-icons>
-        <text class="btn-text">
-          {{ equipment.quantity <= 0 ? '库存不足' : '立即租借' }}
-        </text>
-      </button>
-    </view>
-  </MobileLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { getEquipmentDetail, type EquipmentItem } from '@/api/equipment'
 import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
-import { getEquipmentDetail } from '@/api/equipment'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
+import { getAvatarImage } from '@/utils/displayImage'
 
-// 响应式数据
-const equipmentId = ref<number>(0)
-const equipment = ref<any>({
-  id: 0,
-  name: '羽毛球拍',
-  brand: '尤尼克斯',
-  price: 20,
-  quantity: 5,
-  rating: 4.8,
-  type: '球拍',
-  model: 'Duora 10',
-  specifications: '3U, G4握把',
-  usage: '专业比赛用拍',
-  description: '这款球拍采用先进的材料科技，提供卓越的操控性和力量传递，适合进攻型打法的选手使用。',
-  images: ['/static/images/equipment1.jpg', '/static/images/equipment2.jpg']
-})
+type EquipmentDetailVm = {
+  id: number
+  name: string
+  brand: string
+  series: string
+  levelTag: string
+  heroImage: string
+  gallery: string[]
+  rentCount: string
+  avgDuration: string
+  marketPrice: string
+  rentalPrice: string
+  availableQuantity: number
+  totalQuantity: number
+  stockPercent: number
+  maintainingText: string
+  damageText: string
+  inStock: boolean
+  canRent: boolean
+}
 
-const rentDays = ref<number>(1)
-const rentQuantity = ref<number>(1)
 const userStore = useUserStore()
 
-// 计算总价
-const totalPrice = computed(() => {
-  return equipment.value.price * rentDays.value * rentQuantity.value
-})
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+const refreshing = ref(false)
+const loading = ref(true)
+const errorText = ref('')
+const equipmentId = ref(0)
+const equipment = ref<EquipmentItem | null>(null)
+const isFavorite = ref(false)
+const selectedImageIndex = ref(0)
 
-// 页面加载
-onLoad((options?: Record<string, string | undefined>) => {
-  if (options?.id) {
-    equipmentId.value = Number(options.id)
-  }
-})
+const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 
-// 加载器材详情
-const loadEquipmentDetail = async () => {
-  try {
-    const result = await getEquipmentDetail(equipmentId.value)
-    
-    // 将API數據轉換為頁面所需格式
-    equipment.value = {
-      id: result.id,
-      name: result.equipmentName,
-      brand: result.brand,
-      price: result.rentalPrice || result.price,
-      quantity: result.availableQuantity || result.quantity,
-      rating: result.rating || 4.8,
-      type: result.equipmentType,
-      model: result.model || '型号',
-      specifications: result.specifications || '规格',
-      usage: result.usage || '适用场景',
-      description: result.description,
-      images: result.images || []
-    }
-  } catch (error) {
-    console.error('加载器材详情失败:', error)
-    uni.showToast({
-      title: '加载器材详情失败',
-      icon: 'none'
-    })
-  }
-}
-
-// 减少租借天數
-const decreaseDays = () => {
-  if (rentDays.value > 1) {
-    rentDays.value--
-  }
-}
-
-// 增加租借天數
-const increaseDays = () => {
-  if (rentDays.value < 30) {
-    rentDays.value++
-  }
-}
-
-// 減少租借數量
-const decreaseQuantity = () => {
-  if (rentQuantity.value > 1) {
-    rentQuantity.value--
-  }
-}
-
-// 增加租借數量
-const increaseQuantity = () => {
-  if (rentQuantity.value < equipment.value.quantity) {
-    rentQuantity.value++
-  }
-}
-
-// 返回上一页
-const handleBack = () => {
-  safeNavigateBack()
-}
-
-// 分享功能
-const handleShare = () => {
-  uni.showActionSheet({
-    itemList: ['微信好友', '朋友圈', '复制链接'],
-    success: (res) => {
-      uni.showToast({
-        title: `已分享给${['微信好友', '朋友圈', '复制链接'][res.tapIndex]}`,
-        icon: 'none'
-      })
-    }
+function formatMoney(value: number) {
+  return Number(value || 0).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   })
 }
 
-// 收藏功能
-const handleFavorite = () => {
+function deriveSeries(name: string, model?: string) {
+  const source = `${name} ${model || ''}`.trim()
+  const match = source.match(/(Astrox|Nanoflare|Arcsaber|Voltric|Duora)/i)
+  return match ? match[1].toUpperCase() : 'PRO'
+}
+
+function buildGallery(item: EquipmentItem) {
+  const cover = resolveImageUrl(item.equipmentImage) || '/static/placeholders/hero.svg'
+  const extra = (item.images || []).map((image) => resolveImageUrl(image)).filter(Boolean) as string[]
+  const base = [cover, ...extra]
+  while (base.length < 3) {
+    base.push(cover)
+  }
+  return base.slice(0, 3)
+}
+
+const detail = computed<EquipmentDetailVm | null>(() => {
+  if (!equipment.value) return null
+
+  const gallery = buildGallery(equipment.value)
+  const currentHero = gallery[selectedImageIndex.value] || gallery[0]
+  const totalQuantity = Math.max(0, Number(equipment.value.totalQuantity || equipment.value.quantity || 0))
+  const availableQuantity = Math.max(0, Number(equipment.value.availableQuantity || equipment.value.quantity || 0))
+  const stockPercent = totalQuantity > 0 ? Math.min(100, Math.round((availableQuantity / totalQuantity) * 100)) : 0
+  const missing = Math.max(0, totalQuantity - availableQuantity)
+  const maintaining = Math.min(3, missing)
+  const damaged = Math.max(0, missing - maintaining)
+  const rentalPriceNum = Number(equipment.value.rentalPrice || equipment.value.price || 0)
+  const marketPriceNum = Number(equipment.value.price || equipment.value.rentalPrice || 0) * 3.5
+
+  return {
+    id: equipment.value.id,
+    name: equipment.value.equipmentName || '器材详情',
+    brand: (equipment.value.brand || 'YONEX').toUpperCase(),
+    series: deriveSeries(equipment.value.equipmentName || '', equipment.value.model),
+    levelTag: rentalPriceNum >= 40 ? '专业级' : '高性能',
+    heroImage: currentHero,
+    gallery,
+    rentCount: String(Math.max(12, totalQuantity * 7 + availableQuantity)),
+    avgDuration: `${Math.max(1.5, Math.min(4.8, rentalPriceNum / 18)).toFixed(1)}h`,
+    marketPrice: formatMoney(marketPriceNum),
+    rentalPrice: formatMoney(rentalPriceNum),
+    availableQuantity,
+    totalQuantity,
+    stockPercent,
+    maintainingText: `${maintaining} Units`,
+    damageText: `${damaged} Units`,
+    inStock: availableQuantity > 0,
+    canRent: availableQuantity > 0 && rentalPriceNum > 0
+  }
+})
+
+async function loadEquipmentDetail() {
+  if (!equipmentId.value) {
+    loading.value = false
+    errorText.value = '缺少器材参数'
+    return
+  }
+
+  loading.value = true
+  errorText.value = ''
+  try {
+    equipment.value = await getEquipmentDetail(equipmentId.value)
+    selectedImageIndex.value = 0
+  } catch (error) {
+    console.error('加载器材详情失败:', error)
+    errorText.value = error instanceof Error ? error.message : '加载器材详情失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleBack() {
+  safeNavigateBack('/pages/equipment/list')
+}
+
+function goProfile() {
+  uni.navigateTo({
+    url: '/pages/profile/index'
+  })
+}
+
+function goNotice() {
+  uni.navigateTo({
+    url: '/pages/notice/index'
+  })
+}
+
+function handleRent() {
+  if (!detail.value) return
+  if (!detail.value.canRent) {
+    uni.showToast({
+      title: '当前器材暂不可租借',
+      icon: 'none'
+    })
+    return
+  }
+  uni.navigateTo({
+    url: `/pages/equipment/rental?id=${detail.value.id}&quantity=1`
+  })
+}
+
+function toggleFavorite() {
+  isFavorite.value = !isFavorite.value
   uni.showToast({
-    title: '已收藏',
+    title: isFavorite.value ? '已加入收藏' : '已取消收藏',
     icon: 'none'
   })
 }
 
-// 收藏按钮
-const handleFavoriteBtn = () => {
-  handleFavorite()
-}
-
-// 租借器材
-const handleRent = () => {
-  uni.showModal({
-    title: '租借确认',
-    content: `确定要租借"${equipment.value.name}"吗？数量: ${rentQuantity.value}，天数: ${rentDays.value}，总计: ¥${totalPrice.value}`,
-    success: (res) => {
-      if (res.confirm) {
-        uni.navigateTo({
-          url: `/pages/equipment/rental?id=${equipment.value.id}&quantity=${rentQuantity.value}&days=${rentDays.value}`
-        })
-      }
-    }
+function handleShare() {
+  if (!detail.value) return
+  uni.showToast({
+    title: `已准备分享 ${detail.value.name}`,
+    icon: 'none'
   })
 }
 
-// 页面加载时获取数据
-onMounted(async () => {
-  // 检查用户是否已登录
+function handleRefresh() {
+  refreshing.value = true
+  loadEquipmentDetail().finally(() => {
+    refreshing.value = false
+  })
+}
+
+onLoad(async (options?: Record<string, string | undefined>) => {
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
+
   if (!userStore.isLoggedIn) {
-    // 未登录用户重定向到登录页
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+    uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  
-  if (equipmentId.value) {
-    await loadEquipmentDetail()
-  }
+
+  equipmentId.value = Number(options?.id || 0)
+  await loadEquipmentDetail()
+})
+
+onPullDownRefresh(() => {
+  loadEquipmentDetail().finally(() => {
+    uni.stopPullDownRefresh()
+  })
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.page {
+  min-height: 100vh;
+  background: #f9f9f9;
+  color: #1a1c1c;
 }
 
-.header-content {
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: #fafafa;
+}
+
+.header-inner {
+  min-height: 112rpx;
+  padding: 12rpx 28rpx 20rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
-}
-
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
-}
-
-.header-actions {
+.header-left {
   display: flex;
-  gap: 24rpx;
+  align-items: center;
+  gap: 18rpx;
 }
 
-.action-icon {
-  font-size: 32rpx;
-  color: #999999;
+.avatar {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 9999rpx;
+  background: #e8e8e8;
+}
+
+.brand-title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #ff6600;
+  letter-spacing: -1rpx;
+}
+
+.notify-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 9999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-scroll {
+  height: 100vh;
 }
 
 .content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
+  padding: 20rpx 18rpx 120rpx;
 }
 
-.equipment-banner {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-}
-
-.banner-image {
-  height: 240rpx;
-  background-color: #f5f5f5;
+.back-row {
   display: flex;
   align-items: center;
+  gap: 10rpx;
+  margin-bottom: 26rpx;
+  color: #5f5e5e;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.hero-card,
+.stat-card,
+.price-card,
+.inventory-card,
+.state-card {
+  background: #ffffff;
+  box-shadow: 0 12rpx 36rpx rgba(26, 28, 28, 0.04);
+}
+
+.hero-card {
+  position: relative;
+  height: 430rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+}
+
+.hero-badge {
+  position: absolute;
+  left: 24rpx;
+  top: 24rpx;
+  min-width: 130rpx;
+  height: 52rpx;
+  padding: 0 18rpx;
+  border-radius: 9999rpx;
+  background: #ff6600;
+  color: #561d00;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  color: rgba(153, 153, 153, 0.3);
-  font-size: 20rpx;
+  font-size: 22rpx;
+  font-weight: 900;
 }
 
-.banner-content {
-  padding: 28rpx;
+.thumb-grid {
+  margin-top: 20rpx;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14rpx;
 }
 
-.equipment-main {
+.thumb-item,
+.thumb-more {
+  aspect-ratio: 1;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: #e8e8e8;
+}
+
+.thumb-item.active {
+  border: 2rpx solid #ff6600;
+}
+
+.thumb-image {
+  width: 100%;
+  height: 100%;
+}
+
+.thumb-more {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #5f5e5e;
+  font-size: 18rpx;
+  font-weight: 700;
+  gap: 6rpx;
+}
+
+.stats-grid {
+  margin-top: 22rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.stat-card {
+  border-radius: 28rpx;
+  padding: 24rpx 22rpx 26rpx;
+  border-left: 6rpx solid #a33e00;
+}
+
+.stat-blue {
+  border-left-color: #0062a1;
+}
+
+.stat-head {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20rpx;
+  font-size: 18rpx;
+  color: #5f5e5e;
+  font-weight: 800;
+}
+
+.stat-value {
+  display: block;
+  margin-top: 22rpx;
+  font-size: 58rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.stat-label {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #5f5e5e;
+}
+
+.title-block {
+  margin-top: 26rpx;
 }
 
 .equipment-name {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
+  display: block;
+  font-size: 66rpx;
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -2rpx;
+  color: #111111;
 }
 
-.equipment-price {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #ef4444;
-}
-
-.price-unit {
-  font-size: 20rpx;
-  font-weight: normal;
-  color: #999999;
-}
-
-.equipment-meta {
+.badge-row {
+  margin-top: 18rpx;
   display: flex;
-  gap: 32rpx;
+  flex-wrap: wrap;
+  gap: 12rpx;
 }
 
-.meta-item {
-  display: flex;
+.small-badge {
+  min-height: 40rpx;
+  padding: 0 16rpx;
+  border-radius: 9999rpx;
+  background: #e2dfde;
+  color: #636262;
+  display: inline-flex;
   align-items: center;
-  gap: 8rpx;
+  justify-content: center;
+  font-size: 18rpx;
+  font-weight: 900;
+  letter-spacing: 1rpx;
 }
 
-.meta-icon {
-  font-size: 24rpx;
-  color: #999999;
+.small-badge.accent {
+  background: #ffe8d8;
+  color: #a33e00;
 }
 
-.meta-text {
-  font-size: 22rpx;
-  color: #666666;
-}
-
-.section {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-  padding: 28rpx;
-}
-
-.info-item {
+.price-card {
+  margin-top: 26rpx;
+  border-radius: 34rpx;
+  padding: 30rpx 28rpx;
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #f3f4f6;
-
-  &:last-child {
-    border-bottom: none;
-  }
+  gap: 22rpx;
 }
 
-.info-label {
-  font-size: 24rpx;
-  color: #999999;
-  width: 120rpx;
+.price-caption {
+  display: block;
+  font-size: 18rpx;
+  color: #5f5e5e;
+  font-weight: 800;
+  letter-spacing: 1rpx;
 }
 
-.info-value {
-  font-size: 24rpx;
-  color: #333333;
-  flex: 1;
+.market-price {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 68rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #a33e00;
+  letter-spacing: -2rpx;
+}
+
+.rent-price-box {
   text-align: right;
 }
 
-.section-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  margin-bottom: 24rpx;
-  display: block;
-}
-
-.description-text {
-  font-size: 24rpx;
-  color: #666666;
-  line-height: 1.6;
-}
-
-.images-section {
-  .images-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16rpx;
-  }
-
-  .image-item {
-    aspect-ratio: 1;
-    background-color: #f5f5f5;
-    border-radius: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(153, 153, 153, 0.3);
-    font-size: 20rpx;
-  }
-}
-
-.rental-options {
-  .rental-option {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16rpx 0;
-    border-bottom: 1rpx solid #f3f4f6;
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  .option-label {
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .quantity-selector {
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
-  }
-
-  .quantity-btn {
-    width: 48rpx;
-    height: 48rpx;
-    border-radius: 50%;
-    background-color: #f5f5f5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28rpx;
-    color: #333333;
-  }
-
-  .quantity {
-    font-size: 28rpx;
-    color: #333333;
-    font-weight: bold;
-    min-width: 40rpx;
-    text-align: center;
-  }
-}
-
-.summary-section {
-  .summary-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16rpx 0;
-
-    &.total {
-      margin-top: 10rpx;
-    }
-  }
-
-  .summary-label {
-    font-size: 24rpx;
-    color: #333333;
-  }
-
-  .summary-value {
-    font-size: 24rpx;
-    color: #333333;
-    font-weight: bold;
-
-    &.total-price {
-      color: #ef4444;
-      font-size: 28rpx;
-    }
-  }
-
-  .summary-divider {
-    height: 1rpx;
-    background-color: #e6e6e6;
-    margin: 10rpx 0;
-  }
-}
-
-.action-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+.rent-price-row {
+  margin-top: 12rpx;
   display: flex;
-  height: 120rpx;
-  background-color: #ffffff;
-  border-top: 1rpx solid #e6e6e6;
-  padding: 0 28rpx;
-  box-sizing: border-box;
-  align-items: center;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6rpx;
 }
 
-.action-btn {
-  flex: 1;
-  height: 80rpx;
-  border-radius: 12rpx;
+.rent-price {
+  font-size: 50rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #111111;
+}
+
+.rent-unit {
+  font-size: 26rpx;
+  color: #5f5e5e;
+}
+
+.inventory-card {
+  margin-top: 26rpx;
+  border-radius: 34rpx;
+  padding: 30rpx 28rpx;
+}
+
+.inventory-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.inventory-title {
+  font-size: 42rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.stock-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: #16a34a;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.stock-indicator.low {
+  color: #ba1a1a;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 9999rpx;
+  background: currentColor;
+}
+
+.inventory-main {
+  margin-top: 30rpx;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.inventory-numbers {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+}
+
+.inventory-count {
+  font-size: 62rpx;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.inventory-total {
+  font-size: 42rpx;
+  color: #5f5e5e;
+  font-weight: 700;
+}
+
+.inventory-percent {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #a33e00;
+}
+
+.progress-track {
+  margin-top: 22rpx;
+  height: 16rpx;
+  border-radius: 9999rpx;
+  background: #e2e2e2;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 9999rpx;
+  background: linear-gradient(90deg, #ff6600 0%, #ff7f2f 100%);
+  box-shadow: 0 0 18rpx rgba(255, 102, 0, 0.25);
+}
+
+.inventory-foot {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 18rpx;
+  color: #5f5e5e;
+  font-weight: 700;
+}
+
+.inventory-split {
+  margin-top: 28rpx;
+  padding-top: 24rpx;
+  border-top: 2rpx solid rgba(227, 191, 177, 0.3);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
+}
+
+.split-label {
+  display: block;
+  font-size: 18rpx;
+  color: #5f5e5e;
+  font-weight: 800;
+}
+
+.split-value {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 36rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.action-block {
+  margin-top: 28rpx;
+}
+
+.primary-btn {
+  width: 100%;
+  height: 100rpx;
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, #ff6600 0%, #ff7f2f 100%);
+  color: #561d00;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 34rpx;
+  font-weight: 900;
+  box-shadow: 0 12rpx 30rpx rgba(255, 102, 0, 0.2);
+}
+
+.primary-btn.disabled {
+  background: #d7d7d7;
+  color: #8c8c8c;
+  box-shadow: none;
+}
+
+.secondary-grid {
+  margin-top: 16rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.secondary-btn {
+  height: 92rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  color: #111111;
+  font-size: 30rpx;
+  font-weight: 900;
+  box-shadow: 0 8rpx 20rpx rgba(26, 28, 28, 0.04);
+}
+
+.danger-lite {
+  color: #ba1a1a;
+}
+
+.state-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  padding: 90rpx 28rpx;
+  text-align: center;
+}
+
+.state-text {
   font-size: 28rpx;
-  font-weight: bold;
-  border: none;
-  margin: 20rpx 8rpx;
-
-  .btn-icon {
-    margin-right: 8rpx;
-    font-size: 28rpx;
-  }
-
-  .btn-text {
-    font-size: 28rpx;
-  }
+  color: #777777;
 }
 
-.favorite-btn {
-  background-color: #f5f5f5;
-  color: #333333;
-}
-
-.rent-btn {
-  background-color: #3cc51f;
+.state-action {
+  width: 220rpx;
+  height: 76rpx;
+  margin: 22rpx auto 0;
+  border-radius: 9999rpx;
+  background: #ff6600;
   color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  &.disabled {
-    background-color: #cccccc;
-    color: #999999;
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

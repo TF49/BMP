@@ -1,128 +1,154 @@
 <template>
   <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">设置</text>
-        <view class="header-placeholder"></view>
+    <view class="settings-page">
+      <view class="topbar">
+        <view class="topbar-inner">
+          <view class="icon-btn" @click="handleBack">
+            <uni-icons type="left" size="18" color="#ff6600" />
+          </view>
+          <view class="topbar-copy">
+            <text class="topbar-title">设置中心</text>
+            <text class="topbar-sub">SETTINGS HUB</text>
+          </view>
+          <view class="icon-btn ghost" @click="goToProfileInfo">
+            <uni-icons type="person" size="18" color="#a33e00" />
+          </view>
+        </view>
       </view>
+
+      <scroll-view class="page-scroll" scroll-y :show-scrollbar="false">
+        <view class="hero-card">
+          <view class="hero-glow" />
+          <view class="hero-head">
+            <view class="hero-avatar">
+              <uni-icons type="person-filled" size="30" color="#ffffff" />
+            </view>
+            <view class="hero-meta">
+              <text class="hero-name">{{ userInfo.username || '未登录用户' }}</text>
+              <text class="hero-role">{{ roleLabel }}</text>
+            </view>
+            <view class="hero-level">{{ levelBadge }}</view>
+          </view>
+
+          <view class="hero-stats">
+            <view class="stat-chip">
+              <text class="stat-label">Security</text>
+              <text class="stat-value">{{ securityLabel }}</text>
+            </view>
+            <view class="stat-chip">
+              <text class="stat-label">Theme</text>
+              <text class="stat-value">{{ isDarkMode ? 'Dark' : 'Light' }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Account</text>
+              <text class="section-title">账户与资料</text>
+            </view>
+          </view>
+
+          <view
+            v-for="item in accountMenus"
+            :key="item.title"
+            class="menu-row"
+            @click="navigate(item.path)"
+          >
+            <view class="menu-left">
+              <view class="menu-icon" :style="{ background: item.bgColor }">
+                <uni-icons :type="item.icon" size="18" :color="item.iconColor" />
+              </view>
+              <view class="menu-copy">
+                <text class="menu-title">{{ item.title }}</text>
+                <text class="menu-desc">{{ item.desc }}</text>
+              </view>
+            </view>
+            <uni-icons type="right" size="16" color="#8e7164" />
+          </view>
+        </view>
+
+        <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Preferences</text>
+              <text class="section-title">偏好与通知</text>
+            </view>
+          </view>
+
+          <view
+            v-for="item in preferenceMenus"
+            :key="item.title"
+            class="menu-row"
+            @click="navigate(item.path)"
+          >
+            <view class="menu-left">
+              <view class="menu-icon" :style="{ background: item.bgColor }">
+                <uni-icons :type="item.icon" size="18" :color="item.iconColor" />
+              </view>
+              <view class="menu-copy">
+                <text class="menu-title">{{ item.title }}</text>
+                <text class="menu-desc">{{ item.desc }}</text>
+              </view>
+            </view>
+            <uni-icons type="right" size="16" color="#8e7164" />
+          </view>
+
+          <view class="theme-row">
+            <view class="menu-left">
+              <view class="menu-icon" style="background: rgba(0, 98, 161, 0.12);">
+                <uni-icons type="eye" size="18" color="#0062a1" />
+              </view>
+              <view class="menu-copy">
+                <text class="menu-title">主题模式</text>
+                <text class="menu-desc">切换明亮 / 深色视觉模式</text>
+              </view>
+            </view>
+            <switch :checked="isDarkMode" color="#ff6600" @change="toggleTheme" />
+          </view>
+        </view>
+
+        <view class="section-card">
+          <view class="section-head compact">
+            <view>
+              <text class="section-kicker">Support</text>
+              <text class="section-title">支持与说明</text>
+            </view>
+          </view>
+
+          <view
+            v-for="item in supportMenus"
+            :key="item.title"
+            class="menu-row"
+            @click="navigate(item.path)"
+          >
+            <view class="menu-left">
+              <view class="menu-icon" :style="{ background: item.bgColor }">
+                <uni-icons :type="item.icon" size="18" :color="item.iconColor" />
+              </view>
+              <view class="menu-copy">
+                <text class="menu-title">{{ item.title }}</text>
+                <text class="menu-desc">{{ item.desc }}</text>
+              </view>
+            </view>
+            <uni-icons type="right" size="16" color="#8e7164" />
+          </view>
+        </view>
+
+        <view class="logout-panel">
+          <button class="logout-btn" @click="handleLogout">
+            <uni-icons type="redo" size="18" color="#1a1c1c" />
+            <text class="logout-text">退出登录</text>
+          </button>
+        </view>
+      </scroll-view>
     </view>
-
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Account Section -->
-      <view class="section account-section">
-        <view class="account-header">
-          <view class="avatar">
-            <uni-icons type="person" size="28" color="#94a3b8" class="avatar-icon"></uni-icons>
-          </view>
-          <view class="account-info">
-            <text class="account-name">{{ userInfo.username || '未登录' }}</text>
-            <text class="account-level">{{ userInfo.level || '普通用户' }}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Settings List -->
-      <view class="section settings-list">
-        <view class="setting-item" @click="goToAccountSettings">
-          <view class="setting-left">
-            <view class="setting-icon account-icon">
-              <uni-icons type="person" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="setting-label">账户设置</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="setting-item" @click="goToNotificationSettings">
-          <view class="setting-left">
-            <view class="setting-icon notification-icon">
-              <uni-icons type="chatbubble" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="setting-label">通知设置</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="setting-item" @click="goToPrivacySettings">
-          <view class="setting-left">
-            <view class="setting-icon privacy-icon">
-              <uni-icons type="locked" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="setting-label">隐私设置</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="setting-item" @click="goToSecuritySettings">
-          <view class="setting-left">
-            <view class="setting-icon security-icon">
-              <uni-icons type="auth" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="setting-label">安全设置</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-      </view>
-
-      <!-- Other Settings -->
-      <view class="section other-settings">
-        <view class="setting-item" @click="goToAbout">
-          <view class="setting-left">
-            <view class="setting-icon about-icon">
-              <uni-icons type="info" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="setting-label">关于我们</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="setting-item" @click="goToHelp">
-          <view class="setting-left">
-            <view class="setting-icon help-icon">
-              <uni-icons type="help" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="setting-label">帮助与反馈</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="setting-item" @click="goToThemeSettings">
-          <view class="setting-left">
-            <view class="setting-icon theme-icon">
-              <uni-icons type="color" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="setting-label">主题设置</text>
-          </view>
-          <switch :checked="isDarkMode" @change="toggleTheme" />
-        </view>
-      </view>
-
-      <!-- Logout Button -->
-      <view class="logout-container">
-        <button class="logout-btn" @click="handleLogout">
-          <uni-icons type="redo" size="18" color="#ef4444" class="logout-icon"></uni-icons>
-          <text>退出登录</text>
-        </button>
-      </view>
-    </scroll-view>
   </MobileLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { useThemeStore } from '@/store/modules/theme'
@@ -130,89 +156,125 @@ import MobileLayout from '@/components/MobileLayout.vue'
 import { getCurrentUser } from '@/api/auth'
 import { safeNavigateBack } from '@/utils/navigation'
 
-// 响应式数据
 const userInfo = ref({
   username: '',
-  level: '',
-  avatar: ''
+  role: '',
+  avatar: '',
+  phone: '',
+  email: ''
 })
 
 const userStore = useUserStore()
 const themeStore = useThemeStore()
 const isDarkMode = ref(false)
 
-// 加载用户信息
+const accountMenus = [
+  {
+    title: '账户设置',
+    desc: '查看并维护账号基础信息',
+    path: '/pages/settings/account',
+    icon: 'person',
+    bgColor: 'rgba(255, 102, 0, 0.12)',
+    iconColor: '#ff6600'
+  },
+  {
+    title: '安全设置',
+    desc: '密码、绑定方式与登录保护',
+    path: '/pages/settings/security',
+    icon: 'locked',
+    bgColor: 'rgba(0, 98, 161, 0.12)',
+    iconColor: '#0062a1'
+  },
+  {
+    title: '个人资料',
+    desc: '编辑昵称、联系方式和基础资料',
+    path: '/pages/profile/info',
+    icon: 'compose',
+    bgColor: 'rgba(163, 62, 0, 0.12)',
+    iconColor: '#a33e00'
+  }
+] as const
+
+const preferenceMenus = [
+  {
+    title: '通知设置',
+    desc: '控制课程、赛事和系统提醒',
+    path: '/pages/settings/notification',
+    icon: 'chatbubble',
+    bgColor: 'rgba(255, 181, 150, 0.28)',
+    iconColor: '#a33e00'
+  },
+  {
+    title: '隐私设置',
+    desc: '管理资料展示和授权范围',
+    path: '/pages/settings/privacy',
+    icon: 'eye-slash',
+    bgColor: 'rgba(93, 95, 94, 0.12)',
+    iconColor: '#5f5e5e'
+  }
+] as const
+
+const supportMenus = [
+  {
+    title: '关于我们',
+    desc: '了解产品信息与联系方式',
+    path: '/pages/settings/about',
+    icon: 'info',
+    bgColor: 'rgba(255, 102, 0, 0.12)',
+    iconColor: '#ff6600'
+  },
+  {
+    title: '帮助与反馈',
+    desc: '查看常见问题或提交反馈',
+    path: '/pages/settings/help',
+    icon: 'help',
+    bgColor: 'rgba(0, 98, 161, 0.12)',
+    iconColor: '#0062a1'
+  }
+] as const
+
+const roleLabel = computed(() => userInfo.value.role || '普通用户')
+const levelBadge = computed(() => {
+  if (userInfo.value.phone && userInfo.value.email) return '完整档案'
+  if (userInfo.value.phone || userInfo.value.email) return '待完善'
+  return '新用户'
+})
+
+const securityLabel = computed(() => {
+  const score = [userInfo.value.phone, userInfo.value.email].filter(Boolean).length
+  if (score === 2) return 'Strong'
+  if (score === 1) return 'Medium'
+  return 'Basic'
+})
+
 const loadUserInfo = async () => {
   try {
     const user = await getCurrentUser()
     userInfo.value = {
-      username: user.username,
-      level: user.role || '普通用户',
-      avatar: user.avatar || ''
+      username: user.nickname || user.username || '',
+      role: user.role || '普通用户',
+      avatar: user.avatar || '',
+      phone: user.phone || '',
+      email: user.email || ''
     }
   } catch (error) {
     console.error('加载用户信息失败:', error)
   }
 }
 
-// 切换主题
 const toggleTheme = (e: any) => {
-  if (e.detail.value) {
-    themeStore.setMode('dark')
-  } else {
-    themeStore.setMode('light')
-  }
+  themeStore.setMode(e.detail.value ? 'dark' : 'light')
   isDarkMode.value = e.detail.value
 }
 
-// 跳转到账户设置
-const goToAccountSettings = () => {
-  uni.navigateTo({
-    url: '/pages/settings/account'
-  })
+const navigate = (path: string) => {
+  uni.navigateTo({ url: path })
 }
 
-// 跳转到通知设置
-const goToNotificationSettings = () => {
-  uni.navigateTo({
-    url: '/pages/settings/notification'
-  })
+const goToProfileInfo = () => {
+  navigate('/pages/profile/info')
 }
 
-// 跳转到隐私设置
-const goToPrivacySettings = () => {
-  uni.navigateTo({
-    url: '/pages/settings/privacy'
-  })
-}
-
-// 跳转到安全设置
-const goToSecuritySettings = () => {
-  uni.navigateTo({
-    url: '/pages/settings/security'
-  })
-}
-
-// 跳转到关于页面
-const goToAbout = () => {
-  uni.navigateTo({
-    url: '/pages/settings/about'
-  })
-}
-
-// 跳转到帮助页面
-const goToHelp = () => {
-  uni.navigateTo({
-    url: '/pages/settings/help'
-  })
-}
-
-// 跳转到主题设置
-const goToThemeSettings = () => {
-  // 主题设置已在切换开关中处理
-}
-
-// 处理退出登录
 const handleLogout = () => {
   uni.showModal({
     title: '确认退出',
@@ -226,227 +288,295 @@ const handleLogout = () => {
   })
 }
 
-// 返回上一页
 const handleBack = () => {
   safeNavigateBack()
 }
 
-// 页面加载时获取数据
 onMounted(async () => {
-  // 检查用户是否已登录
   if (!userStore.isLoggedIn) {
-    // 未登录用户重定向到登录页
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+    uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  
-  await loadUserInfo()
+
   isDarkMode.value = themeStore.isDark
+  await loadUserInfo()
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.settings-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(255, 102, 0, 0.14), transparent 28%),
+    #f9f9f9;
 }
 
-.header-content {
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(249, 249, 249, 0.82);
+  backdrop-filter: blur(20rpx);
+}
+
+.topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 22rpx 24rpx;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
-}
-
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
-}
-
-.header-placeholder {
-  width: 56rpx;
-}
-
-.content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
-}
-
-.section {
-  background-color: #ffffff;
-  margin-bottom: 20rpx;
-  border-radius: 24rpx;
-  overflow: hidden;
-}
-
-.account-section {
-  padding: 40rpx 28rpx;
-  background: linear-gradient(135deg, #3cc51f 0%, #4ade80 100%);
-  color: #ffffff;
-  margin: 24rpx;
-  border-radius: 24rpx;
-}
-
-.account-header {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-}
-
-.avatar {
-  width: 96rpx;
-  height: 96rpx;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.96);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3rpx solid rgba(255, 255, 255, 0.3);
-}
+  box-shadow: 0 10rpx 28rpx rgba(26, 28, 28, 0.06);
 
-.avatar-icon {
-  font-size: 48rpx;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.account-info {
-  flex: 1;
-}
-
-.account-name {
-  font-size: 28rpx;
-  font-weight: bold;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.account-level {
-  font-size: 22rpx;
-  opacity: 0.8;
-  display: block;
-}
-
-.settings-list, .other-settings {
-  margin: 0 24rpx 20rpx;
-}
-
-.setting-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 28rpx;
-  transition: background-color 0.2s;
-  
-  &:active {
-    background-color: #f9fafb;
+  &.ghost {
+    background: rgba(255, 241, 234, 0.9);
   }
 }
 
-.setting-left {
+.topbar-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.topbar-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.topbar-sub {
+  font-size: 18rpx;
+  font-weight: 800;
+  letter-spacing: 3rpx;
+  color: #8e7164;
+}
+
+.page-scroll {
+  height: calc(100vh - 196rpx);
+  padding: 0 24rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.hero-card {
+  position: relative;
+  margin-top: 12rpx;
+  padding: 34rpx 28rpx;
+  border-radius: 36rpx;
+  overflow: hidden;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  box-shadow: 0 18rpx 40rpx rgba(163, 62, 0, 0.2);
+}
+
+.hero-glow {
+  position: absolute;
+  right: -80rpx;
+  top: -80rpx;
+  width: 260rpx;
+  height: 260rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  filter: blur(36rpx);
+}
+
+.hero-head,
+.hero-stats {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-head {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.hero-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid rgba(255, 255, 255, 0.32);
+}
+
+.hero-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-name {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.hero-role {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.hero-level {
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.stat-chip {
+  padding: 18rpx 20rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10rpx);
+}
+
+.stat-label {
+  display: block;
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.section-card {
+  margin-top: 24rpx;
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 14rpx 30rpx rgba(26, 28, 28, 0.05);
+}
+
+.section-head {
+  margin-bottom: 16rpx;
+
+  &.compact {
+    margin-bottom: 12rpx;
+  }
+}
+
+.section-kicker {
+  display: block;
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #a33e00;
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
+}
+
+.section-title {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.menu-row,
+.theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 22rpx 0;
+  border-bottom: 2rpx solid #f4efec;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.menu-left {
   display: flex;
   align-items: center;
   gap: 18rpx;
+  min-width: 0;
+  flex: 1;
 }
 
-.setting-icon {
-  width: 52rpx;
-  height: 52rpx;
-  border-radius: 50%;
+.menu-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  
-  &.account-icon {
-    background-color: #3cc51f;
-  }
-  
-  &.notification-icon {
-    background-color: #ff9800;
-  }
-  
-  &.privacy-icon {
-    background-color: #2196f3;
-  }
-  
-  &.security-icon {
-    background-color: #9c27b0;
-  }
-  
-  &.about-icon {
-    background-color: #673ab7;
-  }
-  
-  &.help-icon {
-    background-color: #ff5722;
-  }
-  
-  &.theme-icon {
-    background-color: #607d8b;
-  }
+  flex-shrink: 0;
 }
 
-.icon-text {
+.menu-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-title {
+  display: block;
   font-size: 28rpx;
+  font-weight: 800;
+  color: #1a1c1c;
 }
 
-.setting-label {
-  font-size: 24rpx;
-  font-weight: 500;
-  color: #333333;
+.menu-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.55;
+  color: #6b625c;
 }
 
-.divider {
-  height: 1rpx;
-  background-color: #f3f4f6;
-  margin: 0 28rpx;
-}
-
-.chevron {
-  font-size: 26rpx;
-  color: #999999;
-}
-
-.logout-container {
-  padding: 0 24rpx 40rpx;
+.logout-panel {
+  margin-top: 28rpx;
+  padding-bottom: 32rpx;
 }
 
 .logout-btn {
   width: 100%;
-  background-color: #ffffff;
-  color: #ef4444;
-  font-size: 24rpx;
-  font-weight: 500;
-  padding: 20rpx;
-  border-radius: 18rpx;
+  height: 96rpx;
   border: none;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+  border-radius: 28rpx;
+  background: #e2e2e2;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
+  gap: 14rpx;
+  box-shadow: 0 10rpx 22rpx rgba(26, 28, 28, 0.04);
 }
 
-.logout-icon {
+.logout-text {
   font-size: 28rpx;
+  font-weight: 800;
+  color: #1a1c1c;
 }
 </style>

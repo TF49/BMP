@@ -1,442 +1,450 @@
 <template>
-  <MobileLayout>
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">服务详情</text>
-        <view class="header-placeholder"></view>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-inner">
+        <view class="nav-left" @tap="handleBack">
+          <view class="icon-btn">
+            <uni-icons type="left" size="22" color="#ff6600" />
+          </view>
+          <text class="nav-title">穿线详情</text>
+        </view>
       </view>
     </view>
 
-    <scroll-view class="content" scroll-y>
-      <view class="detail-card">
-        <view class="status-row">
-          <text class="service-no">{{ service.serviceNo }}</text>
-          <text class="service-status" :style="{ backgroundColor: getStatusBgColor(service.status), color: getStatusColor(service.status) }">
-            {{ getStatusText(service.status) }}
-          </text>
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+    >
+      <view class="content">
+        <view v-if="loading" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">正在加载工单详情…</text>
         </view>
 
-        <view class="detail-list">
-          <view class="detail-item">
-            <text class="detail-label">球拍品牌</text>
-            <text class="detail-value">{{ service.racketBrand }}</text>
+        <view v-else-if="errorText" class="state-card">
+          <text class="state-text">{{ errorText }}</text>
+          <view class="state-action" @tap="loadDetail">重新加载</view>
+        </view>
+
+        <template v-else-if="detail">
+          <view class="hero-card">
+            <text class="hero-label">当前状态</text>
+            <text class="hero-value">{{ statusLabel }}</text>
+            <text class="hero-sub">{{ detail.serviceNo || `工单 #${detail.id}` }}</text>
           </view>
-          <view class="detail-item">
-            <text class="detail-label">球拍型号</text>
-            <text class="detail-value">{{ service.racketModel }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">线材信息</text>
-            <view class="string-info">
-              <text class="detail-value" v-if="service.ownString">
-                <text class="own-string-badge">自带线材</text>
-              </text>
-              <text class="detail-value" v-else>
-                {{ service.stringName || '-' }}
-                <text class="string-detail" v-if="service.stringBrand">
-                  ({{ service.stringBrand }} / {{ service.stringGauge }})
-                </text>
-              </text>
+
+          <view class="section-card">
+            <text class="section-title">工单信息</text>
+            <view class="field-row">
+              <text class="field-label">提交时间</text>
+              <text class="field-value">{{ formatDateTime(detail.createTime) || '未知时间' }}</text>
+            </view>
+            <view class="field-row">
+              <text class="field-label">客户</text>
+              <text class="field-value">{{ memberLabel }}</text>
+            </view>
+            <view class="field-row">
+              <text class="field-label">手机号</text>
+              <text class="field-value">{{ formatPhone(detail.memberPhone || '') || '未绑定手机号' }}</text>
             </view>
           </view>
-          <view class="detail-item">
-            <text class="detail-label">磅数</text>
-            <text class="detail-value">{{ service.tension }} 磅</text>
-          </view>
-          <view class="detail-item" v-if="!service.ownString && service.stringPrice">
-            <text class="detail-label">线材价格</text>
-            <text class="detail-value price">¥{{ service.stringPrice }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">服务费</text>
-            <text class="detail-value price">¥{{ service.servicePrice }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">总价格</text>
-            <text class="detail-value price total">¥{{ service.totalPrice }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">支付方式</text>
-            <text class="detail-value">{{ getPaymentMethodText(service.paymentMethod) }}</text>
-          </view>
-          <view class="detail-item" v-if="service.remark">
-            <text class="detail-label">备注</text>
-            <text class="detail-value">{{ service.remark }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">创建时间</text>
-            <text class="detail-value">{{ service.createTime }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">更新时间</text>
-            <text class="detail-value">{{ service.updateTime }}</text>
-          </view>
-        </view>
 
-        <!-- 普通用户取消服务按钮 -->
-        <view class="action-row" v-if="showCancelButton">
-          <button class="cancel-btn" @click="handleCancel">取消服务</button>
-        </view>
-
-        <!-- 管理者更新状态按钮 -->
-        <view class="action-row" v-if="showManagerActions">
-          <view class="status-selector">
-            <text class="selector-label">更新状态：</text>
-            <picker mode="selector" :range="managerStatusOptions" range-key="label" @change="handleStatusChange">
-              <view class="picker-value">
-                {{ selectedStatusLabel }}
-                <text class="picker-arrow">▼</text>
-              </view>
-            </picker>
+          <view class="section-card">
+            <text class="section-title">穿线信息</text>
+            <view class="field-row">
+              <text class="field-label">球拍型号</text>
+              <text class="field-value">{{ racketLabel }}</text>
+            </view>
+            <view class="field-row">
+              <text class="field-label">线材</text>
+              <text class="field-value">{{ stringLabel }}</text>
+            </view>
+            <view class="field-row">
+              <text class="field-label">磅数</text>
+              <text class="field-value">{{ tensionLabel }}</text>
+            </view>
+            <view class="field-row">
+              <text class="field-label">穿线方式</text>
+              <text class="field-value">{{ methodLabel }}</text>
+            </view>
+            <view class="field-row">
+              <text class="field-label">服务费用</text>
+              <text class="field-value amount">¥{{ formatAmount(detail.totalPrice || detail.servicePrice || 0) }}</text>
+            </view>
+            <view class="field-row multiline">
+              <text class="field-label">备注</text>
+              <text class="field-value remark">{{ detail.remark || '无特殊备注' }}</text>
+            </view>
           </view>
-          <button class="update-btn" @click="handleUpdateStatus">更新状态</button>
-        </view>
+
+          <view class="action-row">
+            <view v-if="showCancelButton" class="action-btn secondary" @tap="handleCancel">
+              取消服务
+            </view>
+            <view class="action-btn primary" @tap="handleReorder">
+              再次预约
+            </view>
+          </view>
+        </template>
       </view>
     </scroll-view>
-  </MobileLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { getStringingDetail, type StringingService, updateStringingStatus } from '@/api/stringing'
 import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
-import { getStringingDetail, updateStringingStatus, type StringingService } from '@/api/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
-import { 
-  STRINGING_STATUS, 
-  STRINGING_STATUS_TEXT, 
-  STRINGING_STATUS_COLOR,
-  PAYMENT_METHOD_TEXT,
-  USER_ROLES
-} from '@/utils/constant'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { STRINGING_STATUS } from '@/utils/constant'
 
-const serviceId = ref<number>(0)
-const service = ref<StringingService>({
-  id: 0,
-  serviceNo: '',
-  memberId: 0,
-  racketBrand: '',
-  racketModel: '',
-  tension: 0,
-  ownString: 0,
-  servicePrice: 0,
-  totalPrice: 0,
-  paymentMethod: '',
-  status: 0,
-  createTime: '',
-  updateTime: ''
-})
 const userStore = useUserStore()
-const selectedStatus = ref<number>(1)
 
-// 管理者状态选项（不包括已取消）
-const managerStatusOptions = [
-  { value: STRINGING_STATUS.WAITING, label: STRINGING_STATUS_TEXT[STRINGING_STATUS.WAITING] },
-  { value: STRINGING_STATUS.IN_PROGRESS, label: STRINGING_STATUS_TEXT[STRINGING_STATUS.IN_PROGRESS] },
-  { value: STRINGING_STATUS.COMPLETED, label: STRINGING_STATUS_TEXT[STRINGING_STATUS.COMPLETED] }
-]
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+const serviceId = ref(0)
+const loading = ref(false)
+const errorText = ref('')
+const detail = ref<StringingService | null>(null)
 
-onLoad((options?: Record<string, string | undefined>) => {
-  if (options?.id) {
-    serviceId.value = Number(options.id)
-  }
+const statusLabel = computed(() => {
+  const status = Number(detail.value?.status ?? -1)
+  if (status === STRINGING_STATUS.CANCELLED) return '已取消'
+  if (status === STRINGING_STATUS.WAITING) return '等待穿线'
+  if (status === STRINGING_STATUS.IN_PROGRESS) return '正在穿线'
+  if (status === STRINGING_STATUS.COMPLETED) return '已完成'
+  return '未知状态'
 })
 
-// 是否显示取消按钮（普通用户，且状态为等待穿线或正在穿线）
+const memberLabel = computed(() => {
+  if (!detail.value) return '未知客户'
+  return detail.value.memberName || detail.value.userName || userStore.userInfo?.nickname || userStore.userInfo?.username || `会员 #${detail.value.memberId || '-'}`
+})
+
+const racketLabel = computed(() => {
+  if (!detail.value) return '未知球拍'
+  return [detail.value.racketBrand, detail.value.racketModel].filter(Boolean).join(' ') || '未知球拍'
+})
+
+const tensionLabel = computed(() => {
+  const tension = detail.value?.pound ?? detail.value?.tension
+  if (tension === undefined || tension === null || tension === '') return '未知磅数'
+  return `${String(tension).replace(/\.0$/, '')} lbs`
+})
+
+const stringLabel = computed(() => {
+  if (!detail.value) return '未知线材'
+  if (detail.value.isOwnString === 1 || detail.value.ownString === 1) return detail.value.stringName || '自带线材'
+  return detail.value.stringName || detail.value.stringEquipmentName || '未知线材'
+})
+
+const methodLabel = computed(() => {
+  const method = detail.value?.stringingMethod
+  if (method === 'TWO_SECTION') return '两结'
+  if (method === 'FOUR_SECTION') return '四结'
+  if (method === 'AUTO') return '自动判断'
+  return method || '未知方式'
+})
+
 const showCancelButton = computed(() => {
-  const isManager = userStore.userRole === USER_ROLES.VENUE_MANAGER || userStore.userRole === USER_ROLES.PRESIDENT
-  return !isManager && (service.value.status === STRINGING_STATUS.WAITING || service.value.status === STRINGING_STATUS.IN_PROGRESS)
+  const status = Number(detail.value?.status ?? -1)
+  return status === STRINGING_STATUS.WAITING || status === STRINGING_STATUS.IN_PROGRESS
 })
 
-// 是否显示管理者操作（管理者或会长）
-const showManagerActions = computed(() => {
-  return userStore.userRole === 'VENUE_MANAGER' || userStore.userRole === 'PRESIDENT'
-})
+function formatDateTime(value?: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${d} ${hh}:${mm}`
+}
 
-// 选中的状态标签
-const selectedStatusLabel = computed(() => {
-  const option = managerStatusOptions.find(opt => opt.value === selectedStatus.value)
-  return option?.label || ''
-})
+function formatPhone(phone: string) {
+  if (!phone) return ''
+  return phone
+}
 
-const loadDetail = async () => {
+function formatAmount(value: number) {
+  return (Math.round(Number(value || 0) * 100) / 100).toFixed(2)
+}
+
+async function loadDetail() {
+  if (!serviceId.value) {
+    errorText.value = '缺少工单参数'
+    loading.value = false
+    return
+  }
+  loading.value = true
+  errorText.value = ''
   try {
-    const result = await getStringingDetail(serviceId.value)
-    service.value = result
-    // 初始化选中状态为当前状态（如果是有效状态）
-    if (result.status !== STRINGING_STATUS.CANCELLED) {
-      selectedStatus.value = result.status
-    }
+    detail.value = await getStringingDetail(serviceId.value)
   } catch (error) {
-    console.error('加载服务详情失败:', error)
-    uni.showToast({
-      title: '加载服务详情失败',
-      icon: 'none'
-    })
+    console.error('加载穿线详情失败:', error)
+    errorText.value = error instanceof Error ? error.message : '加载穿线详情失败'
+  } finally {
+    loading.value = false
   }
 }
 
-const getStatusText = (status: number) => {
-  return STRINGING_STATUS_TEXT[status] || '未知'
+function handleBack() {
+  safeNavigateBack('/pages/stringing/list')
 }
 
-const getStatusColor = (status: number) => {
-  return STRINGING_STATUS_COLOR[status] || '#999999'
-}
-
-const getStatusBgColor = (status: number) => {
-  const colorMap: Record<number, string> = {
-    [STRINGING_STATUS.CANCELLED]: '#f5f5f5',
-    [STRINGING_STATUS.WAITING]: '#fff3e0',
-    [STRINGING_STATUS.IN_PROGRESS]: '#e3f2fd',
-    [STRINGING_STATUS.COMPLETED]: '#e8f5e9'
-  }
-  return colorMap[status] || '#f5f5f5'
-}
-
-const getPaymentMethodText = (method?: string) => {
-  if (!method) return '未知'
-  return PAYMENT_METHOD_TEXT[method as keyof typeof PAYMENT_METHOD_TEXT] || method
-}
-
-const handleBack = () => {
-  safeNavigateBack()
-}
-
-const handleCancel = async () => {
+async function handleCancel() {
+  if (!detail.value) return
   uni.showModal({
     title: '提示',
     content: '确定要取消该服务吗？',
     success: async (res) => {
-      if (res.confirm) {
-        try {
-          await updateStringingStatus(service.value.id, STRINGING_STATUS.CANCELLED)
-          uni.showToast({ title: '取消成功', icon: 'success' })
-          await loadDetail()
-        } catch (e) {
-          console.error('取消服务失败:', e)
-          uni.showToast({ title: '取消失败', icon: 'none' })
-        }
+      if (!res.confirm || !detail.value) return
+      try {
+        await updateStringingStatus(detail.value.id, STRINGING_STATUS.CANCELLED)
+        uni.showToast({ title: '取消成功', icon: 'success' })
+        await loadDetail()
+      } catch (error) {
+        console.error('取消服务失败:', error)
+        uni.showToast({ title: '取消失败', icon: 'none' })
       }
     }
   })
 }
 
-const handleStatusChange = (e: any) => {
-  selectedStatus.value = managerStatusOptions[e.detail.value].value
+function handleReorder() {
+  uni.navigateTo({ url: '/pages/stringing/create' })
 }
 
-const handleUpdateStatus = async () => {
-  if (selectedStatus.value === service.value.status) {
-    uni.showToast({ title: '状态未改变', icon: 'none' })
-    return
-  }
+onLoad(async (options?: Record<string, string | undefined>) => {
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
 
-  try {
-    await updateStringingStatus(service.value.id, selectedStatus.value)
-    uni.showToast({ title: '更新成功', icon: 'success' })
-    await loadDetail()
-  } catch (e) {
-    console.error('更新状态失败:', e)
-    uni.showToast({ title: '更新失败', icon: 'none' })
-  }
-}
-
-onMounted(async () => {
   if (!userStore.isLoggedIn) {
     uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  if (serviceId.value) {
-    await loadDetail()
-  }
+
+  serviceId.value = Number(options?.id || 0)
+  await loadDetail()
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
+.page {
+  min-height: 100vh;
+  background: #f9f9f9;
+}
 
 .header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(249, 249, 249, 0.92);
+  backdrop-filter: blur(16px);
 }
 
-.header-content {
+.header-inner {
+  min-height: 112rpx;
+  padding: 12rpx 28rpx 20rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
 }
 
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.header-placeholder {
-  width: 56rpx;
+.nav-title {
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.main-scroll {
+  height: 100vh;
 }
 
 .content {
-  flex: 1;
-  height: calc(100vh - 120rpx);
-  background-color: #f5f7fa;
-  padding: 24rpx 28rpx;
+  padding: 20rpx 18rpx 80rpx;
 }
 
-.detail-card {
-  background-color: #ffffff;
-  border-radius: 18rpx;
-  padding: 28rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+.hero-card,
+.section-card,
+.state-card {
+  background: #ffffff;
+  border-radius: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
 }
 
-.status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 28rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+.hero-card {
+  padding: 30rpx 28rpx;
+  background: linear-gradient(135deg, #fff3ec 0%, #ffffff 100%);
 }
 
-.service-no {
-  font-size: 30rpx;
-  font-weight: bold;
-  color: #333333;
-}
-
-.service-status {
+.hero-label {
+  display: block;
   font-size: 22rpx;
-  padding: 8rpx 16rpx;
-  border-radius: 8rpx;
+  color: #6b7280;
+  font-weight: 800;
 }
 
-.detail-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
+.hero-value {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 52rpx;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #111111;
 }
 
-.detail-item {
+.hero-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #5f5e5e;
+}
+
+.section-card {
+  margin-top: 20rpx;
+  padding: 28rpx 26rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.field-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 18rpx;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.field-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.field-row.multiline {
+  align-items: flex-start;
+}
+
+.field-label {
+  min-width: 160rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.field-value {
+  flex: 1;
+  text-align: right;
   font-size: 26rpx;
+  color: #111111;
+  font-weight: 700;
+  line-height: 1.6;
 }
 
-.detail-label {
-  color: #999999;
-  width: 160rpx;
-  flex-shrink: 0;
+.field-value.amount {
+  color: #a33e00;
+  font-size: 30rpx;
 }
 
-.detail-value {
-  color: #333333;
-  flex: 1;
-  text-align: right;
-
-  &.price {
-    font-weight: bold;
-    color: #ef4444;
-    font-size: 28rpx;
-
-    &.total {
-      font-size: 32rpx;
-    }
-  }
-}
-
-.string-info {
-  flex: 1;
-  text-align: right;
-}
-
-.own-string-badge {
-  display: inline-block;
-  background-color: #e8f5e9;
-  color: #3cc51f;
-  padding: 4rpx 12rpx;
-  border-radius: 6rpx;
-  font-size: 22rpx;
-}
-
-.string-detail {
-  color: #999999;
-  font-size: 22rpx;
-  margin-left: 8rpx;
+.field-value.remark {
+  color: #475569;
 }
 
 .action-row {
-  margin-top: 32rpx;
-  padding-top: 24rpx;
-  border-top: 1rpx solid #f0f0f0;
+  margin-top: 24rpx;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14rpx;
 }
 
-.cancel-btn {
-  width: 100%;
-  padding: 24rpx;
-  background-color: #ffffff;
-  color: #ef4444;
-  font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
-  border: 1rpx solid #ef4444;
-}
-
-.status-selector {
+.action-btn {
+  height: 88rpx;
+  border-radius: 20rpx;
   display: flex;
   align-items: center;
-  margin-bottom: 16rpx;
-  padding: 16rpx;
-  background-color: #f5f7fa;
-  border-radius: 8rpx;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 900;
 }
 
-.selector-label {
-  font-size: 26rpx;
-  color: #666666;
-  margin-right: 16rpx;
+.action-btn.secondary {
+  background: #ffffff;
+  color: #ba1a1a;
+  box-shadow: 0 8rpx 20rpx rgba(26, 28, 28, 0.04);
 }
 
-.picker-value {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 26rpx;
-  color: #333333;
-}
-
-.picker-arrow {
-  font-size: 20rpx;
-  color: #999999;
-}
-
-.update-btn {
-  width: 100%;
-  padding: 24rpx;
-  background-color: #3cc51f;
+.action-btn.primary {
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
   color: #ffffff;
+  box-shadow: 0 8rpx 20rpx rgba(163, 62, 0, 0.2);
+}
+
+.state-card {
+  padding: 90rpx 28rpx;
+  text-align: center;
+}
+
+.state-text {
   font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
-  border: none;
+  color: #777777;
+}
+
+.state-action {
+  width: 220rpx;
+  height: 76rpx;
+  margin: 22rpx auto 0;
+  border-radius: 9999rpx;
+  background: #ff6600;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
