@@ -46,11 +46,13 @@
 | 我的预约 | `pages/booking/list.vue` | 已是 Stitch | 品牌顶栏、重点 hero 卡、深色统计块、橙色交互强调 |
 | 场馆列表 | `pages/venue/list.vue` | 已是 Stitch | 品牌标题、卡片式场馆封面、橙色细节、高产品感列表布局 |
 | 课程列表 | `pages/course/list.vue` | 已是 Stitch | 英文标题、教练卡、日期胶囊、课程卡、橙黑 CTA、明显 Stitch 气质 |
+| 课程详情 | `pages/course/detail.vue` | 已是 Stitch | 已按新版原型重构：沉浸式 hero、教练卡、信息双卡、课程大纲、地图卡、底部固定预订栏，和课程列表形成连续品牌链路 |
 | 赛事列表 | `pages/tournament/list.vue` | 已是 Stitch | 大 hero、倒计时、英文章节标题、营销式赛事卡、品牌活动区 |
 | 器材列表 | `pages/equipment/list.vue` | 已是 Stitch | 品牌顶栏、胶囊筛选、商品大图卡、橙色浮动操作按钮 |
 | 器材租借确认 | `pages/equipment/rental.vue` | 已是 Stitch | 大留白、确认页卡片分区、橙色主操作按钮、清晰价格汇总 |
 | 穿线预约 | `pages/stringing/create.vue` | 已是 Stitch | 分步骤卡片、品牌化预约流、橙色大按钮、信息架构成熟 |
 | 充值记录 | `pages/recharge/records.vue` | 已是 Stitch | 品牌色总览卡、强卡片分组、记录样式统一、视觉节奏现代 |
+| 消费记录 | `pages/profile/records.vue` | 已是 Stitch | 已按账单原型重做：橙色顶栏、账单周期卡、三类消费统计、退款双金额样式、历史记录按钮，和钱包链路视觉统一 |
 | 用户端底部导航 | `components/CustomTabBar/CustomTabBar.vue` | 已是 Stitch 配套组件 | 玻璃态底栏、橙色激活态、整体形态与新版页面一致 |
 
 ### 这一类页面的共同特征
@@ -93,7 +95,6 @@
 
 | 页面 | 路径 | 分类判断 | 原因 |
 | --- | --- | --- | --- |
-| 课程详情 | `pages/course/detail.vue` | 非 Stitch | 传统白底详情页结构，缺少品牌标题区和新版组件节奏 |
 | 课程预约 | `pages/course/booking.vue` | 非 Stitch | 仍是旧流程页风格，没有 Stitch 的卡片化产品表达 |
 
 ### 2. 器材模块
@@ -123,7 +124,6 @@
 | 搜索首页 | `pages/search/index.vue` | 非 Stitch | 搜索结构传统，绿色图标与旧业务页气质明显 |
 | 搜索结果 | `pages/search/result.vue` | 非 Stitch | 结果列表仍未纳入 Stitch 体系 |
 | 会员信息 | `pages/profile/member.vue` | 非 Stitch | 绿色会员卡 + 旧版 section 结构，非 Stitch |
-| 消费记录 | `pages/profile/records.vue` | 非 Stitch | 虽引入 `glass-card`，但仍是旧记录页逻辑与组件样式 |
 | 个人信息 | `pages/profile/info.vue` | 非 Stitch | 旧资料页样式 |
 
 ### 5. 充值模块
@@ -149,10 +149,10 @@
 ### 1. 课程链路
 
 - `Stitch`：`pages/course/list.vue`
-- `非 Stitch`：`pages/course/detail.vue`
+- `Stitch`：`pages/course/detail.vue`
 - `非 Stitch`：`pages/course/booking.vue`
 
-结论：课程模块入口已经升级，但详情和预约页没有跟上。
+结论：课程模块已补齐到“列表页 + 详情页”一致的新链路，当前主要缺口转为预约页。
 
 ### 2. 赛事链路
 
@@ -210,15 +210,14 @@
 
 1. `pages/recharge/index.vue`
 2. `pages/profile/member.vue`
-3. `pages/profile/records.vue`
-4. `pages/profile/info.vue`
-5. `pages/settings/index.vue`
-6. `pages/settings/*`
+3. `pages/profile/info.vue`
+4. `pages/settings/index.vue`
+5. `pages/settings/*`
 
 原因：
 
 - 用户中心是高频使用区域
-- 当前既有旧绿色业务风，也有新版橙色风，割裂感很强
+- 当前既有旧绿色业务风，也有新版橙色风，虽然 `pages/profile/records.vue` 已完成升级，但资料页、会员页、充值页仍存在明显割裂
 
 ### 第三优先级：补齐搜索和穿线模块
 
@@ -239,4 +238,4 @@
 
 ## 七、一句话结论
 
-当前 `BMP-uniapp` 用户端已经有一批明显的 Stitch 风格页面，主要集中在首页、列表页和部分确认页；但详情页、设置页、资料页、搜索页和若干流程页仍大量保留旧版业务风，因此下一步最重要的不是继续零散新增新页面，而是按模块把 Stitch 风格从入口页补齐到完整链路。
+当前 `BMP-uniapp` 用户端已经有一批明显的 Stitch 风格页面，且课程详情页、消费记录页已补齐到新版原型体系；但设置页、资料页、搜索页和若干流程页仍大量保留旧版业务风，因此下一步最重要的不是继续零散新增新页面，而是按模块把 Stitch 风格从入口页持续补齐到完整链路。

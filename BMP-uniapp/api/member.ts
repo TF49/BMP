@@ -20,13 +20,19 @@ export interface MemberInfo {
 export interface ConsumeRecord {
   id: number
   memberId: number
-  memberName: string
+  memberName?: string
   businessType: string
-  businessNo: string
+  businessId?: number
+  businessNo?: string
   amount: number
   paymentMethod: string
-  remark: string
+  paymentStatus?: number
+  beforeBalance?: number
+  afterBalance?: number
+  description?: string
+  remark?: string
   createTime: string
+  incomeExpenseType?: number
 }
 
 /**

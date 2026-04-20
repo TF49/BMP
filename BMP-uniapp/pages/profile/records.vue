@@ -1,124 +1,359 @@
 <template>
-  <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-inner">
+        <view class="icon-btn icon-btn-ghost" @tap="handleBack">
+          <uni-icons type="left" size="22" color="#ff6600" />
+        </view>
         <text class="header-title">消费记录</text>
-        <view class="header-placeholder"></view>
+        <view class="icon-btn icon-btn-ghost" @tap="openFilter">
+          <uni-icons type="bars" size="22" color="#ff6600" />
+        </view>
       </view>
     </view>
 
-    <!-- Filter Tabs -->
-    <view class="filter-tabs">
-      <view 
-        v-for="(tab, index) in tabs" 
-        :key="index"
-        class="tab-item"
-        :class="{ active: currentTab === index }"
-        @click="switchTab(index)"
-      >
-        {{ tab }}
-      </view>
-    </view>
+    <scroll-view
+      scroll-y
+      class="main"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+      @refresherrefresh="handleRefresh"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+    >
+      <view class="content">
+        <view class="summary-card">
+          <text class="section-kicker">当前账单周期</text>
+          <text class="summary-label">总支出 ({{ currentMonthLabel }})</text>
+          <view class="summary-money">
+            <text class="summary-currency">¥</text>
+            <text class="summary-value">{{ expenseParts.int }}</text>
+            <text class="summary-decimal">.{{ expenseParts.dec }}</text>
+          </view>
 
-    <!-- Content -->
-    <scroll-view class="content" scroll-y @scrolltolower="loadMore">
-      <view v-if="records.length === 0" class="empty-state">
-        <text class="empty-text">暂无消费记录</text>
-      </view>
-      
-      <view v-else class="records-list">
-        <view 
-          v-for="(record, index) in records" 
-          :key="index"
-          class="record-item glass-card"
-        >
-          <view class="record-header">
-            <text class="record-type">{{ record.typeText }}</text>
-            <text class="record-amount" :class="record.isIncome ? 'income' : 'expense'">
-              {{ record.isIncome ? '+' : '-' }}¥{{ record.amount }}
-            </text>
+          <view class="summary-grid">
+            <view v-for="item in summaryItems" :key="item.key" class="summary-item">
+              <view class="summary-icon" :class="item.iconClass">
+                <uni-icons :type="item.icon" size="22" :color="item.iconColor" />
+              </view>
+              <text class="summary-item-label">{{ item.label }}</text>
+              <text class="summary-item-value">¥{{ item.amount }}</text>
+            </view>
           </view>
-          <view class="record-details">
-            <text class="record-description">{{ record.description }}</text>
-            <text class="record-time">{{ record.time }}</text>
+        </view>
+
+        <view class="section-head">
+          <text class="section-title">近期交易</text>
+        </view>
+
+        <view v-if="loading && transactionCards.length === 0" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">加载消费记录中…</text>
+        </view>
+
+        <view v-else-if="transactionCards.length === 0" class="state-card">
+          <text class="state-text">{{ activeBusinessType ? '当前筛选下暂无记录' : '暂无消费记录' }}</text>
+        </view>
+
+        <view v-else class="transactions">
+          <view
+            v-for="item in transactionCards"
+            :key="item.id"
+            class="transaction-card"
+            :class="{ refunded: item.refunded }"
+          >
+            <view class="transaction-main">
+              <view class="transaction-icon" :class="item.iconBg">
+                <uni-icons :type="item.icon" size="24" :color="item.iconColor" />
+              </view>
+
+              <view class="transaction-body">
+                <view class="transaction-head">
+                  <text class="transaction-name" :class="{ through: item.refunded }">{{ item.title }}</text>
+                  <text class="badge" :class="item.badgeClass">{{ item.statusLabel }}</text>
+                </view>
+                <text class="transaction-time">{{ item.timeLine }}</text>
+                <view class="transaction-meta">
+                  <uni-icons :type="item.paymentIcon" size="14" color="#6b7280" />
+                  <text class="transaction-meta-text">{{ item.paymentLabel }}</text>
+                </view>
+              </view>
+            </view>
+
+            <view class="transaction-amounts" :class="{ 'transaction-amounts-refund': item.refunded }">
+              <text
+                class="amount amount-main"
+                :class="{
+                  through: item.refunded,
+                  income: item.isIncome,
+                  muted: item.refunded
+                }"
+              >
+                {{ item.primaryAmount }}
+              </text>
+              <text v-if="item.secondaryAmount" class="amount amount-secondary income">
+                {{ item.secondaryAmount }}
+              </text>
+            </view>
           </view>
-          <view class="record-status">
-            <text class="status-text">{{ record.statusText }}</text>
-            <text class="record-id">订单号: {{ record.orderId }}</text>
+        </view>
+
+        <view v-if="transactionCards.length > 0" class="load-more-wrap">
+          <view v-if="hasMore" class="load-more-btn" @tap="loadMore">
+            <text>{{ loadingMore ? '加载中…' : '加载更多历史记录' }}</text>
           </view>
+          <text v-else class="load-more-end">已展示全部记录</text>
         </view>
       </view>
     </scroll-view>
-  </MobileLayout>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { computed, onMounted, ref } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import MobileLayout from '@/components/MobileLayout.vue'
-import { getMemberConsumeRecords } from '@/api/member'
+import { getMemberConsumeRecords, type ConsumeRecord } from '@/api/member'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
 
-// 响应式数据
-const currentTab = ref(0)
-const tabs = ref(['全部', '充值', '消费', '退款'])
-const records = ref<any[]>([])
-const loading = ref(false)
-const hasMore = ref(true)
-const currentPage = ref(1)
-const pageSize = ref(10)
-const userStore = useUserStore()
+type BusinessFilter = '' | 'BOOKING' | 'COURSE' | 'EQUIPMENT' | 'REFUND'
 
-// 切换标签
-const switchTab = (index: number) => {
-  currentTab.value = index
-  currentPage.value = 1
-  records.value = []
-  loadRecords()
+type TransactionCard = {
+  id: number
+  title: string
+  timeLine: string
+  paymentLabel: string
+  paymentIcon: string
+  statusLabel: string
+  badgeClass: string
+  icon: string
+  iconBg: string
+  iconColor: string
+  primaryAmount: string
+  secondaryAmount: string
+  isIncome: boolean
+  refunded: boolean
+  businessType: string
 }
 
-// 加载消费记录
-const loadRecords = async () => {
-  if (loading.value || !hasMore.value) return
+const userStore = useUserStore()
 
-  loading.value = true
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+
+const records = ref<ConsumeRecord[]>([])
+const currentPage = ref(1)
+const pageSize = 10
+const total = ref(0)
+const loading = ref(false)
+const loadingMore = ref(false)
+const refreshing = ref(false)
+const activeBusinessType = ref<BusinessFilter>('')
+
+const BUSINESS_META: Record<string, { label: string; icon: string; iconBg: string; iconColor: string }> = {
+  BOOKING: { label: '场馆', icon: 'location', iconBg: 'icon-peach', iconColor: '#ff6600' },
+  COURSE: { label: '课程', icon: 'staff', iconBg: 'icon-peach', iconColor: '#ff6600' },
+  EQUIPMENT: { label: '装备', icon: 'shop', iconBg: 'icon-peach', iconColor: '#ff6600' },
+  TOURNAMENT: { label: '赛事', icon: 'flag', iconBg: 'icon-blue', iconColor: '#0f766e' },
+  STRINGING: { label: '穿线', icon: 'compose', iconBg: 'icon-blue', iconColor: '#0f766e' },
+  OTHER: { label: '其他', icon: 'wallet', iconBg: 'icon-gray', iconColor: '#6b7280' }
+}
+
+function formatMoney(value: number) {
+  return Number(value || 0).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+function absMoney(value: number) {
+  return formatMoney(Math.abs(Number(value || 0)))
+}
+
+function toDate(raw?: string) {
+  if (!raw) return new Date()
+  return new Date(String(raw).replace(/-/g, '/'))
+}
+
+function pad2(value: number) {
+  return value < 10 ? `0${value}` : `${value}`
+}
+
+function formatDateTime(raw?: string) {
+  const date = toDate(raw)
+  const year = date.getFullYear()
+  const month = pad2(date.getMonth() + 1)
+  const day = pad2(date.getDate())
+  const hours = pad2(date.getHours())
+  const minutes = pad2(date.getMinutes())
+  return `${year}年${month}月${day}日 • ${hours}:${minutes}`
+}
+
+function resolvePaymentLabel(method?: string) {
+  const map: Record<string, string> = {
+    BALANCE: '余额支付',
+    WECHAT: '微信支付',
+    ALIPAY: '支付宝支付',
+    CASH: '现金支付',
+    BANK: '银行卡支付',
+    BANKCARD: '银行卡支付'
+  }
+  return map[method || ''] || '余额支付'
+}
+
+function resolvePaymentIcon(method?: string) {
+  if (method === 'WECHAT' || method === 'ALIPAY' || method === 'BANK' || method === 'BANKCARD') {
+    return 'wallet'
+  }
+  return 'wallet-filled'
+}
+
+function resolveStatusLabel(record: ConsumeRecord, refunded: boolean) {
+  if (refunded) return '已退款'
+
+  const statusMap: Record<number, string> = {
+    0: '失败',
+    1: '成功',
+    2: '处理中',
+    3: '已退款'
+  }
+
+  return statusMap[record.paymentStatus ?? 1] || '成功'
+}
+
+function resolveBadgeClass(statusLabel: string) {
+  if (statusLabel === '已退款') return 'badge-refund'
+  if (statusLabel === '处理中') return 'badge-pending'
+  if (statusLabel === '失败') return 'badge-fail'
+  return 'badge-success'
+}
+
+function resolveTitle(record: ConsumeRecord) {
+  if (record.remark?.trim()) return record.remark.trim()
+  if (record.description?.trim()) {
+    return record.description
+      .replace(/^退款\s*-\s*/u, '')
+      .replace(/^退款-\s*/u, '')
+      .trim()
+  }
+  const meta = BUSINESS_META[record.businessType || 'OTHER'] || BUSINESS_META.OTHER
+  return `${meta.label}消费`
+}
+
+function mapCard(record: ConsumeRecord): TransactionCard {
+  const amount = Number(record.amount || 0)
+  const refunded = amount < 0 || /退款/u.test(record.description || '') || /退款/u.test(record.remark || '')
+  const isIncome = refunded
+  const metaKey = refunded && activeBusinessType.value === 'REFUND'
+    ? ((record.businessType || 'OTHER') as string)
+    : (record.businessType || 'OTHER')
+  const meta = BUSINESS_META[metaKey] || BUSINESS_META.OTHER
+  const statusLabel = resolveStatusLabel(record, refunded)
+
+  return {
+    id: record.id,
+    title: resolveTitle(record),
+    timeLine: formatDateTime(record.createTime),
+    paymentLabel: refunded
+      ? resolvePaymentLabel(record.paymentMethod).replace('支付', '退款')
+      : resolvePaymentLabel(record.paymentMethod),
+    paymentIcon: resolvePaymentIcon(record.paymentMethod),
+    statusLabel,
+    badgeClass: resolveBadgeClass(statusLabel),
+    icon: meta.icon,
+    iconBg: meta.iconBg,
+    iconColor: refunded ? '#8c8c8c' : meta.iconColor,
+    primaryAmount: `${isIncome ? '+' : '-'}¥${absMoney(amount)}`,
+    secondaryAmount: refunded ? `+¥${absMoney(amount)}` : '',
+    isIncome,
+    refunded,
+    businessType: record.businessType || 'OTHER'
+  }
+}
+
+const filteredRecords = computed(() => {
+  if (!activeBusinessType.value) return records.value
+  if (activeBusinessType.value === 'REFUND') {
+    return records.value.filter((item) => Number(item.amount || 0) < 0)
+  }
+  return records.value.filter((item) => item.businessType === activeBusinessType.value)
+})
+
+const transactionCards = computed(() => filteredRecords.value.map(mapCard))
+
+const currentMonthLabel = computed(() => `${new Date().getMonth() + 1}月`)
+
+const monthExpenseTotal = computed(() => {
+  const now = new Date()
+  return records.value.reduce((sum, item) => {
+    const amount = Number(item.amount || 0)
+    const date = toDate(item.createTime)
+    const sameMonth = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()
+    if (!sameMonth || amount <= 0) return sum
+    return sum + amount
+  }, 0)
+})
+
+const expenseParts = computed(() => {
+  const [int, dec] = formatMoney(monthExpenseTotal.value).split('.')
+  return { int, dec: dec || '00' }
+})
+
+const summaryItems = computed(() => {
+  const keys = ['BOOKING', 'COURSE', 'EQUIPMENT'] as const
+  const now = new Date()
+
+  return keys.map((key) => {
+    const amount = records.value.reduce((sum, item) => {
+      const date = toDate(item.createTime)
+      const sameMonth = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()
+      if (!sameMonth || item.businessType !== key || Number(item.amount || 0) <= 0) return sum
+      return sum + Number(item.amount || 0)
+    }, 0)
+
+    const meta = BUSINESS_META[key]
+    return {
+      key,
+      label: meta.label,
+      amount: formatMoney(amount).replace(/\.00$/, ''),
+      icon: meta.icon,
+      iconClass: meta.iconBg,
+      iconColor: meta.iconColor
+    }
+  })
+})
+
+const hasMore = computed(() => records.value.length < total.value)
+
+async function resolveMemberId() {
+  const memberId = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || 0)
+  if (memberId > 0) return memberId
+  return Number(userStore.userId || 0)
+}
+
+async function fetchRecords(reset = false) {
+  const memberId = await resolveMemberId()
+  if (!memberId) {
+    uni.showToast({ title: '未找到会员信息', icon: 'none' })
+    return
+  }
+
+  if (reset) {
+    currentPage.value = 1
+    total.value = 0
+  }
+
+  const targetLoading = reset ? loading : loadingMore
+  targetLoading.value = true
+
   try {
-    const params: any = {
+    const res = await getMemberConsumeRecords(memberId, {
       page: currentPage.value,
-      size: pageSize.value
-    }
-
-    // 根据当前标签筛选类型
-    if (currentTab.value === 1) { // 充值
-      params.type = 'RECHARGE'
-    } else if (currentTab.value === 2) { // 消费
-      params.type = 'CONSUME'
-    } else if (currentTab.value === 3) { // 退款
-      params.type = 'REFUND'
-    }
-
-    const result = await getMemberConsumeRecords({
-      memberId: userStore.userId,
-      ...params
+      size: pageSize
     })
-
-    const newRecords = result.data.map((record: any) => ({
-      id: record.id,
-      typeText: getRecordTypeText(record.type),
-      amount: record.amount,
-      description: record.description || getRecordDescription(record),
-      time: formatDate(record.createTime),
-      isIncome: record.type === 'RECHARGE' || record.type === 'REFUND',
-      statusText: getRecordStatusText(record.status),
-      orderId: record.orderId || record.id,
-      type: record.type
-    }))
-
-    records.value = [...records.value, ...newRecords]
-    hasMore.value = records.value.length < result.total
+    const list = res.data || []
+    records.value = reset ? list : [...records.value, ...list]
+    total.value = Number(res.total || 0)
   } catch (error) {
     console.error('加载消费记录失败:', error)
     uni.showToast({
@@ -126,260 +361,408 @@ const loadRecords = async () => {
       icon: 'none'
     })
   } finally {
-    loading.value = false
+    targetLoading.value = false
   }
 }
 
-// 获取记录类型文本
-const getRecordTypeText = (type: string) => {
-  const typeMap: Record<string, string> = {
-    'RECHARGE': '充值',
-    'CONSUME': '消费',
-    'REFUND': '退款',
-    'BOOKING': '场地预约',
-    'COURSE': '课程预约',
-    'EQUIPMENT': '器材租借',
-    'TOURNAMENT': '赛事报名'
-  }
-  return typeMap[type] || '其他'
+function handleBack() {
+  safeNavigateBack('/pages/profile/index')
 }
 
-// 获取记录描述
-const getRecordDescription = (record: any) => {
-  if (record.type === 'RECHARGE') {
-    return `会员充值 - ${record.method || '在线支付'}`
-  } else if (record.type === 'CONSUME') {
-    return `场地预约 - ${record.venueName || record.courtName || '羽毛球场地'}`
-  } else if (record.type === 'BOOKING') {
-    return `场地预约 - ${record.courtName || '羽毛球场地'}`
-  } else if (record.type === 'COURSE') {
-    return `课程预约 - ${record.courseName || '羽毛球课程'}`
-  } else if (record.type === 'EQUIPMENT') {
-    return `器材租借 - ${record.equipmentName || '运动器材'}`
-  } else if (record.type === 'TOURNAMENT') {
-    return `赛事报名 - ${record.tournamentName || '羽毛球赛事'}`
-  }
-  return '消费记录'
+function openFilter() {
+  uni.showActionSheet({
+    itemList: ['全部记录', '场馆', '课程', '装备', '仅退款'],
+    success: (res) => {
+      const valueMap: BusinessFilter[] = ['', 'BOOKING', 'COURSE', 'EQUIPMENT', 'REFUND']
+      activeBusinessType.value = valueMap[res.tapIndex] || ''
+    }
+  })
 }
 
-// 获取记录状态文本
-const getRecordStatusText = (status: number) => {
-  const statusMap: Record<number, string> = {
-    0: '失败',
-    1: '成功',
-    2: '处理中',
-    3: '已退款'
-  }
-  return statusMap[status] || '未知'
+function loadMore() {
+  if (loadingMore.value || loading.value || !hasMore.value) return
+  currentPage.value += 1
+  void fetchRecords(false)
 }
 
-// 格式化日期
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-  if (days === 0) {
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  } else if (days === 1) {
-    return '昨天 ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  } else {
-    return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' +
-           date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  }
+function handleRefresh() {
+  refreshing.value = true
+  fetchRecords(true).finally(() => {
+    refreshing.value = false
+  })
 }
 
-// 加载更多
-const loadMore = () => {
-  if (!loading.value && hasMore.value) {
-    currentPage.value++
-    loadRecords()
-  }
-}
-
-// 返回上一页
-const handleBack = () => {
-  safeNavigateBack()
-}
-
-// 页面加载时获取数据
 onMounted(async () => {
-  // 检查用户是否已登录
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
+
   if (!userStore.isLoggedIn) {
-    // 未登录用户重定向到登录页
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+    uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  
-  await loadRecords()
-})
 
-// 启用下拉刷新
-onPullDownRefresh(() => {
-  currentPage.value = 1
-  records.value = []
-  loadRecords().finally(() => {
-    uni.stopPullDownRefresh()
-  })
+  await fetchRecords(true)
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fbfbfb 0%, #f4f4f4 100%);
+  color: #1a1c1c;
 }
 
-.header-content {
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: rgba(249, 249, 249, 0.94);
+  backdrop-filter: blur(18px);
+}
+
+.header-inner {
+  min-height: 112rpx;
+  padding: 10rpx 30rpx 18rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn-ghost {
+  border-radius: 9999rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(26, 28, 28, 0.05);
 }
 
 .header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #ff6600;
+  letter-spacing: -1rpx;
 }
 
-.header-placeholder {
-  width: 56rpx;
-}
-
-.filter-tabs {
-  background-color: #ffffff;
-  padding: 18rpx 28rpx;
-  display: flex;
-  gap: 18rpx;
-  overflow-x: auto;
-  border-bottom: 1rpx solid #e6e6e6;
-}
-
-.tab-item {
-  flex-shrink: 0;
-  padding: 10rpx 20rpx;
-  font-size: 24rpx;
-  color: #999999;
-  border-radius: 9999rpx;
-  transition: all 0.3s;
-  
-  &.active {
-    background-color: #3cc51f;
-    color: #ffffff;
-  }
+.main {
+  height: 100vh;
 }
 
 .content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: transparent;
-  padding: 24rpx 28rpx;
+  padding: 18rpx 18rpx 54rpx;
 }
 
-.empty-state {
+.summary-card,
+.transaction-card,
+.state-card {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12rpx 40rpx rgba(15, 23, 42, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.85);
+}
+
+.summary-card {
+  padding: 44rpx 30rpx 38rpx;
+  border-radius: 28rpx;
+}
+
+.section-kicker {
+  display: block;
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #555555;
+  letter-spacing: 1rpx;
+}
+
+.summary-label {
+  display: block;
+  margin-top: 30rpx;
+  font-size: 28rpx;
+  color: #555555;
+}
+
+.summary-money {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 160rpx 0;
+  align-items: baseline;
+  margin-top: 14rpx;
+  gap: 4rpx;
 }
 
-.empty-text {
-  font-size: 24rpx;
-  color: #999999;
+.summary-currency {
+  font-size: 46rpx;
+  font-weight: 800;
+  color: #b53e00;
 }
 
-.records-list {
+.summary-value {
+  font-size: 76rpx;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -3rpx;
+}
+
+.summary-decimal {
+  font-size: 42rpx;
+  font-weight: 800;
+}
+
+.summary-grid {
+  margin-top: 44rpx;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.summary-item {
+  padding: 24rpx 14rpx 20rpx;
+  border-radius: 20rpx;
+  background: #f1f1f1;
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
-}
-
-.record-item {
-  border-radius: 24rpx;
-  padding: 28rpx;
-}
-
-.record-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12rpx;
+  text-align: center;
 }
 
-.record-type {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1E293B;
-}
-
-.record-amount {
-  font-size: 32rpx;
-  font-weight: 600;
-
-  &.income {
-    color: #3cc51f;
-  }
-
-  &.expense {
-    color: #ef4444;
-  }
-}
-
-.record-details {
+.summary-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12rpx;
+  justify-content: center;
 }
 
-.record-description {
+.icon-peach {
+  background: rgba(255, 102, 0, 0.12);
+}
+
+.icon-blue {
+  background: rgba(14, 165, 233, 0.14);
+}
+
+.icon-gray {
+  background: #eeeeee;
+}
+
+.summary-item-label {
+  margin-top: 14rpx;
   font-size: 24rpx;
-  color: #475569;
+  font-weight: 700;
+  color: #555555;
+}
+
+.summary-item-value {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+
+.section-head {
+  padding: 56rpx 2rpx 26rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #555555;
+}
+
+.transactions {
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+}
+
+.transaction-card {
+  padding: 28rpx 24rpx 24rpx;
+  border-radius: 28rpx;
+}
+
+.transaction-card.refunded {
+  opacity: 0.82;
+}
+
+.transaction-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 22rpx;
+}
+
+.transaction-icon {
+  width: 86rpx;
+  height: 86rpx;
+  border-radius: 9999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.transaction-body {
   flex: 1;
+  min-width: 0;
 }
 
-.record-time {
+.transaction-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.transaction-name {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #1f2328;
+  line-height: 1.3;
+}
+
+.transaction-name.through {
+  text-decoration: line-through;
+  color: #8c8c8c;
+}
+
+.badge {
+  padding: 6rpx 14rpx;
+  border-radius: 9999rpx;
+  font-size: 19rpx;
+  font-weight: 700;
+}
+
+.badge-success {
+  background: #e5e5e5;
+  color: #666666;
+}
+
+.badge-refund {
+  background: #ffe2de;
+  color: #d66b62;
+}
+
+.badge-pending {
+  background: #dcecff;
+  color: #255e9c;
+}
+
+.badge-fail {
+  background: #ffd6d6;
+  color: #b42318;
+}
+
+.transaction-time {
+  display: block;
+  margin-top: 10rpx;
   font-size: 24rpx;
-  color: #475569;
-  white-space: nowrap;
-  margin-left: 12rpx;
+  color: #555b64;
 }
 
-.record-status {
+.transaction-meta {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.transaction-meta-text {
+  font-size: 23rpx;
+  color: #6b7280;
+}
+
+.transaction-amounts {
+  margin-top: 20rpx;
   display: flex;
   justify-content: space-between;
+  align-items: flex-end;
+}
+
+.transaction-amounts-refund {
   align-items: center;
 }
 
-.status-text {
-  font-size: 24rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 6rpx;
-  background-color: rgba(241, 245, 249, 0.6);
-  color: #475569;
+.amount {
+  font-size: 28rpx;
+  font-weight: 900;
+  letter-spacing: -0.6rpx;
 }
 
-.record-id {
+.amount-main {
+  font-size: 30px;
+  color: #111111;
+}
+
+.amount-secondary {
+  color: #c86f2e;
+  font-size: 28rpx;
+}
+
+.amount.income {
+  color: #c86f2e;
+}
+
+.amount.muted {
+  color: #8c8c8c;
+}
+
+.amount.through {
+  text-decoration: line-through;
+}
+
+.state-card {
+  border-radius: 26rpx;
+  padding: 80rpx 24rpx;
+  text-align: center;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #8b8b8b;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border-radius: 9999rpx;
+  border: 4rpx solid #f0f0f0;
+  border-top-color: #ff6600;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.load-more-wrap {
+  padding: 56rpx 0 34rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.load-more-btn {
+  min-width: 360rpx;
+  height: 88rpx;
+  padding: 0 40rpx;
+  border-radius: 9999rpx;
+  background: #e5e5e5;
+  color: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.load-more-end {
   font-size: 24rpx;
-  color: #475569;
+  color: #9ca3af;
 }
 </style>
