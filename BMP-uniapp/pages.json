@@ -622,20 +622,6 @@
       }
     },
     {
-      "path": "pages/settings/feedback",
-      "style": {
-        "navigationBarTitleText": "用户反馈",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/settings/faq",
-      "style": {
-        "navigationBarTitleText": "常见问题",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/stringing/list",
       "style": {
         "navigationBarTitleText": "穿线服务",

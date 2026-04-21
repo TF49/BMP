@@ -14,9 +14,9 @@
 
             <view class="hero-copy">
               <text class="hero-eyebrow">SUPPORT CENTER</text>
-              <text class="hero-title">把帮助、反馈和常见问题收纳到一个地方</text>
+              <text class="hero-title">把帮助说明和联系方式收纳到一个地方</text>
               <text class="hero-subtitle">
-                这是独立给用户端使用的帮助页，用来承接常见问题、反馈入口和客服联系方式，不影响会长端原有帮助入口。
+                这是独立给用户端使用的帮助页，用来承接常见说明、客服联系方式和常用问题快照，不影响会长端原有帮助入口。
               </text>
             </view>
 
@@ -42,13 +42,9 @@
             </view>
 
             <view class="quick-grid">
-              <view class="quick-card" @tap="openFeedback">
-                <text class="quick-title">意见反馈</text>
-                <text class="quick-desc">提交建议、体验问题或 Bug 反馈</text>
-              </view>
-              <view class="quick-card" @tap="openFaqPage">
-                <text class="quick-title">常见问题</text>
-                <text class="quick-desc">快速查看高频问题的标准答案</text>
+              <view class="quick-card" @tap="handleTopic('预约相关')">
+                <text class="quick-title">预约帮助</text>
+                <text class="quick-desc">快速查看约场、取消和时间规则说明</text>
               </view>
               <view class="quick-card" @tap="handleCustomerService">
                 <text class="quick-title">在线客服</text>
@@ -57,6 +53,10 @@
               <view class="quick-card" @tap="handleCall">
                 <text class="quick-title">电话客服</text>
                 <text class="quick-desc">400-888-8888</text>
+              </view>
+              <view class="quick-card" @tap="handleCopyEmail">
+                <text class="quick-title">客服邮箱</text>
+                <text class="quick-desc">support@bmp.com</text>
               </view>
             </view>
           </view>
@@ -196,18 +196,6 @@ function toggleFaq(index: number) {
   faqs[index].expanded = !faqs[index].expanded
 }
 
-function openFeedback() {
-  uni.navigateTo({
-    url: '/pages/settings/feedback'
-  })
-}
-
-function openFaqPage() {
-  uni.navigateTo({
-    url: '/pages/settings/faq'
-  })
-}
-
 function handleCustomerService() {
   uni.showModal({
     title: '在线客服',
@@ -242,7 +230,7 @@ function handleCopyEmail() {
 
 function handleTopic(label: string) {
   uni.showToast({
-    title: `${label}帮助整理中`,
+    title: `${label}可先查看下方常见问题`,
     icon: 'none'
   })
 }

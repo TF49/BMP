@@ -224,7 +224,7 @@ const supportMenus = [
   },
   {
     title: '帮助与反馈',
-    desc: '查看常见问题或提交反馈',
+    desc: '查看帮助说明与客服联系方式',
     path: '/pages/settings/help-user',
     icon: 'help',
     bgColor: 'rgba(0, 98, 161, 0.12)',
