@@ -601,6 +601,13 @@
       }
     },
     {
+      "path": "pages/settings/help-user",
+      "style": {
+        "navigationBarTitleText": "帮助与反馈",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/settings/change-password",
       "style": {
         "navigationBarTitleText": "修改密码",

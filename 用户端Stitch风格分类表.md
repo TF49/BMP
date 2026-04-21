@@ -64,6 +64,10 @@
 | 安全设置 | `pages/settings/security.vue` | 已是 Stitch | 复用会长端修改密码页与安全卡片语言：安全等级 hero、账户安全卡、高级安全开关与登录记录分组已统一为 Stitch 风格 |
 | 设置中心 | `pages/settings/index.vue` | 已是 Stitch | 已按用户端设置中心重构：品牌顶栏、橙色身份 hero、分组设置卡、偏好区与退出登录区已统一为 Stitch 风格 |
 | 账户设置 | `pages/settings/account.vue` | 已是 Stitch | 已按用户端独立逻辑重构：品牌顶栏、账户 hero、身份资料双列表单、手机号入口与安全入口区已统一为 Stitch 风格，并保留用户端资料保存逻辑 |
+| 通知设置 | `pages/settings/notification.vue` | 已是 Stitch | 已重构为品牌化通知设置页：品牌 hero、通知分组卡、开关控制和免打扰时段卡片已统一为 Stitch 风格 |
+| 隐私设置 | `pages/settings/privacy.vue` | 已是 Stitch | 已重构为品牌化隐私中心：品牌 hero、隐私权限分组、数据管理卡和隐私文件入口已统一为 Stitch 风格 |
+| 关于我们 | `pages/settings/about.vue` | 已是 Stitch | 已重构为品牌化 About 页面：品牌 hero、能力卡片、品牌信息、联系方式、渠道入口与法律版本区已统一为 Stitch 风格 |
+| 帮助与反馈（用户端独立页） | `pages/settings/help-user.vue` | 已是 Stitch | 已拆分为独立用户端帮助页：品牌 hero、快捷入口、FAQ 快照、问题分类与联系方式已统一为 Stitch 风格，并避免影响会长端旧帮助页 |
 | 搜索首页 | `pages/search/index.vue` | 已是 Stitch | 已重构为品牌化搜索入口：`KINETIC LOGIC` 顶部品牌区、搜索 hero、热门搜索、搜索历史与建议流已统一为 Stitch 语言 |
 | 搜索结果 | `pages/search/result.vue` | 已是 Stitch | 已重构为品牌化搜索结果页：品牌头部、关键词摘要、分类胶囊切换、场馆/课程/赛事卡片与加载状态已统一为 Stitch 风格 |
 | 我的 | `pages/profile/index.vue` | 已是 Stitch | 已按用户端独立逻辑重构：品牌 hero、账户统计条、会员入口、常用功能宫格与账户记录分组列表已统一为 Stitch 风格 |
@@ -110,10 +114,7 @@
 
 | 页面 | 路径 | 分类判断 | 原因 |
 | --- | --- | --- | --- |
-| 通知设置 | `pages/settings/notification.vue` | 非 Stitch | 旧开关列表页结构 |
-| 隐私设置 | `pages/settings/privacy.vue` | 非 Stitch | 旧设置页样式 |
-| 关于我们 | `pages/settings/about.vue` | 非 Stitch | 旧信息展示页样式 |
-| 帮助 / FAQ / 反馈等设置子页 | `pages/settings/*` | 非 Stitch | 大部分仍属旧业务页体系 |
+| 反馈 / FAQ 等设置子页 | `pages/settings/*` | 非 Stitch | 仍有部分旧式设置子页尚未 Stitch 化；用户端帮助页已拆分到 `pages/settings/help-user.vue`，原 `pages/settings/help.vue` 继续保留给会长端入口使用 |
 
 ---
 
@@ -173,7 +174,7 @@
 2. `pages/venue/booking.vue`
 3. `pages/profile/member.vue`
 4. `pages/notice/index.vue`
-5. `pages/settings/notification.vue`
+5. `pages/settings/feedback.vue`
 
 原因：
 
@@ -184,11 +185,11 @@
 
 建议处理：
 
-1. `pages/settings/notification.vue`
-2. `pages/settings/privacy.vue`
-3. `pages/settings/about.vue`
-4. `pages/settings/help.vue`
-5. `pages/settings/feedback.vue`
+1. `pages/settings/feedback.vue`
+2. `pages/settings/faq.vue`
+3. `pages/venue/detail.vue`
+4. `pages/venue/booking.vue`
+5. `pages/profile/member.vue`
 
 原因：
 
@@ -199,11 +200,11 @@
 
 建议处理：
 
-1. `pages/settings/privacy.vue`
-2. `pages/settings/about.vue`
-3. `pages/settings/notification.vue`
-4. `pages/settings/help.vue`
-5. `pages/settings/feedback.vue`
+1. `pages/settings/feedback.vue`
+2. `pages/settings/faq.vue`
+3. `pages/venue/detail.vue`
+4. `pages/venue/booking.vue`
+5. `pages/profile/member.vue`
 
 原因：
 
@@ -244,6 +245,8 @@
   原因：当前没有对应合适的会长端搜索页可直接复用，强行复用管理列表会让用户端搜索结果显得像后台。
 - `pages/settings/about.vue`、`pages/settings/privacy.vue`、`pages/settings/notification.vue`
   原因：这类页面信息密度低，更适合基于用户端已有页面统一做轻量 Stitch 化，而不是套用会长端工作台结构。
+- `pages/settings/help.vue`
+  原因：当前会长端 `pages/president/profile/index.vue` 直接跳转到该路由，因此保留为会长端入口使用；用户端已拆分到 `pages/settings/help-user.vue`，后续若要升级旧 `help.vue`，需要按双端兼容页面处理。
 - 会长端各类 `form.vue`
   原因：大多是“新增 / 编辑”后台表单，字段密度、交互目标、权限语义都偏管理后台，只适合借局部控件风格，不适合整页复用。
 
