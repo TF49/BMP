@@ -440,10 +440,7 @@
           <el-form-item label="支付方式" class="modern-form-item">
             <!-- 创建和编辑时仅展示，实际选择仍通过支付弹窗处理 -->
             <el-select v-model="editForm.paymentMethod" placeholder="创建后在支付弹窗中选择" disabled>
-              <el-option label="余额" value="BALANCE" />
-              <el-option label="现金" value="CASH" />
-              <el-option label="微信" value="WECHAT" />
-              <el-option label="支付宝" value="ALIPAY" />
+              <el-option label="余额支付" value="BALANCE" />
             </el-select>
           </el-form-item>
           <el-form-item label="备注" class="modern-form-item">
@@ -471,7 +468,7 @@
           <el-input-number v-model="payForm.amount" :min="0" :precision="2" :step="10" disabled />
         </el-form-item>
         <el-form-item label="支付方式">
-          <el-select v-model="payForm.method" placeholder="请选择" style="width: 100%">
+          <el-select v-model="payForm.method" placeholder="余额支付" style="width: 100%">
             <el-option v-for="item in paymentMethodOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
@@ -569,10 +566,7 @@ const payLoading = ref(false)
 const currentPay = ref(null)
 const payForm = reactive({ amount: 0, method: 'BALANCE' })
 const paymentMethodOptions = [
-  { label: '余额', value: 'BALANCE' },
-  { label: '现金', value: 'CASH' },
-  { label: '微信', value: 'WECHAT' },
-  { label: '支付宝', value: 'ALIPAY' }
+  { label: '余额支付', value: 'BALANCE' }
 ]
 
 const statusOptions = [
@@ -619,7 +613,7 @@ const getStringingMethodText = (method) => {
 }
 
 const getPaymentMethodText = (method) => {
-  const map = { 'CASH': '现金', 'ALIPAY': '支付宝', 'WECHAT': '微信', 'BALANCE': '余额' }
+  const map = { 'BALANCE': '余额支付' }
   return map[method] || method
 }
 

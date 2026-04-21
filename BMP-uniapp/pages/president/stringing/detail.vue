@@ -96,7 +96,7 @@ import {
 } from '@/api/president/stringing'
 import { formatAmount, formatDateTime, formatPhone } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
-import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
+import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 const detail = ref<StringingService | null>(null)
@@ -207,19 +207,8 @@ async function openActions() {
       actions.push({
         label: '确认收款',
         handler: async () => {
-          const methods = [
-            PAYMENT_METHOD.CASH,
-            PAYMENT_METHOD.ALIPAY,
-            PAYMENT_METHOD.WECHAT,
-            PAYMENT_METHOD.BALANCE
-          ] as const
-          const result = await uni.showActionSheet({
-            itemList: methods.map((method) => PAYMENT_METHOD_TEXT[method])
-          })
-          const selectedMethod = methods[result.tapIndex]
-          if (!selectedMethod) return
-          await processStringingPayment(detail.value!.id, selectedMethod)
-          uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+          await processStringingPayment(detail.value!.id, BUSINESS_PAYMENT_METHOD)
+          uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
           await refreshDetail()
         }
       })

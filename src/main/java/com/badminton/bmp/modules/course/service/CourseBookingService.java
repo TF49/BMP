@@ -28,6 +28,15 @@ public interface CourseBookingService {
     int processPayment(Long bookingId, String paymentMethod);
 
     /**
+     * 普通用户支付本人课程预约
+     * @param bookingId 预约ID
+     * @param paymentMethod 支付方式
+     * @param userId 当前登录用户ID
+     * @return 处理结果
+     */
+    int processMemberPayment(Long bookingId, String paymentMethod, Long userId);
+
+    /**
      * 处理退款（含余额回滚、消费记录冲正）
      * @param bookingId 预约ID
      * @return 处理结果

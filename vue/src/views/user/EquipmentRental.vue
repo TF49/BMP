@@ -215,9 +215,9 @@
                 </div>
               </div>
 
-              <!-- 支付方式选择 -->
+              <!-- 业务订单统一使用余额支付 -->
               <div class="payment-section">
-                <h4 class="payment-title">选择支付方式</h4>
+                <h4 class="payment-title">余额支付</h4>
                 <div class="payment-options">
                   <div
                     v-for="option in paymentMethodOptions"
@@ -321,7 +321,7 @@
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 支付弹窗：仅创建订单后在此处选择支付方式并扣款 -->
+    <!-- 支付弹窗：业务订单统一使用余额支付 -->
     <el-dialog v-model="payDialogVisible" title="器材租借支付" width="420px">
       <el-form label-width="100px">
         <el-form-item label="租借单号">
@@ -331,7 +331,7 @@
           <el-input-number v-model="payForm.amount" :min="0" :precision="2" :step="10" disabled style="width: 100%" />
         </el-form-item>
         <el-form-item label="支付方式">
-          <el-select v-model="payForm.method" placeholder="请选择" style="width: 100%">
+          <el-select v-model="payForm.method" placeholder="余额支付" style="width: 100%">
             <el-option v-for="item in paymentMethodOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
@@ -347,7 +347,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ShoppingBag, CircleCheck, ArrowLeft, Wallet, Money, CreditCard } from '@element-plus/icons-vue'
+import { ShoppingBag, CircleCheck, ArrowLeft, Wallet } from '@element-plus/icons-vue'
 import { getEquipmentList, getEquipmentTypes } from '@/api/equipment'
 import { getEquipmentRentalList, addEquipmentRental, updateEquipmentRentalStatus, processEquipmentRentalPayment } from '@/api/equipmentRental'
 
@@ -379,10 +379,7 @@ const rentalForm = ref({
 })
 
 const paymentMethodOptions = [
-  { label: '余额支付', value: 'BALANCE', icon: Wallet },
-  { label: '现金支付', value: 'CASH', icon: Money },
-  { label: '微信支付', value: 'WECHAT', icon: CreditCard },
-  { label: '支付宝', value: 'ALIPAY', icon: CreditCard }
+  { label: '余额支付', value: 'BALANCE', icon: Wallet }
 ]
 
 const estimatedRentalCost = computed(() => {
@@ -435,7 +432,7 @@ const getRentalStatusType = (status) => {
 }
 
 const getPaymentMethodText = (method) => {
-  const map = { BALANCE: '余额支付', CASH: '现金', WECHAT: '微信', ALIPAY: '支付宝' }
+  const map = { BALANCE: '余额支付' }
   return map[method] || method || '-'
 }
 
@@ -521,7 +518,7 @@ const submitRental = async () => {
     return
   }
   if (!rentalForm.value.paymentMethod) {
-    ElMessage.warning('请选择支付方式')
+    ElMessage.warning('请确认余额支付')
     return
   }
 
@@ -1145,7 +1142,7 @@ html.theme-dark-mode .page-subtitle {
   margin-top: 32px;
 }
 
-/* 支付方式选择样式 */
+/* 余额支付展示样式 */
 .payment-section {
   margin-top: 24px;
   padding-top: 24px;

@@ -674,6 +674,10 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processPayment(Long registrationId, String paymentMethod) {
+        if (!"BALANCE".equals(paymentMethod)) {
+            throw new RuntimeException("业务订单仅支持余额支付");
+        }
+
         // 查询报名记录
         TournamentRegistration registration = tournamentRegistrationMapper.findById(registrationId);
         if (registration == null) {
@@ -713,17 +717,14 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             throw new RuntimeException(msg);
         }
 
-        // 如果使用余额支付，调用消费记录服务
-        if ("BALANCE".equals(paymentMethod)) {
-            memberConsumeRecordService.createConsumeRecord(
-                registration.getMemberId(),
-                registration.getEntryFee(),
-                "TOURNAMENT",
-                registrationId,
-                paymentMethod,
-                "赛事报名支付：" + registration.getRegistrationNo()
-            );
-        }
+        memberConsumeRecordService.createConsumeRecord(
+            registration.getMemberId(),
+            registration.getEntryFee(),
+            "TOURNAMENT",
+            registrationId,
+            paymentMethod,
+            "赛事报名支付：" + registration.getRegistrationNo()
+        );
 
         // 获取场馆ID用于财务记录
         Tournament tournamentForFinance = tournamentMapper.findById(registration.getTournamentId());

@@ -104,11 +104,12 @@ import { ref, computed, onMounted } from 'vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import { getRechargeRecords, type RechargeRecord } from '@/api/recharge'
-import { getMemberInfo } from '@/api/member'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 48)
@@ -263,17 +264,9 @@ const groupedMonths = computed(() => {
   return keys.map((k) => map.get(k)!)
 })
 
-async function resolveMemberId(): Promise<number> {
-  const mid = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || 0)
-  if (mid > 0) return mid
-  return Number(userStore.userId || 0)
-}
-
 async function loadBalance() {
-  const mid = await resolveMemberId()
-  if (!mid) return
   try {
-    const m = await getMemberInfo(mid)
+    const m = await fetchCurrentMember(true)
     balance.value = Number(m.balance || 0)
   } catch {
     balance.value = 0

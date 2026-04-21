@@ -263,7 +263,7 @@ public class TournamentRegistrationController extends BaseController {
     /**
      * 处理支付（需要ADMIN权限）
      * @param registrationId 报名ID
-     * @param paymentMethod 支付方式（CASH/ALIPAY/WECHAT/BALANCE）
+     * @param paymentMethod 支付方式（仅支持 BALANCE）
      * @return 处理结果
      */
     @Operation(summary = "赛事报名支付")
@@ -283,10 +283,8 @@ public class TournamentRegistrationController extends BaseController {
                 return error("支付方式不能为空");
             }
 
-            // 验证支付方式
-            if (!paymentMethod.equals("CASH") && !paymentMethod.equals("ALIPAY") &&
-                !paymentMethod.equals("WECHAT") && !paymentMethod.equals("BALANCE")) {
-                return error("支付方式无效，必须是CASH、ALIPAY、WECHAT或BALANCE");
+            if (!"BALANCE".equals(paymentMethod)) {
+                return error("业务订单仅支持余额支付");
             }
 
             // 处理支付

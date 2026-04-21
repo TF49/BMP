@@ -359,7 +359,7 @@ const loadMyRegistrations = async () => {
 }
 
 const handlePay = (registration) => {
-  router.push(`/user/recharge?pay=${registration.id}`)
+  ElMessage.warning('当前网页端暂未打通赛事报名在线支付，请联系场馆管理员处理该订单')
 }
 
 const handleCancel = async (registration) => {

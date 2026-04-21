@@ -207,8 +207,8 @@ const loadError = ref('')
 const submitting = ref(false)
 const paymentIndex = ref(0)
 
-const paymentValues = ['CASH', 'ALIPAY', 'WECHAT', 'BALANCE']
-const paymentLabels = ['现金', '支付宝', '微信支付', '余额支付']
+const paymentValues = ['BALANCE']
+const paymentLabels = ['余额支付']
 
 const form = reactive({
   memberId: 0,

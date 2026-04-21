@@ -13,8 +13,5 @@ export enum BookingStatus {
  * 支付方式枚举
  */
 export enum PaymentMethod {
-  CASH = 'CASH', // 现金
-  ALIPAY = 'ALIPAY', // 支付宝
-  WECHAT = 'WECHAT', // 微信
   BALANCE = 'BALANCE' // 余额
 }

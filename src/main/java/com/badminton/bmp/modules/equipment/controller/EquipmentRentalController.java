@@ -251,7 +251,7 @@ public class EquipmentRentalController extends BaseController {
         }
     }
 
-    @Operation(summary = "租借支付", description = "支付方式：CASH/ALIPAY/WECHAT/BALANCE")
+    @Operation(summary = "租借支付", description = "支付方式：仅支持 BALANCE")
     @PostMapping("/payment")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
     public Result<Object> processPayment(@RequestParam("rentalId") Long rentalId, @RequestParam("paymentMethod") String paymentMethod) {
@@ -263,10 +263,8 @@ public class EquipmentRentalController extends BaseController {
                 return error("支付方式不能为空");
             }
 
-            // 验证支付方式
-            if (!paymentMethod.equals("CASH") && !paymentMethod.equals("ALIPAY") &&
-                !paymentMethod.equals("WECHAT") && !paymentMethod.equals("BALANCE")) {
-                return error("支付方式无效，必须是CASH、ALIPAY、WECHAT或BALANCE");
+            if (!"BALANCE".equals(paymentMethod)) {
+                return error("业务订单仅支持余额支付");
             }
 
             // 处理支付

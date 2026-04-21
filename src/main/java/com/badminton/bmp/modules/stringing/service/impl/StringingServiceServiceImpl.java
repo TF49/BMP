@@ -455,6 +455,10 @@ public class StringingServiceServiceImpl implements StringingServiceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processPayment(Long serviceId, String paymentMethod) {
+        if (!"BALANCE".equals(paymentMethod)) {
+            throw new BusinessException("业务订单仅支持余额支付");
+        }
+
         StringingService service = stringingServiceMapper.findById(serviceId);
         if (service == null) {
             throw new ResourceNotFoundException("穿线服务记录不存在");
@@ -488,16 +492,14 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             throw new BusinessException("服务金额无效，无法支付");
         }
 
-        if ("BALANCE".equals(paymentMethod)) {
-            memberConsumeRecordService.createConsumeRecord(
-                service.getMemberId(),
-                amount,
-                "STRINGING",
-                serviceId,
-                paymentMethod,
-                "穿线服务支付：" + service.getServiceNo()
-            );
-        }
+        memberConsumeRecordService.createConsumeRecord(
+            service.getMemberId(),
+            amount,
+            "STRINGING",
+            serviceId,
+            paymentMethod,
+            "穿线服务支付：" + service.getServiceNo()
+        );
 
         financeService.createFromBusiness(
             Finance.TYPE_STRINGING,

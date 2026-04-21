@@ -203,7 +203,7 @@ export function updateEquipmentRentalStatus(id: number, status: number) {
 
 export function processEquipmentRentalPayment(
   rentalId: number,
-  paymentMethod: 'CASH' | 'ALIPAY' | 'WECHAT' | 'BALANCE'
+  paymentMethod: 'BALANCE'
 ) {
   return request<null>({
     url: `/equipment/rental/payment?rentalId=${rentalId}&paymentMethod=${paymentMethod}`,

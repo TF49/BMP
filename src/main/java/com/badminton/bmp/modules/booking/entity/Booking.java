@@ -84,9 +84,9 @@ public class Booking {
     private BigDecimal orderAmount;
 
     /**
-     * 支付方式（CASH-现金，ALIPAY-支付宝，WECHAT-微信，BALANCE-余额）
+     * 支付方式（业务订单仅允许 BALANCE）
      */
-    @Pattern(regexp = "^(CASH|ALIPAY|WECHAT|BALANCE)$", message = "支付方式必须为CASH、ALIPAY、WECHAT或BALANCE")
+    @Pattern(regexp = "^(BALANCE)$", message = "业务订单支付方式必须为BALANCE")
     private String paymentMethod;
 
     /**

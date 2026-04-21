@@ -11,11 +11,12 @@ export interface AdminRechargeResult {
 
 export interface RechargeParams {
   memberId: number
+  amount: number
+  method: string
+  remark?: string
+  paymentMethod?: string
   rechargeAmount?: number
   rechargeMethod?: string
-  remark?: string
-  amount?: number
-  paymentMethod?: string
   orderType?: string
 }
 
@@ -43,7 +44,16 @@ export function userRecharge(params: RechargeParams) {
   return request<RechargeRecord>({
     url: API_PATHS.RECHARGE.USER,
     method: 'POST',
-    data: params
+    data: {
+      memberId: params.memberId,
+      amount: params.amount,
+      method: params.method,
+      paymentMethod: params.paymentMethod,
+      rechargeAmount: params.rechargeAmount,
+      rechargeMethod: params.rechargeMethod,
+      orderType: params.orderType,
+      remark: params.remark
+    }
   })
 }
 
@@ -54,7 +64,16 @@ export function createRechargeOrder(params: RechargeParams) {
   return request<RechargeRecord>({
     url: API_PATHS.RECHARGE.USER,
     method: 'POST',
-    data: params
+    data: {
+      memberId: params.memberId,
+      amount: params.amount,
+      method: params.method,
+      paymentMethod: params.paymentMethod,
+      rechargeAmount: params.rechargeAmount,
+      rechargeMethod: params.rechargeMethod,
+      orderType: params.orderType,
+      remark: params.remark
+    }
   })
 }
 

@@ -140,6 +140,7 @@ import { createCourseBooking, getCourseDetail, type CourseItem } from '@/api/cou
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 type CourseBookingVm = {
   id: number
@@ -158,6 +159,7 @@ type CourseBookingVm = {
 }
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 56)
@@ -301,9 +303,10 @@ async function handleSubmit() {
   try {
     isSubmitting.value = true
     uni.showLoading({ title: '支付中...' })
+    const member = await fetchCurrentMember()
 
     await createCourseBooking({
-      memberId: Number(userStore.userId || 0),
+      memberId: Number(member.id || 0),
       courseId: detail.value.id,
       orderAmount: payableValue.value,
       paymentMethod: 'BALANCE'

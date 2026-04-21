@@ -42,6 +42,7 @@ export interface BookingItem {
   endTime: string
   orderAmount: number
   paymentMethod: string
+  paymentStatus?: number
   status: number
   createTime: string
   updateTime: string
@@ -130,9 +131,18 @@ export function updateBookingStatus(id: number, status: number) {
  */
 export function processPayment(bookingId: number, paymentMethod: string) {
   return request<string>({
-    url: API_PATHS.BOOKING.PAYMENT,
+    url: `${API_PATHS.BOOKING.PAYMENT}?bookingId=${bookingId}&paymentMethod=${paymentMethod}`,
     method: 'POST',
-    data: { bookingId, paymentMethod }
+  })
+}
+
+/**
+ * 普通用户支付本人预约，管理员也可复用该接口
+ */
+export function processMemberBookingPayment(bookingId: number, paymentMethod: string) {
+  return request<string>({
+    url: `${API_PATHS.BOOKING.MEMBER_PAYMENT}?bookingId=${bookingId}&paymentMethod=${paymentMethod}`,
+    method: 'POST'
   })
 }
 

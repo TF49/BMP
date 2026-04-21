@@ -8,18 +8,25 @@
   },
   "pages": [
     {
-      "path": "pages/login/login",
-      "style": {
-        "navigationBarTitleText": "登录",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "首页",
         "navigationStyle": "custom",
         "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/notice/index",
+      "style": {
+        "navigationBarTitleText": "通知中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -152,9 +159,16 @@
       }
     },
     {
+      "path": "pages/president/booking/detail",
+      "style": {
+        "navigationBarTitleText": "预约详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/president/finance/list",
       "style": {
-        "navigationBarTitleText": "财务管理",
+        "navigationBarTitleText": "财务列表",
         "navigationStyle": "custom"
       }
     },
@@ -425,6 +439,27 @@
       }
     },
     {
+      "path": "pages/venue/booking",
+      "style": {
+        "navigationBarTitleText": "场地预约",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/booking/confirm",
+      "style": {
+        "navigationBarTitleText": "确认订单",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/booking/fee-detail",
+      "style": {
+        "navigationBarTitleText": "费用明细",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/booking/detail",
       "style": {
         "navigationBarTitleText": "预约详情",
@@ -579,6 +614,42 @@
         "navigationStyle": "custom"
       }
     },
+    {
+      "path": "pages/stringing/list",
+      "style": {
+        "navigationBarTitleText": "穿线服务",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/stringing/detail",
+      "style": {
+        "navigationBarTitleText": "服务详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/stringing/create",
+      "style": {
+        "navigationBarTitleText": "新增服务",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/stringing/query",
+      "style": {
+        "navigationBarTitleText": "服务查询",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/detail",
+      "style": {
+        "navigationBarTitleText": "教练详情",
+        "navigationStyle": "custom"
+      }
+    }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
@@ -588,44 +659,6 @@
     "app-plus": {
       "titleNView": false
     }
-  },
-  "tabBar": {
-    "color": "#64748b",
-    "selectedColor": "#ea580c",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "首页",
-        "iconPath": "static/tabbar/tab-home.png",
-        "selectedIconPath": "static/tabbar/tab-home-active.png"
-      },
-      {
-        "pagePath": "pages/booking/list",
-        "text": "预约",
-        "iconPath": "static/tabbar/tab-venue.png",
-        "selectedIconPath": "static/tabbar/tab-venue-active.png"
-      },
-      {
-        "pagePath": "pages/course/list",
-        "text": "培训",
-        "iconPath": "static/tabbar/tab-course.png",
-        "selectedIconPath": "static/tabbar/tab-course-active.png"
-      },
-      {
-        "pagePath": "pages/tournament/list",
-        "text": "赛事",
-        "iconPath": "static/tabbar/tab-tournament.png",
-        "selectedIconPath": "static/tabbar/tab-tournament-active.png"
-      },
-      {
-        "pagePath": "pages/profile/index",
-        "text": "我的",
-        "iconPath": "static/tabbar/tab-profile.png",
-        "selectedIconPath": "static/tabbar/tab-profile-active.png"
-      }
-    ]
   },
   "condition": {
     "current": 0,

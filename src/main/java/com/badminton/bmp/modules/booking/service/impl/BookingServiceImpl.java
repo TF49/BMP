@@ -919,22 +919,50 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processPayment(Long bookingId, String paymentMethod) {
+        return processPaymentInternal(bookingId, paymentMethod, null, true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int processMemberPayment(Long bookingId, String paymentMethod, Long userId) {
+        return processPaymentInternal(bookingId, paymentMethod, userId, false);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    protected int processPaymentInternal(Long bookingId, String paymentMethod, Long userId, boolean adminMode) {
+        if (!"BALANCE".equals(paymentMethod)) {
+            throw new BusinessException("业务订单仅支持余额支付");
+        }
+
         // 查询预约记录
         Booking booking = bookingMapper.findById(bookingId);
         if (booking == null) {
             throw new ResourceNotFoundException("预约记录不存在");
         }
 
-        // 权限兜底：只有管理员，且 VM 仅限自己场馆
-        if (!SecurityUtils.isPresident()) {
-            if (SecurityUtils.isVenueManager()) {
-                Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
-                Court court = courtMapper.findById(booking.getCourtId());
-                if (currentVenueId == null || court == null || !currentVenueId.equals(court.getVenueId())) {
-                    throw new BusinessException("权限不足，只能处理自己场馆的预约支付");
+        if (adminMode) {
+            // 权限兜底：只有管理员，且 VM 仅限自己场馆
+            if (!SecurityUtils.isPresident()) {
+                if (SecurityUtils.isVenueManager()) {
+                    Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+                    Court court = courtMapper.findById(booking.getCourtId());
+                    if (currentVenueId == null || court == null || !currentVenueId.equals(court.getVenueId())) {
+                        throw new BusinessException("权限不足，只能处理自己场馆的预约支付");
+                    }
+                } else {
+                    throw new BusinessException("权限不足，仅管理员可执行此操作");
                 }
-            } else {
-                throw new BusinessException("权限不足，仅管理员可执行此操作");
+            }
+        } else {
+            if (userId == null) {
+                throw new BusinessException("未登录或Token无效");
+            }
+            Member currentMember = memberMapper.findByUserId(userId);
+            if (currentMember == null) {
+                throw new BusinessException("当前用户未绑定会员信息，无法支付预约");
+            }
+            if (!currentMember.getId().equals(booking.getMemberId())) {
+                throw new BusinessException("权限不足，只能支付自己的预约订单");
             }
         }
 
@@ -958,17 +986,14 @@ public class BookingServiceImpl implements BookingService {
             throw new BusinessException(msg);
         }
 
-        // 如果使用余额支付，调用消费记录服务
-        if ("BALANCE".equals(paymentMethod)) {
-            memberConsumeRecordService.createConsumeRecord(
-                booking.getMemberId(),
-                booking.getOrderAmount(),
-                "BOOKING",
-                bookingId,
-                paymentMethod,
-                "场地预约支付：" + booking.getBookingNo()
-            );
-        }
+        memberConsumeRecordService.createConsumeRecord(
+            booking.getMemberId(),
+            booking.getOrderAmount(),
+            "BOOKING",
+            bookingId,
+            paymentMethod,
+            "场地预约支付：" + booking.getBookingNo()
+        );
 
         // 获取场馆ID用于财务记录
         Court court = courtMapper.findById(booking.getCourtId());
@@ -994,10 +1019,10 @@ public class BookingServiceImpl implements BookingService {
         if (updated > 0) {
             courtService.updateStatus(booking.getCourtId(), 3); // 使用中
             try {
-                Long userId = null;
+                Long bookingUserId = null;
                 Member m = memberMapper.findById(booking.getMemberId());
-                if (m != null && m.getUserId() != null) userId = m.getUserId();
-                webSocketPushService.onOrderStatusChanged(userId, "booking", bookingId, 3, "进行中", "场地预约", getOperationTodoCount(), getTodoList());
+                if (m != null && m.getUserId() != null) bookingUserId = m.getUserId();
+                webSocketPushService.onOrderStatusChanged(bookingUserId, "booking", bookingId, 3, "进行中", "场地预约", getOperationTodoCount(), getTodoList());
             } catch (Exception e) {
                 org.slf4j.LoggerFactory.getLogger(BookingServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
             }

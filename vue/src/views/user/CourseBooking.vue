@@ -227,7 +227,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Tickets, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getCourseList } from '@/api/course'
-import { getCourseBookingList, addCourseBooking, updateCourseBookingStatus } from '@/api/courseBooking'
+import { getCourseBookingList, addCourseBooking, payMemberCourseBooking, updateCourseBookingStatus } from '@/api/courseBooking'
 
 const router = useRouter()
 const activeTab = ref('book')
@@ -362,7 +362,31 @@ const loadMyCourses = async () => {
 }
 
 const handlePay = (course) => {
-  router.push(`/user/recharge?pay=${course.id}`)
+  ElMessageBox.confirm(
+    `确认使用余额支付该课程订单吗？\n订单金额：¥${formatCurrency(course.orderAmount)}`,
+    '课程支付确认',
+    {
+      type: 'warning',
+      confirmButtonText: '确认支付',
+      cancelButtonText: '稍后支付'
+    }
+  ).then(async () => {
+    try {
+      const res = await payMemberCourseBooking({
+        bookingId: course.id,
+        paymentMethod: 'BALANCE'
+      })
+      if (res.code === 200) {
+        ElMessage.success('支付成功')
+        await loadMyCourses()
+      } else {
+        ElMessage.error(res.message || '支付失败')
+      }
+    } catch (e) {
+      console.error('课程支付失败:', e)
+      ElMessage.error(e.response?.data?.message || e.message || '支付失败，请稍后重试')
+    }
+  }).catch(() => {})
 }
 
 const handleCancel = async (course) => {

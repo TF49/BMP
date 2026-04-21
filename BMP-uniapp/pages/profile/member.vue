@@ -138,10 +138,11 @@
 import { computed, onMounted, reactive } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
-import { getMemberInfo } from '@/api/member'
 import { safeNavigateBack } from '@/utils/navigation'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const memberInfo = reactive({
   id: 0,
@@ -204,13 +205,13 @@ const formatDate = (dateStr: string) => {
 
 const loadMemberInfo = async () => {
   try {
-    if (!userStore.userId) {
+    if (!userStore.isLoggedIn) {
       uni.showToast({ title: '请先登录', icon: 'none' })
       uni.redirectTo({ url: '/pages/login/login' })
       return
     }
 
-    const info = await getMemberInfo(userStore.userId)
+    const info = await fetchCurrentMember(true)
     Object.assign(memberInfo, {
       ...info,
       totalRecharge: info.totalRecharge || 0,

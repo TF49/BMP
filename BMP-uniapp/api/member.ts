@@ -17,6 +17,16 @@ export interface MemberInfo {
   totalConsumption?: number
 }
 
+/**
+ * 获取当前登录用户的会员信息
+ */
+export function getCurrentMember() {
+  return request<MemberInfo>({
+    url: API_PATHS.MEMBER.CURRENT,
+    method: 'GET'
+  })
+}
+
 export interface ConsumeRecord {
   id: number
   memberId: number

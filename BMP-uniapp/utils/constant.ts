@@ -75,6 +75,8 @@ export const PAYMENT_METHOD_TEXT = {
   [PAYMENT_METHOD.BALANCE]: '余额'
 } as const
 
+export const BUSINESS_PAYMENT_METHOD = PAYMENT_METHOD.BALANCE
+
 /**
  * 器材类型
  */

@@ -108,7 +108,7 @@ public interface StringingServiceService {
     /**
      * 处理支付（含余额扣减、消费记录、财务流水）
      * @param serviceId 穿线服务ID
-     * @param paymentMethod 支付方式（CASH/ALIPAY/WECHAT/BALANCE）
+     * @param paymentMethod 支付方式（仅支持 BALANCE）
      * @return 影响的行数
      */
     int processPayment(Long serviceId, String paymentMethod);

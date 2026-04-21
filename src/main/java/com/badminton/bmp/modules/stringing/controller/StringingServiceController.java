@@ -344,7 +344,7 @@ public class StringingServiceController extends BaseController {
     /**
      * 处理支付（需要管理员权限，与器材租借/预约管理逻辑一致）
      * @param serviceId 穿线服务ID
-     * @param paymentMethod 支付方式（CASH/ALIPAY/WECHAT/BALANCE）
+     * @param paymentMethod 支付方式（仅支持 BALANCE）
      * @return 处理结果
      */
     @Operation(summary = "穿线服务支付")
@@ -361,9 +361,8 @@ public class StringingServiceController extends BaseController {
             if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
                 return error("支付方式不能为空");
             }
-            if (!paymentMethod.equals("CASH") && !paymentMethod.equals("ALIPAY")
-                    && !paymentMethod.equals("WECHAT") && !paymentMethod.equals("BALANCE")) {
-                return error("支付方式无效，必须是CASH、ALIPAY、WECHAT或BALANCE");
+            if (!"BALANCE".equals(paymentMethod)) {
+                return error("业务订单仅支持余额支付");
             }
             int result = stringingServiceService.processPayment(serviceId, paymentMethod);
             if (result > 0) {

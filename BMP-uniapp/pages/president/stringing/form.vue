@@ -214,7 +214,7 @@ import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 const TENSION_MIN = 18
 const TENSION_MAX = 35
-const DEFAULT_PAYMENT_METHOD: StringingPaymentMethod = 'CASH'
+const DEFAULT_PAYMENT_METHOD: StringingPaymentMethod = 'BALANCE'
 
 type StringOption = {
   id?: number

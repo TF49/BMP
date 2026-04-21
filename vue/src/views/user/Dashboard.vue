@@ -158,7 +158,7 @@ import {
   CircleCheck,
   Tools
 } from '@element-plus/icons-vue'
-import { getBookingList, getBookingStatistics, updateBookingStatus } from '@/api/booking'
+import { getBookingList, getBookingStatistics, payMemberBooking, updateBookingStatus } from '@/api/booking'
 import { getCurrentMember } from '@/api/member'
 import { getUserInfo, resolveAvatarUrl } from '@/utils/auth'
 import { getRoleName } from '@/utils/roleHelper'
@@ -331,7 +331,31 @@ const loadBookings = async () => {
 }
 
 const handlePay = (booking) => {
-  router.push(`/user/recharge?pay=${booking.id}`)
+  ElMessageBox.confirm(
+    `确认使用余额支付该预约订单吗？\n订单金额：¥${formatCurrency(booking.orderAmount)}`,
+    '预约支付确认',
+    {
+      type: 'warning',
+      confirmButtonText: '确认支付',
+      cancelButtonText: '稍后支付'
+    }
+  ).then(async () => {
+    try {
+      const res = await payMemberBooking({
+        bookingId: booking.id,
+        paymentMethod: 'BALANCE'
+      })
+      if (res.code === 200) {
+        ElMessage.success('支付成功')
+        await Promise.all([loadBalance(), loadBookings()])
+      } else {
+        ElMessage.error(res.message || '支付失败')
+      }
+    } catch (e) {
+      console.error('预约支付失败:', e)
+      ElMessage.error(e.response?.data?.message || e.message || '支付失败，请稍后重试')
+    }
+  }).catch(() => {})
 }
 
 const handleCancel = async (booking) => {

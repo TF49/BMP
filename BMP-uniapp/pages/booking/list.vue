@@ -130,8 +130,10 @@ import { useUserStore } from '@/store/modules/user'
 import { getBookingList } from '@/api/booking'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getAvatarImage } from '@/utils/displayImage'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 const currentTab = ref(0)
 const statusBarHeight = ref(20)
 const tabs = ['全部', '进行中', '已完成']
@@ -190,9 +192,10 @@ const loadBookingList = async () => {
   if (loading.value) return
   loading.value = true
   try {
-    if (!userStore.userId) return
+    const member = await fetchCurrentMember()
+    if (!member?.id) return
     const params: any = {
-      memberId: userStore.userId,
+      memberId: member.id,
       page: 1,
       size: 50
     }

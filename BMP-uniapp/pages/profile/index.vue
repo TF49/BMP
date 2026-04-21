@@ -23,7 +23,7 @@
             <text class="user-name">{{ displayName }}</text>
             <view class="user-sub">
               <text class="role-badge">{{ memberTypeText }}</text>
-              <text class="user-id">ID: {{ userInfo.memberId || userStore.userId || '—' }}</text>
+              <text class="user-id">ID: {{ userInfo.memberId || '—' }}</text>
             </view>
           </view>
         </view>
@@ -131,10 +131,10 @@ import { computed, onMounted, ref } from 'vue'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { useUserStore } from '@/store/modules/user'
 import { safeReLaunch } from '@/utils/safeRoute'
-import { getCurrentUser } from '@/api/auth'
-import { getMemberInfo } from '@/api/member'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
 
@@ -260,15 +260,15 @@ function formatMoney(value: number) {
 
 const loadUserInfo = async () => {
   try {
-    const user = await getCurrentUser()
-    const memberInfo = await getMemberInfo(user.id)
+    const user = userStore.userInfo
+    const memberInfo = await fetchCurrentMember(true)
 
     userInfo.value = {
-      username: user.nickname || user.username || '微信用户',
+      username: user?.nickname || user?.username || '微信用户',
       balance: memberInfo.balance || 0,
       points: 0,
       coupons: 0,
-      memberId: user.id,
+      memberId: memberInfo.id,
       memberType: memberInfo.memberType || 'NORMAL'
     }
   } catch (error) {

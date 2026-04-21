@@ -289,6 +289,7 @@ import { useUserStore } from '@/store/modules/user'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
 import { isPresidentRole } from '@/utils/roleCheck'
 import { formatAmount } from '@/utils/format'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 type DateOption = {
   date: string
@@ -321,6 +322,7 @@ const scrollHeight = computed(() => `calc(100vh - ${statusBarHeight.value + 60}p
 
 const venueId = ref<number>(0)
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 const venue = ref({
   id: 0,
   name: '正在加载...',
@@ -589,7 +591,9 @@ async function handleSubmit() {
 
   try {
     uni.showLoading({ title: '准备订单...' })
+    const member = await fetchCurrentMember()
     const payload = {
+      memberId: member.id,
       courtId: selectedCourt.value.id,
       bookingDate: selectedDate.value,
       startTime: formatApiTime(startTime.value),
@@ -616,7 +620,7 @@ async function handleSubmit() {
     const returnUrl = isPresident ? `/pages/president/venue/detail?id=${venueId.value}` : '/pages/booking/list'
 
     uni.navigateTo({
-      url: `/pages/booking/confirm?data=${encodeURIComponent(JSON.stringify(bookingSummary))}&returnUrl=${encodeURIComponent(returnUrl)}`
+      url: `/pages/booking/confirm?bookingId=${encodeURIComponent(String((res as any)?.id || bookingSummary.bookingId || ''))}&data=${encodeURIComponent(JSON.stringify(bookingSummary))}&returnUrl=${encodeURIComponent(returnUrl)}`
     })
   } catch (error: any) {
     uni.hideLoading()

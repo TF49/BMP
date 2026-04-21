@@ -269,9 +269,15 @@ public class RechargeController extends BaseController {
 class RechargeBody {
     private BigDecimal amount;
     private String method; // CASH-现金，ALIPAY-支付宝，WECHAT-微信，BANK-银行转账
+    private String paymentMethod;
+    private BigDecimal rechargeAmount;
+    private String rechargeMethod;
 
     public BigDecimal getAmount() {
-        return amount;
+        if (amount != null) {
+            return amount;
+        }
+        return rechargeAmount;
     }
 
     public void setAmount(BigDecimal amount) {
@@ -279,11 +285,41 @@ class RechargeBody {
     }
 
     public String getMethod() {
-        return method;
+        if (method != null && !method.trim().isEmpty()) {
+            return method;
+        }
+        if (paymentMethod != null && !paymentMethod.trim().isEmpty()) {
+            return paymentMethod;
+        }
+        return rechargeMethod;
     }
 
     public void setMethod(String method) {
         this.method = method;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public BigDecimal getRechargeAmount() {
+        return rechargeAmount;
+    }
+
+    public void setRechargeAmount(BigDecimal rechargeAmount) {
+        this.rechargeAmount = rechargeAmount;
+    }
+
+    public String getRechargeMethod() {
+        return rechargeMethod;
+    }
+
+    public void setRechargeMethod(String rechargeMethod) {
+        this.rechargeMethod = rechargeMethod;
     }
 }
 
@@ -295,6 +331,9 @@ class AdminRechargeBody {
     private BigDecimal amount;
     private String method; // CASH-现金，ALIPAY-支付宝，WECHAT-微信，BANK-银行转账
     private String remark;
+    private String paymentMethod;
+    private BigDecimal rechargeAmount;
+    private String rechargeMethod;
 
     public Long getMemberId() {
         return memberId;
@@ -305,7 +344,10 @@ class AdminRechargeBody {
     }
 
     public BigDecimal getAmount() {
-        return amount;
+        if (amount != null) {
+            return amount;
+        }
+        return rechargeAmount;
     }
 
     public void setAmount(BigDecimal amount) {
@@ -313,11 +355,41 @@ class AdminRechargeBody {
     }
 
     public String getMethod() {
-        return method;
+        if (method != null && !method.trim().isEmpty()) {
+            return method;
+        }
+        if (paymentMethod != null && !paymentMethod.trim().isEmpty()) {
+            return paymentMethod;
+        }
+        return rechargeMethod;
     }
 
     public void setMethod(String method) {
         this.method = method;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public BigDecimal getRechargeAmount() {
+        return rechargeAmount;
+    }
+
+    public void setRechargeAmount(BigDecimal rechargeAmount) {
+        this.rechargeAmount = rechargeAmount;
+    }
+
+    public String getRechargeMethod() {
+        return rechargeMethod;
+    }
+
+    public void setRechargeMethod(String rechargeMethod) {
+        this.rechargeMethod = rechargeMethod;
     }
 
     public String getRemark() {

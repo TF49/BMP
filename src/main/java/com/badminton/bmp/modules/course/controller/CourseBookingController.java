@@ -9,6 +9,8 @@ import com.badminton.bmp.modules.course.service.CourseBookingService;
 import com.badminton.bmp.modules.course.service.CourseService;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.service.MemberService;
+import com.badminton.bmp.modules.system.entity.User;
+import com.badminton.bmp.common.util.SecurityUtils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -247,7 +249,7 @@ public class CourseBookingController extends BaseController {
     /**
      * 处理支付（需要ADMIN权限）
      * @param bookingId 预约ID
-     * @param paymentMethod 支付方式（CASH/ALIPAY/WECHAT/BALANCE）
+     * @param paymentMethod 支付方式（仅支持 BALANCE）
      * @return 处理结果
      */
     @Operation(summary = "课程预约支付")
@@ -267,10 +269,8 @@ public class CourseBookingController extends BaseController {
                 return error("支付方式不能为空");
             }
 
-            // 验证支付方式
-            if (!paymentMethod.equals("CASH") && !paymentMethod.equals("ALIPAY") &&
-                !paymentMethod.equals("WECHAT") && !paymentMethod.equals("BALANCE")) {
-                return error("支付方式无效，必须是CASH、ALIPAY、WECHAT或BALANCE");
+            if (!"BALANCE".equals(paymentMethod)) {
+                return error("业务订单仅支持余额支付");
             }
 
             // 处理支付
@@ -281,6 +281,42 @@ public class CourseBookingController extends BaseController {
             } else {
                 return error("支付处理失败");
             }
+        } catch (RuntimeException e) {
+            return error(e.getMessage());
+        } catch (Exception e) {
+            return error("支付处理时发生错误：" + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "普通用户支付本人课程预约")
+    @PostMapping("/member/payment")
+    @PreAuthorize("hasAnyRole('USER','MEMBER','PRESIDENT','VENUE_MANAGER')")
+    public Result<Object> processMemberPayment(@RequestParam("bookingId") Long bookingId,
+                                               @RequestParam("paymentMethod") String paymentMethod) {
+        try {
+            if (bookingId == null) {
+                return error("预约ID不能为空");
+            }
+            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
+                return error("支付方式不能为空");
+            }
+
+            if (!"BALANCE".equals(paymentMethod)) {
+                return error("业务订单仅支持余额支付");
+            }
+
+            if (isAdmin()) {
+                int result = courseBookingService.processPayment(bookingId, paymentMethod);
+                return result > 0 ? success(null) : error("支付处理失败");
+            }
+
+            User current = SecurityUtils.getCurrentUser();
+            if (current == null || current.getId() == null) {
+                return error("未登录或Token无效");
+            }
+
+            int result = courseBookingService.processMemberPayment(bookingId, paymentMethod, current.getId());
+            return result > 0 ? success(null) : error("支付处理失败");
         } catch (RuntimeException e) {
             return error(e.getMessage());
         } catch (Exception e) {

@@ -5,8 +5,10 @@ import type { LoginResult, UserInfo } from '@/api/auth'
 import { checkAndHandleRole } from '@/utils/roleCheck'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 export const useUserStore = defineStore('user', () => {
+  const { clearCurrentMember } = useCurrentMember()
   // 状态
   const token = ref<string>('')
   const refreshTokenValue = ref<string>('')
@@ -100,6 +102,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function logout() {
+    clearCurrentMember()
     token.value = ''
     refreshTokenValue.value = ''
     userInfo.value = null

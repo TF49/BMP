@@ -98,6 +98,15 @@ export function payCourseBooking(params) {
   })
 }
 
+// 普通用户支付本人课程预约
+export function payMemberCourseBooking(params) {
+  return request({
+    url: '/api/course/booking/member/payment',
+    method: 'post',
+    params
+  })
+}
+
 // 退款（与器材租借、场地预约一致）
 export function refundCourseBooking(params) {
   return request({

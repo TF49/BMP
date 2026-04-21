@@ -277,9 +277,6 @@
             <!-- 创建时为空；已支付的预约在这里只做查看，支付/修改仍通过“支付/退款”弹窗处理 -->
             <el-select v-model="form.paymentMethod" placeholder="创建后在支付弹窗中选择" disabled>
               <el-option label="余额支付" value="BALANCE" />
-              <el-option label="现金" value="CASH" />
-              <el-option label="支付宝" value="ALIPAY" />
-              <el-option label="微信" value="WECHAT" />
             </el-select>
           </el-form-item>
           <el-form-item label="备注" prop="remark" class="modern-form-item">
@@ -308,9 +305,7 @@
         </el-form-item>
         <el-form-item label="支付方式">
           <el-select v-model="payForm.method" placeholder="请选择">
-            <el-option label="余额" value="BALANCE" />
-            <el-option label="支付宝" value="ALIPAY" />
-            <el-option label="微信" value="WECHAT" />
+            <el-option label="余额支付" value="BALANCE" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -491,14 +486,14 @@ const getStatusType = (status) => {
 
 // 支付方式文案
 const getPaymentMethodText = (method) => {
-  const map = { BALANCE: '余额支付', CASH: '现金', WECHAT: '微信', ALIPAY: '支付宝' }
+  const map = { BALANCE: '余额支付' }
   return map[method] || method || '-'
 }
 
 // 支付方式标签颜色
 const getPaymentMethodType = (method) => {
-  // 区分不同支付方式的颜色：现金红色，余额灰色，微信绿色，支付宝蓝色
-  const map = { BALANCE: 'info', CASH: 'danger', WECHAT: 'success', ALIPAY: 'primary' }
+  // 业务订单统一使用余额支付标签
+  const map = { BALANCE: 'info' }
   return map[method] || 'info'
 }
 

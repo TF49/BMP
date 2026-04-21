@@ -128,7 +128,7 @@
                 <div class="record-amount">¥{{ formatCurrency(record.rechargeAmount) }}</div>
                 <div class="record-method">{{ methodText(record.rechargeMethod) }}</div>
               </div>
-              <div class="record-time">{{ formatDateTime(record.rechargeTime) }}</div>
+                <div class="record-time">{{ formatDateTime(record.rechargeTime || record.createTime) }}</div>
             </div>
           </div>
           <el-empty v-else description="暂无充值记录" :image-size="100" />
@@ -152,7 +152,11 @@
         :cell-style="tableCellStyle"
         style="width: 100%"
       >
-        <el-table-column prop="rechargeTime" label="时间" min-width="180" align="center" />
+        <el-table-column label="时间" min-width="180" align="center">
+          <template #default="scope">
+            {{ formatDateTime(scope.row.rechargeTime || scope.row.createTime) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="rechargeAmount" label="金额" min-width="120" align="center">
           <template #default="scope">
             <span class="price-text">¥{{ formatCurrency(scope.row.rechargeAmount) }}</span>
@@ -285,8 +289,9 @@ const selectPackage = (pkg) => {
 const loadMemberTotalRecharge = async () => {
   try {
     const res = await getCurrentMember()
-    if (res.code === 200 && res.data) {
-      memberTotalRecharge.value = res.data.totalRecharge != null ? Number(res.data.totalRecharge) : 0
+    const member = res?.data || null
+    if (res.code === 200 && member) {
+      memberTotalRecharge.value = member.totalRecharge != null ? Number(member.totalRecharge) : 0
     }
   } catch (e) {
     console.error('获取会员信息失败:', e)
@@ -344,7 +349,10 @@ const handleRecharge = async () => {
   
   submitting.value = true
   try {
-    const res = await userRecharge(form.value)
+    const res = await userRecharge({
+      amount: form.value.amount,
+      method: form.value.method
+    })
     if (res.code === 200) {
       ElMessage.success(res.data?.message || '充值成功！')
       form.value.amount = 200

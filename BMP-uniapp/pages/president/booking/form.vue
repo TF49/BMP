@@ -445,7 +445,7 @@ async function handleSubmit() {
     }
 
     uni.navigateTo({
-      url: `/pages/booking/confirm?data=${encodeURIComponent(JSON.stringify(bookingSummary))}&returnUrl=${encodeURIComponent(`${PRESIDENT_PAGES.VENUE_DETAIL}?id=${venueId.value}`)}`
+      url: `/pages/booking/confirm?bookingId=${encodeURIComponent(String(res?.id || bookingSummary.bookingId || ''))}&data=${encodeURIComponent(JSON.stringify(bookingSummary))}&returnUrl=${encodeURIComponent(`${PRESIDENT_PAGES.VENUE_DETAIL}?id=${venueId.value}`)}`
     })
   } catch (error: any) {
     uni.hideLoading()

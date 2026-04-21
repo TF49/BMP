@@ -236,7 +236,7 @@
     <!-- 支付对话框 -->
     <el-dialog
       v-model="paymentDialogVisible"
-      title="处理支付"
+      title="余额支付"
       width="500px"
       :close-on-click-modal="false"
       class="modern-dialog"
@@ -253,10 +253,7 @@
         </el-form-item>
         <el-form-item label="支付方式" required>
           <el-radio-group v-model="paymentForm.paymentMethod">
-            <el-radio label="CASH">现金</el-radio>
-            <el-radio label="ALIPAY">支付宝</el-radio>
-            <el-radio label="WECHAT">微信</el-radio>
-            <el-radio label="BALANCE">余额</el-radio>
+            <el-radio label="BALANCE">余额支付</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -366,7 +363,7 @@ const paymentForm = reactive({
   registrationNo: '',
   memberName: '',
   fee: 0,
-  paymentMethod: 'CASH'
+  paymentMethod: 'BALANCE'
 })
 const paymentLoading = ref(false)
 
@@ -679,14 +676,14 @@ const handlePayment = (row) => {
     registrationNo: row.registrationNo,
     memberName: row.memberName,
     fee: row.entryFee,
-    paymentMethod: 'CASH'
+    paymentMethod: 'BALANCE'
   })
   paymentDialogVisible.value = true
 }
 
 const handlePaymentSubmit = async () => {
   if (!paymentForm.paymentMethod) {
-    ElMessage.warning('请选择支付方式')
+    ElMessage.warning('请确认余额支付')
     return
   }
   paymentLoading.value = true

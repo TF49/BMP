@@ -48,6 +48,7 @@ export const API_PATHS = {
     DELETE: '/booking',
     STATUS: '/booking/status',
     PAYMENT: '/booking/payment',
+    MEMBER_PAYMENT: '/booking/member/payment',
     REFUND: '/booking/refund',
     COURTS: '/booking/courts',
     MEMBERS: '/booking/members',
@@ -112,6 +113,7 @@ export const API_PATHS = {
   // 会员相关
   MEMBER: {
     INFO: '/member/info',
+    CURRENT: '/member/current',
     CONSUME_RECORDS: '/member'
   },
   // 搜索相关

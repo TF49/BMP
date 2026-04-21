@@ -114,7 +114,7 @@ import {
 import { formatAmount, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { BOOKING_STATUS, PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
+import { BOOKING_STATUS, BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 
 type CourseBookingDetail = CourseBookingItem & {
   coachName?: string
@@ -188,19 +188,8 @@ async function openActions() {
     actions.push({
       label: '确认收款',
       handler: async () => {
-        const methods = [
-          PAYMENT_METHOD.CASH,
-          PAYMENT_METHOD.ALIPAY,
-          PAYMENT_METHOD.WECHAT,
-          PAYMENT_METHOD.BALANCE
-        ] as const
-        const result = await uni.showActionSheet({
-          itemList: methods.map((method) => PAYMENT_METHOD_TEXT[method])
-        })
-        const selectedMethod = methods[result.tapIndex]
-        if (!selectedMethod) return
-        await processCourseBookingPayment(detail.value!.id, selectedMethod)
-        uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+        await processCourseBookingPayment(detail.value!.id, BUSINESS_PAYMENT_METHOD)
+        uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
         await refreshDetail()
       }
     })

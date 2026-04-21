@@ -378,6 +378,7 @@ import { getCourtList, getTodayBookingCounts } from '@/api/court'
 import {
   getBookingList,
   addBooking,
+  payMemberBooking,
   updateBookingStatus,
   getBookingCount,
   getBookingCurrentOccupancy,
@@ -735,7 +736,31 @@ const loadMyBookings = async () => {
 }
 
 const handlePay = (booking) => {
-  router.push(`/user/recharge?pay=${booking.id}`)
+  ElMessageBox.confirm(
+    `确认使用余额支付该预约订单吗？\n订单金额：¥${formatCurrency(booking.orderAmount)}`,
+    '预约支付确认',
+    {
+      type: 'warning',
+      confirmButtonText: '确认支付',
+      cancelButtonText: '稍后支付'
+    }
+  ).then(async () => {
+    try {
+      const res = await payMemberBooking({
+        bookingId: booking.id,
+        paymentMethod: 'BALANCE'
+      })
+      if (res.code === 200) {
+        ElMessage.success('支付成功')
+        await loadMyBookings()
+      } else {
+        ElMessage.error(res.message || '支付失败')
+      }
+    } catch (e) {
+      console.error('预约支付失败:', e)
+      ElMessage.error(e.response?.data?.message || e.message || '支付失败，请稍后重试')
+    }
+  }).catch(() => {})
 }
 
 const handleCancel = async (booking) => {

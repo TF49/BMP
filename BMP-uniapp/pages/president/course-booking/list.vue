@@ -116,7 +116,7 @@ import {
 import { parsePagedList } from '@/utils/parsePagedList'
 import { formatDate, formatDateTime, formatTime } from '@/utils/format'
 import { getCourseBookingStatusMeta } from '@/utils/presidentStatus'
-import { BOOKING_STATUS, PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
+import { BOOKING_STATUS, BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 
 type BookingCard = {
   id: number
@@ -232,21 +232,9 @@ async function updateBookingStatusAction(item: BookingCard, status: number, titl
 }
 
 async function payBooking(item: BookingCard) {
-  const paymentMethods = [
-    PAYMENT_METHOD.CASH,
-    PAYMENT_METHOD.ALIPAY,
-    PAYMENT_METHOD.WECHAT,
-    PAYMENT_METHOD.BALANCE
-  ] as const
-  const res = await uni.showActionSheet({
-    itemList: paymentMethods.map((method) => PAYMENT_METHOD_TEXT[method])
-  })
-  const selectedMethod = paymentMethods[res.tapIndex]
-  if (!selectedMethod) return
-
   try {
-    await processCourseBookingPayment(item.id, selectedMethod)
-    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+    await processCourseBookingPayment(item.id, BUSINESS_PAYMENT_METHOD)
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
     reloadList()
   } catch (error) {
     console.error('Failed to process course booking payment:', error)

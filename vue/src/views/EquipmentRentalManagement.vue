@@ -367,7 +367,7 @@ const formRules = {
   memberId: [{ required: true, message: '请选择会员', trigger: 'change' }],
   timeRange: [{ required: true, message: '请选择时间', trigger: 'change' }],
   quantity: [{ required: true, message: '请输入数量', trigger: 'blur' }],
-  paymentMethod: [{ required: true, message: '请选择支付方式', trigger: 'change' }],
+  paymentMethod: [{ required: true, message: '请选择余额支付', trigger: 'change' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 const submitLoading = ref(false)
@@ -380,10 +380,7 @@ const statusOptions = [
 ]
 
 const paymentMethodOptions = [
-  { label: '余额支付', value: 'BALANCE' },
-  { label: '现金', value: 'CASH' },
-  { label: '微信', value: 'WECHAT' },
-  { label: '支付宝', value: 'ALIPAY' }
+  { label: '余额支付', value: 'BALANCE' }
 ]
 
 const paymentStatusOptions = [
@@ -411,13 +408,13 @@ const getStatusType = (status) => {
 }
 
 const getPaymentMethodText = (method) => {
-  const map = { BALANCE: '余额支付', CASH: '现金', WECHAT: '微信', ALIPAY: '支付宝' }
+  const map = { BALANCE: '余额支付' }
   return map[method] || method || '-'
 }
 
 const getPaymentMethodType = (method) => {
-  // 区分不同支付方式的颜色：现金红色，余额灰色，微信绿色，支付宝蓝色
-  const map = { BALANCE: 'info', CASH: 'danger', WECHAT: 'success', ALIPAY: 'primary' }
+  // 业务订单统一使用余额支付标签
+  const map = { BALANCE: 'info' }
   return map[method] || 'info'
 }
 
@@ -633,7 +630,7 @@ const openPay = (row) => {
   currentPay.value = row
   // 使用后端记录的租借金额作为支付金额
   payForm.amount = Number(row.rentalAmount) || 0
-  // 默认使用当前记录的支付方式，没有则默认余额
+  // 业务订单统一为余额支付，这里沿用当前值兜底
   payForm.method = row.paymentMethod || 'BALANCE'
   payDialogVisible.value = true
 }

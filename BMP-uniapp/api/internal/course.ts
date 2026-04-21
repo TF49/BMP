@@ -191,7 +191,7 @@ export function updateCourseBookingStatus(id: number, status: number) {
 
 export function processCourseBookingPayment(
   bookingId: number,
-  paymentMethod: 'CASH' | 'ALIPAY' | 'WECHAT' | 'BALANCE'
+  paymentMethod: 'BALANCE'
 ) {
   return request<null>({
     url: `/course/booking/payment?bookingId=${bookingId}&paymentMethod=${paymentMethod}`,

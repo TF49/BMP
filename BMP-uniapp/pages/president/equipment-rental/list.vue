@@ -102,7 +102,7 @@ import {
   updateEquipmentRentalStatus
 } from '@/api/president/equipment'
 import { formatDate } from '@/utils/format'
-import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
+import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 
 const stats = ref({
   totalRentals: 0,
@@ -280,21 +280,9 @@ async function updateRentalStatusAction(id: number, status: number, title: strin
 }
 
 async function payRental(row: EquipmentRentalItem) {
-  const paymentMethods = [
-    PAYMENT_METHOD.CASH,
-    PAYMENT_METHOD.ALIPAY,
-    PAYMENT_METHOD.WECHAT,
-    PAYMENT_METHOD.BALANCE
-  ] as const
-  const result = await uni.showActionSheet({
-    itemList: paymentMethods.map((method) => PAYMENT_METHOD_TEXT[method])
-  })
-  const selectedMethod = paymentMethods[result.tapIndex]
-  if (!selectedMethod) return
-
   try {
-    await processEquipmentRentalPayment(row.id, selectedMethod)
-    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+    await processEquipmentRentalPayment(row.id, BUSINESS_PAYMENT_METHOD)
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
     page.value = 1
     await Promise.all([loadStatistics(), loadList(false)])
   } catch (error) {

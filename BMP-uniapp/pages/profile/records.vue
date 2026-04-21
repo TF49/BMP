@@ -115,6 +115,7 @@ import { useUserStore } from '@/store/modules/user'
 import { getMemberConsumeRecords, type ConsumeRecord } from '@/api/member'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 type BusinessFilter = '' | 'BOOKING' | 'COURSE' | 'EQUIPMENT' | 'REFUND'
 
@@ -137,6 +138,7 @@ type TransactionCard = {
 }
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 56)
@@ -326,9 +328,8 @@ const summaryItems = computed(() => {
 const hasMore = computed(() => records.value.length < total.value)
 
 async function resolveMemberId() {
-  const memberId = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || 0)
-  if (memberId > 0) return memberId
-  return Number(userStore.userId || 0)
+  const member = await fetchCurrentMember()
+  return Number(member.id || 0)
 }
 
 async function fetchRecords(reset = false) {

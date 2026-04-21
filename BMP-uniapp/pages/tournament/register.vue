@@ -176,6 +176,7 @@ import { createTournamentRegistration, getTournamentDetail, type TournamentItem 
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 type CategoryOption = {
   label: string
@@ -191,6 +192,7 @@ type TournamentRegisterVm = {
 }
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 56)
@@ -333,9 +335,10 @@ async function handleSubmit() {
   try {
     isSubmitting.value = true
     uni.showLoading({ title: '报名中...' })
+    const member = await fetchCurrentMember()
 
     await createTournamentRegistration({
-      memberId: Number(userStore.userId || 0),
+      memberId: Number(member.id || 0),
       tournamentId: detail.value.id,
       name: form.value.name.trim(),
       phone: resolvePhone(),

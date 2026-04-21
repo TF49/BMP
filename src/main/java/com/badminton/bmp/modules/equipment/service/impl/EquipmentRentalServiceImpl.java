@@ -682,6 +682,10 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processPayment(Long rentalId, String paymentMethod) {
+        if (!"BALANCE".equals(paymentMethod)) {
+            throw new RuntimeException("业务订单仅支持余额支付");
+        }
+
         // 查询租借记录
         EquipmentRental rental = equipmentRentalMapper.findById(rentalId);
         if (rental == null) {
@@ -719,17 +723,14 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             throw new RuntimeException(msg);
         }
 
-        // 如果使用余额支付，调用消费记录服务
-        if ("BALANCE".equals(paymentMethod)) {
-            memberConsumeRecordService.createConsumeRecord(
-                rental.getMemberId(),
-                rental.getRentalAmount(),
-                "EQUIPMENT",
-                rentalId,
-                paymentMethod,
-                "器材租借支付：" + rental.getRentalNo()
-            );
-        }
+        memberConsumeRecordService.createConsumeRecord(
+            rental.getMemberId(),
+            rental.getRentalAmount(),
+            "EQUIPMENT",
+            rentalId,
+            paymentMethod,
+            "器材租借支付：" + rental.getRentalNo()
+        );
 
         // 获取场馆ID用于财务记录
         Equipment equipmentForFinance = equipmentMapper.findById(rental.getEquipmentId());

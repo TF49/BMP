@@ -149,8 +149,10 @@ import { useUserStore } from '@/store/modules/user'
 import { createEquipmentRental, getEquipmentDetail, type EquipmentItem } from '@/api/equipment'
 import { safeNavigateBack } from '@/utils/navigation'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const equipmentId = ref(0)
 const equipment = ref<EquipmentItem>({
@@ -329,8 +331,9 @@ async function handleSubmit() {
   }
 
   const rentalAmountNum = baseRent.value + platformFee.value
+  const member = await fetchCurrentMember()
   const payload = {
-    memberId: userStore.userId,
+    memberId: member.id,
     equipmentId: equipment.value.id,
     quantity: rentQuantity.value,
     rentalDate: startDate.value,

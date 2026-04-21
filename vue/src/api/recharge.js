@@ -2,19 +2,35 @@ import request from '@/utils/request'
 
 // 用户自己充值
 export function userRecharge(data) {
+  const payload = {
+    ...data,
+    amount: data?.amount,
+    method: data?.method,
+    paymentMethod: data?.paymentMethod || data?.method,
+    rechargeAmount: data?.rechargeAmount ?? data?.amount,
+    rechargeMethod: data?.rechargeMethod || data?.method
+  }
   return request({
     url: '/api/recharge/user',
     method: 'post',
-    data
+    data: payload
   })
 }
 
 // 管理员为会员充值
 export function adminRecharge(data) {
+  const payload = {
+    ...data,
+    amount: data?.amount,
+    method: data?.method,
+    paymentMethod: data?.paymentMethod || data?.method,
+    rechargeAmount: data?.rechargeAmount ?? data?.amount,
+    rechargeMethod: data?.rechargeMethod || data?.method
+  }
   return request({
     url: '/api/recharge/admin',
     method: 'post',
-    data
+    data: payload
   })
 }
 

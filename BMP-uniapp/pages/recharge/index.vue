@@ -142,13 +142,15 @@
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { createRechargeOrder } from '@/api/recharge'
-import { getMemberInfo, type MemberInfo } from '@/api/member'
+import type { MemberInfo } from '@/api/member'
 import { useUserStore } from '@/store/modules/user'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getAvatarImage } from '@/utils/displayImage'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 56)
@@ -166,7 +168,7 @@ const selectedPay = ref(0)
 const payMethods = [
   { code: 'WECHAT' as const, title: '微信支付', sub: '微信支付', icon: 'weixin', iconBg: 'green', iconColor: '#16a34a' },
   { code: 'ALIPAY' as const, title: '支付宝', sub: '支付宝', icon: 'compose', iconBg: 'blue', iconColor: '#2563eb' },
-  { code: 'BANKCARD' as const, title: '银行卡', sub: '银行卡支付', icon: 'wallet', iconBg: 'slate', iconColor: '#475569' }
+  { code: 'BANK' as const, title: '银行卡', sub: '银行卡支付', icon: 'wallet', iconBg: 'slate', iconColor: '#475569' }
 ]
 
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
@@ -179,12 +181,6 @@ const totalAmount = computed(() => {
   }
   return presetAmounts[selectedPreset.value] ?? 0
 })
-
-function resolveMemberId() {
-  const stored = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || 0)
-  if (stored > 0) return stored
-  return Number(userStore.userId || 0)
-}
 
 function isPresetActive(idx: number) {
   return !useCustom.value && selectedPreset.value === idx
@@ -210,15 +206,9 @@ function formatMoney(v: number) {
 }
 
 async function loadMember() {
-  const memberId = resolveMemberId()
-  if (!memberId) {
-    loading.value = false
-    member.value = null
-    return
-  }
   loading.value = true
   try {
-    member.value = await getMemberInfo(memberId)
+    member.value = await fetchCurrentMember(true)
   } catch (error) {
     console.error('加载会员信息失败:', error)
     member.value = null
@@ -248,6 +238,7 @@ async function onConfirm() {
     await createRechargeOrder({
       memberId: member.value.id,
       amount: totalAmount.value,
+      method: payMethods[selectedPay.value].code,
       paymentMethod: payMethods[selectedPay.value].code,
       orderType: 'RECHARGE'
     })

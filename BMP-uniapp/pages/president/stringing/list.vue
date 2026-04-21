@@ -204,7 +204,7 @@ import {
   type StringingService
 } from '@/api/president/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
-import { PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
+import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 type JobStatus = 'in_progress' | 'pending' | 'ready' | 'cancelled'
@@ -412,21 +412,9 @@ async function refundJob(job: Job) {
 }
 
 async function payForJob(job: Job) {
-  const paymentMethods = [
-    PAYMENT_METHOD.CASH,
-    PAYMENT_METHOD.ALIPAY,
-    PAYMENT_METHOD.WECHAT,
-    PAYMENT_METHOD.BALANCE
-  ] as const
-  const result = await uni.showActionSheet({
-    itemList: paymentMethods.map((method) => PAYMENT_METHOD_TEXT[method])
-  })
-  const selectedMethod = paymentMethods[result.tapIndex]
-  if (!selectedMethod) return
-
   try {
-    await processStringingPayment(job.id, selectedMethod)
-    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[selectedMethod]}收款成功`, icon: 'success' })
+    await processStringingPayment(job.id, BUSINESS_PAYMENT_METHOD)
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
     await loadRecords()
   } catch (error) {
     console.error('Failed to process stringing payment:', error)

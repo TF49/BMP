@@ -170,6 +170,15 @@ export function payBooking(params) {
   })
 }
 
+// 普通用户支付本人预约
+export function payMemberBooking(params) {
+  return request({
+    url: '/api/booking/member/payment',
+    method: 'post',
+    params
+  })
+}
+
 // 退款
 export function refundBooking(params) {
   return request({

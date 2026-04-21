@@ -58,7 +58,7 @@ export interface StringingListParams {
 }
 
 export type StringingMethod = 'TWO_SECTION' | 'FOUR_SECTION' | 'AUTO'
-export type StringingPaymentMethod = 'CASH' | 'ALIPAY' | 'WECHAT' | 'BALANCE'
+export type StringingPaymentMethod = 'BALANCE'
 
 /**
  * 线材信息（带显示名称）
