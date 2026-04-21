@@ -26,12 +26,12 @@
 
 - 列表页、首页、部分详情页和流程页，已经明显进入 Stitch 风格
 - 一些页面已经使用橙色品牌体系，但结构仍带有旧页面痕迹，属于半 Stitch
-- 目前主要剩余的旧风格页面集中在设置、资料、搜索和少量功能页
+- 目前主要剩余的旧风格页面集中在设置子页和少量功能页
 
 最大的结构性问题不是单页不好看，而是：
 
 - 多条核心业务链路已经完成 Stitch 化
-- 但用户中心、搜索、场馆细分流程仍存在旧版页面
+- 但设置子页、场馆细分流程仍存在旧版页面
 - 风格断层已经从“主链路断层”收敛为“外围功能断层”
 
 ---
@@ -57,12 +57,15 @@
 | 穿线预约 | `pages/stringing/create.vue` | 已是 Stitch | 分步骤卡片、品牌化预约流、橙色大按钮、信息架构成熟 |
 | 穿线列表 | `pages/stringing/list.vue` | 已是 Stitch | 复用会长端穿线列表骨架：搜索卡、摘要统计、状态胶囊和工单卡片结构已迁移为用户端可读版本 |
 | 穿线详情 | `pages/stringing/detail.vue` | 已是 Stitch | 复用会长端穿线详情骨架：状态 hero、分区字段卡、底部动作区已改造成用户端查看/取消/再次预约流程 |
+| 穿线查询 | `pages/stringing/query.vue` | 已是 Stitch | 已重构为品牌化查询页：品牌 hero、工单编号输入、扫码识别、结果摘要卡与详情分区已统一为 Stitch 风格 |
 | 充值中心 | `pages/recharge/index.vue` | 已是 Stitch | 复用会长端充值页骨架：会员身份卡、金额网格、支付方式卡、底部确认栏已迁移为用户端自助充值流程 |
 | 充值记录 | `pages/recharge/records.vue` | 已是 Stitch | 品牌色总览卡、强卡片分组、记录样式统一、视觉节奏现代 |
 | 消费记录 | `pages/profile/records.vue` | 已是 Stitch | 已按账单原型重做：橙色顶栏、账单周期卡、三类消费统计、退款双金额样式、历史记录按钮，和钱包链路视觉统一 |
 | 安全设置 | `pages/settings/security.vue` | 已是 Stitch | 复用会长端修改密码页与安全卡片语言：安全等级 hero、账户安全卡、高级安全开关与登录记录分组已统一为 Stitch 风格 |
 | 设置中心 | `pages/settings/index.vue` | 已是 Stitch | 已按用户端设置中心重构：品牌顶栏、橙色身份 hero、分组设置卡、偏好区与退出登录区已统一为 Stitch 风格 |
 | 账户设置 | `pages/settings/account.vue` | 已是 Stitch | 已按用户端独立逻辑重构：品牌顶栏、账户 hero、身份资料双列表单、手机号入口与安全入口区已统一为 Stitch 风格，并保留用户端资料保存逻辑 |
+| 搜索首页 | `pages/search/index.vue` | 已是 Stitch | 已重构为品牌化搜索入口：`KINETIC LOGIC` 顶部品牌区、搜索 hero、热门搜索、搜索历史与建议流已统一为 Stitch 语言 |
+| 搜索结果 | `pages/search/result.vue` | 已是 Stitch | 已重构为品牌化搜索结果页：品牌头部、关键词摘要、分类胶囊切换、场馆/课程/赛事卡片与加载状态已统一为 Stitch 风格 |
 | 我的 | `pages/profile/index.vue` | 已是 Stitch | 已按用户端独立逻辑重构：品牌 hero、账户统计条、会员入口、常用功能宫格与账户记录分组列表已统一为 Stitch 风格 |
 | 个人信息 | `pages/profile/info.vue` | 已是 Stitch | 已按用户资料编辑页重构：品牌头图、资料卡片网格、账号安全快捷入口与底部保存按钮已统一为 Stitch 风格 |
 | 会员信息 | `pages/profile/member.vue` | 已是 Stitch | 已升级为品牌化会员中心：会员身份卡、权益分组、成长信息与操作区已统一到新版 Stitch 风格 |
@@ -103,7 +106,7 @@
 
 这一类页面仍以旧业务页结构为主，虽然个别地方已经换成了橙色或引入局部卡片样式，但整体并不属于 Stitch 风格。
 
-### 1. 设置 / 搜索 / 资料模块
+### 1. 设置 / 资料模块
 
 | 页面 | 路径 | 分类判断 | 原因 |
 | --- | --- | --- | --- |
@@ -111,14 +114,6 @@
 | 隐私设置 | `pages/settings/privacy.vue` | 非 Stitch | 旧设置页样式 |
 | 关于我们 | `pages/settings/about.vue` | 非 Stitch | 旧信息展示页样式 |
 | 帮助 / FAQ / 反馈等设置子页 | `pages/settings/*` | 非 Stitch | 大部分仍属旧业务页体系 |
-| 搜索首页 | `pages/search/index.vue` | 非 Stitch | 搜索结构传统，绿色图标与旧业务页气质明显 |
-| 搜索结果 | `pages/search/result.vue` | 非 Stitch | 结果列表仍未纳入 Stitch 体系 |
-
-### 2. 穿线模块
-
-| 页面 | 路径 | 分类判断 | 原因 |
-| --- | --- | --- | --- |
-| 穿线查询 | `pages/stringing/query.vue` | 非 Stitch | 偏旧式功能页 |
 
 ---
 
@@ -162,8 +157,9 @@
 - `Stitch`：`pages/stringing/create.vue`
 - `Stitch`：`pages/stringing/list.vue`
 - `Stitch`：`pages/stringing/detail.vue`
+- `Stitch`：`pages/stringing/query.vue`
 
-结论：穿线模块已补齐到“预约页 + 列表页 + 详情页”主链路一致的新体系，当前主要剩余缺口转为查询页。
+结论：穿线模块已补齐到“预约页 + 查询页 + 列表页 + 详情页”一致的新体系，当前这条链路已完成 Stitch 化。
 
 ---
 
@@ -177,7 +173,7 @@
 2. `pages/venue/booking.vue`
 3. `pages/profile/member.vue`
 4. `pages/notice/index.vue`
-5. `pages/search/index.vue`
+5. `pages/settings/notification.vue`
 
 原因：
 
@@ -192,26 +188,26 @@
 2. `pages/settings/privacy.vue`
 3. `pages/settings/about.vue`
 4. `pages/settings/help.vue`
-5. `pages/search/result.vue`
+5. `pages/settings/feedback.vue`
 
 原因：
 
 - 用户中心是高频使用区域
 - 当前既有新版橙色风，也残留多张旧式设置子页，需要统一成同一套安全感、留白和卡片语言
 
-### 第三优先级：补齐搜索和穿线模块
+### 第三优先级：补齐设置尾页与场馆细节页
 
 建议处理：
 
-1. `pages/search/index.vue`
-2. `pages/search/result.vue`
-3. `pages/stringing/query.vue`
-4. `pages/settings/privacy.vue`
-5. `pages/settings/about.vue`
+1. `pages/settings/privacy.vue`
+2. `pages/settings/about.vue`
+3. `pages/settings/notification.vue`
+4. `pages/settings/help.vue`
+5. `pages/settings/feedback.vue`
 
 原因：
 
-- 这些页面要么仍不属于 Stitch 体系，要么虽然半 Stitch，但和新版页面相比还缺少统一的产品化骨架
+- 这些页面仍不属于 Stitch 体系，和新版页面相比还缺少统一的产品化骨架
 - 完成这一批后，用户端视觉体系会从“主链路完成”进一步升级为“日常高频区域基本统一”
 
 ---
@@ -315,4 +311,4 @@
 
 ## 八、一句话结论
 
-当前 `BMP-uniapp` 用户端已经完成多条核心业务链路的 Stitch 化，课程、赛事、器材、充值、穿线主链路都已有新版页面承接，且我的页、账户设置、会员页、通知中心、设置中心与个人资料页都已进入新版体系；接下来最值得继续推进的是搜索页、设置子页与穿线查询页，把 Stitch 风格从核心交易流程继续扩展到用户端日常高频区域。
+当前 `BMP-uniapp` 用户端已经完成多条核心业务链路的 Stitch 化，课程、赛事、器材、充值、穿线主链路都已有新版页面承接，搜索首页、搜索结果页与穿线查询页也已进入新版体系；接下来最值得继续推进的是设置子页与场馆链路补强，把 Stitch 风格从核心交易流程继续扩展到用户端日常高频区域。

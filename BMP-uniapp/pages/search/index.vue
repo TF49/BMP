@@ -1,562 +1,598 @@
 <template>
-  <MobileLayout :showTabBar="false">
-    <!-- Search Header -->
-    <view class="search-header">
-      <view class="search-container">
-        <uni-icons type="search" size="18" color="#475569" class="search-icon"></uni-icons>
-        <input 
-          class="search-input" 
-          type="text" 
-          v-model="searchKeyword"
-          :placeholder="placeholderText"
-          @confirm="handleSearch"
-          @input="handleInput"
-          :focus="true"
-        />
-        <view v-if="searchKeyword" class="clear-icon" @click="clearSearch">
-          <uni-icons type="clear" size="16" color="#475569"></uni-icons>
+  <MobileLayout :showTabBar="false" className="search-shell">
+    <view class="search-page">
+      <view class="hero-panel">
+        <view class="hero-top">
+          <view class="hero-brand" @click="handleCancel">
+            <uni-icons type="left" size="18" color="#a33e00"></uni-icons>
+            <text class="hero-brand-text">KINETIC LOGIC</text>
+          </view>
+          <text class="hero-aside">SEARCH LAB</text>
         </view>
-      </view>
-      <text class="cancel-btn" @click="handleCancel">取消</text>
-    </view>
 
-    <!-- Search Suggestions -->
-    <scroll-view v-if="showSuggestions && suggestions.length > 0" class="suggestions-container" scroll-y>
-      <view class="suggestion-item" v-for="(suggestion, index) in suggestions" :key="index" @click="selectSuggestion(suggestion)">
-        <uni-icons type="search" size="16" color="#475569" class="suggestion-icon"></uni-icons>
-        <text class="suggestion-text">{{ suggestion }}</text>
-      </view>
-    </scroll-view>
-
-    <!-- Search History -->
-    <view v-else-if="showHistory && searchHistory.length > 0" class="history-container">
-      <view class="history-header">
-        <text class="history-title">搜索历史</text>
-        <text class="clear-history" @click="clearHistory">清空</text>
-      </view>
-      <view class="history-list">
-        <view 
-          v-for="(history, index) in searchHistory" 
-          :key="index"
-          class="history-item"
-          @click="selectHistory(history)"
-        >
-          <uni-icons type="calendar" size="16" color="#475569" class="history-icon"></uni-icons>
-          <text class="history-text">{{ history }}</text>
+        <view class="hero-copy">
+          <text class="hero-eyebrow">DISCOVER THE NEXT SESSION</text>
+          <text class="hero-title">搜索你想去的场馆、课程和赛事</text>
+          <text class="hero-subtitle">把高频入口统一成新的 Stitch 风格，先从搜索开始。</text>
         </view>
-      </view>
-    </view>
 
-    <!-- Hot Searches -->
-    <view v-else-if="showHotSearches && hotSearches.length > 0" class="hot-searches-container">
-      <text class="hot-title">热门搜索</text>
-      <view class="hot-list">
-        <view 
-          v-for="(hot, index) in hotSearches" 
-          :key="index"
-          class="hot-item"
-          @click="selectHotSearch(hot)"
-        >
-          {{ hot }}
-        </view>
-      </view>
-    </view>
+        <view class="search-card">
+          <view class="search-input-wrap">
+            <uni-icons type="search" size="18" color="#94a3b8" class="search-icon"></uni-icons>
+            <input
+              v-model="searchKeyword"
+              class="search-input"
+              type="text"
+              :placeholder="placeholderText"
+              confirm-type="search"
+              :focus="true"
+              @confirm="handleSearch"
+            />
+            <view v-if="searchKeyword" class="clear-icon" @click="clearSearch">
+              <uni-icons type="clear" size="16" color="#64748b"></uni-icons>
+            </view>
+          </view>
 
-    <!-- Search Results -->
-    <scroll-view v-else-if="searchResults.length > 0" class="results-container" scroll-y>
-      <view class="results-header">
-        <text class="results-count">找到 {{ searchResults.length }} 条结果</text>
-      </view>
-      
-      <!-- Venues -->
-      <view v-if="venueResults.length > 0">
-        <text class="result-category">场地</text>
-        <view 
-          v-for="(venue, index) in venueResults" 
-          :key="'venue-' + index"
-          class="result-item"
-          @click="goToVenueDetail(venue)"
-        >
-          <view class="result-icon"><uni-icons type="location" size="24" color="#3cc51f"></uni-icons></view>
-          <view class="result-content">
-            <text class="result-title">{{ venue.name }}</text>
-            <text class="result-subtitle">{{ venue.location }} • ¥{{ venue.price }}/小时</text>
+          <view class="quick-actions">
+            <view class="quick-action" @click="searchFromPreset('奥体中心')">
+              <text class="quick-action-label">VENUE</text>
+              <text class="quick-action-text">奥体中心</text>
+            </view>
+            <view class="quick-action" @click="searchFromPreset('羽毛球培训')">
+              <text class="quick-action-label">COURSE</text>
+              <text class="quick-action-text">羽毛球培训</text>
+            </view>
+            <view class="quick-action" @click="searchFromPreset('周末比赛')">
+              <text class="quick-action-label">EVENT</text>
+              <text class="quick-action-text">周末比赛</text>
+            </view>
+          </view>
+
+          <view class="search-submit" @click="handleSearch">
+            <text class="search-submit-text">开始搜索</text>
+            <uni-icons type="right" size="16" color="#ffffff"></uni-icons>
           </view>
         </view>
       </view>
 
-      <!-- Courses -->
-      <view v-if="courseResults.length > 0">
-        <text class="result-category">课程</text>
-        <view 
-          v-for="(course, index) in courseResults" 
-          :key="'course-' + index"
-          class="result-item"
-          @click="goToCourseDetail(course)"
-        >
-          <view class="result-icon"><uni-icons type="compose" size="24" color="#3cc51f"></uni-icons></view>
-          <view class="result-content">
-            <text class="result-title">{{ course.name }}</text>
-            <text class="result-subtitle">教练: {{ course.coachName }} • ¥{{ course.price }}/课时</text>
+      <view class="content-section">
+        <view v-if="showSuggestions && suggestions.length > 0" class="content-card">
+          <view class="section-head">
+            <text class="section-title">搜索建议</text>
+            <text class="section-tag">LIVE MATCHES</text>
+          </view>
+          <view class="chip-list">
+            <view
+              v-for="(suggestion, index) in suggestions"
+              :key="index"
+              class="suggestion-chip"
+              @click="selectSuggestion(suggestion)"
+            >
+              <uni-icons type="search" size="14" color="#ea580c"></uni-icons>
+              <text class="chip-text">{{ suggestion }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view v-else class="content-grid">
+          <view class="content-card">
+            <view class="section-head">
+              <text class="section-title">热门搜索</text>
+              <text class="section-tag">TRENDING</text>
+            </view>
+            <view class="hot-grid">
+              <view
+                v-for="(hot, index) in hotSearches"
+                :key="index"
+                class="hot-card"
+                @click="selectHotSearch(hot)"
+              >
+                <text class="hot-rank">0{{ index + 1 }}</text>
+                <text class="hot-text">{{ hot }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="content-card">
+            <view class="section-head">
+              <text class="section-title">搜索历史</text>
+              <text v-if="searchHistory.length > 0" class="section-action" @click="clearHistory">清空</text>
+            </view>
+
+            <view v-if="searchHistory.length > 0" class="history-list">
+              <view
+                v-for="(history, index) in searchHistory"
+                :key="index"
+                class="history-row"
+                @click="selectHistory(history)"
+              >
+                <view class="history-icon-wrap">
+                  <uni-icons type="reload" size="15" color="#a33e00"></uni-icons>
+                </view>
+                <text class="history-text">{{ history }}</text>
+                <uni-icons type="right" size="14" color="#94a3b8"></uni-icons>
+              </view>
+            </view>
+
+            <view v-else class="empty-card">
+              <text class="empty-title">还没有搜索历史</text>
+              <text class="empty-subtitle">开始搜索后，这里会保留你的高频访问记录。</text>
+            </view>
           </view>
         </view>
       </view>
-
-      <!-- Tournaments -->
-      <view v-if="tournamentResults.length > 0">
-        <text class="result-category">赛事</text>
-        <view 
-          v-for="(tournament, index) in tournamentResults" 
-          :key="'tournament-' + index"
-          class="result-item"
-          @click="goToTournamentDetail(tournament)"
-        >
-          <view class="result-icon"><uni-icons type="medal" size="24" color="#3cc51f"></uni-icons></view>
-          <view class="result-content">
-            <text class="result-title">{{ tournament.name }}</text>
-            <text class="result-subtitle">{{ tournament.date }} • 报名费 ¥{{ tournament.fee }}</text>
-          </view>
-        </view>
-      </view>
-    </scroll-view>
-
-    <!-- Empty State -->
-    <view v-else-if="searchKeyword && searchResults.length === 0" class="empty-state">
-      <text class="empty-text">没有找到相关结果</text>
     </view>
   </MobileLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import MobileLayout from '@/components/MobileLayout.vue'
-import { searchVenues, searchCourses, searchTournaments, getSearchSuggestions } from '@/api/search'
+import { getSearchSuggestions } from '@/api/search'
 import { debounce } from '@/utils/debounce'
 import { safeNavigateBack } from '@/utils/navigation'
 
-// 响应式数据
+const SEARCH_HISTORY_KEY = 'search_history'
+
 const searchKeyword = ref('')
 const searchHistory = ref<string[]>([])
-const hotSearches = ref(['奥体中心', '羽毛球培训', '青少年训练营', '周末比赛'])
+const hotSearches = ref(['奥体中心', '羽毛球培训', '青少年训练营', '周末比赛', '场地包场', '器材租借'])
 const suggestions = ref<string[]>([])
-const searchResults = ref<any[]>([])
 const showSuggestions = ref(false)
-const showHistory = ref(true)
-const showHotSearches = ref(true)
 
-// 计算属性
-const placeholderText = computed(() => {
-  return '搜索场馆、教练、课程或赛事...'
-})
+const placeholderText = computed(() => '搜索场馆、教练、课程或赛事...')
 
-const venueResults = computed(() => {
-  return searchResults.value.filter(item => item.type === 'venue')
-})
-
-const courseResults = computed(() => {
-  return searchResults.value.filter(item => item.type === 'course')
-})
-
-const tournamentResults = computed(() => {
-  return searchResults.value.filter(item => item.type === 'tournament')
-})
-
-// 监听搜索关键词变化
-watch(searchKeyword, (newVal) => {
-  if (newVal.trim()) {
-    showSuggestions.value = true
-    showHistory.value = false
-    showHotSearches.value = false
-    // 模拟获取搜索建议
-    getSuggestions(newVal)
-  } else {
-    showSuggestions.value = false
-    showHistory.value = true
-    showHotSearches.value = true
+watch(searchKeyword, (newValue) => {
+  const keyword = newValue.trim()
+  if (!keyword) {
     suggestions.value = []
+    showSuggestions.value = false
+    return
   }
+
+  showSuggestions.value = true
+  fetchSuggestions(keyword)
 })
 
-// 获取搜索建议（防抖处理）
 const fetchSuggestions = debounce(async (keyword: string) => {
-  if (!keyword || keyword.length < 1) {
+  if (!keyword) {
     suggestions.value = []
     return
   }
-  
+
   try {
     const result = await getSearchSuggestions({ keyword })
-    if (result && Array.isArray(result)) {
-      suggestions.value = result
-    } else {
-      suggestions.value = []
-    }
+    suggestions.value = Array.isArray(result) ? result.slice(0, 8) : []
   } catch (error) {
     console.error('获取搜索建议失败:', error)
     suggestions.value = []
   }
-}, 500)
+}, 300)
 
-const getSuggestions = (keyword: string) => {
-  fetchSuggestions(keyword)
+function persistHistory() {
+  uni.setStorageSync(SEARCH_HISTORY_KEY, searchHistory.value)
 }
 
-// 处理搜索
-const handleSearch = async () => {
-  if (!searchKeyword.value.trim()) return
+function addToHistory(keyword: string) {
+  const normalized = keyword.trim()
+  if (!normalized) return
 
-  // 添加到搜索历史
-  addToHistory(searchKeyword.value.trim())
+  searchHistory.value = [
+    normalized,
+    ...searchHistory.value.filter(item => item !== normalized)
+  ].slice(0, 8)
 
-  try {
-    uni.showLoading({
-      title: '搜索中...'
-    })
+  persistHistory()
+}
 
-    // 并行搜索所有类型
-    const [venues, courses, tournaments] = await Promise.all([
-      searchVenues({ keyword: searchKeyword.value }),
-      searchCourses({ keyword: searchKeyword.value }),
-      searchTournaments({ keyword: searchKeyword.value })
-    ])
+function navigateToResult(keyword: string) {
+  uni.navigateTo({
+    url: `/pages/search/result?keyword=${encodeURIComponent(keyword)}`
+  })
+}
 
-    // 合并结果并添加类型标识
-    const results = [
-      ...venues.data.map((v: any) => ({ ...v, type: 'venue' })),
-      ...courses.data.map((c: any) => ({ ...c, type: 'course' })),
-      ...tournaments.data.map((t: any) => ({ ...t, type: 'tournament' }))
-    ]
-
-    searchResults.value = results
-    showSuggestions.value = false
-    showHistory.value = false
-    showHotSearches.value = false
-  } catch (error) {
-    console.error('搜索失败:', error)
+function handleSearch() {
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) {
     uni.showToast({
-      title: '搜索失败',
+      title: '请输入搜索内容',
       icon: 'none'
     })
-  } finally {
-    uni.hideLoading()
+    return
   }
+
+  addToHistory(keyword)
+  showSuggestions.value = false
+  navigateToResult(keyword)
 }
 
-// 处理输入
-const handleInput = (e: any) => {
-  searchKeyword.value = e.target.value
-}
-
-// 清空搜索
-const clearSearch = () => {
+function clearSearch() {
   searchKeyword.value = ''
   suggestions.value = []
-  searchResults.value = []
   showSuggestions.value = false
-  showHistory.value = true
-  showHotSearches.value = true
 }
 
-// 选择搜索建议
-const selectSuggestion = (suggestion: string) => {
+function selectSuggestion(suggestion: string) {
   searchKeyword.value = suggestion
   handleSearch()
 }
 
-// 选择搜索历史
-const selectHistory = (history: string) => {
+function selectHistory(history: string) {
   searchKeyword.value = history
   handleSearch()
 }
 
-// 选择热门搜索
-const selectHotSearch = (hot: string) => {
+function selectHotSearch(hot: string) {
   searchKeyword.value = hot
   handleSearch()
 }
 
-// 添加到搜索历史
-const addToHistory = (keyword: string) => {
-  if (!searchHistory.value.includes(keyword)) {
-    searchHistory.value.unshift(keyword)
-    // 限制历史记录数量
-    if (searchHistory.value.length > 10) {
-      searchHistory.value.pop()
-    }
-    // 保存到本地存储
-    uni.setStorageSync('search_history', searchHistory.value)
-  }
+function searchFromPreset(keyword: string) {
+  searchKeyword.value = keyword
+  handleSearch()
 }
 
-// 清空历史记录
-const clearHistory = () => {
+function clearHistory() {
   uni.showModal({
     title: '确认清空',
     content: '确定要清空搜索历史吗？',
     success: (res) => {
-      if (res.confirm) {
-        searchHistory.value = []
-        uni.removeStorageSync('search_history')
-      }
+      if (!res.confirm) return
+      searchHistory.value = []
+      uni.removeStorageSync(SEARCH_HISTORY_KEY)
     }
   })
 }
 
-// 跳转到场馆详情
-const goToVenueDetail = (venue: any) => {
-  uni.navigateTo({
-    url: `/pages/venue/detail?id=${venue.id}`
-  })
-}
-
-// 跳转到课程详情
-const goToCourseDetail = (course: any) => {
-  uni.navigateTo({
-    url: `/pages/course/detail?id=${course.id}`
-  })
-}
-
-// 跳转到赛事详情
-const goToTournamentDetail = (tournament: any) => {
-  uni.navigateTo({
-    url: `/pages/tournament/detail?id=${tournament.id}`
-  })
-}
-
-// 取消搜索
-const handleCancel = () => {
+function handleCancel() {
   safeNavigateBack()
 }
 
-// 页面加载时获取历史记录
-// 注意：在setup中无法直接使用onLoad，这里简单获取历史记录
 try {
-  const history = uni.getStorageSync('search_history') || []
-  searchHistory.value = history
+  const history = uni.getStorageSync(SEARCH_HISTORY_KEY)
+  searchHistory.value = Array.isArray(history) ? history : []
 } catch (error) {
   console.error('获取搜索历史失败:', error)
 }
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.search-header {
-  display: flex;
-  align-items: center;
-  padding: 20rpx 28rpx;
-  background-color: #ffffff;
-  border-bottom: 1rpx solid #e6e6e6;
+.search-shell {
+  background:
+    radial-gradient(circle at top left, rgba(255, 174, 111, 0.32), transparent 30%),
+    radial-gradient(circle at top right, rgba(251, 146, 60, 0.18), transparent 22%),
+    linear-gradient(180deg, #fff7ed 0%, #f8fafc 34%, #eef2ff 100%);
 }
 
-.search-container {
-  flex: 1;
+.search-page {
+  min-height: 100vh;
+  padding: 32rpx 24rpx 48rpx;
+  box-sizing: border-box;
+}
+
+.hero-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 40rpx;
+  padding: 32rpx;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 247, 237, 0.98)),
+    #ffffff;
+  box-shadow: 0 28rpx 70rpx rgba(161, 98, 7, 0.12);
+}
+
+.hero-panel::before {
+  content: '';
+  position: absolute;
+  right: -80rpx;
+  top: -90rpx;
+  width: 260rpx;
+  height: 260rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.22), rgba(251, 146, 60, 0));
+}
+
+.hero-top {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  background-color: #f5f5f5;
-  border-radius: 50rpx;
-  padding: 12rpx 20rpx;
-  margin-right: 20rpx;
+  justify-content: space-between;
+  margin-bottom: 40rpx;
+}
+
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 14rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 237, 213, 0.82);
+}
+
+.hero-brand-text,
+.hero-aside,
+.hero-eyebrow,
+.section-tag {
+  letter-spacing: 0.18em;
+}
+
+.hero-brand-text {
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #9a3412;
+}
+
+.hero-aside {
+  font-size: 20rpx;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 36rpx;
+}
+
+.hero-eyebrow {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 18rpx;
+  color: #c2410c;
+  font-weight: 800;
+}
+
+.hero-title {
+  display: block;
+  font-size: 58rpx;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hero-subtitle {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #64748b;
+}
+
+.search-card {
+  position: relative;
+  z-index: 1;
+  padding: 24rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1rpx solid rgba(255, 237, 213, 0.9);
+  backdrop-filter: blur(12rpx);
+}
+
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  height: 100rpx;
+  padding: 0 24rpx;
+  border-radius: 26rpx;
+  background: #f8fafc;
+  border: 2rpx solid rgba(148, 163, 184, 0.12);
 }
 
 .search-icon {
-  font-size: 28rpx;
-  color: #999999;
-  margin-right: 12rpx;
+  margin-right: 14rpx;
 }
 
 .search-input {
   flex: 1;
   font-size: 28rpx;
-  color: #333333;
+  color: #0f172a;
 }
 
 .clear-icon {
-  font-size: 32rpx;
-  color: #999999;
-  margin-left: 12rpx;
-}
-
-.cancel-btn {
-  font-size: 28rpx;
-  color: #3cc51f;
-  font-weight: 500;
-}
-
-.suggestions-container {
-  position: absolute;
-  top: 88rpx;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ffffff;
-  z-index: 100;
-}
-
-.suggestion-item {
+  width: 48rpx;
+  height: 48rpx;
   display: flex;
   align-items: center;
-  padding: 24rpx 28rpx;
-  border-bottom: 1rpx solid #f3f4f6;
+  justify-content: center;
 }
 
-.suggestion-icon {
-  font-size: 24rpx;
-  color: #999999;
-  margin-right: 16rpx;
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin-top: 20rpx;
 }
 
-.suggestion-text {
-  font-size: 28rpx;
-  color: #333333;
+.quick-action {
+  padding: 18rpx 18rpx 20rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  border: 1rpx solid rgba(251, 146, 60, 0.16);
 }
 
-.history-container {
-  padding: 24rpx 28rpx;
-  background-color: #ffffff;
-  margin-top: 88rpx;
-}
-
-.history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24rpx;
-}
-
-.history-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-}
-
-.clear-history {
-  font-size: 24rpx;
-  color: #999999;
-}
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.history-item {
-  display: flex;
-  align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f3f4f6;
-}
-
-.history-icon {
-  font-size: 24rpx;
-  color: #999999;
-  margin-right: 16rpx;
-}
-
-.history-text {
-  font-size: 26rpx;
-  color: #333333;
-}
-
-.hot-searches-container {
-  padding: 24rpx 28rpx;
-  background-color: #ffffff;
-  margin-top: 88rpx;
-}
-
-.hot-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  margin-bottom: 24rpx;
+.quick-action-label {
   display: block;
+  margin-bottom: 10rpx;
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #c2410c;
+  letter-spacing: 0.18em;
 }
 
-.hot-list {
+.quick-action-text {
+  display: block;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.search-submit {
+  margin-top: 20rpx;
+  height: 92rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #ff7a1a 0%, #ea580c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  box-shadow: 0 18rpx 36rpx rgba(234, 88, 12, 0.25);
+}
+
+.search-submit-text {
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.content-section {
+  margin-top: 28rpx;
+}
+
+.content-grid {
+  display: grid;
+  gap: 24rpx;
+}
+
+.content-card {
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18rpx 48rpx rgba(15, 23, 42, 0.06);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.section-tag {
+  font-size: 18rpx;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.section-action {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #c2410c;
+}
+
+.chip-list {
   display: flex;
   flex-wrap: wrap;
   gap: 16rpx;
 }
 
-.hot-item {
-  padding: 12rpx 24rpx;
-  background-color: #f5f5f5;
-  border-radius: 50rpx;
-  font-size: 24rpx;
-  color: #333333;
-}
-
-.results-container {
-  margin-top: 88rpx;
-  background-color: #ffffff;
-}
-
-.results-header {
-  padding: 24rpx 28rpx;
-  border-bottom: 1rpx solid #f3f4f6;
-}
-
-.results-count {
-  font-size: 24rpx;
-  color: #999999;
-}
-
-.result-category {
-  display: block;
-  padding: 24rpx 28rpx 12rpx;
-  font-size: 24rpx;
-  font-weight: bold;
-  color: #333333;
-}
-
-.result-item {
+.suggestion-chip {
+  min-width: calc(50% - 8rpx);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  padding: 24rpx 28rpx;
-  border-bottom: 1rpx solid #f3f4f6;
+  gap: 10rpx;
+  padding: 20rpx 22rpx;
+  border-radius: 22rpx;
+  background: #fff7ed;
 }
 
-.result-icon {
-  width: 64rpx;
-  height: 64rpx;
-  background-color: #f5f5f5;
-  border-radius: 50%;
+.chip-text {
+  font-size: 24rpx;
+  color: #7c2d12;
+  font-weight: 700;
+}
+
+.hot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+}
+
+.hot-card {
+  min-height: 132rpx;
+  padding: 20rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(145deg, #ffffff 0%, #fff7ed 100%);
+  border: 1rpx solid rgba(251, 146, 60, 0.15);
+}
+
+.hot-rank {
+  display: block;
+  margin-bottom: 14rpx;
+  font-size: 20rpx;
+  color: #c2410c;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.hot-text {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.4;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid rgba(226, 232, 240, 0.9);
+}
+
+.history-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.history-icon-wrap {
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 18rpx;
+  background: #fff7ed;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
-  color: #3cc51f;
-  margin-right: 20rpx;
 }
 
-.result-content {
+.history-text {
   flex: 1;
-}
-
-.result-title {
   font-size: 26rpx;
-  font-weight: bold;
-  color: #333333;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.empty-card {
+  padding: 24rpx 0 8rpx;
+}
+
+.empty-title {
   display: block;
-  margin-bottom: 8rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+  font-weight: 800;
 }
 
-.result-subtitle {
-  font-size: 22rpx;
-  color: #999999;
+.empty-subtitle {
   display: block;
-}
-
-.empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 160rpx 0;
-  margin-top: 88rpx;
-}
-
-.empty-text {
+  margin-top: 12rpx;
   font-size: 24rpx;
-  color: #999999;
+  line-height: 1.6;
+  color: #94a3b8;
 }
 </style>
