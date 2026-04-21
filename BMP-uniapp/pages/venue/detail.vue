@@ -6,8 +6,8 @@
           <uni-icons type="left" size="20" color="#ff6600" />
         </view>
         <view class="topbar-brand">
-          <text class="brand-word">KINETIC</text>
-          <text class="brand-sub">VENUE PROFILE</text>
+          <text class="brand-word">KINETIC LOGIC</text>
+          <text class="brand-sub">VENUE EXPERIENCE</text>
         </view>
         <view class="icon-btn ghost" @click="handleHistory">
           <uni-icons type="calendar" size="18" color="#a33e00" />
@@ -24,7 +24,7 @@
       <view v-if="loading" class="state-panel">
         <view class="state-spinner" />
         <text class="state-title">加载场馆中</text>
-        <text class="state-desc">正在同步场馆信息与预约资料</text>
+        <text class="state-desc">正在同步场馆信息、场地价格与预约入口</text>
       </view>
 
       <view v-else-if="venue.id" class="page-body">
@@ -39,12 +39,14 @@
             <uni-icons type="image" size="40" color="#9ca3af" />
           </view>
           <view class="hero-overlay" />
+          <view class="hero-noise" />
           <view class="hero-content">
-            <view class="hero-tags">
-              <text class="hero-pill">{{ venue.status === 1 ? 'BOOKING OPEN' : 'TEMP CLOSED' }}</text>
-              <text class="hero-pill soft">{{ openHoursText }}</text>
+            <view class="hero-badge-row">
+              <text class="hero-badge accent">{{ venue.status === 1 ? 'BOOKING OPEN' : 'TEMP CLOSED' }}</text>
+              <text class="hero-badge glass">{{ openHoursText }}</text>
             </view>
             <text class="hero-title">{{ venue.name || '场馆详情' }}</text>
+            <text class="hero-subtitle">{{ heroIntro }}</text>
             <view class="hero-meta">
               <view class="hero-meta-item">
                 <uni-icons type="location" size="14" color="#ffffff" />
@@ -52,7 +54,7 @@
               </view>
               <view class="hero-meta-item">
                 <uni-icons type="star-filled" size="14" color="#ffffff" />
-                <text class="hero-meta-text">4.9 / 120+ 条评价</text>
+                <text class="hero-meta-text">{{ ratingLabel }}</text>
               </view>
             </view>
           </view>
@@ -66,65 +68,47 @@
               <text class="summary-value">{{ displayHourlyPrice }}</text>
               <text class="summary-tail">/ 小时</text>
             </view>
+            <text class="summary-foot">按场地规则自动计算，适合临时约场和固定训练</text>
+          </view>
+          <view class="summary-card dark">
+            <text class="summary-label light">Open Window</text>
+            <text class="summary-mini light">{{ openHoursText }}</text>
+            <text class="summary-foot light">建议提前 30 分钟到馆热身</text>
           </view>
           <view class="summary-card">
-            <text class="summary-label">Business Time</text>
-            <text class="summary-mini">{{ openHoursText }}</text>
-          </view>
-          <view class="summary-card">
-            <text class="summary-label">Contact</text>
+            <text class="summary-label">Front Desk</text>
             <text class="summary-mini">{{ venue.contactPerson || '场馆前台' }}</text>
-          </view>
-        </view>
-
-        <view class="section-card spotlight-card">
-          <view class="section-head">
-            <view>
-              <text class="section-kicker">Venue Snapshot</text>
-              <text class="section-title">预约前快速了解</text>
-            </view>
-            <text class="section-badge" :class="{ offline: venue.status !== 1 }">
-              {{ venue.status === 1 ? '可预约' : '暂停营业' }}
-            </text>
-          </view>
-
-          <view class="spotlight-grid">
-            <view class="spotlight-item">
-              <view class="spotlight-icon">
-                <uni-icons type="location" size="18" color="#ff6600" />
-              </view>
-              <text class="spotlight-label">场馆位置</text>
-              <text class="spotlight-value">{{ venue.location || '暂无地址信息' }}</text>
-            </view>
-            <view class="spotlight-item">
-              <view class="spotlight-icon">
-                <uni-icons type="person" size="18" color="#ff6600" />
-              </view>
-              <text class="spotlight-label">联系人</text>
-              <text class="spotlight-value">{{ venue.contactPerson || '场馆管理员' }}</text>
-            </view>
-            <view class="spotlight-item">
-              <view class="spotlight-icon">
-                <uni-icons type="phone" size="18" color="#ff6600" />
-              </view>
-              <text class="spotlight-label">联系电话</text>
-              <text class="spotlight-value">{{ venue.contactPhone || '暂无联系电话' }}</text>
-            </view>
-            <view class="spotlight-item">
-              <view class="spotlight-icon">
-                <uni-icons type="refreshtime" size="18" color="#ff6600" />
-              </view>
-              <text class="spotlight-label">营业时段</text>
-              <text class="spotlight-value">{{ openHoursText }}</text>
-            </view>
+            <text class="summary-foot">{{ venue.contactPhone || '暂无联系电话' }}</text>
           </view>
         </view>
 
         <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Snapshot</text>
+              <text class="section-title">预约前快速确认</text>
+            </view>
+            <text class="section-badge" :class="{ offline: venue.status !== 1 }">
+              {{ venue.status === 1 ? '当前可约' : '暂不可约' }}
+            </text>
+          </view>
+          <view class="spotlight-grid">
+            <view v-for="item in spotlightCards" :key="item.label" class="spotlight-item">
+              <view class="spotlight-icon">
+                <uni-icons :type="item.icon" size="18" color="#ff6600" />
+              </view>
+              <text class="spotlight-label">{{ item.label }}</text>
+              <text class="spotlight-value">{{ item.value }}</text>
+              <text class="spotlight-desc">{{ item.desc }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-card statement-card">
           <view class="section-head compact">
             <view>
-              <text class="section-kicker">Highlights</text>
-              <text class="section-title">场馆亮点与服务</text>
+              <text class="section-kicker">Experience</text>
+              <text class="section-title">场馆亮点与氛围</text>
             </view>
           </view>
           <view class="feature-pills">
@@ -133,11 +117,34 @@
               <text class="feature-text">{{ item.label }}</text>
             </view>
           </view>
-          <view class="feature-panel">
-            <text class="feature-panel-title">Professional Atmosphere</text>
-            <text class="feature-panel-text">
-              {{ descriptionText }}
-            </text>
+          <view class="statement-panel">
+            <text class="statement-title">Professional Atmosphere</text>
+            <text class="statement-copy">{{ descriptionText }}</text>
+          </view>
+          <view class="insight-grid">
+            <view v-for="item in experienceNotes" :key="item.title" class="insight-card">
+              <text class="insight-title">{{ item.title }}</text>
+              <text class="insight-value">{{ item.value }}</text>
+              <text class="insight-copy">{{ item.copy }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-card program-card">
+          <view class="section-head compact">
+            <view>
+              <text class="section-kicker">Flow Guide</text>
+              <text class="section-title">到馆体验怎么走</text>
+            </view>
+          </view>
+          <view class="journey-list">
+            <view v-for="item in bookingJourney" :key="item.step" class="journey-item">
+              <view class="journey-index">{{ item.step }}</view>
+              <view class="journey-main">
+                <text class="journey-title">{{ item.title }}</text>
+                <text class="journey-copy">{{ item.copy }}</text>
+              </view>
+            </view>
           </view>
         </view>
 
@@ -154,21 +161,35 @@
                 <uni-icons type="phone" size="18" color="#ffffff" />
               </view>
               <text class="action-name">联系场馆</text>
-              <text class="action-copy">咨询营业时段与场地情况</text>
+              <text class="action-copy">确认营业时段、空场情况和到馆细节</text>
             </view>
             <view class="action-tile" @click="handleHistory">
               <view class="action-icon">
                 <uni-icons type="calendar" size="18" color="#ff6600" />
               </view>
               <text class="action-name">查看预约</text>
-              <text class="action-copy">快速返回你的历史预约列表</text>
+              <text class="action-copy">回到你的历史订单，快速续约熟悉场地</text>
             </view>
-            <view class="action-tile" @click="handleShare">
+            <view class="action-tile" @click="handleLocation">
               <view class="action-icon">
-                <uni-icons type="redo" size="18" color="#ff6600" />
+                <uni-icons type="location" size="18" color="#ff6600" />
               </view>
-              <text class="action-name">分享场馆</text>
-              <text class="action-copy">把这家场馆发给球友一起约场</text>
+              <text class="action-name">复制地址</text>
+              <text class="action-copy">把场馆位置发给球友一起约场更省心</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-card promise-card">
+          <view class="promise-shell">
+            <view>
+              <text class="section-kicker inverse">Ready To Play</text>
+              <text class="promise-title">现在就进入预约流程</text>
+              <text class="promise-copy">{{ servicePromise }}</text>
+            </view>
+            <view class="promise-cta" @click="handleBook">
+              <text class="promise-cta-text">进入预约</text>
+              <uni-icons type="right" size="16" color="#ffffff" />
             </view>
           </view>
         </view>
@@ -192,9 +213,10 @@
             <text class="bottom-amount">{{ displayHourlyPrice }}</text>
             <text class="bottom-unit">/ 小时</text>
           </view>
+          <text class="bottom-foot">{{ venue.status === 1 ? '支持自由预约时段' : '当前暂停在线预约' }}</text>
         </view>
-        <view class="bottom-cta" @click="handleBook">
-          <text class="bottom-cta-text">立即预约</text>
+        <view class="bottom-cta" :class="{ disabled: venue.status !== 1 }" @click="handleBook">
+          <text class="bottom-cta-text">{{ venue.status === 1 ? '立即预约' : '暂不可预约' }}</text>
           <uni-icons type="right" size="18" color="#ffffff" />
         </view>
       </view>
@@ -271,6 +293,82 @@ const displayHourlyPrice = computed(() => {
   return Number.isFinite(price) ? price.toFixed(0) : '0'
 })
 
+const ratingLabel = computed(() => (venue.value.status === 1 ? '4.9 / 120+ 条真实预约反馈' : '当前暂停营业，支持先了解详情'))
+const heroIntro = computed(() => {
+  return venue.value.status === 1
+    ? '面向训练、约局和周末社群的高频羽毛球场馆，价格透明、预约快速、体验完整。'
+    : '场馆当前暂停在线预约，你仍可查看详情、保存信息并联系前台确认恢复时间。'
+})
+
+const spotlightCards = computed(() => [
+  {
+    icon: 'location',
+    label: '场馆位置',
+    value: venue.value.location || '暂无地址信息',
+    desc: '支持复制位置，方便约上球友一起到馆'
+  },
+  {
+    icon: 'person',
+    label: '联系人',
+    value: venue.value.contactPerson || '场馆管理员',
+    desc: venue.value.contactPhone || '暂无联系电话'
+  },
+  {
+    icon: 'refreshtime',
+    label: '营业时段',
+    value: openHoursText.value,
+    desc: '建议优先预约晚间热门时段'
+  },
+  {
+    icon: 'wallet',
+    label: '价格体系',
+    value: `¥${displayHourlyPrice.value} / 小时起`,
+    desc: '金额会按场地规则自动结算'
+  }
+])
+
+const experienceNotes = computed(() => [
+  {
+    title: 'Booking Rhythm',
+    value: venue.value.status === 1 ? '即约即走' : '暂停开放',
+    copy: '支持先看场馆、再选场地、最后确认时段的顺滑链路。'
+  },
+  {
+    title: 'Play Scenario',
+    value: '训练 / 对打 / 社群',
+    copy: '适合固定训练课后加练，也适合临时约局和朋友双打。'
+  },
+  {
+    title: 'On-site Tone',
+    value: '清爽有序',
+    copy: '强调品牌化到馆体验，让页面感受和线下服务保持同一套气质。'
+  }
+])
+
+const bookingJourney = computed(() => [
+  {
+    step: '01',
+    title: '查看场馆信息',
+    copy: '先确认位置、营业时间和价格区间，确保今天这次约场合适。'
+  },
+  {
+    step: '02',
+    title: '进入预约页选场地',
+    copy: '系统会展示可预约场地和时间段冲突，避免白跑一趟。'
+  },
+  {
+    step: '03',
+    title: '确认订单后到馆开打',
+    copy: '完成下单后可回到预约列表查看状态，也方便后续续约。'
+  }
+])
+
+const servicePromise = computed(() => {
+  return venue.value.status === 1
+    ? '你会在下一步看到日期、场地、时间和金额的完整预约链路，页面结构已经和新版 Stitch 用户端保持一致。'
+    : '当前场馆暂未开放在线预约，但场馆资料和前台联系方式已经准备好，恢复营业后可继续沿原链路下单。'
+})
+
 function mapVenue(result: VenueItem): VenueDetailVm {
   return {
     id: result.id,
@@ -334,8 +432,17 @@ function handleBook() {
   uni.navigateTo({ url: `/pages/venue/booking?venueId=${venue.value.id}` })
 }
 
-function handleShare() {
-  uni.showToast({ title: '分享功能开发中', icon: 'none' })
+function handleLocation() {
+  if (!venue.value.location) {
+    uni.showToast({ title: '暂无场馆地址', icon: 'none' })
+    return
+  }
+  uni.setClipboardData({
+    data: venue.value.location,
+    success: () => {
+      uni.showToast({ title: '地址已复制', icon: 'none' })
+    }
+  })
 }
 
 function handleHistory() {
@@ -347,8 +454,8 @@ function handleHistory() {
 .venue-detail-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(255, 102, 0, 0.12), transparent 28%),
-    #f9f9f9;
+    radial-gradient(circle at top, rgba(255, 102, 0, 0.18), transparent 24%),
+    linear-gradient(180deg, #fff8f2 0%, #f9f6f2 18%, #f6f3ef 100%);
   color: #1a1c1c;
 }
 
@@ -358,8 +465,8 @@ function handleHistory() {
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(249, 249, 249, 0.78);
-  backdrop-filter: blur(20rpx);
+  background: rgba(250, 246, 241, 0.78);
+  backdrop-filter: blur(24rpx);
 }
 
 .topbar-inner {
@@ -377,14 +484,14 @@ function handleHistory() {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10rpx 28rpx rgba(26, 28, 28, 0.06);
+  box-shadow: 0 10rpx 28rpx rgba(26, 28, 28, 0.07);
 
   &:active {
     transform: scale(0.96);
   }
 
   &.ghost {
-    background: rgba(255, 241, 234, 0.9);
+    background: rgba(255, 241, 234, 0.92);
   }
 }
 
@@ -396,11 +503,11 @@ function handleHistory() {
 }
 
 .brand-word {
-  font-size: 30rpx;
+  font-size: 28rpx;
   line-height: 1;
   font-weight: 900;
-  letter-spacing: 1rpx;
-  color: #a33e00;
+  letter-spacing: 1.4rpx;
+  color: #8f3300;
 }
 
 .brand-sub {
@@ -420,10 +527,10 @@ function handleHistory() {
 
 .hero-shell {
   position: relative;
-  height: 720rpx;
-  border-radius: 0 0 36rpx 36rpx;
+  height: 760rpx;
+  border-radius: 0 0 42rpx 42rpx;
   overflow: hidden;
-  box-shadow: 0 18rpx 40rpx rgba(26, 28, 28, 0.08);
+  box-shadow: 0 26rpx 50rpx rgba(26, 28, 28, 0.1);
 }
 
 .hero-image,
@@ -433,7 +540,7 @@ function handleHistory() {
 }
 
 .hero-placeholder {
-  background: linear-gradient(135deg, #f3f3f3 0%, #e2e2e2 100%);
+  background: linear-gradient(135deg, #f3ede8 0%, #ddd3cc 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -442,54 +549,73 @@ function handleHistory() {
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(26, 28, 28, 0.12) 0%, rgba(26, 28, 28, 0.78) 100%);
+  background: linear-gradient(180deg, rgba(26, 28, 28, 0.1) 0%, rgba(26, 28, 28, 0.78) 68%, rgba(26, 28, 28, 0.92) 100%);
+}
+
+.hero-noise {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 45%),
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.24), transparent 20%);
 }
 
 .hero-content {
   position: absolute;
   left: 28rpx;
   right: 28rpx;
-  bottom: 34rpx;
+  bottom: 38rpx;
   z-index: 2;
 }
 
-.hero-tags {
+.hero-badge-row {
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
-  margin-bottom: 18rpx;
+  margin-bottom: 20rpx;
 }
 
-.hero-pill {
+.hero-badge {
   padding: 10rpx 18rpx;
   border-radius: 999rpx;
   font-size: 18rpx;
   font-weight: 800;
   letter-spacing: 2rpx;
-  color: #561d00;
-  background: #ff6600;
 
-  &.soft {
+  &.accent {
+    color: #561d00;
+    background: #ff6600;
+  }
+
+  &.glass {
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.14);
     backdrop-filter: blur(14rpx);
   }
 }
 
 .hero-title {
   display: block;
-  font-size: 58rpx;
-  line-height: 1.08;
+  font-size: 60rpx;
+  line-height: 1.02;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: -1rpx;
 }
 
+.hero-subtitle {
+  display: block;
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: rgba(255, 247, 240, 0.92);
+}
+
 .hero-meta {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
-  margin-top: 20rpx;
+  gap: 12rpx;
+  margin-top: 22rpx;
 }
 
 .hero-meta-item {
@@ -501,11 +627,11 @@ function handleHistory() {
 .hero-meta-text {
   flex: 1;
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.94);
 }
 
 .summary-ribbon {
-  margin-top: -38rpx;
+  margin-top: -48rpx;
   position: relative;
   z-index: 3;
   display: grid;
@@ -514,17 +640,21 @@ function handleHistory() {
 }
 
 .summary-card {
-  min-height: 138rpx;
-  padding: 22rpx 20rpx;
-  border-radius: 28rpx;
+  min-height: 176rpx;
+  padding: 24rpx 22rpx;
+  border-radius: 30rpx;
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 16rpx 32rpx rgba(26, 28, 28, 0.06);
+  box-shadow: 0 18rpx 36rpx rgba(26, 28, 28, 0.06);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 
   &.warm {
-    background: linear-gradient(135deg, #fff0e8 0%, #ffffff 100%);
+    background: linear-gradient(135deg, #fff0e3 0%, #fffaf6 100%);
+  }
+
+  &.dark {
+    background: linear-gradient(135deg, #241816 0%, #47312b 100%);
   }
 }
 
@@ -532,8 +662,12 @@ function handleHistory() {
   font-size: 18rpx;
   font-weight: 800;
   color: #8e7164;
-  letter-spacing: 2rpx;
+  letter-spacing: 2.6rpx;
   text-transform: uppercase;
+
+  &.light {
+    color: rgba(255, 236, 225, 0.78);
+  }
 }
 
 .summary-value-row {
@@ -551,27 +685,37 @@ function handleHistory() {
 .summary-value {
   font-size: 46rpx;
   font-weight: 900;
-  color: #a33e00;
+  color: #9e3700;
   line-height: 1;
 }
 
 .summary-mini {
   font-size: 24rpx;
-  font-weight: 700;
+  font-weight: 800;
   color: #1a1c1c;
-  line-height: 1.35;
+  line-height: 1.45;
+
+  &.light {
+    color: #ffffff;
+  }
+}
+
+.summary-foot {
+  font-size: 20rpx;
+  line-height: 1.55;
+  color: #6b625c;
+
+  &.light {
+    color: rgba(255, 241, 234, 0.76);
+  }
 }
 
 .section-card {
   margin-top: 28rpx;
-  padding: 28rpx;
-  border-radius: 32rpx;
+  padding: 30rpx 28rpx;
+  border-radius: 34rpx;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 16rpx 36rpx rgba(26, 28, 28, 0.05);
-}
-
-.spotlight-card {
-  margin-top: 24rpx;
 }
 
 .section-head {
@@ -593,6 +737,10 @@ function handleHistory() {
   color: #a33e00;
   letter-spacing: 3rpx;
   text-transform: uppercase;
+
+  &.inverse {
+    color: rgba(255, 225, 205, 0.76);
+  }
 }
 
 .section-title {
@@ -625,10 +773,10 @@ function handleHistory() {
 }
 
 .spotlight-item {
-  min-height: 196rpx;
+  min-height: 228rpx;
   padding: 22rpx;
   border-radius: 24rpx;
-  background: #f8f5f3;
+  background: linear-gradient(180deg, #fbf8f5 0%, #f6f0eb 100%);
   display: flex;
   flex-direction: column;
 }
@@ -654,9 +802,21 @@ function handleHistory() {
 .spotlight-value {
   margin-top: 10rpx;
   font-size: 24rpx;
-  line-height: 1.5;
-  font-weight: 700;
+  line-height: 1.45;
+  font-weight: 800;
   color: #1a1c1c;
+}
+
+.spotlight-desc {
+  margin-top: auto;
+  padding-top: 18rpx;
+  font-size: 20rpx;
+  line-height: 1.55;
+  color: #6b625c;
+}
+
+.statement-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 248, 242, 0.98) 100%);
 }
 
 .feature-pills {
@@ -671,7 +831,7 @@ function handleHistory() {
   gap: 8rpx;
   padding: 14rpx 18rpx;
   border-radius: 999rpx;
-  background: #f3f3f3;
+  background: #f3f0ed;
 }
 
 .feature-text {
@@ -680,33 +840,124 @@ function handleHistory() {
   color: #1a1c1c;
 }
 
-.feature-panel {
+.statement-panel {
   margin-top: 24rpx;
-  padding: 26rpx;
+  padding: 28rpx;
   border-radius: 28rpx;
-  background: linear-gradient(135deg, #fff8f3 0%, #f3f3f3 100%);
-  border-left: 8rpx solid #ff6600;
+  background: linear-gradient(135deg, #2e1f1b 0%, #4d342d 100%);
 }
 
-.feature-panel-title {
+.statement-title {
   display: block;
   font-size: 22rpx;
   font-weight: 900;
-  color: #a33e00;
+  color: #ffd8c2;
   letter-spacing: 2rpx;
   text-transform: uppercase;
 }
 
-.feature-panel-text {
+.statement-copy {
   display: block;
   margin-top: 16rpx;
   font-size: 24rpx;
   line-height: 1.8;
-  color: #5a4136;
+  color: rgba(255, 245, 237, 0.92);
+}
+
+.insight-grid {
+  margin-top: 18rpx;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.insight-card {
+  min-height: 182rpx;
+  padding: 22rpx 18rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2rpx solid rgba(255, 102, 0, 0.08);
+}
+
+.insight-title {
+  display: block;
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #8e7164;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.insight-value {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.insight-copy {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  line-height: 1.55;
+  color: #6b625c;
+}
+
+.program-card {
+  background: linear-gradient(180deg, #fffdfb 0%, #fff5ec 100%);
+}
+
+.journey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.journey-item {
+  display: flex;
+  gap: 18rpx;
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.journey-index {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 900;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.journey-main {
+  flex: 1;
+}
+
+.journey-title {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.journey-copy {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.65;
+  color: #5f5e5e;
 }
 
 .action-card {
-  background: linear-gradient(180deg, #ffffff 0%, #fffaf6 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fff9f4 100%);
 }
 
 .action-grid {
@@ -716,7 +967,7 @@ function handleHistory() {
 }
 
 .action-tile {
-  min-height: 206rpx;
+  min-height: 214rpx;
   padding: 22rpx 18rpx;
   border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.92);
@@ -757,8 +1008,60 @@ function handleHistory() {
   color: #6b625c;
 }
 
+.promise-card {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.promise-shell {
+  padding: 30rpx 30rpx 32rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, #241714 0%, #59372d 58%, #9e430b 100%);
+  box-shadow: 0 22rpx 48rpx rgba(88, 43, 16, 0.22);
+}
+
+.promise-title {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 40rpx;
+  line-height: 1.18;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.promise-copy {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.75;
+  color: rgba(255, 242, 232, 0.86);
+}
+
+.promise-cta {
+  margin-top: 24rpx;
+  height: 96rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2rpx solid rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.promise-cta-text {
+  font-size: 28rpx;
+  font-weight: 900;
+  color: #ffffff;
+}
+
 .scroll-buffer {
-  height: calc(180rpx + env(safe-area-inset-bottom));
+  height: calc(196rpx + env(safe-area-inset-bottom));
 }
 
 .bottom-bar {
@@ -773,7 +1076,7 @@ function handleHistory() {
 .bottom-glass {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 252, 248, 0.88);
   backdrop-filter: blur(24rpx);
   box-shadow: 0 -16rpx 40rpx rgba(26, 28, 28, 0.06);
 }
@@ -820,8 +1123,15 @@ function handleHistory() {
   color: #1a1c1c;
 }
 
+.bottom-foot {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  line-height: 1.5;
+  color: #6b625c;
+}
+
 .bottom-cta {
-  min-width: 260rpx;
+  min-width: 274rpx;
   padding: 24rpx 30rpx;
   border-radius: 999rpx;
   background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
@@ -833,6 +1143,10 @@ function handleHistory() {
 
   &:active {
     transform: scale(0.98);
+  }
+
+  &.disabled {
+    opacity: 0.55;
   }
 }
 

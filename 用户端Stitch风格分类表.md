@@ -24,15 +24,15 @@
 
 整体上可以这样理解：
 
-- 列表页、首页、部分详情页和流程页，已经明显进入 Stitch 风格
-- 一些页面已经使用橙色品牌体系，但结构仍带有旧页面痕迹，属于半 Stitch
+- 列表页、首页、详情页和主要流程页，已经明显进入 Stitch 风格
+- 当前半 Stitch 页面已经主要收敛到登录、注册、找回密码这类入口页
 - 目前主要剩余的旧风格页面集中在设置子页和少量功能页
 
 最大的结构性问题不是单页不好看，而是：
 
 - 多条核心业务链路已经完成 Stitch 化
-- 但设置子页、场馆细分流程仍存在旧版页面
-- 风格断层已经从“主链路断层”收敛为“外围功能断层”
+- 场馆链路也已经补齐到“列表页 + 详情页 + 预约页”的连续新版体验
+- 风格断层已经从“主链路断层”进一步收敛为“设置尾页与外围功能断层”
 
 ---
 
@@ -45,6 +45,8 @@
 | 首页内容区 | `pages/index/components/MemberIndex.vue` | 已是 Stitch | 品牌字标、橙色 CTA、产品化服务宫格、卡片化内容区 |
 | 我的预约 | `pages/booking/list.vue` | 已是 Stitch | 品牌顶栏、重点 hero 卡、深色统计块、橙色交互强调 |
 | 场馆列表 | `pages/venue/list.vue` | 已是 Stitch | 品牌标题、卡片式场馆封面、橙色细节、高产品感列表布局 |
+| 场馆详情 | `pages/venue/detail.vue` | 已是 Stitch | 已完成第二轮 Stitch 化补强：沉浸式 hero、场馆快照卡、体验亮点、到馆流程与底部预约行动区已经和场馆列表、预约页形成连续链路 |
+| 场地预订 | `pages/venue/booking.vue` | 已是 Stitch | 已完成第二轮 Stitch 化补强：预约流程卡、概览卡、场地选择、时间冲突提示、预约摘要与底部结算区已统一到同一套品牌化预约链路 |
 | 课程列表 | `pages/course/list.vue` | 已是 Stitch | 英文标题、教练卡、日期胶囊、课程卡、橙黑 CTA、明显 Stitch 气质 |
 | 课程详情 | `pages/course/detail.vue` | 已是 Stitch | 已按新版原型重构：沉浸式 hero、教练卡、信息双卡、课程大纲、地图卡、底部固定预订栏，和课程列表形成连续品牌链路 |
 | 课程预约 | `pages/course/booking.vue` | 已是 Stitch | 已按提交订单原型重构：品牌顶栏、课程订单卡、学员信息区、支付明细区、底部固定支付按钮，与课程详情页形成完整下单链路 |
@@ -94,15 +96,13 @@
 | 登录 | `pages/login/login.vue` | 半 Stitch | 品牌包装很强，但属于入口页视觉体系，与 Stitch 列表页语言不同 |
 | 注册 | `pages/register/register.vue` | 半 Stitch | 与登录页同系，品牌化明显，但不完全属于 Stitch 主内容结构 |
 | 找回密码 | `pages/recover/recover.vue` | 半 Stitch | 与登录注册同系，品牌感强，但更偏入口页 |
-| 场馆详情 | `pages/venue/detail.vue` | 半 Stitch | 已升级为品牌化详情页，但仍可继续补充更多与场馆列表完全一致的卡片节奏与联动内容 |
-| 场地预订 | `pages/venue/booking.vue` | 半 Stitch | 已升级为品牌化预约流程页，但仍可继续压实与场馆详情、预约确认页之间的完整链路一致性 |
 
 ### 这一类页面的共同特征
 
 - 已经不再属于旧绿色业务风
 - 部分模块已经换成橙色品牌色
-- 但页面壳、章节结构、卡片语言还未完全统一
-- 可以继续沿 Stitch 方向升级，而不是推倒重来
+- 但它们更多是入口页视觉体系，和主内容型 Stitch 页面不完全同构
+- 后续可以按品牌统一原则继续微调，但不属于当前最高优先级断层
 
 ---
 
@@ -129,6 +129,14 @@
 - `Stitch`：`pages/course/booking.vue`
 
 结论：课程模块已补齐到“列表页 + 详情页 + 预约页”一致的新链路，当前这一条核心业务链路已完成 Stitch 化。
+
+### 1.5 场馆链路
+
+- `Stitch`：`pages/venue/list.vue`
+- `Stitch`：`pages/venue/detail.vue`
+- `Stitch`：`pages/venue/booking.vue`
+
+结论：场馆模块已补齐到“列表页 + 详情页 + 预约页”一致的新链路，当前这条高频预约链路已完成 Stitch 化。
 
 ### 2. 赛事链路
 
@@ -166,20 +174,20 @@
 
 ## 六、后续设计与改版建议
 
-### 第一优先级：补齐场馆链路并继续消除高频断层
+### 第一优先级：补齐设置尾页并继续消除高频断层
 
 建议优先处理以下页面：
 
-1. `pages/venue/detail.vue`
-2. `pages/venue/booking.vue`
+1. `pages/settings/feedback.vue`
+2. `pages/settings/faq.vue`
 3. `pages/profile/member.vue`
 4. `pages/notice/index.vue`
-5. `pages/settings/feedback.vue`
+5. `pages/login/login.vue`
 
 原因：
 
-- 这些页面承接高频入口或品牌化列表页
-- 用户会在预订、资料、会员中心这些关键节点感受到是否还是同一套产品
+- 场馆链路已经补齐后，最明显的断层已经转移到设置尾页和少量高频入口页
+- 用户会在反馈、FAQ、会员中心和通知中心这些日常高频节点感受到是否还是同一套产品
 
 ### 第二优先级：统一用户中心相关页面
 
@@ -187,29 +195,29 @@
 
 1. `pages/settings/feedback.vue`
 2. `pages/settings/faq.vue`
-3. `pages/venue/detail.vue`
-4. `pages/venue/booking.vue`
-5. `pages/profile/member.vue`
+3. `pages/profile/member.vue`
+4. `pages/notice/index.vue`
+5. `pages/register/register.vue`
 
 原因：
 
 - 用户中心是高频使用区域
-- 当前既有新版橙色风，也残留多张旧式设置子页，需要统一成同一套安全感、留白和卡片语言
+- 当前既有新版橙色风，也残留多张旧式设置子页与入口页，需要统一成同一套安全感、留白和卡片语言
 
-### 第三优先级：补齐设置尾页与场馆细节页
+### 第三优先级：收尾入口页与剩余外围页面
 
 建议处理：
 
 1. `pages/settings/feedback.vue`
 2. `pages/settings/faq.vue`
-3. `pages/venue/detail.vue`
-4. `pages/venue/booking.vue`
-5. `pages/profile/member.vue`
+3. `pages/login/login.vue`
+4. `pages/register/register.vue`
+5. `pages/recover/recover.vue`
 
 原因：
 
-- 这些页面仍不属于 Stitch 体系，和新版页面相比还缺少统一的产品化骨架
-- 完成这一批后，用户端视觉体系会从“主链路完成”进一步升级为“日常高频区域基本统一”
+- 这些页面仍不属于完整 Stitch 体系，和新版页面相比还缺少统一的产品化骨架
+- 完成这一批后，用户端视觉体系会从“主链路完成”进一步升级为“高频区域基本统一，入口与尾页风格收束”
 
 ---
 
@@ -221,7 +229,7 @@
 
 | 用户端页面 | 当前状态 | 可复用的会长端页面 | 复用建议 |
 | --- | --- | --- | --- |
-| `pages/venue/detail.vue` | 半 Stitch | `pages/president/venue/detail.vue` | 已完成一轮用户端适配，当前仍可继续参考会长端详情页补强深层信息卡和联动模块，但不能直接共用会长端整页逻辑 |
+| `pages/venue/detail.vue` | 已是 Stitch | `pages/president/venue/detail.vue` | 已完成二轮用户端适配：借用了会长端详情页的部分信息骨架，但用户端已独立实现自己的 hero、流程说明、动作区与预约链路，不直接共用会长端整页逻辑 |
 | `pages/stringing/list.vue` | 已是 Stitch | `pages/president/stringing/list.vue` | 已完成复用改造，会长端搜索区、数据摘要卡、列表卡片与状态胶囊骨架已迁移为用户端可读版本 |
 | `pages/stringing/detail.vue` | 已是 Stitch | `pages/president/stringing/detail.vue` | 已完成复用改造，会长端状态 hero、字段分区与底部动作区已改造成用户端查看流程 |
 | `pages/recharge/index.vue` | 已是 Stitch | `pages/president/member/recharge.vue` | 已完成复用改造，会长端充值骨架已切换成用户端自助充值语义 |
@@ -314,4 +322,4 @@
 
 ## 八、一句话结论
 
-当前 `BMP-uniapp` 用户端已经完成多条核心业务链路的 Stitch 化，课程、赛事、器材、充值、穿线主链路都已有新版页面承接，搜索首页、搜索结果页与穿线查询页也已进入新版体系；接下来最值得继续推进的是设置子页与场馆链路补强，把 Stitch 风格从核心交易流程继续扩展到用户端日常高频区域。
+当前 `BMP-uniapp` 用户端已经完成多条核心业务链路的 Stitch 化，课程、赛事、器材、充值、穿线与场馆主链路都已有新版页面承接，搜索首页、搜索结果页与穿线查询页也已进入新版体系；接下来最值得继续推进的是设置子页和入口页收尾，把 Stitch 风格从核心交易流程继续扩展到用户端日常高频区域。 

@@ -11,7 +11,7 @@
             <text class="topbar-sub">BOOKING FLOW</text>
           </view>
         </view>
-        <text class="topbar-brand">KINETIC</text>
+        <text class="topbar-brand">KINETIC LOGIC</text>
       </view>
     </view>
 
@@ -27,36 +27,46 @@
           <uni-icons type="image" size="44" color="#9ca3af" />
         </view>
         <view class="hero-overlay" />
+        <view class="hero-noise" />
         <view class="hero-content">
           <view class="hero-badges">
             <text class="hero-badge">{{ venue.status === 1 ? 'BOOKING OPEN' : 'UNAVAILABLE' }}</text>
-            <text class="hero-badge soft">{{ monthLabel || '本周可预约' }}</text>
+            <text class="hero-badge soft">{{ monthLabel || '未来 7 天可预约' }}</text>
           </view>
           <text class="hero-title">{{ venue.name || '场地预约' }}</text>
+          <text class="hero-copy">{{ heroDescription }}</text>
           <view class="hero-meta">
             <view class="hero-meta-item">
               <uni-icons type="location" size="14" color="#ffffff" />
               <text class="hero-meta-text">{{ venue.location || '暂无地址' }}</text>
             </view>
             <view class="hero-meta-item">
-              <uni-icons type="star-filled" size="14" color="#ffffff" />
-              <text class="hero-meta-text">按场地规则自动计费</text>
+              <uni-icons type="wallet" size="14" color="#ffffff" />
+              <text class="hero-meta-text">{{ canEstimate ? `预计金额 ¥${totalPrice}` : '完成选择后自动计算金额' }}</text>
             </view>
           </view>
         </view>
       </view>
 
       <view class="page-body">
+        <view class="flow-ribbon">
+          <view v-for="item in flowSteps" :key="item.step" class="flow-card">
+            <text class="flow-step">{{ item.step }}</text>
+            <text class="flow-title">{{ item.title }}</text>
+            <text class="flow-copy">{{ item.copy }}</text>
+          </view>
+        </view>
+
         <view class="overview-grid">
           <view class="overview-card warm">
             <text class="overview-kicker">Estimated</text>
             <text class="overview-value">¥{{ totalPrice }}</text>
-            <text class="overview-hint">{{ canEstimate ? durationLabel : '完成选择后自动计算' }}</text>
+            <text class="overview-hint">{{ canEstimate ? durationLabel : '完成日期、场地、时间选择后自动更新' }}</text>
           </view>
-          <view class="overview-card">
-            <text class="overview-kicker">Selected Court</text>
-            <text class="overview-mini">{{ selectedCourt?.name || '待选择场地' }}</text>
-            <text class="overview-hint">{{ selectedCourt?.status === 1 ? '当前可预约' : '请先选择可用场地' }}</text>
+          <view class="overview-card dark">
+            <text class="overview-kicker light">Selected Court</text>
+            <text class="overview-mini light">{{ selectedCourt?.name || '待选择场地' }}</text>
+            <text class="overview-hint light">{{ selectedCourtStatusText }}</text>
           </view>
           <view class="overview-card">
             <text class="overview-kicker">Booking Day</text>
@@ -124,7 +134,7 @@
           </view>
         </view>
 
-        <view class="section-card">
+        <view class="section-card timing-card">
           <view class="section-head">
             <view>
               <text class="section-kicker">Time Slot</text>
@@ -177,7 +187,7 @@
             </view>
             <view class="tips-row">
               <uni-icons type="calendar" size="14" color="#ff6600" />
-              <text>若该时间段已有预约，系统会在下方及时提醒。</text>
+              <text>若该时间段已有预约，系统会在下方即时提醒并展示冲突信息。</text>
             </view>
           </view>
 
@@ -232,6 +242,21 @@
           </view>
         </view>
 
+        <view class="section-card promise-card">
+          <view class="promise-shell">
+            <view>
+              <text class="section-kicker inverse">Ready To Checkout</text>
+              <text class="promise-title">确认后进入订单页</text>
+              <text class="promise-copy">{{ promiseCopy }}</text>
+            </view>
+            <view class="promise-points">
+              <text class="promise-point">日期与场地实时联动</text>
+              <text class="promise-point">冲突时段即时提示</text>
+              <text class="promise-point">金额按计费规则自动计算</text>
+            </view>
+          </view>
+        </view>
+
         <view class="scroll-buffer" />
       </view>
     </scroll-view>
@@ -245,7 +270,7 @@
           <text class="bottom-meta">{{ selectedCourt ? selectedCourt.name : '待选场地' }} · {{ durationMeta }}</text>
         </view>
         <button class="bottom-cta" :class="{ disabled: submitDisabled }" @click="handleSubmit">
-          <text class="bottom-cta-top">去结算</text>
+          <text class="bottom-cta-top">Go Checkout</text>
           <text class="bottom-cta-bottom">立即预约</text>
         </button>
       </view>
@@ -285,9 +310,9 @@ type CourtCard = {
 }
 
 const quickSlots = [
+  { label: '晨练档', start: '08:00', end: '09:00' },
   { label: '下班后', start: '18:00', end: '19:00' },
-  { label: '晚间双打', start: '19:00', end: '21:00' },
-  { label: '晨练档', start: '08:00', end: '09:00' }
+  { label: '晚间双打', start: '19:00', end: '21:00' }
 ] as const
 
 const systemInfo = uni.getSystemInfoSync()
@@ -328,6 +353,24 @@ const monthLabel = computed(() => {
   return `${year}年${Number(month)}月`
 })
 
+const flowSteps = computed(() => [
+  {
+    step: '01',
+    title: '选日期',
+    copy: '先锁定哪一天去打球'
+  },
+  {
+    step: '02',
+    title: '选场地',
+    copy: '对比不同场地的状态与价格'
+  },
+  {
+    step: '03',
+    title: '选时间',
+    copy: '确认时段后直接进入结算'
+  }
+])
+
 const canEstimate = computed(() => Boolean(selectedCourt.value && selectedDate.value && startTime.value && endTime.value))
 const submitDisabled = computed(() => !canEstimate.value || !isEndAfterStart.value || occupancyCount.value > 0 || occupancyLoading.value)
 const isEndAfterStart = computed(() => toMinutes(endTime.value) > toMinutes(startTime.value))
@@ -362,6 +405,20 @@ const totalPrice = computed(() => {
 })
 
 const showConflictCard = computed(() => canEstimate.value && isEndAfterStart.value && occupancyCount.value > 0)
+const heroDescription = computed(() => {
+  return venue.value.status === 1
+    ? '沿着新版 Stitch 用户端链路完成日期、场地与时段选择，金额与冲突会实时反馈。'
+    : '当前场馆暂不支持在线预约，你仍可浏览场地与时段信息，待恢复后继续下单。'
+})
+const selectedCourtStatusText = computed(() => {
+  if (!selectedCourt.value) return '请先选择可用场地'
+  return selectedCourt.value.status === 1 ? '当前可预约，支持即时确认' : '当前不可预约，请更换场地'
+})
+const promiseCopy = computed(() => {
+  return submitDisabled.value
+    ? '补齐日期、场地和时间后，底部会自动解锁预约按钮，并带着当前摘要进入订单确认页。'
+    : '当前组合已经可以提交，系统会保留场馆、场地、时间和金额信息，继续进入订单页完成确认。'
+})
 
 onLoad((options?: Record<string, string | undefined>) => {
   if (options?.venueId) {
@@ -572,8 +629,8 @@ async function handleSubmit() {
 .booking-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(255, 102, 0, 0.14), transparent 28%),
-    #f9f9f9;
+    radial-gradient(circle at top, rgba(255, 102, 0, 0.16), transparent 26%),
+    linear-gradient(180deg, #fff8f2 0%, #f7f2ed 22%, #f4efea 100%);
 }
 
 .topbar {
@@ -581,7 +638,7 @@ async function handleSubmit() {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(249, 249, 249, 0.82);
+  background: rgba(250, 246, 241, 0.82);
   backdrop-filter: blur(20rpx);
 }
 
@@ -639,8 +696,10 @@ async function handleSubmit() {
 
 .hero-shell {
   position: relative;
-  height: 560rpx;
+  height: 620rpx;
   overflow: hidden;
+  border-radius: 0 0 42rpx 42rpx;
+  box-shadow: 0 22rpx 44rpx rgba(26, 28, 28, 0.08);
 }
 
 .hero-image,
@@ -650,7 +709,7 @@ async function handleSubmit() {
 }
 
 .hero-placeholder {
-  background: linear-gradient(135deg, #f3f3f3 0%, #e2e2e2 100%);
+  background: linear-gradient(135deg, #f3ede8 0%, #e2d8d1 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -659,14 +718,22 @@ async function handleSubmit() {
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(26, 28, 28, 0.18) 0%, rgba(26, 28, 28, 0.84) 100%);
+  background: linear-gradient(180deg, rgba(26, 28, 28, 0.16) 0%, rgba(26, 28, 28, 0.84) 100%);
+}
+
+.hero-noise {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%),
+    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.18), transparent 18%);
 }
 
 .hero-content {
   position: absolute;
   left: 28rpx;
   right: 28rpx;
-  bottom: 28rpx;
+  bottom: 30rpx;
   z-index: 2;
 }
 
@@ -695,17 +762,25 @@ async function handleSubmit() {
 
 .hero-title {
   display: block;
-  font-size: 56rpx;
-  line-height: 1.08;
+  font-size: 58rpx;
+  line-height: 1.04;
   font-weight: 900;
   color: #ffffff;
+}
+
+.hero-copy {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: rgba(255, 244, 236, 0.9);
 }
 
 .hero-meta {
   display: flex;
   flex-direction: column;
   gap: 10rpx;
-  margin-top: 18rpx;
+  margin-top: 20rpx;
 }
 
 .hero-meta-item {
@@ -724,17 +799,56 @@ async function handleSubmit() {
   padding: 0 24rpx 0;
 }
 
-.overview-grid {
-  margin-top: -34rpx;
+.flow-ribbon {
+  margin-top: -40rpx;
   position: relative;
   z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.flow-card {
+  min-height: 152rpx;
+  padding: 20rpx 18rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14rpx 30rpx rgba(26, 28, 28, 0.06);
+}
+
+.flow-step {
+  display: block;
+  font-size: 18rpx;
+  font-weight: 900;
+  color: #a33e00;
+  letter-spacing: 2rpx;
+}
+
+.flow-title {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.flow-copy {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  line-height: 1.55;
+  color: #6b625c;
+}
+
+.overview-grid {
+  margin-top: 22rpx;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16rpx;
 }
 
 .overview-card {
-  min-height: 150rpx;
+  min-height: 170rpx;
   padding: 22rpx 20rpx;
   border-radius: 28rpx;
   background: rgba(255, 255, 255, 0.96);
@@ -746,6 +860,10 @@ async function handleSubmit() {
   &.warm {
     background: linear-gradient(135deg, #fff0e8 0%, #ffffff 100%);
   }
+
+  &.dark {
+    background: linear-gradient(135deg, #241816 0%, #47312b 100%);
+  }
 }
 
 .overview-kicker {
@@ -754,6 +872,10 @@ async function handleSubmit() {
   color: #8e7164;
   letter-spacing: 2rpx;
   text-transform: uppercase;
+
+  &.light {
+    color: rgba(255, 236, 225, 0.78);
+  }
 }
 
 .overview-value {
@@ -765,15 +887,23 @@ async function handleSubmit() {
 
 .overview-mini {
   font-size: 24rpx;
-  line-height: 1.4;
+  line-height: 1.45;
   font-weight: 800;
   color: #1a1c1c;
+
+  &.light {
+    color: #ffffff;
+  }
 }
 
 .overview-hint {
   font-size: 20rpx;
-  line-height: 1.5;
+  line-height: 1.55;
   color: #6b625c;
+
+  &.light {
+    color: rgba(255, 241, 234, 0.76);
+  }
 }
 
 .section-card {
@@ -803,6 +933,10 @@ async function handleSubmit() {
   color: #a33e00;
   letter-spacing: 3rpx;
   text-transform: uppercase;
+
+  &.inverse {
+    color: rgba(255, 225, 205, 0.76);
+  }
 }
 
 .section-title {
@@ -872,10 +1006,10 @@ async function handleSubmit() {
 }
 
 .court-card {
-  min-height: 252rpx;
+  min-height: 262rpx;
   padding: 22rpx;
   border-radius: 28rpx;
-  background: #faf8f6;
+  background: linear-gradient(180deg, #fbf8f5 0%, #f7f1ec 100%);
   border: 2rpx solid transparent;
   display: flex;
   flex-direction: column;
@@ -963,6 +1097,10 @@ async function handleSubmit() {
   font-size: 28rpx;
   font-weight: 900;
   color: #a33e00;
+}
+
+.timing-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fff9f4 100%);
 }
 
 .time-grid {
@@ -1159,8 +1297,54 @@ async function handleSubmit() {
   color: #a33e00;
 }
 
+.promise-card {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.promise-shell {
+  padding: 30rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, #241714 0%, #59372d 58%, #9e430b 100%);
+  box-shadow: 0 22rpx 48rpx rgba(88, 43, 16, 0.22);
+}
+
+.promise-title {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 40rpx;
+  line-height: 1.18;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.promise-copy {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.75;
+  color: rgba(255, 242, 232, 0.86);
+}
+
+.promise-points {
+  margin-top: 22rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.promise-point {
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
 .scroll-buffer {
-  height: calc(200rpx + env(safe-area-inset-bottom));
+  height: calc(220rpx + env(safe-area-inset-bottom));
 }
 
 .bottom-bar {
@@ -1175,7 +1359,7 @@ async function handleSubmit() {
 .bottom-glass {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 252, 248, 0.9);
   backdrop-filter: blur(24rpx);
   box-shadow: 0 -16rpx 40rpx rgba(26, 28, 28, 0.06);
 }
