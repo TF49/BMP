@@ -61,17 +61,6 @@
               />
             </view>
 
-            <view class="field-card">
-              <text class="field-label">邮箱</text>
-              <input
-                class="field-input"
-                type="text"
-                :value="userInfo.email"
-                placeholder="请输入邮箱"
-                @input="onEmailChange"
-              />
-            </view>
-
             <view class="field-card picker-card">
               <text class="field-label">性别</text>
               <picker mode="selector" :range="genders" :value="userInfo.gender" @change="onGenderChange">
@@ -151,8 +140,7 @@ const userInfo = reactive({
   username: '',
   phone: '',
   gender: 0,
-  birthday: '',
-  email: ''
+  birthday: ''
 })
 
 const userStore = useUserStore()
@@ -176,10 +164,6 @@ const onBirthdayChange = (e: any) => {
   userInfo.birthday = e.detail.value
 }
 
-const onEmailChange = (e: any) => {
-  userInfo.email = e.detail?.value ?? e.target?.value ?? ''
-}
-
 const loadUserInfo = async () => {
   try {
     const user = await getCurrentUser()
@@ -187,8 +171,7 @@ const loadUserInfo = async () => {
       username: user.nickname || user.username || '',
       phone: user.phone || '',
       gender: user.gender ?? 0,
-      birthday: user.birthday || '',
-      email: user.email || ''
+      birthday: user.birthday || ''
     })
   } catch (error) {
     console.error('加载用户信息失败:', error)
@@ -208,8 +191,7 @@ const handleSave = async () => {
       username: userInfo.username,
       phone: userInfo.phone,
       gender: userInfo.gender,
-      birthday: userInfo.birthday,
-      email: userInfo.email
+      birthday: userInfo.birthday
     })
 
     uni.hideLoading()
@@ -221,7 +203,6 @@ const handleSave = async () => {
     if (userStore.userInfo) {
       userStore.userInfo.username = userInfo.username
       userStore.userInfo.phone = userInfo.phone
-      userStore.userInfo.email = userInfo.email
       userStore.userInfo.gender = userInfo.gender
       userStore.userInfo.birthday = userInfo.birthday
     }

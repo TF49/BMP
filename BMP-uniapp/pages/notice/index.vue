@@ -1,89 +1,121 @@
 <template>
-  <view class="notice-page bg-surface min-h-screen pb-24">
-    <scroll-view scroll-y class="main-content" lower-threshold="120" @scrolltolower="loadMore">
-      <!-- Top Navbar -->
-      <view class="w-full bg-[#F8FAFC] flex justify-between items-center px-6 py-4 pb-4 sticky-nav" :style="{ paddingTop: (statusBarHeight || 44) + 'px' }">
-        <view class="text-[#1a1a1a] transition-transform duration-200 w-10 h-10 flex items-center" hover-class="scale-95" @tap="goBack">
-          <uni-icons type="left" size="22" color="#1a1a1a"></uni-icons>
-        </view>
-        <text class="font-bold text-lg text-[#1a1a1a]">通知中心</text>
-        <view class="text-primary text-sm font-bold w-fit whitespace-nowrap transition-transform duration-200" :style="{ marginRight: navBarMarginRight + 'px' }" hover-class="scale-95" @tap="markAllAsRead">
-          <text>全部已读</text>
+  <view class="notice-page">
+    <scroll-view scroll-y class="main-scroll" lower-threshold="120" :show-scrollbar="false" @scrolltolower="loadMore">
+      <view class="topbar" :style="{ paddingTop: `${statusBarHeight || 44}px` }">
+        <view class="topbar-inner">
+          <view class="icon-btn" @tap="goBack">
+            <uni-icons type="left" size="18" color="#ff6600" />
+          </view>
+          <view class="topbar-copy">
+            <text class="topbar-title">通知中心</text>
+            <text class="topbar-sub">INBOX FEED</text>
+          </view>
+          <view class="icon-btn ghost" @tap="markAllAsRead">
+            <uni-icons type="checkmarkempty" size="18" color="#a33e00" />
+          </view>
         </view>
       </view>
 
-      <view class="px-6 space-y-6 pt-6 pb-12">
-        <!-- Title Area -->
-        <view class="flex flex-col gap-1">
-          <text class="text-primary text-xs-10 font-bold tracking-widest uppercase">收件箱动态</text>
-          <text class="text-3xl font-black text-on-surface tracking-tight mt-1">时刻掌握最新动态</text>
+      <view class="page-body">
+        <view class="hero-card">
+          <view class="hero-glow" />
+          <text class="hero-kicker">消息动态</text>
+          <text class="hero-title">时刻掌握最新动态</text>
+          <text class="hero-copy">课程、赛事、充值与系统通知都集中在这里，阅读后会自动记录已读状态。</text>
+          <view class="hero-stats">
+            <view class="stat-chip">
+              <text class="stat-label">Unread</text>
+              <text class="stat-value">{{ unreadCount }}</text>
+            </view>
+            <view class="stat-chip">
+              <text class="stat-label">Total</text>
+              <text class="stat-value">{{ list.length }}</text>
+            </view>
+          </view>
         </view>
 
-        <!-- Tabs（P0：后端无类型字段，仅保留“全部”避免误导） -->
-        <view class="flex flex-row gap-3 mt-6">
-          <view class="tab-pill active">全部</view>
+        <view class="search-card">
+          <view class="search-shell">
+            <uni-icons type="search" size="18" color="#8e7164" />
+            <input
+              v-model.trim="keyword"
+              class="search-input"
+              type="text"
+              placeholder="按标题或内容搜索通知"
+              placeholder-class="search-placeholder"
+              confirm-type="search"
+            />
+          </view>
+          <view class="search-caption">
+            <text>{{ keyword ? `搜索结果 ${visibleList.length} 条` : '按时间倒序展示最近通知' }}</text>
+          </view>
         </view>
 
-        <!-- Notice List -->
-        <view class="flex flex-col gap-4 mt-6">
-          <view v-if="loading && list.length === 0" class="py-8 flex justify-center">
-            <text class="text-xs text-secondary opacity-60 tracking-wider">加载中...</text>
-          </view>
+        <view class="filter-row">
+          <view class="filter-pill active">全部</view>
+          <view class="filter-pill ghost" @tap="markAllAsRead">全部已读</view>
+        </view>
 
-          <view v-else-if="!loading && list.length === 0" class="py-8 flex justify-center">
-            <text class="text-xs text-secondary opacity-60 tracking-wider">暂无通知</text>
-          </view>
+        <view v-if="loading && list.length === 0" class="state-card">
+          <view class="spinner" />
+          <text class="state-title">加载通知中</text>
+          <text class="state-desc">正在同步你的通知列表</text>
+        </view>
 
+        <view v-else-if="!loading && visibleList.length === 0" class="state-card">
+          <text class="state-title">暂无通知</text>
+          <text class="state-desc">{{ keyword ? '没有匹配到相关通知内容' : '当前还没有新的系统通知' }}</text>
+        </view>
+
+        <view v-else class="notice-list">
           <view
-            v-for="item in list"
+            v-for="item in visibleList"
             :key="item.id"
-            class="notice-card shadow-sm flex flex-row p-5 rounded-2xl bg-white relative overflow-hidden active-scale"
-            :class="{ 'border-left-primary': !isRead(item.id) }"
+            class="notice-card"
+            :class="{ unread: !isRead(item.id) }"
             @tap="openDetail(item)"
           >
-            <view class="icon-box" :class="!isRead(item.id) ? 'bg-orange-50 text-orange-600' : 'bg-gray-100 text-gray-500'">
-              <uni-icons type="chatbubble" size="20" :color="!isRead(item.id) ? '#ea580c' : '#64748b'"></uni-icons>
-              <view v-if="!isRead(item.id)" class="red-dot"></view>
+            <view class="notice-accent" />
+            <view class="notice-icon" :class="{ unread: !isRead(item.id) }">
+              <uni-icons type="chatbubble" size="18" :color="!isRead(item.id) ? '#ff6600' : '#64748b'" />
             </view>
-            <view class="flex flex-col flex-1 pl-4">
-              <view class="flex justify-between items-center">
-                <text class="font-bold text-on-surface text-base">{{ item.title }}</text>
-                <text class="text-xs text-secondary opacity-70">{{ formatTime(item.createTime) }}</text>
+            <view class="notice-main">
+              <view class="notice-head">
+                <text class="notice-title">{{ item.title }}</text>
+                <text class="notice-time">{{ formatTime(item.createTime) }}</text>
               </view>
-              <text class="text-sm text-secondary mt-2 leading-relaxed">
-                {{ item.content }}
-              </text>
+              <text class="notice-content">{{ item.content }}</text>
+              <view class="notice-meta">
+                <text>{{ item.publisherName || `系统发布 #${item.publisherId || '-'}` }}</text>
+                <text>{{ isRead(item.id) ? '已读' : '未读' }}</text>
+              </view>
             </view>
           </view>
-
         </view>
 
-        <!-- Bottom Load More -->
-        <view class="py-8 flex justify-center">
-          <text class="text-xs text-secondary opacity-60 tracking-wider">{{ hasMore ? (loading ? '加载中...' : '上拉加载更多') : '没有更多了' }}</text>
+        <view class="load-more">
+          <text>{{ keyword ? '搜索模式下仅展示已加载内容' : hasMore ? (loading ? '加载中...' : '上拉加载更多') : '没有更多了' }}</text>
         </view>
-        
       </view>
-      
-      <!-- Safe Area Spacer -->
-      <view class="h-10"></view>
+
+      <view class="safe-buffer" />
     </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { getNotificationList, type NotificationItem } from '@/api/notification'
 import { safeNavigateBack } from '@/utils/navigation'
 
 const statusBarHeight = ref(44)
-const navBarMarginRight = ref(0) // right margin to avoid capsule
 const loading = ref(false)
 const page = ref(1)
 const size = ref(20)
 const total = ref(0)
 const list = ref<NotificationItem[]>([])
+const keyword = ref('')
 
 const READ_IDS_KEY = 'notice_read_ids_v1'
 const readIds = ref<Set<number>>(new Set())
@@ -93,7 +125,7 @@ function loadReadIds() {
     const raw = uni.getStorageSync(READ_IDS_KEY)
     const arr = Array.isArray(raw) ? raw : []
     readIds.value = new Set(arr.map((x: any) => Number(x)).filter((n: any) => Number.isFinite(n)))
-  } catch (e) {
+  } catch {
     readIds.value = new Set()
   }
 }
@@ -101,7 +133,7 @@ function loadReadIds() {
 function persistReadIds() {
   try {
     uni.setStorageSync(READ_IDS_KEY, Array.from(readIds.value))
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
@@ -116,26 +148,19 @@ function markRead(id: number) {
 }
 
 const hasMore = computed(() => list.value.length < total.value)
+const unreadCount = computed(() => list.value.filter((item) => !isRead(item.id)).length)
 
-onMounted(() => {
+const visibleList = computed(() => {
+  const term = keyword.value.trim().toLowerCase()
+  if (!term) return list.value
+  return list.value.filter((item) => `${item.title} ${item.content}`.toLowerCase().includes(term))
+})
+
+onLoad(() => {
   const systemInfo = uni.getSystemInfoSync()
   statusBarHeight.value = systemInfo.statusBarHeight || 44
-  
-  // #ifdef MP
-  try {
-    const menuInfo = uni.getMenuButtonBoundingClientRect()
-    if (menuInfo) {
-      // menuInfo.left is the left edge of the capsule
-      // Calculate distance to the right screen edge
-      // Subtract 24px because the header has px-6 padding
-      // Add roughly 8px buffer
-      navBarMarginRight.value = Math.max(0, systemInfo.windowWidth - menuInfo.left - 24 + 8) 
-    }
-  } catch (e) {}
-  // #endif
-
   loadReadIds()
-  loadList(false)
+  void loadList(false)
 })
 
 const goBack = () => {
@@ -178,16 +203,16 @@ async function loadList(append: boolean) {
 
 function loadMore() {
   if (loading.value) return
+  if (keyword.value) return
   if (!hasMore.value) return
   page.value += 1
-  loadList(true)
+  void loadList(true)
 }
 
 function openDetail(item: NotificationItem) {
   if (item?.id != null) {
     markRead(item.id)
   }
-  // P0：先仅弹窗查看内容，避免新增详情页路由
   uni.showModal({
     title: item.title || '通知',
     content: item.content || '',
@@ -204,227 +229,354 @@ onPullDownRefresh(() => {
 
 <style lang="scss" scoped>
 .notice-page {
-  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(255, 102, 0, 0.14), transparent 28%),
+    #f9f9f9;
+  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Colors */
-.text-on-surface { color: #1a1a1a; }
-.bg-surface { background-color: #F8FAFC; }
-.text-secondary { color: #64748b; }
-.text-primary { color: #ff6600; }
-.text-white { color: #ffffff; }
-.text-black { color: #000000; }
-.bg-white { background-color: #ffffff; }
-.bg-gray-900 { background-color: #111827; }
-.bg-gray-100 { background-color: #f1f5f9; }
-.text-gray-500 { color: #64748b; }
-.bg-orange-50 { background-color: #fff7ed; }
-.text-orange-600 { color: #ea580c; }
-
-/* Utilities */
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.flex-row { flex-direction: row; }
-.flex-1 { flex: 1; }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-.items-center { align-items: center; }
-.w-full { width: 100%; }
-.h-full { height: 100%; }
-.min-h-screen { min-height: 100vh; }
-.relative { position: relative; }
-.absolute { position: absolute; }
-.z-10 { z-index: 10; }
-.z-20 { z-index: 20; }
-.overflow-hidden { overflow: hidden; }
-.inline-flex { display: inline-flex; }
-.whitespace-nowrap { white-space: nowrap; }
-
-/* Insets and sizes */
-.w-10 { width: 40px; }
-.h-10 { height: 40px; }
-.w-12 { width: 48px; }
-.w-fit { width: fit-content; }
-.w-half { width: 50%; }
-.w-3-quarters { width: 75%; }
-.w-4-fifths { width: 80%; }
-.h-10 { height: 40px; }
-.px-6 { padding-left: 24px; padding-right: 24px; }
-.py-4 { padding-top: 16px; padding-bottom: 16px; }
-.pb-4 { padding-bottom: 16px; }
-.pb-12 { padding-bottom: 48px; }
-.pb-24 { padding-bottom: 96px; }
-.pt-6 { padding-top: 24px; }
-.py-8 { padding-top: 32px; padding-bottom: 32px; }
-.py-2 { padding-top: 8px; padding-bottom: 8px; }
-.px-5 { padding-left: 20px; padding-right: 20px; }
-.p-5 { padding: 20px; }
-.p-6 { padding: 24px; }
-.pl-4 { padding-left: 16px; }
-
-/* Spacing */
-.mt-1 { margin-top: 4px; }
-.mt-2 { margin-top: 8px; }
-.mt-4 { margin-top: 16px; }
-.mt-6 { margin-top: 24px; }
-.gap-1 { gap: 4px; }
-.gap-3 { gap: 12px; }
-.gap-4 { gap: 16px; }
-
-/* Typography */
-.font-bold { font-weight: 700; }
-.font-black { font-weight: 900; }
-.text-3xl { font-size: 28px; line-height: 1.2; }
-.text-2xl { font-size: 24px; }
-.text-xl { font-size: 20px; line-height: 1.4; }
-.text-lg { font-size: 18px; }
-.text-base { font-size: 16px; }
-.text-sm { font-size: 14px; }
-.text-xs { font-size: 12px; }
-.text-xs-10 { font-size: 10px; }
-.tracking-tight { letter-spacing: -0.02em; }
-.tracking-widest { letter-spacing: 0.1em; }
-.tracking-wider { letter-spacing: 0.05em; }
-.uppercase { text-transform: uppercase; }
-.text-right { text-align: right; }
-.leading-relaxed { line-height: 1.6; }
-.leading-snug { line-height: 1.375; }
-
-/* Decorations */
-.rounded-2xl { border-radius: 16px; }
-.rounded-full { border-radius: 9999px; }
-.shadow-sm { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); }
-.shadow-md { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
-.opacity-70 { opacity: 0.7; }
-.opacity-60 { opacity: 0.6; }
-.opacity-40 { opacity: 0.4; }
-.object-cover { object-fit: cover; }
-
-.bg-gradient-to-l {
-  background: linear-gradient(to left, transparent, #111827);
+.main-scroll {
+  min-height: 100vh;
 }
 
-.sticky-nav {
+.topbar {
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 30;
+  background: rgba(249, 249, 249, 0.82);
+  backdrop-filter: blur(20rpx);
 }
 
-/* Custom components */
-.tab-pill {
-  padding: 6px 16px;
-  border-radius: 99px;
-  background-color: #e2e8f0;
-  color: #64748b;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  
-  &.active {
-    background-color: #ea580c;
-    color: white;
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22rpx 24rpx;
+}
+
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.96);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10rpx 28rpx rgba(26, 28, 28, 0.06);
+
+  &.ghost {
+    background: rgba(255, 241, 234, 0.9);
   }
 }
 
-.icon-box {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+.topbar-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.topbar-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.topbar-sub {
+  font-size: 18rpx;
+  font-weight: 800;
+  letter-spacing: 3rpx;
+  color: #8e7164;
+}
+
+.page-body {
+  padding: 12rpx 24rpx 40rpx;
+}
+
+.hero-card {
+  position: relative;
+  padding: 34rpx 28rpx;
+  border-radius: 36rpx;
+  overflow: hidden;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  box-shadow: 0 18rpx 40rpx rgba(163, 62, 0, 0.2);
+}
+
+.hero-glow {
+  position: absolute;
+  right: -80rpx;
+  top: -80rpx;
+  width: 260rpx;
+  height: 260rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  filter: blur(36rpx);
+}
+
+.hero-kicker,
+.hero-title,
+.hero-copy,
+.hero-stats {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-kicker {
+  display: block;
+  font-size: 18rpx;
+  font-weight: 800;
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.hero-title {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 48rpx;
+  line-height: 1.12;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.hero-copy {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 26rpx;
+}
+
+.stat-chip {
+  padding: 18rpx 20rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.stat-label {
+  display: block;
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.search-card {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 14rpx 30rpx rgba(26, 28, 28, 0.05);
+}
+
+.search-shell {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 0 18rpx;
+  min-height: 84rpx;
+  border-radius: 24rpx;
+  background: #faf8f6;
+}
+
+.search-input {
+  flex: 1;
+  min-height: 44rpx;
+  font-size: 26rpx;
+  color: #1a1c1c;
+}
+
+.search-placeholder {
+  color: #8e7164;
+}
+
+.search-caption {
+  margin-top: 16rpx;
+  font-size: 20rpx;
+  color: #6b625c;
+}
+
+.filter-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.filter-pill {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+
+  &.active {
+    background: #ff6600;
+    color: #ffffff;
+  }
+
+  &.ghost {
+    background: #fff1e8;
+    color: #a33e00;
+  }
+}
+
+.state-card {
+  margin-top: 22rpx;
+  padding: 60rpx 40rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 14rpx 30rpx rgba(26, 28, 28, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.spinner {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 999rpx;
+  border: 5rpx solid #ece8e6;
+  border-top-color: #ff6600;
+  animation: spin 0.8s linear infinite;
+}
+
+.state-title {
+  margin-top: 20rpx;
+  font-size: 30rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.state-desc {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #6b625c;
+}
+
+.notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.notice-card {
+  position: relative;
+  display: flex;
+  gap: 16rpx;
+  padding: 26rpx 24rpx;
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14rpx 28rpx rgba(26, 28, 28, 0.05);
+
+  &.unread {
+    background: linear-gradient(180deg, #fff8f3 0%, #ffffff 100%);
+  }
+}
+
+.notice-accent {
+  position: absolute;
+  left: 0;
+  top: 24rpx;
+  bottom: 24rpx;
+  width: 8rpx;
+  border-radius: 0 999rpx 999rpx 0;
+  background: transparent;
+}
+
+.notice-card.unread .notice-accent {
+  background: #a33e00;
+}
+
+.notice-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 22rpx;
+  background: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
 
-.icon-lg {
-  font-size: 24px;
-}
-
-.red-dot {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 8px;
-  height: 8px;
-  background-color: #ea580c;
-  border-radius: 50%;
-  border: 2px solid #fff7ed;
-}
-
-.border-left-primary::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 60%;
-  width: 4px;
-  background-color: #a33e00;
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-}
-
-.premium-card {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
-
-.premium-bg-circle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.12;
-}
-
-.premium-bg-circle-1 {
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle, #ea580c 0%, transparent 70%);
-  top: -40px;
-  right: -30px;
-}
-
-.premium-bg-circle-2 {
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(circle, #ff6600 0%, transparent 70%);
-  bottom: -30px;
-  right: 40px;
-  opacity: 0.08;
-}
-
-.premium-bg-line {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.06);
-  transform: rotate(-35deg);
-}
-
-.premium-bg-line-1 {
-  width: 200px;
-  height: 1px;
-  top: 30px;
-  right: -20px;
-}
-
-.premium-bg-line-2 {
-  width: 160px;
-  height: 1px;
-  top: 50px;
-  right: -10px;
-}
-
-.active-scale {
-  transition: transform 0.2s ease;
-  &:active {
-    transform: scale(0.98);
+  &.unread {
+    background: #fff1e8;
   }
 }
 
-.scale-95 {
-  transform: scale(0.95);
+.notice-main {
+  flex: 1;
+  min-width: 0;
 }
-.transition-transform {
-  transition-property: transform;
+
+.notice-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
 }
-.duration-200 {
-  transition-duration: 200ms;
+
+.notice-title {
+  flex: 1;
+  font-size: 28rpx;
+  line-height: 1.45;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.notice-time {
+  font-size: 20rpx;
+  color: #8e7164;
+  white-space: nowrap;
+}
+
+.notice-content {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #6b625c;
+}
+
+.notice-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 16rpx;
+  font-size: 20rpx;
+  color: #8e7164;
+}
+
+.load-more {
+  padding: 32rpx 0;
+  text-align: center;
+  font-size: 20rpx;
+  color: #6b625c;
+}
+
+.safe-buffer {
+  height: 40rpx;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

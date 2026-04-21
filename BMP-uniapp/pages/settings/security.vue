@@ -26,7 +26,7 @@
             </view>
             <view class="hero-copy">
               <text class="hero-title">{{ securityLevelText }}</text>
-              <text class="hero-sub">建议补齐手机号、邮箱和登录保护项</text>
+              <text class="hero-sub">建议补齐手机号和登录保护项</text>
             </view>
           </view>
           <view class="hero-progress">
@@ -71,26 +71,6 @@
             <view class="list-right">
               <text class="status-text" :class="{ verified: !!userInfo.phone }">
                 {{ userInfo.phone ? '已绑定' : '未绑定' }}
-              </text>
-              <uni-icons type="right" size="18" color="#94a3b8" />
-            </view>
-          </view>
-
-          <view class="divider" />
-
-          <view class="list-row" @tap="handleBindEmail">
-            <view class="list-left">
-              <view class="list-icon rose">
-                <uni-icons type="email" size="20" color="#a33e00" />
-              </view>
-              <view>
-                <text class="list-title">绑定邮箱</text>
-                <text class="list-desc">{{ userInfo.email || '绑定邮箱可接收重要通知' }}</text>
-              </view>
-            </view>
-            <view class="list-right">
-              <text class="status-text" :class="{ verified: !!userInfo.email }">
-                {{ userInfo.email ? '已绑定' : '未绑定' }}
               </text>
               <uni-icons type="right" size="18" color="#94a3b8" />
             </view>
@@ -173,7 +153,7 @@
             </view>
             <view class="tip-item">
               <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
-              <text>绑定手机和邮箱以便找回账户</text>
+              <text>绑定手机号以便找回账户</text>
             </view>
           </view>
         </view>
@@ -196,8 +176,7 @@ const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 56)
 
 const userInfo = reactive({
-  phone: '',
-  email: ''
+  phone: ''
 })
 
 const settings = reactive({
@@ -216,7 +195,6 @@ const securityProgress = computed(() => {
   let progress = 0
   progress += 30
   if (userInfo.phone) progress += 25
-  if (userInfo.email) progress += 25
   if (settings.biometricLogin || settings.gesturePassword) progress += 20
   return Math.min(progress, 100)
 })
@@ -273,7 +251,6 @@ async function loadUserInfo() {
   try {
     const user = await getCurrentUser()
     userInfo.phone = user.phone || ''
-    userInfo.email = user.email || ''
   } catch (error) {
     console.error('加载用户信息失败:', error)
   }
@@ -285,10 +262,6 @@ function handleChangePassword() {
 
 function handleBindPhone() {
   uni.showToast({ title: '手机号绑定功能开发中', icon: 'none' })
-}
-
-function handleBindEmail() {
-  uni.showToast({ title: '邮箱绑定功能开发中', icon: 'none' })
 }
 
 function handleBack() {

@@ -62,7 +62,11 @@
 | 消费记录 | `pages/profile/records.vue` | 已是 Stitch | 已按账单原型重做：橙色顶栏、账单周期卡、三类消费统计、退款双金额样式、历史记录按钮，和钱包链路视觉统一 |
 | 安全设置 | `pages/settings/security.vue` | 已是 Stitch | 复用会长端修改密码页与安全卡片语言：安全等级 hero、账户安全卡、高级安全开关与登录记录分组已统一为 Stitch 风格 |
 | 设置中心 | `pages/settings/index.vue` | 已是 Stitch | 已按用户端设置中心重构：品牌顶栏、橙色身份 hero、分组设置卡、偏好区与退出登录区已统一为 Stitch 风格 |
+| 账户设置 | `pages/settings/account.vue` | 已是 Stitch | 已按用户端独立逻辑重构：品牌顶栏、账户 hero、身份资料双列表单、手机号入口与安全入口区已统一为 Stitch 风格，并保留用户端资料保存逻辑 |
+| 我的 | `pages/profile/index.vue` | 已是 Stitch | 已按用户端独立逻辑重构：品牌 hero、账户统计条、会员入口、常用功能宫格与账户记录分组列表已统一为 Stitch 风格 |
 | 个人信息 | `pages/profile/info.vue` | 已是 Stitch | 已按用户资料编辑页重构：品牌头图、资料卡片网格、账号安全快捷入口与底部保存按钮已统一为 Stitch 风格 |
+| 会员信息 | `pages/profile/member.vue` | 已是 Stitch | 已升级为品牌化会员中心：会员身份卡、权益分组、成长信息与操作区已统一到新版 Stitch 风格 |
+| 通知中心 | `pages/notice/index.vue` | 已是 Stitch | 已升级为品牌化通知中心：摘要信息卡、通知列表卡和阅读型内容结构已统一到 Stitch 风格 |
 | 用户端底部导航 | `components/CustomTabBar/CustomTabBar.vue` | 已是 Stitch 配套组件 | 玻璃态底栏、橙色激活态、整体形态与新版页面一致 |
 
 ### 这一类页面的共同特征
@@ -80,8 +84,6 @@
 
 | 页面 | 路径 | 分类判断 | 主要原因 |
 | --- | --- | --- | --- |
-| 我的 | `pages/profile/index.vue` | 半 Stitch | 品牌色明显，但更像独立个人中心视觉稿，不完全是 Stitch 页面结构 |
-| 通知中心 | `pages/notice/index.vue` | 半 Stitch | 已使用橙色品牌体系，但更偏内容页整理，不是典型 Stitch hero/card 流程页 |
 | 登录 | `pages/login/login.vue` | 半 Stitch | 品牌包装很强，但属于入口页视觉体系，与 Stitch 列表页语言不同 |
 | 注册 | `pages/register/register.vue` | 半 Stitch | 与登录页同系，品牌化明显，但不完全属于 Stitch 主内容结构 |
 | 找回密码 | `pages/recover/recover.vue` | 半 Stitch | 与登录注册同系，品牌感强，但更偏入口页 |
@@ -105,14 +107,12 @@
 
 | 页面 | 路径 | 分类判断 | 原因 |
 | --- | --- | --- | --- |
-| 账户设置 | `pages/settings/account.vue` | 非 Stitch | 旧资料编辑页 |
 | 通知设置 | `pages/settings/notification.vue` | 非 Stitch | 旧开关列表页结构 |
 | 隐私设置 | `pages/settings/privacy.vue` | 非 Stitch | 旧设置页样式 |
 | 关于我们 | `pages/settings/about.vue` | 非 Stitch | 旧信息展示页样式 |
 | 帮助 / FAQ / 反馈等设置子页 | `pages/settings/*` | 非 Stitch | 大部分仍属旧业务页体系 |
 | 搜索首页 | `pages/search/index.vue` | 非 Stitch | 搜索结构传统，绿色图标与旧业务页气质明显 |
 | 搜索结果 | `pages/search/result.vue` | 非 Stitch | 结果列表仍未纳入 Stitch 体系 |
-| 会员信息 | `pages/profile/member.vue` | 非 Stitch | 绿色会员卡 + 旧版 section 结构，非 Stitch |
 
 ### 2. 穿线模块
 
@@ -177,7 +177,7 @@
 2. `pages/venue/booking.vue`
 3. `pages/profile/member.vue`
 4. `pages/notice/index.vue`
-5. `pages/profile/index.vue`
+5. `pages/search/index.vue`
 
 原因：
 
@@ -188,11 +188,11 @@
 
 建议处理：
 
-1. `pages/settings/account.vue`
-2. `pages/settings/notification.vue`
-3. `pages/settings/privacy.vue`
-4. `pages/settings/about.vue`
-5. `pages/settings/help.vue`
+1. `pages/settings/notification.vue`
+2. `pages/settings/privacy.vue`
+3. `pages/settings/about.vue`
+4. `pages/settings/help.vue`
+5. `pages/search/result.vue`
 
 原因：
 
@@ -206,8 +206,8 @@
 1. `pages/search/index.vue`
 2. `pages/search/result.vue`
 3. `pages/stringing/query.vue`
-4. `pages/profile/member.vue`
-5. `pages/settings/account.vue`
+4. `pages/settings/privacy.vue`
+5. `pages/settings/about.vue`
 
 原因：
 
@@ -234,10 +234,11 @@
 
 | 用户端页面 | 当前状态 | 可复用的会长端页面 | 复用建议 |
 | --- | --- | --- | --- |
-| `pages/notice/index.vue` | 半 Stitch | `pages/president/notification/list.vue` | 会长端通知列表的搜索卡、通知卡、时间信息区可以复用，但需去掉“发布 / 编辑 / 删除”，改成纯阅读型通知中心 |
-| `pages/profile/index.vue` | 半 Stitch | `pages/president/profile/index.vue` | 会长端个人中心已经有不错的分组卡片和入口列表，但内容是经营工作台逻辑。适合借用“顶部身份区 + 分组入口卡”布局，不适合直接照搬功能内容 |
+| `pages/notice/index.vue` | 已是 Stitch | `pages/president/notification/list.vue` | 已完成用户端重写：借用了通知卡、时间区和摘要骨架，但已切回用户端阅读型通知中心逻辑 |
+| `pages/profile/index.vue` | 已是 Stitch | `pages/president/profile/index.vue` | 已完成用户端重写：借用了顶部身份区和分组入口卡骨架，但菜单入口、账户数据和跳转均保留用户端实现 |
 | `pages/profile/info.vue` | 已是 Stitch | `pages/president/profile/index.vue`、`pages/president/profile/change-password.vue` | 已完成用户端重写：借用了留白、卡片和安全区节奏，但字段、跳转、按钮行为均已切回用户端逻辑 |
 | `pages/settings/index.vue` | 已是 Stitch | `pages/president/profile/index.vue` | 已完成用户端重写：借用了分组列表卡视觉骨架，但入口、跳转和偏好设置逻辑全部为用户端实现 |
+| `pages/settings/account.vue` | 已是 Stitch | `pages/president/profile/index.vue`、`pages/president/profile/change-password.vue` | 已完成用户端重写：借用了资料卡与安全入口节奏，但资料保存、手机号入口和跳转均保留用户端逻辑 |
 
 ### 3. 不建议直接复用会长端的页面
 
@@ -260,15 +261,15 @@
 2. `pages/profile/member.vue`
    对应会长端：`pages/president/member/recharge.vue`
    原因：会员身份卡、权益卡、价格或等级区块的表达方式具备较高复用价值。
-3. `pages/notice/index.vue`
-   对应会长端：`pages/president/notification/list.vue`
-   原因：列表骨架成熟，适合快速统一通知中心的视觉样式。
-4. `pages/profile/index.vue`
+3. `pages/profile/index.vue`
    对应会长端：`pages/president/profile/index.vue`
    原因：顶部身份区和分组入口卡仍有较高复用价值，但必须保留用户端自己的菜单入口。
-5. `pages/settings/account.vue`
+4. `pages/settings/account.vue`
    对应会长端：`pages/president/profile/change-password.vue`
    原因：资料表单、信息卡与操作节奏可以继续借鉴，但字段与绑定逻辑必须保留用户端实现。
+5. `pages/settings/notification.vue`
+   对应会长端：`pages/president/notification/list.vue`
+   原因：通知列表与设置切换结构仍有较高复用价值，但要改成用户端偏好配置语义。
 
 ### 5. 一句话策略
 
@@ -314,4 +315,4 @@
 
 ## 八、一句话结论
 
-当前 `BMP-uniapp` 用户端已经完成多条核心业务链路的 Stitch 化，课程、赛事、器材、充值、穿线主链路都已有新版页面承接，且设置中心与个人资料页也已进入新版体系；接下来最值得继续推进的是场馆链路收尾、会员页、通知页与搜索页，把 Stitch 风格从核心交易流程继续扩展到用户端日常高频区域。
+当前 `BMP-uniapp` 用户端已经完成多条核心业务链路的 Stitch 化，课程、赛事、器材、充值、穿线主链路都已有新版页面承接，且我的页、账户设置、会员页、通知中心、设置中心与个人资料页都已进入新版体系；接下来最值得继续推进的是搜索页、设置子页与穿线查询页，把 Stitch 风格从核心交易流程继续扩展到用户端日常高频区域。

@@ -1,104 +1,141 @@
 <template>
   <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">会员信息</text>
-        <view class="header-placeholder"></view>
+    <view class="member-page">
+      <view class="topbar">
+        <view class="topbar-inner">
+          <view class="icon-btn" @click="handleBack">
+            <uni-icons type="left" size="18" color="#ff6600" />
+          </view>
+          <view class="topbar-copy">
+            <text class="topbar-title">会员信息</text>
+            <text class="topbar-sub">MEMBER PROFILE</text>
+          </view>
+          <view class="icon-btn ghost" @click="handleRecharge">
+            <uni-icons type="wallet" size="18" color="#a33e00" />
+          </view>
+        </view>
       </view>
+
+      <scroll-view class="page-scroll" scroll-y :show-scrollbar="false">
+        <view class="member-hero">
+          <view class="member-hero-glow" />
+          <view class="member-hero-head">
+            <view class="member-avatar">
+              <uni-icons type="vip" size="30" color="#ffffff" />
+            </view>
+            <view class="member-meta">
+              <text class="member-name">{{ memberInfo.memberName || '未设置会员名' }}</text>
+              <text class="member-type">{{ memberTypeLabel }}</text>
+            </view>
+            <view class="level-pill">Lv.{{ memberInfo.memberLevel || 1 }}</view>
+          </view>
+
+          <view class="balance-block">
+            <text class="balance-label">Available Balance</text>
+            <view class="balance-row">
+              <text class="balance-currency">¥</text>
+              <text class="balance-value">{{ formatCurrency(memberInfo.balance || 0) }}</text>
+            </view>
+          </view>
+
+          <view class="member-stats">
+            <view class="stat-card">
+              <text class="stat-title">Recharge</text>
+              <text class="stat-value">¥{{ formatCurrency(memberInfo.totalRecharge || 0) }}</text>
+            </view>
+            <view class="stat-card">
+              <text class="stat-title">Consumption</text>
+              <text class="stat-value">¥{{ formatCurrency(memberInfo.totalConsumption || 0) }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Identity</text>
+              <text class="section-title">会员档案</text>
+            </view>
+          </view>
+
+          <view class="info-grid">
+            <view class="info-item">
+              <text class="info-label">会员姓名</text>
+              <text class="info-value">{{ memberInfo.memberName || '未设置' }}</text>
+            </view>
+            <view class="info-item">
+              <text class="info-label">手机号</text>
+              <text class="info-value">{{ memberInfo.phone || '未设置' }}</text>
+            </view>
+            <view class="info-item">
+              <text class="info-label">会员类型</text>
+              <text class="info-value">{{ memberTypeLabel }}</text>
+            </view>
+            <view class="info-item">
+              <text class="info-label">会员等级</text>
+              <text class="info-value">Lv.{{ memberInfo.memberLevel || 1 }}</text>
+            </view>
+            <view class="info-item full">
+              <text class="info-label">注册时间</text>
+              <text class="info-value">{{ formatDate(memberInfo.createTime) }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-card">
+          <view class="section-head compact">
+            <view>
+              <text class="section-kicker">Benefits</text>
+              <text class="section-title">会员权益</text>
+            </view>
+          </view>
+
+          <view class="benefit-list">
+            <view v-for="item in benefitList" :key="item.title" class="benefit-item">
+              <view class="benefit-icon" :style="{ background: item.bgColor }">
+                <uni-icons :type="item.icon" size="18" :color="item.iconColor" />
+              </view>
+              <view class="benefit-copy">
+                <text class="benefit-title">{{ item.title }}</text>
+                <text class="benefit-desc">{{ item.desc }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-card action-card">
+          <view class="section-head compact">
+            <view>
+              <text class="section-kicker">Actions</text>
+              <text class="section-title">常用操作</text>
+            </view>
+          </view>
+
+          <view class="action-grid">
+            <view class="action-tile primary" @click="handleRecharge">
+              <view class="action-icon filled">
+                <uni-icons type="wallet" size="18" color="#ffffff" />
+              </view>
+              <text class="action-name">立即充值</text>
+              <text class="action-desc">快速补充余额用于预约和消费</text>
+            </view>
+
+            <view class="action-tile" @click="goConsumeRecords">
+              <view class="action-icon">
+                <uni-icons type="bars" size="18" color="#ff6600" />
+              </view>
+              <text class="action-name">消费记录</text>
+              <text class="action-desc">查看余额变动和历史消费明细</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
     </view>
-
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Member Card -->
-      <view class="member-card">
-        <view class="member-header">
-          <view class="member-avatar">
-            <uni-icons type="vip" size="28" color="#f59e0b" class="avatar-icon"></uni-icons>
-          </view>
-          <view class="member-info">
-            <text class="member-name">{{ memberInfo.memberName || '未设置' }}</text>
-            <text class="member-type">{{ getMemberTypeText(memberInfo.memberType) }}</text>
-          </view>
-        </view>
-        <view class="member-stats">
-          <view class="stat-item">
-            <text class="stat-value">¥{{ formatCurrency(memberInfo.balance || 0) }}</text>
-            <text class="stat-label">账户余额</text>
-          </view>
-          <view class="stat-divider"></view>
-          <view class="stat-item">
-            <text class="stat-value">{{ memberInfo.memberLevel || 1 }}</text>
-            <text class="stat-label">会员等级</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Member Details -->
-      <view class="section details-section">
-        <view class="detail-item">
-          <text class="detail-label">会员姓名</text>
-          <text class="detail-value">{{ memberInfo.memberName || '未设置' }}</text>
-        </view>
-        <view class="divider"></view>
-        <view class="detail-item">
-          <text class="detail-label">手机号</text>
-          <text class="detail-value">{{ memberInfo.phone || '未设置' }}</text>
-        </view>
-        <view class="divider"></view>
-        <view class="detail-item">
-          <text class="detail-label">会员类型</text>
-          <text class="detail-value">{{ getMemberTypeText(memberInfo.memberType) }}</text>
-        </view>
-        <view class="divider"></view>
-        <view class="detail-item">
-          <text class="detail-label">会员等级</text>
-          <text class="detail-value">Lv.{{ memberInfo.memberLevel || 1 }}</text>
-        </view>
-        <view class="divider"></view>
-        <view class="detail-item">
-          <text class="detail-label">账户余额</text>
-          <text class="detail-value balance">¥{{ formatCurrency(memberInfo.balance || 0) }}</text>
-        </view>
-        <view class="divider"></view>
-        <view class="detail-item">
-          <text class="detail-label">注册时间</text>
-          <text class="detail-value">{{ formatDate(memberInfo.createTime) }}</text>
-        </view>
-      </view>
-
-      <!-- Member Benefits -->
-      <view class="section benefits-section">
-        <text class="section-title">会员权益</text>
-        <view class="benefits-list">
-          <view class="benefit-item">
-            <uni-icons type="gift" size="20" color="#3cc51f" class="benefit-icon"></uni-icons>
-            <text class="benefit-text">订场享受会员折扣</text>
-          </view>
-          <view class="benefit-item">
-            <uni-icons type="star-filled" size="20" color="#3cc51f" class="benefit-icon"></uni-icons>
-            <text class="benefit-text">优先预订热门场地</text>
-          </view>
-          <view class="benefit-item">
-            <uni-icons type="medal" size="20" color="#3cc51f" class="benefit-icon"></uni-icons>
-            <text class="benefit-text">专属客服服务</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Actions -->
-      <view class="actions-section">
-        <button class="recharge-btn" @click="handleRecharge">
-          立即充值
-        </button>
-      </view>
-    </scroll-view>
   </MobileLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { getMemberInfo } from '@/api/member'
@@ -106,7 +143,6 @@ import { safeNavigateBack } from '@/utils/navigation'
 
 const userStore = useUserStore()
 
-// 会员信息
 const memberInfo = reactive({
   id: 0,
   memberName: '',
@@ -117,294 +153,459 @@ const memberInfo = reactive({
   memberLevel: 1,
   balance: 0,
   status: 1,
-  createTime: ''
+  createTime: '',
+  totalRecharge: 0,
+  totalConsumption: 0
 })
 
-// 获取会员类型文本
-const getMemberTypeText = (type: string) => {
-  const typeMap: Record<string, string> = {
-    'NORMAL': '普通会员',
-    'VIP': 'VIP会员',
-    'GOLD': '黄金会员',
-    'PLATINUM': '白金会员',
-    'DIAMOND': '钻石会员'
+const benefitList = [
+  {
+    title: '会员折扣',
+    desc: '订场、课程和部分服务享受会员专属折扣。',
+    icon: 'gift',
+    bgColor: 'rgba(255, 102, 0, 0.12)',
+    iconColor: '#ff6600'
+  },
+  {
+    title: '优先预约',
+    desc: '热门时段与热门场馆可更早进入预约节奏。',
+    icon: 'star-filled',
+    bgColor: 'rgba(0, 98, 161, 0.12)',
+    iconColor: '#0062a1'
+  },
+  {
+    title: '专属服务',
+    desc: '会员身份可享受更完整的服务支持与活动权益。',
+    icon: 'medal',
+    bgColor: 'rgba(163, 62, 0, 0.12)',
+    iconColor: '#a33e00'
   }
-  return typeMap[type] || '普通会员'
-}
+] as const
 
-// 格式化金额
-const formatCurrency = (amount: number) => {
-  return amount.toFixed(2)
-}
+const memberTypeLabel = computed(() => {
+  const typeMap: Record<string, string> = {
+    NORMAL: '普通会员',
+    MEMBER: '正式会员',
+    VIP: 'VIP会员',
+    GOLD: '黄金会员',
+    PLATINUM: '白金会员',
+    DIAMOND: '钻石会员'
+  }
+  return typeMap[memberInfo.memberType] || '普通会员'
+})
 
-// 格式化日期
+const formatCurrency = (amount: number) => Number(amount || 0).toFixed(2)
+
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '未知'
   const date = new Date(dateStr)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-// 加载会员信息
 const loadMemberInfo = async () => {
   try {
     if (!userStore.userId) {
-      uni.showToast({
-        title: '请先登录',
-        icon: 'none'
-      })
-      uni.redirectTo({
-        url: '/pages/login/login'
-      })
+      uni.showToast({ title: '请先登录', icon: 'none' })
+      uni.redirectTo({ url: '/pages/login/login' })
       return
     }
 
     const info = await getMemberInfo(userStore.userId)
-    Object.assign(memberInfo, info)
+    Object.assign(memberInfo, {
+      ...info,
+      totalRecharge: info.totalRecharge || 0,
+      totalConsumption: info.totalConsumption || 0
+    })
   } catch (error) {
     console.error('加载会员信息失败:', error)
-    uni.showToast({
-      title: '加载会员信息失败',
-      icon: 'none'
-    })
+    uni.showToast({ title: '加载会员信息失败', icon: 'none' })
   }
 }
 
-// 跳转到充值页面
 const handleRecharge = () => {
-  uni.navigateTo({
-    url: '/pages/recharge/index'
-  })
+  uni.navigateTo({ url: '/pages/recharge/index' })
 }
 
-// 返回上一页
+const goConsumeRecords = () => {
+  uni.navigateTo({ url: '/pages/profile/records' })
+}
+
 const handleBack = () => {
   safeNavigateBack()
 }
 
-// 页面加载时获取数据
 onMounted(async () => {
-  // 检查用户是否已登录
   if (!userStore.isLoggedIn) {
-    uni.redirectTo({
-      url: '/pages/login/login'
-    })
+    uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  
+
   await loadMemberInfo()
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.member-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(255, 102, 0, 0.14), transparent 28%),
+    #f9f9f9;
 }
 
-.header-content {
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(249, 249, 249, 0.82);
+  backdrop-filter: blur(20rpx);
+}
+
+.topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 22rpx 24rpx;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
-}
-
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
-}
-
-.header-placeholder {
-  width: 56rpx;
-}
-
-.content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
-  padding: 24rpx;
-}
-
-.member-card {
-  background: linear-gradient(135deg, #3cc51f 0%, #4ade80 100%);
-  border-radius: 24rpx;
-  padding: 40rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 12rpx rgba(60, 197, 31, 0.3);
-}
-
-.member-header {
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.96);
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  margin-bottom: 32rpx;
+  justify-content: center;
+  box-shadow: 0 10rpx 28rpx rgba(26, 28, 28, 0.06);
+
+  &.ghost {
+    background: rgba(255, 241, 234, 0.9);
+  }
+}
+
+.topbar-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.topbar-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.topbar-sub {
+  font-size: 18rpx;
+  font-weight: 800;
+  letter-spacing: 3rpx;
+  color: #8e7164;
+}
+
+.page-scroll {
+  height: calc(100vh - 196rpx);
+  padding: 0 24rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.member-hero {
+  position: relative;
+  margin-top: 12rpx;
+  padding: 34rpx 28rpx;
+  border-radius: 36rpx;
+  overflow: hidden;
+  background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  box-shadow: 0 18rpx 40rpx rgba(163, 62, 0, 0.2);
+}
+
+.member-hero-glow {
+  position: absolute;
+  right: -80rpx;
+  top: -80rpx;
+  width: 260rpx;
+  height: 260rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  filter: blur(36rpx);
+}
+
+.member-hero-head,
+.balance-block,
+.member-stats {
+  position: relative;
+  z-index: 1;
+}
+
+.member-hero-head {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
 }
 
 .member-avatar {
   width: 96rpx;
   height: 96rpx;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3rpx solid rgba(255, 255, 255, 0.3);
+  border: 2rpx solid rgba(255, 255, 255, 0.32);
 }
 
-.avatar-icon {
-  font-size: 48rpx;
-  color: #ffffff;
-}
-
-.member-info {
+.member-meta {
   flex: 1;
-  color: #ffffff;
+  min-width: 0;
 }
 
 .member-name {
-  font-size: 32rpx;
-  font-weight: bold;
   display: block;
-  margin-bottom: 8rpx;
-}
-
-.member-type {
-  font-size: 24rpx;
-  opacity: 0.9;
-  display: block;
-}
-
-.member-stats {
-  display: flex;
-  justify-content: space-around;
-  padding-top: 24rpx;
-  border-top: 1rpx solid rgba(255, 255, 255, 0.2);
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.stat-value {
-  font-size: 32rpx;
-  font-weight: bold;
+  font-size: 36rpx;
+  font-weight: 900;
   color: #ffffff;
 }
 
-.stat-label {
+.member-type {
+  display: block;
+  margin-top: 8rpx;
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.86);
 }
 
-.stat-divider {
-  width: 2rpx;
-  height: 60rpx;
-  background-color: rgba(255, 255, 255, 0.2);
+.level-pill {
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.section {
-  background-color: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+.balance-block {
+  margin-top: 28rpx;
 }
 
-.details-section {
-  padding: 0;
+.balance-label {
+  display: block;
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
 }
 
-.detail-item {
+.balance-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24rpx 32rpx;
+  align-items: baseline;
+  gap: 4rpx;
+  margin-top: 10rpx;
 }
 
-.detail-label {
+.balance-currency {
   font-size: 24rpx;
-  color: #666666;
+  color: #ffffff;
 }
 
-.detail-value {
-  font-size: 24rpx;
-  color: #333333;
-  font-weight: 500;
-  
-  &.balance {
-    color: #3cc51f;
-    font-weight: bold;
+.balance-value {
+  font-size: 58rpx;
+  line-height: 1;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.member-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.stat-card {
+  padding: 18rpx 20rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.stat-title {
+  display: block;
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.section-card {
+  margin-top: 24rpx;
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 14rpx 30rpx rgba(26, 28, 28, 0.05);
+}
+
+.section-head {
+  margin-bottom: 20rpx;
+
+  &.compact {
+    margin-bottom: 14rpx;
   }
 }
 
-.divider {
-  height: 1rpx;
-  background-color: #f3f4f6;
-  margin: 0 32rpx;
+.section-kicker {
+  display: block;
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #a33e00;
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
 }
 
-.benefits-section {
-  .section-title {
-    font-size: 28rpx;
-    font-weight: bold;
-    color: #333333;
-    display: block;
-    margin-bottom: 24rpx;
+.section-title {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.info-item {
+  padding: 22rpx 20rpx;
+  border-radius: 28rpx;
+  background: #faf8f6;
+
+  &.full {
+    grid-column: 1 / -1;
   }
 }
 
-.benefits-list {
+.info-label {
+  display: block;
+  font-size: 18rpx;
+  font-weight: 800;
+  color: #8e7164;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.info-value {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.5;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+
+.benefit-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
 .benefit-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16rpx;
+  padding: 20rpx;
+  border-radius: 24rpx;
+  background: #faf8f6;
 }
 
 .benefit-icon {
-  font-size: 32rpx;
-}
-
-.benefit-text {
-  font-size: 24rpx;
-  color: #666666;
-}
-
-.actions-section {
-  margin-top: 24rpx;
-}
-
-.recharge-btn {
-  width: 100%;
-  background: linear-gradient(135deg, #3cc51f 0%, #4ade80 100%);
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: bold;
-  padding: 24rpx;
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 18rpx;
-  border: none;
-  box-shadow: 0 4rpx 12rpx rgba(60, 197, 31, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.benefit-copy {
+  flex: 1;
+}
+
+.benefit-title {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.benefit-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.55;
+  color: #6b625c;
+}
+
+.action-card {
+  margin-bottom: 32rpx;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.action-tile {
+  min-height: 208rpx;
+  padding: 22rpx 18rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2rpx solid rgba(255, 102, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+
+  &.primary {
+    background: linear-gradient(180deg, #fff3eb 0%, #ffffff 100%);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.action-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 102, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.filled {
+    background: linear-gradient(135deg, #a33e00 0%, #ff6600 100%);
+  }
+}
+
+.action-name {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.action-desc {
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  line-height: 1.6;
+  color: #6b625c;
 }
 </style>

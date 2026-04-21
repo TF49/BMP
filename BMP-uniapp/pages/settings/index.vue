@@ -160,8 +160,7 @@ const userInfo = ref({
   username: '',
   role: '',
   avatar: '',
-  phone: '',
-  email: ''
+  phone: ''
 })
 
 const userStore = useUserStore()
@@ -235,15 +234,12 @@ const supportMenus = [
 
 const roleLabel = computed(() => userInfo.value.role || '普通用户')
 const levelBadge = computed(() => {
-  if (userInfo.value.phone && userInfo.value.email) return '完整档案'
-  if (userInfo.value.phone || userInfo.value.email) return '待完善'
+  if (userInfo.value.phone) return '待完善'
   return '新用户'
 })
 
 const securityLabel = computed(() => {
-  const score = [userInfo.value.phone, userInfo.value.email].filter(Boolean).length
-  if (score === 2) return 'Strong'
-  if (score === 1) return 'Medium'
+  if (userInfo.value.phone) return 'Medium'
   return 'Basic'
 })
 
@@ -254,8 +250,7 @@ const loadUserInfo = async () => {
       username: user.nickname || user.username || '',
       role: user.role || '普通用户',
       avatar: user.avatar || '',
-      phone: user.phone || '',
-      email: user.email || ''
+      phone: user.phone || ''
     }
   } catch (error) {
     console.error('加载用户信息失败:', error)
