@@ -108,7 +108,6 @@ pages/settings/account.vue(259,26): error TS2339: Property 'email' does not exis
 pages/settings/account.vue(260,26): error TS2339: Property 'gender' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
 pages/settings/account.vue(261,26): error TS2339: Property 'birthday' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
 pages/settings/account.vue(275,3): error TS2304: Cannot find name 'safeNavigateBack'.
-pages/settings/change-phone.vue(78,46): error TS2339: Property 'phone' does not exist on type '{ id: number; username: string; role: string; status: number; avatar?: string | undefined; venueId?: number | undefined; }'.
 pages/settings/notification.vue(134,3): error TS2322: Type 'boolean' is not assignable to type 'never'.
 pages/settings/security.vue(300,27): error TS2339: Property 'phone' does not exist on type 'UserInfo'.
 pages/settings/security.vue(301,27): error TS2339: Property 'email' does not exist on type 'UserInfo'.

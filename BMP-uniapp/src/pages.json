@@ -579,13 +579,6 @@
         "navigationStyle": "custom"
       }
     },
-    {
-      "path": "pages/settings/change-phone",
-      "style": {
-        "navigationBarTitleText": "更换手机号",
-        "navigationStyle": "custom"
-      }
-    },
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

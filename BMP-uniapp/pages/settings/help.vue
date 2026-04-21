@@ -1,246 +1,261 @@
 <template>
-  <MobileLayout>
-    <!-- Header -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">帮助与反馈</text>
-        <view class="header-placeholder"></view>
-      </view>
+  <MobileLayout className="help-shell">
+    <view class="help-page">
+      <scroll-view scroll-y class="page-scroll" :show-scrollbar="false">
+        <view class="content">
+          <view class="hero-card">
+            <view class="hero-top">
+              <view class="hero-brand" @tap="handleBack">
+                <uni-icons type="left" size="18" color="#a33e00" />
+                <text class="hero-brand-text">KINETIC LOGIC</text>
+              </view>
+              <text class="hero-side-label">HELP DESK</text>
+            </view>
+
+            <view class="hero-copy">
+              <text class="hero-eyebrow">SUPPORT CENTER</text>
+              <text class="hero-title">把会长端帮助入口升级到同一套 Stitch 主题里</text>
+              <text class="hero-subtitle">
+                这个页面继续保留给会长端帮助入口使用，承接常见说明、联系方式和反馈提交，不影响用户端独立帮助页。
+              </text>
+            </view>
+
+            <view class="hero-grid">
+              <view class="hero-metric">
+                <text class="metric-label">FAQ</text>
+                <text class="metric-value">{{ faqs.length }} 项常见问题</text>
+              </view>
+              <view class="hero-metric">
+                <text class="metric-label">SERVICE</text>
+                <text class="metric-value">09:00 - 21:00 在线支持</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="panel-card">
+            <view class="panel-head">
+              <view>
+                <text class="panel-title">快捷入口</text>
+                <text class="panel-subtitle">遇到问题时先给你一条最快的处理路径。</text>
+              </view>
+              <text class="panel-tag">QUICK ACTIONS</text>
+            </view>
+
+            <view class="quick-grid">
+              <view class="quick-card" @tap="handleFeedback">
+                <text class="quick-title">意见反馈</text>
+                <text class="quick-desc">直接填写建议、异常和体验问题</text>
+              </view>
+              <view class="quick-card" @tap="handleReport">
+                <text class="quick-title">问题举报</text>
+                <text class="quick-desc">针对违规内容或异常情况发起说明</text>
+              </view>
+              <view class="quick-card" @tap="handleCustomerService">
+                <text class="quick-title">在线客服</text>
+                <text class="quick-desc">工作时间内获取人工服务指引</text>
+              </view>
+              <view class="quick-card" @tap="handleCall">
+                <text class="quick-title">电话客服</text>
+                <text class="quick-desc">400-888-8888</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="panel-card">
+            <view class="panel-head">
+              <view>
+                <text class="panel-title">常见问题</text>
+                <text class="panel-subtitle">先看一下大家最常遇到的几个问题。</text>
+              </view>
+              <text class="panel-tag">FAQ SNAPSHOT</text>
+            </view>
+
+            <view class="faq-list">
+              <view
+                v-for="(faq, index) in faqs"
+                :key="faq.question"
+                class="faq-item"
+                @tap="toggleFaq(index)"
+              >
+                <view class="faq-head">
+                  <text class="faq-question">{{ faq.question }}</text>
+                  <text class="faq-toggle" :class="{ expanded: faq.expanded }">›</text>
+                </view>
+                <view v-if="faq.expanded" class="faq-answer">
+                  <text class="faq-answer-text">{{ faq.answer }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="panel-card">
+            <view class="panel-head">
+              <view>
+                <text class="panel-title">问题分类</text>
+                <text class="panel-subtitle">按主题快速定位你最接近的问题类型。</text>
+              </view>
+              <text class="panel-tag">TOPICS</text>
+            </view>
+
+            <view class="topic-list">
+              <view v-for="topic in topics" :key="topic.key" class="topic-row" @tap="handleCategory(topic.label)">
+                <view class="topic-copy">
+                  <text class="topic-title">{{ topic.label }}</text>
+                  <text class="topic-desc">{{ topic.description }}</text>
+                </view>
+                <uni-icons type="right" size="16" color="#94a3b8" />
+              </view>
+            </view>
+          </view>
+
+          <view class="panel-card">
+            <view class="panel-head">
+              <view>
+                <text class="panel-title">提交反馈</text>
+                <text class="panel-subtitle">把问题、建议或异常情况集中发给我们。</text>
+              </view>
+              <text class="panel-tag">FEEDBACK</text>
+            </view>
+
+            <view class="form-stack">
+              <view class="field-card">
+                <text class="field-label">反馈类型</text>
+                <picker mode="selector" :range="feedbackTypes" @change="onTypeChange">
+                  <view class="picker-value">
+                    <text>{{ selectedType || '请选择反馈类型' }}</text>
+                    <uni-icons type="right" size="14" color="#8e7164" />
+                  </view>
+                </picker>
+              </view>
+
+              <view class="field-card">
+                <text class="field-label">问题描述</text>
+                <textarea
+                  v-model="feedbackContent"
+                  class="feedback-textarea"
+                  placeholder="请详细描述你遇到的问题、建议或使用场景..."
+                  maxlength="500"
+                />
+                <text class="field-tip">{{ feedbackContent.length }}/500</text>
+              </view>
+
+              <view class="field-card">
+                <text class="field-label">联系方式（选填）</text>
+                <input
+                  v-model="contactInfo"
+                  class="field-input"
+                  type="text"
+                  placeholder="手机号或邮箱，方便我们联系你"
+                />
+              </view>
+            </view>
+
+            <button class="submit-btn" @tap="handleSubmitFeedback">
+              <text class="submit-top">Send Feedback</text>
+              <text class="submit-bottom">提交反馈</text>
+            </button>
+          </view>
+
+          <view class="panel-card">
+            <view class="panel-head">
+              <view>
+                <text class="panel-title">联系我们</text>
+                <text class="panel-subtitle">需要进一步帮助时，可以通过下面的方式找到我们。</text>
+              </view>
+              <text class="panel-tag">CONTACT</text>
+            </view>
+
+            <view class="contact-list">
+              <view class="contact-row" @tap="handleCall">
+                <text class="contact-label">客服热线</text>
+                <text class="contact-value">400-888-8888</text>
+              </view>
+              <view class="contact-row">
+                <text class="contact-label">服务时间</text>
+                <text class="contact-value">09:00 - 21:00</text>
+              </view>
+              <view class="contact-row" @tap="handleCopyEmail">
+                <text class="contact-label">客服邮箱</text>
+                <text class="contact-value">support@bmp.com</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
     </view>
-
-    <!-- Content -->
-    <scroll-view class="content" scroll-y>
-      <!-- Quick Actions -->
-      <view class="section quick-actions">
-        <view class="action-grid">
-          <view class="action-item" @click="handleFeedback">
-            <view class="action-icon feedback-icon">
-              <uni-icons type="compose" size="22" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="action-name">意见反馈</text>
-          </view>
-          <view class="action-item" @click="handleReport">
-            <view class="action-icon report-icon">
-              <uni-icons type="flag" size="22" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="action-name">问题举报</text>
-          </view>
-          <view class="action-item" @click="handleCustomerService">
-            <view class="action-icon service-icon">
-              <uni-icons type="chatbubble" size="22" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="action-name">在线客服</text>
-          </view>
-          <view class="action-item" @click="handleCall">
-            <view class="action-icon phone-icon">
-              <uni-icons type="phone" size="22" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="action-name">电话客服</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- FAQ -->
-      <view class="section faq-section">
-        <text class="section-title">常见问题</text>
-        
-        <view 
-          v-for="(faq, index) in faqs" 
-          :key="index"
-          class="faq-item"
-          @click="toggleFaq(index)"
-        >
-          <view class="faq-header">
-            <text class="faq-question">{{ faq.question }}</text>
-            <text class="faq-toggle" :class="{ expanded: faq.expanded }">›</text>
-          </view>
-          <view v-if="faq.expanded" class="faq-answer">
-            <text class="answer-text">{{ faq.answer }}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Help Categories -->
-      <view class="section categories-section">
-        <text class="section-title">帮助分类</text>
-        
-        <view class="category-item" @click="handleCategory('account')">
-          <view class="category-left">
-            <view class="category-icon account-icon">
-              <uni-icons type="person" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="category-name">账户相关</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="category-item" @click="handleCategory('booking')">
-          <view class="category-left">
-            <view class="category-icon booking-icon">
-              <uni-icons type="calendar" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="category-name">预约相关</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="category-item" @click="handleCategory('payment')">
-          <view class="category-left">
-            <view class="category-icon payment-icon">
-              <uni-icons type="wallet" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="category-name">支付相关</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="category-item" @click="handleCategory('refund')">
-          <view class="category-left">
-            <view class="category-icon refund-icon">
-              <uni-icons type="wallet" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="category-name">退款相关</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-
-        <view class="divider"></view>
-
-        <view class="category-item" @click="handleCategory('other')">
-          <view class="category-left">
-            <view class="category-icon other-icon">
-              <uni-icons type="help" size="20" color="#3cc51f"></uni-icons>
-            </view>
-            <text class="category-name">其他问题</text>
-          </view>
-          <text class="chevron">›</text>
-        </view>
-      </view>
-
-      <!-- Feedback Form -->
-      <view class="section feedback-section">
-        <text class="section-title">提交反馈</text>
-        
-        <view class="form-group">
-          <text class="form-label">反馈类型</text>
-          <picker mode="selector" :range="feedbackTypes" @change="onTypeChange">
-            <view class="picker">
-              <text class="picker-text">{{ selectedType || '请选择反馈类型' }}</text>
-              <text class="chevron">›</text>
-            </view>
-          </picker>
-        </view>
-
-        <view class="form-group">
-          <text class="form-label">问题描述</text>
-          <textarea 
-            class="form-textarea"
-            v-model="feedbackContent"
-            placeholder="请详细描述您遇到的问题或建议..."
-            maxlength="500"
-          />
-          <text class="char-count">{{ feedbackContent.length }}/500</text>
-        </view>
-
-        <view class="form-group">
-          <text class="form-label">联系方式（选填）</text>
-          <input 
-            class="form-input"
-            type="text"
-            v-model="contactInfo"
-            placeholder="手机号或邮箱，方便我们联系您"
-          />
-        </view>
-
-        <button class="submit-btn" @click="handleSubmitFeedback">
-          提交反馈
-        </button>
-      </view>
-
-      <!-- Contact Info -->
-      <view class="section contact-section">
-        <text class="section-title">联系我们</text>
-        <view class="contact-info">
-          <view class="contact-item">
-            <text class="contact-label">客服热线</text>
-            <text class="contact-value" @click="handleCall">400-888-8888</text>
-          </view>
-          <view class="contact-item">
-            <text class="contact-label">服务时间</text>
-            <text class="contact-value">09:00 - 21:00</text>
-          </view>
-          <view class="contact-item">
-            <text class="contact-label">客服邮箱</text>
-            <text class="contact-value" @click="handleCopyEmail">support@bmp.com</text>
-          </view>
-        </view>
-      </view>
-    </scroll-view>
   </MobileLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useUserStore } from '@/store/modules/user'
+import { reactive, ref } from 'vue'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 
-const userStore = useUserStore()
-
-// FAQ数据
 const faqs = reactive([
   {
     question: '如何预约场地？',
-    answer: '进入首页后，点击"场馆预订"，选择您想要的场馆和时间段，确认信息后完成支付即可。',
-    expanded: false
+    answer: '进入首页后点击场馆预订，选择场馆、日期和时间段后确认下单即可。',
+    expanded: true
   },
   {
     question: '预约后可以取消吗？',
-    answer: '可以的。在预约开始前2小时可以免费取消，2小时内取消将收取一定的手续费。',
+    answer: '可以。在预约开始前 2 小时通常支持免费取消，临近开场可能会产生手续费。',
     expanded: false
   },
   {
     question: '如何充值会员余额？',
-    answer: '进入"我的"页面，点击余额区域进入充值页面，选择充值金额后通过微信支付完成充值。',
+    answer: '进入我的页或充值中心，选择金额并完成支付后即可到账。',
     expanded: false
   },
   {
     question: '忘记密码怎么办？',
-    answer: '在登录页面点击"忘记密码"，通过绑定的手机号验证后可以重置密码。',
+    answer: '在登录页点击找回密码，按绑定手机号或其他验证方式重置密码。',
     expanded: false
   },
   {
     question: '如何修改个人信息？',
-    answer: '进入"我的"-"个人信息"页面，可以修改头像、昵称、手机号等个人信息。',
+    answer: '进入账户设置或个人资料页，可以修改昵称、生日等基础信息。',
     expanded: false
   }
 ])
 
-// 反馈表单
-const feedbackTypes = ['功能建议', '问题反馈', 'Bug报告', '使用疑问', '其他']
+const topics = [
+  {
+    key: 'account',
+    label: '账户相关',
+    description: '登录、密码、资料和会员身份问题'
+  },
+  {
+    key: 'booking',
+    label: '预约相关',
+    description: '场地、课程、赛事与预约记录问题'
+  },
+  {
+    key: 'payment',
+    label: '支付相关',
+    description: '充值、退款、消费和钱包余额问题'
+  },
+  {
+    key: 'other',
+    label: '其他问题',
+    description: '功能建议、体验意见和异常反馈'
+  }
+]
+
+const feedbackTypes = ['功能建议', '问题反馈', 'Bug 报告', '使用疑问', '其他']
 const selectedType = ref('')
 const feedbackContent = ref('')
 const contactInfo = ref('')
 
-// 展开/收起FAQ
-const toggleFaq = (index: number) => {
+function toggleFaq(index: number) {
   faqs[index].expanded = !faqs[index].expanded
 }
 
-// 选择反馈类型
-const onTypeChange = (e: any) => {
+function onTypeChange(e: any) {
   selectedType.value = feedbackTypes[e.detail.value]
 }
 
-// 提交反馈
-const handleSubmitFeedback = () => {
+function handleSubmitFeedback() {
   if (!selectedType.value) {
     uni.showToast({
       title: '请选择反馈类型',
@@ -261,49 +276,42 @@ const handleSubmitFeedback = () => {
     title: '提交中...'
   })
 
-  // 模拟提交
   setTimeout(() => {
     uni.hideLoading()
     uni.showToast({
       title: '反馈提交成功',
       icon: 'success'
     })
-    
-    // 重置表单
+
     selectedType.value = ''
     feedbackContent.value = ''
     contactInfo.value = ''
-  }, 1500)
+  }, 1200)
 }
 
-// 意见反馈
-const handleFeedback = () => {
-  // 滚动到反馈表单
+function handleFeedback() {
   uni.pageScrollTo({
-    selector: '.feedback-section',
+    selector: '.form-stack',
     duration: 300
   })
 }
 
-// 问题举报
-const handleReport = () => {
+function handleReport() {
   uni.showToast({
-    title: '功能开发中',
+    title: '问题举报入口开发中',
     icon: 'none'
   })
 }
 
-// 在线客服
-const handleCustomerService = () => {
+function handleCustomerService() {
   uni.showModal({
     title: '在线客服',
-    content: '客服工作时间: 09:00 - 21:00\n如需帮助请拨打客服热线',
+    content: '客服工作时间为 09:00 - 21:00。如需帮助，也可以直接拨打客服热线。',
     showCancel: false
   })
 }
 
-// 拨打客服电话
-const handleCall = () => {
+function handleCall() {
   uni.makePhoneCall({
     phoneNumber: '4008888888',
     fail: () => {
@@ -315,24 +323,14 @@ const handleCall = () => {
   })
 }
 
-// 帮助分类
-const handleCategory = (category: string) => {
-  const categoryNames: Record<string, string> = {
-    account: '账户相关',
-    booking: '预约相关',
-    payment: '支付相关',
-    refund: '退款相关',
-    other: '其他问题'
-  }
-  
+function handleCategory(label: string) {
   uni.showToast({
-    title: `${categoryNames[category]}帮助开发中`,
+    title: `${label}可先查看常见问题`,
     icon: 'none'
   })
 }
 
-// 复制邮箱
-const handleCopyEmail = () => {
+function handleCopyEmail() {
   uni.setClipboardData({
     data: 'support@bmp.com',
     success: () => {
@@ -344,333 +342,350 @@ const handleCopyEmail = () => {
   })
 }
 
-// 返回上一页
-const handleBack = () => {
-  safeNavigateBack()
+function handleBack() {
+  safeNavigateBack('/pages/settings/index')
 }
-
-// 页面加载
-onMounted(() => {
-  // 可以添加初始化逻辑
-})
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
-
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+.help-shell {
+  background:
+    radial-gradient(circle at top left, rgba(255, 170, 112, 0.28), transparent 28%),
+    radial-gradient(circle at top right, rgba(251, 146, 60, 0.16), transparent 22%),
+    linear-gradient(180deg, #fff7ed 0%, #f8fafc 36%, #eef2ff 100%);
 }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.help-page {
+  min-height: 100vh;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
-}
-
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
-}
-
-.header-placeholder {
-  width: 56rpx;
+.page-scroll {
+  height: 100vh;
 }
 
 .content {
-  flex: 1;
-  height: calc(100vh - 200rpx);
-  background-color: #f5f7fa;
+  padding: 30rpx 24rpx 48rpx;
 }
 
-.section {
-  background-color: #ffffff;
-  margin: 24rpx;
-  border-radius: 24rpx;
+.hero-card,
+.panel-card {
+  border-radius: 36rpx;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24rpx 60rpx rgba(15, 23, 42, 0.08);
+}
+
+.hero-card {
+  position: relative;
   overflow: hidden;
+  padding: 32rpx;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 247, 237, 0.98));
 }
 
-.section-title {
+.hero-card::before {
+  content: '';
+  position: absolute;
+  right: -84rpx;
+  top: -80rpx;
+  width: 250rpx;
+  height: 250rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.22), rgba(251, 146, 60, 0));
+}
+
+.hero-top,
+.panel-head,
+.faq-head,
+.contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero-top {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 36rpx;
+}
+
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 14rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 237, 213, 0.86);
+}
+
+.hero-brand-text,
+.hero-side-label,
+.hero-eyebrow,
+.metric-label,
+.panel-tag,
+.submit-top {
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.hero-brand-text,
+.hero-side-label,
+.hero-eyebrow,
+.panel-tag,
+.submit-top {
+  font-size: 20rpx;
+  color: #a33e00;
+}
+
+.hero-copy,
+.hero-grid,
+.panel-card {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-title {
   display: block;
-  font-size: 24rpx;
-  font-weight: bold;
-  color: #333333;
-  padding: 24rpx 28rpx 16rpx;
+  margin-top: 18rpx;
+  font-size: 44rpx;
+  line-height: 1.2;
+  color: #111827;
+  font-weight: 700;
 }
 
-.quick-actions {
-  padding: 28rpx;
+.hero-subtitle {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #475569;
 }
 
-.action-grid {
+.hero-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.hero-metric {
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1rpx solid rgba(251, 146, 60, 0.18);
+}
+
+.metric-label {
+  display: block;
+  font-size: 18rpx;
+  color: #c2410c;
+}
+
+.metric-value {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #1f2937;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.panel-card {
+  margin-top: 24rpx;
+  padding: 30rpx;
+}
+
+.panel-head {
+  align-items: flex-start;
   gap: 20rpx;
 }
 
-.action-item {
+.panel-title {
+  display: block;
+  font-size: 34rpx;
+  color: #111827;
+  font-weight: 700;
+}
+
+.panel-subtitle {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #64748b;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.quick-card,
+.topic-row,
+.faq-item,
+.contact-row,
+.field-card {
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+  border: 1rpx solid rgba(255, 102, 0, 0.08);
+}
+
+.quick-card {
+  min-height: 156rpx;
+  padding: 24rpx;
+}
+
+.quick-title,
+.topic-title,
+.field-label,
+.contact-label {
+  display: block;
+  font-size: 28rpx;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.quick-desc,
+.topic-desc,
+.field-tip,
+.contact-value {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 23rpx;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+.faq-list,
+.topic-list,
+.contact-list,
+.form-stack {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
+  gap: 16rpx;
+  margin-top: 28rpx;
 }
 
-.action-icon {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  &.feedback-icon {
-    background-color: #e8f5e9;
-  }
-  
-  &.report-icon {
-    background-color: #ffebee;
-  }
-  
-  &.service-icon {
-    background-color: #e3f2fd;
-  }
-  
-  &.phone-icon {
-    background-color: #fff3e0;
-  }
+.faq-item,
+.topic-row,
+.contact-row,
+.field-card {
+  padding: 24rpx;
 }
 
-.icon-text {
-  font-size: 32rpx;
-}
-
-.action-name {
-  font-size: 22rpx;
-  color: #666666;
-}
-
-.faq-item {
-  border-bottom: 1rpx solid #f3f4f6;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.faq-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 28rpx;
-  
-  &:active {
-    background-color: #f9fafb;
-  }
-}
-
-.faq-question {
-  font-size: 24rpx;
-  color: #333333;
-  flex: 1;
-}
-
-.faq-toggle {
-  font-size: 26rpx;
-  color: #999999;
-  transition: transform 0.3s;
-  
-  &.expanded {
-    transform: rotate(90deg);
-  }
-}
-
-.faq-answer {
-  padding: 0 28rpx 24rpx;
-  background-color: #f9fafb;
-}
-
-.answer-text {
-  font-size: 22rpx;
-  color: #666666;
-  line-height: 1.6;
-}
-
-.category-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 28rpx;
-  transition: background-color 0.2s;
-  
-  &:active {
-    background-color: #f9fafb;
-  }
-}
-
-.category-left {
-  display: flex;
-  align-items: center;
+.faq-head {
   gap: 18rpx;
 }
 
-.category-icon {
-  width: 52rpx;
-  height: 52rpx;
-  border-radius: 50%;
+.faq-question {
+  flex: 1;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.faq-toggle {
+  font-size: 30rpx;
+  color: #94a3b8;
+  transition: transform 0.24s ease;
+}
+
+.faq-toggle.expanded {
+  transform: rotate(90deg);
+}
+
+.faq-answer {
+  margin-top: 18rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid rgba(255, 102, 0, 0.08);
+}
+
+.faq-answer-text {
+  font-size: 24rpx;
+  line-height: 1.8;
+  color: #64748b;
+}
+
+.topic-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  
-  &.account-icon {
-    background-color: #e8f5e9;
-  }
-  
-  &.booking-icon {
-    background-color: #e3f2fd;
-  }
-  
-  &.payment-icon {
-    background-color: #fff3e0;
-  }
-  
-  &.refund-icon {
-    background-color: #fce4ec;
-  }
-  
-  &.other-icon {
-    background-color: #f3e5f5;
-  }
-}
-
-.category-name {
-  font-size: 24rpx;
-  color: #333333;
-}
-
-.chevron {
-  font-size: 26rpx;
-  color: #999999;
-}
-
-.divider {
-  height: 1rpx;
-  background-color: #f3f4f6;
-  margin: 0 28rpx;
-}
-
-.feedback-section {
-  padding-bottom: 28rpx;
-}
-
-.form-group {
-  padding: 0 28rpx 20rpx;
-}
-
-.form-label {
-  font-size: 24rpx;
-  color: #333333;
-  margin-bottom: 12rpx;
-  display: block;
-}
-
-.picker {
-  display: flex;
   justify-content: space-between;
+  gap: 18rpx;
+}
+
+.topic-copy {
+  flex: 1;
+}
+
+.picker-value,
+.contact-row {
+  display: flex;
   align-items: center;
-  padding: 20rpx 24rpx;
-  background-color: #f5f5f5;
-  border-radius: 12rpx;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
-.picker-text {
-  font-size: 24rpx;
-  color: #666666;
-}
-
-.form-textarea {
+.field-input,
+.feedback-textarea {
   width: 100%;
-  height: 200rpx;
-  padding: 20rpx 24rpx;
-  background-color: #f5f5f5;
-  border-radius: 12rpx;
-  font-size: 24rpx;
-  color: #333333;
+  margin-top: 16rpx;
+  padding: 0;
+  font-size: 26rpx;
+  color: #1f2937;
+  background: transparent;
   box-sizing: border-box;
 }
 
-.char-count {
-  font-size: 20rpx;
-  color: #999999;
-  text-align: right;
-  display: block;
-  margin-top: 8rpx;
-}
-
-.form-input {
-  width: 100%;
-  padding: 20rpx 24rpx;
-  background-color: #f5f5f5;
-  border-radius: 12rpx;
-  font-size: 24rpx;
-  color: #333333;
-  box-sizing: border-box;
+.feedback-textarea {
+  min-height: 200rpx;
 }
 
 .submit-btn {
-  width: calc(100% - 56rpx);
-  margin: 20rpx 28rpx 0;
-  background-color: #3cc51f;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: bold;
-  padding: 24rpx;
-  border-radius: 12rpx;
+  width: 100%;
+  min-height: 104rpx;
+  margin-top: 28rpx;
+  border: none;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #ff8a4c 0%, #ff6600 55%, #a33e00 100%);
+  box-shadow: 0 22rpx 38rpx rgba(255, 102, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.submit-btn::after {
   border: none;
 }
 
-.contact-section {
-  padding-bottom: 28rpx;
+.submit-bottom {
+  font-size: 30rpx;
+  color: #ffffff;
+  font-weight: 700;
 }
 
-.contact-info {
-  padding: 0 28rpx;
-}
-
-.contact-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #f3f4f6;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.contact-label {
-  font-size: 24rpx;
-  color: #666666;
+.submit-top {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 20rpx;
 }
 
 .contact-value {
-  font-size: 24rpx;
-  color: #3cc51f;
+  margin-top: 0;
+  color: #a33e00;
+  text-align: right;
+}
+
+@media screen and (max-width: 375px) {
+  .hero-title {
+    font-size: 38rpx;
+  }
+
+  .quick-grid,
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

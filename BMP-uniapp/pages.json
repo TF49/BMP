@@ -615,13 +615,6 @@
       }
     },
     {
-      "path": "pages/settings/change-phone",
-      "style": {
-        "navigationBarTitleText": "更换手机号",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/stringing/list",
       "style": {
         "navigationBarTitleText": "穿线服务",

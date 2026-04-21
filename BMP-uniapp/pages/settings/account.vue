@@ -90,7 +90,7 @@
             </view>
           </view>
 
-          <view class="binding-row" @click="handleEditPhone">
+          <view class="binding-row">
             <view class="binding-left">
               <view class="binding-icon" style="background: rgba(255, 102, 0, 0.12);">
                 <uni-icons type="phone" size="18" color="#ff6600" />
@@ -100,7 +100,7 @@
                 <text class="binding-desc">{{ userInfo.phone || '未绑定手机号' }}</text>
               </view>
             </view>
-            <text class="binding-action">更改</text>
+            <text class="binding-action">{{ userInfo.phone ? '已绑定' : '未绑定' }}</text>
           </view>
         </view>
 
@@ -184,10 +184,6 @@ const onGenderChange = (e: any) => {
 
 const onBirthdayChange = (e: any) => {
   userInfo.birthday = e.detail.value
-}
-
-const handleEditPhone = () => {
-  uni.navigateTo({ url: '/pages/settings/change-phone' })
 }
 
 const handleChangePassword = () => {

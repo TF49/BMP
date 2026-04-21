@@ -1,65 +1,144 @@
 <template>
-  <MobileLayout>
-    <view class="header">
-      <view class="header-content">
-        <text class="back-icon" @click="handleBack">‹</text>
-        <text class="header-title">预约详情</text>
-        <view class="header-placeholder"></view>
+  <MobileLayout :showTabBar="false">
+    <view class="booking-detail-page">
+      <view class="topbar">
+        <view class="topbar-inner">
+          <view class="icon-btn" @tap="handleBack">
+            <uni-icons type="left" size="18" color="#ff6600" />
+          </view>
+          <view class="topbar-copy">
+            <text class="topbar-title">预约详情</text>
+            <text class="topbar-sub">BOOKING DETAIL</text>
+          </view>
+          <view class="icon-btn ghost">
+            <uni-icons type="calendar" size="18" color="#a33e00" />
+          </view>
+        </view>
       </view>
-    </view>
 
-    <scroll-view class="content" scroll-y>
-      <view class="detail-card">
-        <view class="status-row">
-          <text class="venue-name">{{ booking.venueName }}</text>
-          <text class="booking-status" :class="getStatusClass(booking.status)">
-            {{ getStatusText(booking.status) }}
+      <scroll-view class="page-scroll" scroll-y :show-scrollbar="false">
+        <view class="hero-card">
+          <view class="hero-glow" />
+          <text class="hero-kicker">KINETIC LOGIC</text>
+          <text class="hero-title">{{ booking.venueName || '预约信息加载中' }}</text>
+          <text class="hero-sub">
+            {{ booking.bookingNo || 'BOOKING NO.' }} · {{ booking.courtName || 'Court Area' }}
           </text>
-        </view>
-        <view class="detail-list">
-          <view class="detail-item">
-            <text class="detail-label">预约单号</text>
-            <text class="detail-value">{{ booking.bookingNo }}</text>
+
+          <view class="hero-grid">
+            <view class="hero-cell">
+              <text class="cell-k">DATE</text>
+              <text class="cell-v">{{ booking.bookingDate || '--' }}</text>
+            </view>
+            <view class="hero-cell">
+              <text class="cell-k">TIME</text>
+              <text class="cell-v">{{ bookingTimeRange }}</text>
+            </view>
           </view>
-          <view class="detail-item">
-            <text class="detail-label">场地</text>
-            <text class="detail-value">{{ booking.courtName }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">预约日期</text>
-            <text class="detail-value">{{ booking.bookingDate }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">时间段</text>
-            <text class="detail-value">{{ booking.startTime }} - {{ booking.endTime }}</text>
-          </view>
-          <view class="detail-item">
-            <text class="detail-label">订单金额</text>
-            <text class="detail-value price">¥{{ booking.orderAmount }}</text>
-          </view>
-          <view class="detail-item" v-if="booking.createTime">
-            <text class="detail-label">下单时间</text>
-            <text class="detail-value">{{ booking.createTime }}</text>
+
+          <view class="hero-footer">
+            <view class="status-pill" :class="getStatusClass(booking.status)">
+              {{ getStatusText(booking.status) }}
+            </view>
+            <text class="hero-amount">¥{{ formatAmount(booking.orderAmount) }}</text>
           </view>
         </view>
-        <view class="action-row" v-if="booking.status === 1 || booking.status === 2">
-          <button class="cancel-btn" @click="handleCancel">取消预约</button>
+
+        <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Overview</text>
+              <text class="section-title">预约概览</text>
+            </view>
+          </view>
+
+          <view class="overview-grid">
+            <view class="overview-card">
+              <text class="overview-label">场馆</text>
+              <text class="overview-value">{{ booking.venueName || '--' }}</text>
+            </view>
+            <view class="overview-card">
+              <text class="overview-label">场地</text>
+              <text class="overview-value">{{ booking.courtName || '--' }}</text>
+            </view>
+            <view class="overview-card">
+              <text class="overview-label">订单金额</text>
+              <text class="overview-value accent">¥{{ formatAmount(booking.orderAmount) }}</text>
+            </view>
+            <view class="overview-card">
+              <text class="overview-label">状态</text>
+              <text class="overview-value">{{ getStatusText(booking.status) }}</text>
+            </view>
+          </view>
         </view>
-      </view>
-    </scroll-view>
+
+        <view class="section-card">
+          <view class="section-head compact">
+            <view>
+              <text class="section-kicker">Schedule</text>
+              <text class="section-title">预约信息</text>
+            </view>
+          </view>
+
+          <view class="detail-list">
+            <view class="detail-row">
+              <text class="detail-label">预约单号</text>
+              <text class="detail-value">{{ booking.bookingNo || '--' }}</text>
+            </view>
+            <view class="detail-row">
+              <text class="detail-label">预约日期</text>
+              <text class="detail-value">{{ booking.bookingDate || '--' }}</text>
+            </view>
+            <view class="detail-row">
+              <text class="detail-label">时间段</text>
+              <text class="detail-value">{{ bookingTimeRange }}</text>
+            </view>
+            <view v-if="booking.createTime" class="detail-row">
+              <text class="detail-label">下单时间</text>
+              <text class="detail-value">{{ booking.createTime }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="tips-card">
+          <text class="tips-title">预约提示</text>
+          <view class="tips-list">
+            <view class="tip-item">
+              <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
+              <text>建议提前 10 分钟到场，方便核验预约信息。</text>
+            </view>
+            <view class="tip-item">
+              <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
+              <text>如需取消，请在平台允许的时间范围内尽早操作。</text>
+            </view>
+            <view class="tip-item">
+              <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
+              <text>如遇异常，可前往帮助与反馈页联系平台客服。</text>
+            </view>
+          </view>
+        </view>
+
+        <view v-if="canCancel" class="action-panel">
+          <button class="cancel-btn" @tap="handleCancel">
+            <text class="cancel-top">Manage Booking</text>
+            <text class="cancel-bottom">取消预约</text>
+          </button>
+        </view>
+      </scroll-view>
+    </view>
   </MobileLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { getBookingDetail, cancelBooking } from '@/api/booking'
 import { safeNavigateBack } from '@/utils/navigation'
 
-const bookingId = ref<number>(0)
-const booking = ref<any>({
+const bookingId = ref(0)
+const booking = ref({
   id: 0,
   bookingNo: '',
   venueName: '',
@@ -73,6 +152,13 @@ const booking = ref<any>({
 })
 const userStore = useUserStore()
 
+const bookingTimeRange = computed(() => {
+  if (!booking.value.startTime || !booking.value.endTime) return '--'
+  return `${booking.value.startTime} - ${booking.value.endTime}`
+})
+
+const canCancel = computed(() => booking.value.status === 1 || booking.value.status === 2)
+
 onLoad((options?: Record<string, string | undefined>) => {
   if (options?.id) {
     bookingId.value = Number(options.id)
@@ -84,15 +170,15 @@ const loadBookingDetail = async () => {
     const result = await getBookingDetail(bookingId.value)
     booking.value = {
       id: result.id,
-      bookingNo: result.bookingNo,
-      venueName: result.venueName || result.courtName,
-      courtName: result.courtName,
-      bookingDate: result.bookingDate,
-      startTime: result.startTime,
-      endTime: result.endTime,
-      orderAmount: result.orderAmount,
-      status: result.status,
-      createTime: result.createTime
+      bookingNo: result.bookingNo || '',
+      venueName: result.venueName || result.courtName || '',
+      courtName: result.courtName || '',
+      bookingDate: result.bookingDate || '',
+      startTime: result.startTime || '',
+      endTime: result.endTime || '',
+      orderAmount: Number(result.orderAmount) || 0,
+      status: Number(result.status) || 0,
+      createTime: result.createTime || ''
     }
   } catch (error) {
     console.error('加载预约详情失败:', error)
@@ -101,6 +187,11 @@ const loadBookingDetail = async () => {
       icon: 'none'
     })
   }
+}
+
+const formatAmount = (amount: number) => {
+  const numeric = Number(amount) || 0
+  return numeric.toFixed(2)
 }
 
 const getStatusText = (status: number) => {
@@ -139,8 +230,8 @@ const handleCancel = async () => {
           await cancelBooking(booking.value.id)
           uni.showToast({ title: '取消成功', icon: 'success' })
           await loadBookingDetail()
-        } catch (e) {
-          console.error('取消预约失败:', e)
+        } catch (error) {
+          console.error('取消预约失败:', error)
           uni.showToast({ title: '取消失败', icon: 'none' })
         }
       }
@@ -153,6 +244,7 @@ onMounted(async () => {
     uni.redirectTo({ url: '/pages/login/login' })
     return
   }
+
   if (bookingId.value) {
     await loadBookingDetail()
   }
@@ -160,143 +252,381 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/common.scss';
+.booking-detail-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(255, 138, 76, 0.24), transparent 34%),
+    linear-gradient(180deg, #fff7ed 0%, #fffaf5 24%, #f6f7fb 100%);
+}
 
-.header {
-  background-color: #ffffff;
-  padding: 20rpx 28rpx;
+.topbar {
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
-  border-bottom: 1rpx solid #e6e6e6;
+  padding: 24rpx 24rpx 0;
+  background: linear-gradient(180deg, rgba(255, 247, 237, 0.96) 0%, rgba(255, 247, 237, 0.72) 100%);
+  backdrop-filter: blur(18rpx);
 }
 
-.header-content {
+.topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.back-icon {
-  font-size: 40rpx;
-  color: #333333;
-  font-weight: bold;
-  width: 56rpx;
-}
-
-.header-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  flex: 1;
-  text-align: center;
-}
-
-.header-placeholder {
-  width: 56rpx;
-}
-
-.content {
-  flex: 1;
-  height: calc(100vh - 120rpx);
-  background-color: #f5f7fa;
-  padding: 24rpx 28rpx;
-}
-
-.detail-card {
-  background-color: #ffffff;
-  border-radius: 18rpx;
-  padding: 28rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
-}
-
-.status-row {
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 24rpx;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 28rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 14rpx 34rpx rgba(15, 23, 42, 0.08);
 }
 
-.venue-name {
-  font-size: 30rpx;
-  font-weight: bold;
-  color: #333333;
+.icon-btn.ghost {
+  background: rgba(255, 237, 213, 0.95);
 }
 
-.booking-status {
+.topbar-copy {
+  flex: 1;
+  padding: 0 20rpx;
+}
+
+.topbar-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.topbar-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  letter-spacing: 4rpx;
+  color: #c2410c;
+}
+
+.page-scroll {
+  height: calc(100vh - 96rpx);
+}
+
+.hero-card,
+.section-card,
+.tips-card,
+.action-panel {
+  margin: 24rpx;
+}
+
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  padding: 38rpx 34rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, #1f2937 0%, #7c2d12 58%, #ea580c 100%);
+  box-shadow: 0 28rpx 60rpx rgba(124, 45, 18, 0.24);
+}
+
+.hero-glow {
+  position: absolute;
+  top: -120rpx;
+  right: -40rpx;
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.hero-kicker,
+.hero-title,
+.hero-sub,
+.cell-k,
+.cell-v,
+.hero-amount {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-kicker {
+  display: inline-flex;
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hero-title {
+  display: block;
+  margin-top: 22rpx;
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+.hero-sub {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.hero-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.hero-cell {
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cell-k {
+  display: block;
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.cell-v {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.hero-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 22rpx;
+  border-radius: 999rpx;
   font-size: 22rpx;
-  padding: 8rpx 16rpx;
-  border-radius: 8rpx;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
 
-  &.status-pending {
-    background-color: #fff3e0;
-    color: #ff9800;
-  }
-  &.status-paid {
-    background-color: #e8f5e9;
-    color: #3cc51f;
-  }
-  &.status-ongoing {
-    background-color: #e3f2fd;
-    color: #2196f3;
-  }
-  &.status-completed {
-    background-color: #f5f5f5;
-    color: #999999;
-  }
-  &.status-cancelled {
-    background-color: #ffebee;
-    color: #f44336;
-  }
+.status-pill.status-pending {
+  background: rgba(251, 191, 36, 0.22);
+  color: #fde68a;
+}
+
+.status-pill.status-paid {
+  background: rgba(74, 222, 128, 0.22);
+  color: #bbf7d0;
+}
+
+.status-pill.status-ongoing {
+  background: rgba(96, 165, 250, 0.22);
+  color: #bfdbfe;
+}
+
+.status-pill.status-completed {
+  background: rgba(226, 232, 240, 0.22);
+  color: #e2e8f0;
+}
+
+.status-pill.status-cancelled {
+  background: rgba(248, 113, 113, 0.22);
+  color: #fecaca;
+}
+
+.hero-amount {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.section-card,
+.tips-card,
+.action-panel {
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 22rpx 48rpx rgba(15, 23, 42, 0.08);
+}
+
+.section-card,
+.tips-card {
+  padding: 30rpx;
+}
+
+.section-head {
+  margin-bottom: 24rpx;
+}
+
+.section-head.compact {
+  margin-bottom: 20rpx;
+}
+
+.section-kicker {
+  display: block;
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
+  color: #c2410c;
+}
+
+.section-title,
+.tips-title {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+}
+
+.overview-card {
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+  border: 1rpx solid rgba(255, 102, 0, 0.08);
+}
+
+.overview-label {
+  display: block;
+  font-size: 22rpx;
+  color: #7c2d12;
+}
+
+.overview-value {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 28rpx;
+  line-height: 1.5;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.overview-value.accent {
+  color: #ea580c;
 }
 
 .detail-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 18rpx;
 }
 
-.detail-item {
+.detail-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 26rpx;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+  border: 1rpx solid rgba(255, 102, 0, 0.08);
 }
 
 .detail-label {
-  color: #999999;
-  width: 160rpx;
+  font-size: 24rpx;
+  color: #7c2d12;
 }
 
 .detail-value {
-  color: #333333;
   flex: 1;
   text-align: right;
-
-  &.price {
-    font-weight: bold;
-    color: #ef4444;
-    font-size: 28rpx;
-  }
+  font-size: 25rpx;
+  line-height: 1.6;
+  color: #334155;
 }
 
-.action-row {
-  margin-top: 32rpx;
-  padding-top: 24rpx;
-  border-top: 1rpx solid #f0f0f0;
+.tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  margin-top: 22rpx;
+}
+
+.tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  font-size: 25rpx;
+  line-height: 1.7;
+  color: #475569;
+}
+
+.action-panel {
+  padding: 18rpx;
+  margin-bottom: 36rpx;
 }
 
 .cancel-btn {
   width: 100%;
-  padding: 24rpx;
-  background-color: #ffffff;
-  color: #ef4444;
-  font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
-  border: 1rpx solid #ef4444;
+  min-height: 104rpx;
+  border: none;
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, #ff8a4c 0%, #ff6600 55%, #a33e00 100%);
+  box-shadow: 0 22rpx 36rpx rgba(255, 102, 0, 0.24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+}
+
+.cancel-btn::after {
+  border: none;
+}
+
+.cancel-top,
+.cancel-bottom {
+  display: block;
+  color: #ffffff;
+}
+
+.cancel-top {
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.cancel-bottom {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+@media screen and (max-width: 375px) {
+  .hero-title {
+    font-size: 40rpx;
+  }
+
+  .hero-grid,
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-copy {
+    padding: 0 14rpx;
+  }
 }
 </style>
