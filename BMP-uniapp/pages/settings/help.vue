@@ -1,7 +1,13 @@
 <template>
   <MobileLayout className="help-shell">
     <view class="help-page">
-      <scroll-view scroll-y class="page-scroll" :show-scrollbar="false">
+      <scroll-view
+        scroll-y
+        class="page-scroll"
+        :show-scrollbar="false"
+        :scroll-into-view="scrollTarget"
+        scroll-with-animation
+      >
         <view class="content">
           <view class="hero-card">
             <view class="hero-top">
@@ -32,7 +38,7 @@
             </view>
           </view>
 
-          <view class="panel-card">
+          <view id="feedback-form" class="panel-card">
             <view class="panel-head">
               <view>
                 <text class="panel-title">快捷入口</text>
@@ -248,6 +254,7 @@ const selectedType = ref('')
 const feedbackContent = ref('')
 const contactInfo = ref('')
 const submitting = ref(false)
+const scrollTarget = ref('')
 
 function toggleFaq(index: number) {
   faqs[index].expanded = !faqs[index].expanded
@@ -305,10 +312,10 @@ async function handleSubmitFeedback() {
 }
 
 function handleFeedback() {
-  uni.pageScrollTo({
-    selector: '.form-stack',
-    duration: 300
-  })
+  scrollTarget.value = 'feedback-form'
+  setTimeout(() => {
+    scrollTarget.value = ''
+  }, 350)
 }
 
 function handleReport() {

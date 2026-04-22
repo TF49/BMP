@@ -160,7 +160,7 @@
                   hover-class="register-btn-hover"
                   @tap.stop="register(item)"
                 >
-                  立即报名
+                  {{ canRegister(item) ? '立即报名' : '查看详情' }}
                 </button>
               </view>
             </view>

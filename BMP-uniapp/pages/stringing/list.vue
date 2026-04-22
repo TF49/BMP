@@ -175,6 +175,7 @@ const pageSize = 10
 const total = ref(0)
 const rawList = ref<StringingService[]>([])
 const currentTab = ref<'all' | 'pending' | 'in_progress' | 'ready' | 'cancelled'>('all')
+const hasLoadedOnce = ref(false)
 
 const tabs = [
   { key: 'all' as const, label: '全部' },
@@ -357,11 +358,13 @@ onLoad(async () => {
     return
   }
 
+  hasLoadedOnce.value = true
   await fetchList(true)
 })
 
 onShow(() => {
   if (!userStore.isLoggedIn) return
+  if (!hasLoadedOnce.value) return
   void fetchList(true)
 })
 </script>
