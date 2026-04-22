@@ -113,11 +113,8 @@ export function updatePhone(params: {
  * 提交用户反馈
  */
 export function submitFeedback(params: {
-  type: string
-  description: string
-  contact: string
-  images?: string[]
+  content: string
+  contact?: string
 }) {
   return post<string>(API_PATHS.AUTH.SUBMIT_FEEDBACK, params)
 }
-

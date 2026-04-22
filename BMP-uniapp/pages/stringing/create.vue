@@ -188,6 +188,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 import { useUserStore } from '@/store/modules/user'
 import {
   getStringList,
@@ -200,8 +201,10 @@ import { getVenueList } from '@/api/venue'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { getAvatarImage } from '@/utils/displayImage'
 import { validateRacketBrand, validateRacketModel, validateRemark } from '@/utils/validate'
+import type { MemberInfo } from '@/api/member'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const topOffset = computed(() => statusBarHeight.value + 52)
@@ -225,6 +228,7 @@ const pickupTime = ref('18:00')
 const defaultVenueId = ref<number>(0)
 const submitting = ref(false)
 const priceHint = ref('')
+const currentMember = ref<MemberInfo | null>(null)
 
 const gridStrings = computed(() => stringList.value.slice(0, 3))
 const hasMoreStrings = computed(() => stringList.value.length > 3)
@@ -307,9 +311,21 @@ const canSubmit = computed(() => {
   if (!validateRacketBrand(brand) || !validateRacketModel(model)) return false
   if (!selectedStringId.value) return false
   if (!defaultVenueId.value) return false
-  if (!Number(userStore.userId || 0)) return false
+  if (!Number(currentMember.value?.id || 0)) return false
   return true
 })
+
+async function ensureCurrentMember(force = false) {
+  try {
+    const member = await fetchCurrentMember(force)
+    currentMember.value = member
+    return member
+  } catch (error) {
+    console.error('获取当前会员失败:', error)
+    currentMember.value = null
+    return null
+  }
+}
 
 async function syncPrice() {
   if (!selectedStringId.value) {
@@ -369,6 +385,14 @@ async function handleSubmit() {
     uni.showToast({ title: '请完善预约信息', icon: 'none' })
     return
   }
+
+  const member = await ensureCurrentMember(true)
+  const memberId = Number(member?.id || 0)
+  if (!memberId) {
+    uni.showToast({ title: '当前用户未绑定会员，无法提交穿线服务', icon: 'none' })
+    return
+  }
+
   const { brand, model } = splitRacketLabel(racketFullLine.value)
   const sel = stringList.value.find((x) => x.id === selectedStringId.value)
   if (!sel) {
@@ -384,12 +408,8 @@ async function handleSubmit() {
     return
   }
 
-  const uid = Number(userStore.userId || 0)
-  const memberId = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || 0)
-
   const payload: CreateStringingParams = {
-    userId: uid,
-    ...(memberId > 0 ? { memberId } : {}),
+    memberId,
     venueId: defaultVenueId.value,
     racketBrand: brand,
     racketModel: model,
@@ -441,6 +461,10 @@ onMounted(async () => {
   }
 
   pickupDate.value = todayStr()
+  currentMember.value = await ensureCurrentMember(true)
+  if (!currentMember.value?.id) {
+    uni.showToast({ title: '当前用户未绑定会员，无法提交穿线服务', icon: 'none' })
+  }
   await loadDefaultVenue()
   if (!defaultVenueId.value) {
     uni.showToast({ title: '未获取到场馆，请稍后再试', icon: 'none' })

@@ -150,9 +150,9 @@
               </view>
             </view>
 
-            <button class="submit-btn" @tap="handleSubmitFeedback">
+            <button class="submit-btn" :disabled="submitting" @tap="handleSubmitFeedback">
               <text class="submit-top">Send Feedback</text>
-              <text class="submit-bottom">提交反馈</text>
+              <text class="submit-bottom">{{ submitting ? '提交中...' : '提交反馈' }}</text>
             </button>
           </view>
 
@@ -190,6 +190,7 @@
 import { reactive, ref } from 'vue'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
+import { submitFeedback } from '@/api/auth'
 
 const faqs = reactive([
   {
@@ -246,6 +247,7 @@ const feedbackTypes = ['功能建议', '问题反馈', 'Bug 报告', '使用疑�
 const selectedType = ref('')
 const feedbackContent = ref('')
 const contactInfo = ref('')
+const submitting = ref(false)
 
 function toggleFaq(index: number) {
   faqs[index].expanded = !faqs[index].expanded
@@ -255,7 +257,7 @@ function onTypeChange(e: any) {
   selectedType.value = feedbackTypes[e.detail.value]
 }
 
-function handleSubmitFeedback() {
+async function handleSubmitFeedback() {
   if (!selectedType.value) {
     uni.showToast({
       title: '请选择反馈类型',
@@ -272,21 +274,34 @@ function handleSubmitFeedback() {
     return
   }
 
-  uni.showLoading({
-    title: '提交中...'
-  })
-
-  setTimeout(() => {
+  try {
+    submitting.value = true
+    uni.showLoading({
+      title: '提交中...'
+    })
+    const content = `${selectedType.value}：${feedbackContent.value.trim()}`
+    await submitFeedback({
+      content,
+      contact: contactInfo.value.trim() || undefined
+    })
     uni.hideLoading()
     uni.showToast({
       title: '反馈提交成功',
       icon: 'success'
     })
-
     selectedType.value = ''
     feedbackContent.value = ''
     contactInfo.value = ''
-  }, 1200)
+  } catch (error) {
+    console.error('提交反馈失败:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '提交失败，请稍后重试',
+      icon: 'none'
+    })
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handleFeedback() {

@@ -45,5 +45,5 @@ export function searchEquipment(params: SearchParams) {
  * 获取搜索建议
  */
 export function getSearchSuggestions(params: { keyword: string }) {
-  return get<string[]>('/search/suggestions', params)
+  return get<string[]>(API_PATHS.SEARCH.SUGGESTIONS, params)
 }

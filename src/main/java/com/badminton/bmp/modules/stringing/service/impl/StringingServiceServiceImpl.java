@@ -172,6 +172,8 @@ public class StringingServiceServiceImpl implements StringingServiceService {
     @Override
     @Transactional
     public int add(StringingService service) {
+        com.badminton.bmp.modules.system.entity.User currentUser = SecurityUtils.getCurrentUser();
+
         // 验证场馆是否存在
         if (service.getVenueId() == null) {
             throw new BusinessException("场馆ID不能为空");
@@ -185,8 +187,20 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             }
         }
 
-        // 如果关联了会员，验证会员是否存在
-        if (service.getMemberId() != null) {
+        // 普通用户侧提交强制绑定当前登录用户及其对应会员，避免伪造归属
+        if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
+            if (currentUser == null || currentUser.getId() == null) {
+                throw new BusinessException("当前登录用户无效，无法提交穿线服务");
+            }
+
+            service.setUserId(currentUser.getId());
+            Member currentMember = memberMapper.findByUserId(currentUser.getId());
+            if (currentMember == null || currentMember.getId() == null) {
+                throw new BusinessException("当前用户未绑定会员，无法提交穿线服务");
+            }
+            service.setMemberId(currentMember.getId());
+        } else if (service.getMemberId() != null) {
+            // 管理端保留显式指定会员的能力
             Member member = memberMapper.findById(service.getMemberId());
             if (member == null) {
                 throw new ResourceNotFoundException("会员不存在");
@@ -227,8 +241,7 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             if (service.getHasBreakage() == null) service.setHasBreakage(0);
             if (service.getHasCollapse() == null) service.setHasCollapse(0);
             if (service.getUserId() == null) {
-                com.badminton.bmp.modules.system.entity.User current = SecurityUtils.getCurrentUser();
-                if (current != null) service.setUserId(current.getId());
+                if (currentUser != null) service.setUserId(currentUser.getId());
             }
             return stringingServiceMapper.insert(service);
         }
@@ -352,6 +365,61 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             webSocketPushService.pushDashboardRefresh();
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(StringingServiceServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public int cancelByUser(Long serviceId) {
+        StringingService existing = stringingServiceMapper.findById(serviceId);
+        if (existing == null) {
+            throw new ResourceNotFoundException("服务记录不存在");
+        }
+
+        com.badminton.bmp.modules.system.entity.User currentUser = SecurityUtils.getCurrentUser();
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new BusinessException("当前登录用户无效，无法取消穿线服务");
+        }
+
+        if (existing.getUserId() == null || !currentUser.getId().equals(existing.getUserId())) {
+            throw new BusinessException("只能取消当前登录用户自己的穿线订单");
+        }
+
+        Integer status = existing.getStatus();
+        if (status != null) {
+            if (status == 0) {
+                throw new BusinessException("该穿线服务已取消，无需重复操作");
+            }
+            if (status == 2) {
+                throw new BusinessException("该穿线服务已开始处理，暂不支持用户取消");
+            }
+            if (status == 3) {
+                throw new BusinessException("该穿线服务已完成，无法取消");
+            }
+            if (status != 1) {
+                throw new BusinessException("当前订单状态不可取消");
+            }
+        }
+
+        Integer paymentStatus = existing.getPaymentStatus();
+        if (paymentStatus != null) {
+            if (paymentStatus == 1) {
+                throw new BusinessException("该穿线服务已支付，请联系管理员处理");
+            }
+            if (paymentStatus == 2) {
+                throw new BusinessException("该穿线服务已退款，无需再次取消");
+            }
+        }
+
+        int result = stringingServiceMapper.updateStatus(serviceId, 0, null);
+        if (result > 0) {
+            try {
+                webSocketPushService.pushOrderStatusToUser(currentUser.getId(), "stringingService", serviceId, 0, "已取消", "穿线服务");
+                webSocketPushService.pushDashboardRefresh();
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(StringingServiceServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+            }
         }
         return result;
     }

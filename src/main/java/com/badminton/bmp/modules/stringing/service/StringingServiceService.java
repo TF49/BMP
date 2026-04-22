@@ -86,6 +86,13 @@ public interface StringingServiceService {
     int updateStatus(Long id, Integer status);
 
     /**
+     * 用户取消自己的穿线服务
+     * @param serviceId 服务ID
+     * @return 影响的行数
+     */
+    int cancelByUser(Long serviceId);
+
+    /**
      * 获取穿线服务统计信息（支持权限过滤）
      * @return 统计信息Map，包含总服务数、各状态数量
      */

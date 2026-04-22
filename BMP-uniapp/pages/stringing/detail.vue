@@ -49,6 +49,10 @@
               <text class="field-label">手机号</text>
               <text class="field-value">{{ formatPhone(detail.memberPhone || '') || '未绑定手机号' }}</text>
             </view>
+            <view class="field-row">
+              <text class="field-label">支付状态</text>
+              <text class="field-value">{{ paymentStatusLabel }}</text>
+            </view>
           </view>
 
           <view class="section-card">
@@ -96,7 +100,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getStringingDetail, type StringingService, updateStringingStatus } from '@/api/stringing'
+import { cancelStringing, getStringingDetail, type StringingService } from '@/api/stringing'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
@@ -118,6 +122,13 @@ const statusLabel = computed(() => {
   if (status === STRINGING_STATUS.IN_PROGRESS) return '正在穿线'
   if (status === STRINGING_STATUS.COMPLETED) return '已完成'
   return '未知状态'
+})
+
+const paymentStatusLabel = computed(() => {
+  const paymentStatus = Number(detail.value?.paymentStatus ?? 0)
+  if (paymentStatus === 1) return '已支付'
+  if (paymentStatus === 2) return '已退款'
+  return '待支付'
 })
 
 const memberLabel = computed(() => {
@@ -151,8 +162,10 @@ const methodLabel = computed(() => {
 })
 
 const showCancelButton = computed(() => {
+  if (!detail.value) return false
   const status = Number(detail.value?.status ?? -1)
-  return status === STRINGING_STATUS.WAITING || status === STRINGING_STATUS.IN_PROGRESS
+  const paymentStatus = Number(detail.value?.paymentStatus ?? 0)
+  return status === STRINGING_STATUS.WAITING && paymentStatus !== 1 && paymentStatus !== 2
 })
 
 function formatDateTime(value?: string) {
@@ -206,12 +219,12 @@ async function handleCancel() {
     success: async (res) => {
       if (!res.confirm || !detail.value) return
       try {
-        await updateStringingStatus(detail.value.id, STRINGING_STATUS.CANCELLED)
+        await cancelStringing(detail.value.id)
         uni.showToast({ title: '取消成功', icon: 'success' })
         await loadDetail()
       } catch (error) {
         console.error('取消服务失败:', error)
-        uni.showToast({ title: '取消失败', icon: 'none' })
+        uni.showToast({ title: error instanceof Error ? error.message : '取消失败', icon: 'none' })
       }
     }
   })

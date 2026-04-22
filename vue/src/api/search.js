@@ -44,3 +44,12 @@ export function searchAll(params) {
     params
   })
 }
+
+// 搜索建议（预留给用户端实时建议能力）
+export function getSearchSuggestions(params) {
+  return request({
+    url: '/api/search/suggestions',
+    method: 'get',
+    params
+  })
+}

@@ -69,9 +69,10 @@ export interface StringInfoWithDisplay extends StringInfo {
 }
 
 export interface CreateStringingParams {
-  /** 会员业务 ID（若登录用户已绑定会员） */
+  /** 用户侧由当前登录会员驱动；管理侧可显式指定 */
   memberId?: number
   memberPhone?: string
+  /** 用户侧无需依赖此字段，后端会按登录态自动补齐 */
   userId?: number
   userName?: string
   venueId?: number
@@ -164,6 +165,14 @@ export function processStringingPayment(serviceId: number, paymentMethod: String
 export function processStringingRefund(serviceId: number) {
   return request<null>({
     url: `/stringing/refund?serviceId=${serviceId}`,
+    method: 'POST',
+    data: undefined
+  })
+}
+
+export function cancelStringing(serviceId: number) {
+  return request<null>({
+    url: `${API_PATHS.STRINGING.CANCEL}?serviceId=${serviceId}`,
     method: 'POST',
     data: undefined
   })

@@ -14,5 +14,6 @@ export {
   createStringing,
   getStringList,
   calculatePrice,
+  cancelStringing,
   updateStringingStatus
 } from '@/api/internal/stringing'

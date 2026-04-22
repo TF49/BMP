@@ -47,11 +47,11 @@
           />
           <view class="hero-inner absolute bottom-0 left-0 p-6 z-20 w-full flex flex-col gap-6">
             <view class="max-w-full">
-              <text class="hero-pill inline-block px-3 py-1 text-xs font-bold tracking-widest rounded-full mb-4">HOT RECOMMENDED</text>
+              <text class="hero-pill inline-block px-3 py-1 text-xs font-bold tracking-widest rounded-full mb-4">{{ heroPillLabel }}</text>
               <text class="hero-title text-white text-4xl font-black italic tracking-tighter leading-none mb-4 block text-shadow-elite">{{ heroTitle }}</text>
               <text class="hero-sub text-white-80 text-base font-medium block max-w-lg">{{ heroSubtitle }}</text>
             </view>
-            <view class="countdown flex gap-4 bg-white-10 backdrop-blur border border-white-20 p-4 rounded-2xl self-start">
+            <view v-if="showHeroCountdown" class="countdown flex gap-4 bg-white-10 backdrop-blur border border-white-20 p-4 rounded-2xl self-start">
               <view class="text-center">
                 <text class="text-white text-3xl font-black leading-none block">{{ countdown.d }}</text>
                 <text class="text-white-60 text-10 font-bold tracking-widest uppercase mt-1 block">Days</text>
@@ -94,8 +94,28 @@
 
         <!-- Tournament cards -->
         <view class="mt-8 flex flex-col gap-6">
-          <view v-if="filteredCards.length === 0" class="empty-card bg-surface-container-lowest rounded-3xl p-8 text-center">
-            <text class="text-secondary text-sm block">暂无符合条件的赛事</text>
+          <view v-if="listState === 'loading'" class="empty-card bg-surface-container-lowest rounded-3xl p-8 text-center">
+            <view class="spinner mx-auto mb-4" />
+            <text class="text-secondary text-sm block">正在加载真实赛事...</text>
+          </view>
+
+          <view v-else-if="listState === 'error'" class="empty-card bg-surface-container-lowest rounded-3xl p-8 text-center">
+            <text class="text-secondary text-base font-bold block">赛事加载失败</text>
+            <text class="text-slate-500 text-sm mt-2 block">请检查网络后重试，当前不再展示演示赛事数据</text>
+            <button
+              class="retry-btn mt-6 bg-primary-container text-on-primary-container px-6 py-3 rounded-xl font-black italic tracking-wider text-sm border-none"
+              hover-class="register-btn-hover"
+              @tap="reloadList"
+            >
+              重新加载
+            </button>
+          </view>
+
+          <view v-else-if="filteredCards.length === 0" class="empty-card bg-surface-container-lowest rounded-3xl p-8 text-center">
+            <text class="text-secondary text-base font-bold block">{{ searchKeyword.trim() || filterType !== 'all' ? '暂无符合条件的赛事' : '暂无赛事' }}</text>
+            <text class="text-slate-500 text-sm mt-2 block">
+              {{ searchKeyword.trim() || filterType !== 'all' ? '请尝试调整搜索词或筛选条件' : '当前暂无可展示的真实赛事，请稍后再来查看' }}
+            </text>
           </view>
 
           <view
@@ -233,59 +253,9 @@ interface UiCard {
   maxParticipants: number
 }
 
-const MOCK_CARDS: UiCard[] = [
-  {
-    id: -8001,
-    title: '社区杯双打友谊锦标赛',
-    threshold: '参赛门槛：个人积分 1500 以下',
-    dateRange: '2024.11.20 - 11.22',
-    location: '奥林匹克体育中心 3号馆',
-    feeDisplay: '150.00',
-    feeUnit: '/队',
-    cover: CARD_IMGS[0],
-    badgeIcon: 'staff',
-    badgeLabel: 'DOUBLE MIXED',
-    rawType: '社区双打',
-    status: 1,
-    participants: 0,
-    maxParticipants: 100
-  },
-  {
-    id: -8002,
-    title: 'Kinetic 动力单打巡回赛',
-    threshold: '参赛门槛：无积分限制 (公开组)',
-    dateRange: '2024.12.05 - 12.08',
-    location: '新动力羽球俱乐部 虹桥店',
-    feeDisplay: '88.00',
-    feeUnit: '/人',
-    cover: CARD_IMGS[1],
-    badgeIcon: 'person',
-    badgeLabel: 'SINGLE ELITE',
-    rawType: '专业排名赛',
-    status: 1,
-    participants: 0,
-    maxParticipants: 64
-  },
-  {
-    id: -8003,
-    title: '“未来之星”青少年挑战赛',
-    threshold: '参赛门槛：12-15周岁青少年',
-    dateRange: '2024.12.15',
-    location: '静安体育中心 羽毛球馆',
-    feeDisplay: '120.00',
-    feeUnit: '/人',
-    cover: CARD_IMGS[2],
-    badgeIcon: 'star',
-    badgeLabel: 'YOUTH UNDER 15',
-    rawType: '青少年组',
-    status: 1,
-    participants: 0,
-    maxParticipants: 48
-  }
-]
-
 const rawList = ref<TournamentItem[]>([])
 const uiCards = ref<UiCard[]>([])
+const listState = ref<'loading' | 'success' | 'empty' | 'error'>('loading')
 
 function pad2(n: number) {
   return n < 10 ? `0${n}` : `${n}`
@@ -346,14 +316,35 @@ function mapItem(t: TournamentItem, index: number): UiCard {
 const featured = ref<TournamentItem | null>(null)
 
 const heroImageUrl = computed(() => HERO_IMG)
-const heroTitle = computed(() => featured.value?.tournamentName || '2024 全球羽球精英公开赛')
+const heroPillLabel = computed(() => {
+  if (featured.value?.id) return 'HOT RECOMMENDED'
+  if (listState.value === 'error') return 'LIVE STATUS'
+  if (listState.value === 'empty') return 'EVENT HUB'
+  return 'SYNCING NOW'
+})
+const heroTitle = computed(() => {
+  if (featured.value?.tournamentName) return featured.value.tournamentName
+  if (listState.value === 'error') return '真实赛事加载失败'
+  if (listState.value === 'empty') return '发现下一场真实赛事'
+  return '正在同步真实赛事'
+})
 const heroSubtitle = computed(() => {
+  if (!featured.value) {
+    if (listState.value === 'error') {
+      return '当前未展示任何演示赛事，请重试后查看最新赛事安排。'
+    }
+    if (listState.value === 'empty') {
+      return '当前暂无可展示的真实赛事，后续上新后会第一时间在这里呈现。'
+    }
+    return '正在从后端同步最新赛事信息，请稍候片刻。'
+  }
   const p = featured.value?.prizeInfo?.trim()
   if (p) return p
   const d = (featured.value?.description || '').trim()
   if (d) return d.slice(0, 80) + (d.length > 80 ? '…' : '')
   return '挑战巅峰，见证传奇。最高组别冠军奖金高达 50,000 元。'
 })
+const showHeroCountdown = computed(() => !!featured.value)
 
 const countdownDeadline = ref<Date>(new Date(Date.now() + 8 * 86400000 + 14 * 3600000 + 52 * 60000))
 const countdown = ref({ d: 8, h: 14, m: 52 })
@@ -406,18 +397,21 @@ const filteredCards = computed(() => {
 })
 
 async function loadList() {
+  listState.value = 'loading'
   try {
     const page = await getTournamentList({ page: 1, size: 50 })
     const raw = page as any
     const list = Array.isArray(raw) ? raw : raw?.data ?? []
     rawList.value = Array.isArray(list) ? list : []
     if (rawList.value.length === 0) {
-      uiCards.value = MOCK_CARDS
+      uiCards.value = []
       featured.value = null
+      listState.value = 'empty'
       countdownDeadline.value = new Date(Date.now() + 8 * 86400000 + 14 * 3600000 + 52 * 60000)
     } else {
       featured.value = rawList.value[0]
       uiCards.value = rawList.value.map((it, i) => mapItem(it, i))
+      listState.value = 'success'
       const target = featured.value.tournamentStart || featured.value.registrationEnd
       if (target) {
         const dt = new Date(target.replace(/-/g, '/'))
@@ -429,9 +423,12 @@ async function loadList() {
       }
     }
     updateCountdown()
-  } catch {
-    uiCards.value = MOCK_CARDS
+  } catch (error) {
+    console.error('加载赛事列表失败:', error)
+    rawList.value = []
+    uiCards.value = []
     featured.value = null
+    listState.value = 'error'
     countdownDeadline.value = new Date(Date.now() + 8 * 86400000 + 14 * 3600000 + 52 * 60000)
     updateCountdown()
   }
@@ -441,28 +438,20 @@ function canRegister(item: UiCard) {
   return item.status === 1 && item.participants < item.maxParticipants
 }
 
-function isMockCard(item: UiCard) {
-  return item.id < 0
-}
-
 function openDetail(item: UiCard) {
-  if (isMockCard(item)) {
-    uni.showToast({ title: '展示数据', icon: 'none' })
-    return
-  }
   uni.navigateTo({ url: `/pages/tournament/detail?id=${item.id}` })
 }
 
 function register(item: UiCard) {
-  if (isMockCard(item)) {
-    uni.showToast({ title: '展示数据，请连接后端后报名', icon: 'none' })
-    return
-  }
   if (canRegister(item)) {
     uni.navigateTo({ url: `/pages/tournament/register?id=${item.id}` })
   } else {
     uni.navigateTo({ url: `/pages/tournament/detail?id=${item.id}` })
   }
+}
+
+function reloadList() {
+  void loadList()
 }
 
 function goNotice() {
@@ -994,5 +983,29 @@ onPullDownRefresh(() => {
 
 .empty-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.spinner {
+  width: 44rpx;
+  height: 44rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+.retry-btn::after {
+  border: none;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

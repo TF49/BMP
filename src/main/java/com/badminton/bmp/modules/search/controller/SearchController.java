@@ -18,8 +18,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 综合搜索接口（用户端搜索页）
@@ -77,6 +79,24 @@ public class SearchController extends BaseController {
         return success(list != null ? list : new ArrayList<>());
     }
 
+    @Operation(summary = "搜索建议", description = "聚合场馆、课程、赛事、器材名称建议，需登录")
+    @GetMapping("/suggestions")
+    @PreAuthorize("isAuthenticated()")
+    public Result<Object> searchSuggestions(@RequestParam(value = "keyword", required = false) String keyword) {
+        String k = keyword == null ? "" : keyword.trim();
+        if (k.isEmpty()) {
+            return success(new ArrayList<>());
+        }
+
+        Set<String> suggestions = new LinkedHashSet<>();
+        collectVenueSuggestions(k, suggestions);
+        collectCourseSuggestions(k, suggestions);
+        collectTournamentSuggestions(k, suggestions);
+        collectEquipmentSuggestions(k, suggestions);
+
+        return success(new ArrayList<>(suggestions).subList(0, Math.min(suggestions.size(), 8)));
+    }
+
     @Operation(summary = "综合搜索", description = "同时搜索场馆、课程、赛事、器材，需登录")
     @GetMapping("/all")
     @PreAuthorize("isAuthenticated()")
@@ -92,5 +112,61 @@ public class SearchController extends BaseController {
         result.put("tournaments", tournaments != null ? tournaments : new ArrayList<>());
         result.put("equipment", equipment != null ? equipment : new ArrayList<>());
         return success(result);
+    }
+
+    private void collectVenueSuggestions(String keyword, Set<String> suggestions) {
+        try {
+            List<Venue> venues = venueService.findByVenueNameOrAddress(keyword, keyword, null, 1, SEARCH_PAGE_SIZE);
+            if (venues == null) return;
+            for (Venue venue : venues) {
+                addSuggestion(suggestions, venue != null ? venue.getVenueName() : null);
+                if (suggestions.size() >= 8) return;
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void collectCourseSuggestions(String keyword, Set<String> suggestions) {
+        try {
+            List<Course> courses = courseService.findAll(null, null, null, keyword, null, null, 1, SEARCH_PAGE_SIZE);
+            if (courses == null) return;
+            for (Course course : courses) {
+                addSuggestion(suggestions, course != null ? course.getCourseName() : null);
+                if (suggestions.size() >= 8) return;
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void collectTournamentSuggestions(String keyword, Set<String> suggestions) {
+        try {
+            List<Tournament> tournaments = tournamentService.findAll(null, null, null, keyword, null, null, 1, SEARCH_PAGE_SIZE);
+            if (tournaments == null) return;
+            for (Tournament tournament : tournaments) {
+                addSuggestion(suggestions, tournament != null ? tournament.getTournamentName() : null);
+                if (suggestions.size() >= 8) return;
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void collectEquipmentSuggestions(String keyword, Set<String> suggestions) {
+        try {
+            List<Equipment> equipments = equipmentService.findAll(null, null, 1, keyword, 1, SEARCH_PAGE_SIZE);
+            if (equipments == null) return;
+            for (Equipment equipment : equipments) {
+                addSuggestion(suggestions, equipment != null ? equipment.getEquipmentName() : null);
+                if (suggestions.size() >= 8) return;
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void addSuggestion(Set<String> suggestions, String value) {
+        if (value == null) return;
+        String normalized = value.trim();
+        if (!normalized.isEmpty()) {
+            suggestions.add(normalized);
+        }
     }
 }

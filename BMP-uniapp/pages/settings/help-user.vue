@@ -14,9 +14,9 @@
 
             <view class="hero-copy">
               <text class="hero-eyebrow">SUPPORT CENTER</text>
-              <text class="hero-title">把帮助说明和联系方式收纳到一个地方</text>
+              <text class="hero-title">把帮助说明、联系方式和反馈收纳到一个地方</text>
               <text class="hero-subtitle">
-                这是独立给用户端使用的帮助页，用来承接常见说明、客服联系方式和常用问题快照，不影响会长端原有帮助入口。
+                这是独立给用户端使用的帮助页。你可以先查看常见问题，也可以直接把异常、建议和使用体验发给我们。
               </text>
             </view>
 
@@ -46,6 +46,10 @@
                 <text class="quick-title">预约帮助</text>
                 <text class="quick-desc">快速查看约场、取消和时间规则说明</text>
               </view>
+              <view class="quick-card" @tap="handleFeedback">
+                <text class="quick-title">提交反馈</text>
+                <text class="quick-desc">直接反馈建议、异常和体验问题</text>
+              </view>
               <view class="quick-card" @tap="handleCustomerService">
                 <text class="quick-title">在线客服</text>
                 <text class="quick-desc">工作时间内获取人工服务指引</text>
@@ -53,10 +57,6 @@
               <view class="quick-card" @tap="handleCall">
                 <text class="quick-title">电话客服</text>
                 <text class="quick-desc">400-888-8888</text>
-              </view>
-              <view class="quick-card" @tap="handleCopyEmail">
-                <text class="quick-title">客服邮箱</text>
-                <text class="quick-desc">support@bmp.com</text>
               </view>
             </view>
           </view>
@@ -111,6 +111,44 @@
           <view class="panel-card">
             <view class="panel-head">
               <view>
+                <text class="panel-title">提交反馈</text>
+                <text class="panel-subtitle">把问题、建议或异常情况直接发给我们。</text>
+              </view>
+              <text class="panel-tag">FEEDBACK</text>
+            </view>
+
+            <view class="form-stack">
+              <view class="field-card">
+                <text class="field-label">问题描述</text>
+                <textarea
+                  v-model="feedbackContent"
+                  class="feedback-textarea"
+                  placeholder="请详细描述你遇到的问题、建议或使用场景..."
+                  maxlength="500"
+                />
+                <text class="field-tip">{{ feedbackContent.length }}/500</text>
+              </view>
+
+              <view class="field-card">
+                <text class="field-label">联系方式（选填）</text>
+                <input
+                  v-model="contactInfo"
+                  class="field-input"
+                  type="text"
+                  placeholder="手机号或邮箱，方便我们联系你"
+                />
+              </view>
+            </view>
+
+            <button class="submit-btn" :disabled="submitting" @tap="handleSubmitFeedback">
+              <text class="submit-top">Send Feedback</text>
+              <text class="submit-bottom">{{ submitting ? '提交中...' : '提交反馈' }}</text>
+            </button>
+          </view>
+
+          <view class="panel-card">
+            <view class="panel-head">
+              <view>
                 <text class="panel-title">联系我们</text>
                 <text class="panel-subtitle">需要进一步帮助时，可以通过下面的方式找到我们。</text>
               </view>
@@ -139,12 +177,10 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
-import { useUserStore } from '@/store/modules/user'
+import { reactive, ref } from 'vue'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
-
-const userStore = useUserStore()
+import { submitFeedback } from '@/api/auth'
 
 const faqs = reactive([
   {
@@ -192,6 +228,10 @@ const topics = [
   }
 ]
 
+const feedbackContent = ref('')
+const contactInfo = ref('')
+const submitting = ref(false)
+
 function toggleFaq(index: number) {
   faqs[index].expanded = !faqs[index].expanded
 }
@@ -229,20 +269,61 @@ function handleCopyEmail() {
 }
 
 function handleTopic(label: string) {
+  const content = `${label}：`
+  feedbackContent.value = feedbackContent.value.trim() ? feedbackContent.value : content
   uni.showToast({
-    title: `${label}可先查看下方常见问题`,
+    title: `${label}可先查看常见问题或继续填写反馈`,
     icon: 'none'
   })
 }
 
-function handleBack() {
-  safeNavigateBack('/pages/settings/index')
+function handleFeedback() {
+  uni.pageScrollTo({
+    selector: '.form-stack',
+    duration: 300
+  })
 }
 
-if (!userStore.isLoggedIn) {
-  uni.redirectTo({
-    url: '/pages/login/login'
-  })
+async function handleSubmitFeedback() {
+  const content = feedbackContent.value.trim()
+  if (!content) {
+    uni.showToast({
+      title: '请输入问题描述',
+      icon: 'none'
+    })
+    return
+  }
+
+  try {
+    submitting.value = true
+    uni.showLoading({
+      title: '提交中...'
+    })
+    await submitFeedback({
+      content,
+      contact: contactInfo.value.trim() || undefined
+    })
+    uni.hideLoading()
+    uni.showToast({
+      title: '反馈提交成功',
+      icon: 'success'
+    })
+    feedbackContent.value = ''
+    contactInfo.value = ''
+  } catch (error) {
+    console.error('提交反馈失败:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '提交失败，请稍后重试',
+      icon: 'none'
+    })
+  } finally {
+    submitting.value = false
+  }
+}
+
+function handleBack() {
+  safeNavigateBack('/pages/settings/index')
 }
 </script>
 
@@ -434,6 +515,7 @@ if (!userStore.isLoggedIn) {
 
 .quick-title,
 .topic-title,
+.field-label,
 .contact-label {
   display: block;
   font-size: 28rpx;
@@ -444,6 +526,7 @@ if (!userStore.isLoggedIn) {
 .quick-desc,
 .faq-answer-text,
 .topic-desc,
+.field-tip,
 .contact-value {
   display: block;
   margin-top: 10rpx;
@@ -453,15 +536,40 @@ if (!userStore.isLoggedIn) {
 }
 
 .faq-list,
-.topic-list {
+.topic-list,
+.contact-list,
+.form-stack {
   margin-top: 20rpx;
+}
+
+.quick-card,
+.topic-row,
+.faq-item,
+.contact-row,
+.field-card {
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+  border: 1rpx solid rgba(255, 102, 0, 0.08);
+}
+
+.faq-list,
+.topic-list,
+.contact-list,
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .faq-item,
 .topic-row,
-.contact-row {
-  padding: 22rpx 0;
-  border-bottom: 1rpx solid rgba(226, 232, 240, 0.82);
+.contact-row,
+.field-card {
+  padding: 24rpx;
+}
+
+.contact-list {
+  margin-top: 22rpx;
 }
 
 .faq-item:last-child,
@@ -494,6 +602,65 @@ if (!userStore.isLoggedIn) {
 
 .topic-copy {
   flex: 1;
+}
+
+.picker-value,
+.contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.field-input,
+.feedback-textarea {
+  width: 100%;
+  margin-top: 16rpx;
+  padding: 0;
+  font-size: 26rpx;
+  color: #1f2937;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.feedback-textarea {
+  min-height: 200rpx;
+}
+
+.submit-btn {
+  width: 100%;
+  min-height: 104rpx;
+  margin-top: 28rpx;
+  border: none;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #ff8a4c 0%, #ff6600 55%, #a33e00 100%);
+  box-shadow: 0 22rpx 38rpx rgba(255, 102, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.submit-btn::after {
+  border: none;
+}
+
+.submit-btn[disabled] {
+  opacity: 0.7;
+}
+
+.submit-bottom {
+  font-size: 30rpx;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.submit-top {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 20rpx;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 
 .contact-value {

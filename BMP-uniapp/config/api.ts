@@ -19,7 +19,7 @@ export const API_PATHS = {
     UPDATE_PASSWORD: '/auth/change-password',
     SEND_CODE: '/auth/send-code',
     UPDATE_PHONE: '/auth/update-phone',
-    SUBMIT_FEEDBACK: '/auth/feedback'
+    SUBMIT_FEEDBACK: '/feedback'
   },
   // 场馆相关
   VENUE: {
@@ -121,7 +121,8 @@ export const API_PATHS = {
     VENUES: '/search/venues',
     COURSES: '/search/courses',
     TOURNAMENTS: '/search/tournaments',
-    EQUIPMENT: '/search/equipment'
+    EQUIPMENT: '/search/equipment',
+    SUGGESTIONS: '/search/suggestions'
   },
   // 通知相关
   NOTIFICATION: {
@@ -134,6 +135,7 @@ export const API_PATHS = {
     INFO: '/stringing/info',
     INFO_NO: '/stringing/info/no',
     ADD: '/stringing/add',
+    CANCEL: '/stringing/cancel',
     DETAIL: '/stringing/info',
     UPDATE: '/stringing/update',
     DELETE: '/stringing',

@@ -278,6 +278,33 @@ public class StringingServiceController extends BaseController {
     }
 
     /**
+     * 用户取消自己的穿线服务
+     */
+    @Operation(summary = "用户取消穿线服务")
+    @PostMapping("/cancel")
+    @PreAuthorize("isAuthenticated()")
+    public Result<Object> cancelServiceByUser(@RequestParam("serviceId") Long serviceId) {
+        try {
+            if (serviceId == null) {
+                return error("服务记录ID不能为空");
+            }
+
+            int result = stringingServiceService.cancelByUser(serviceId);
+            if (result > 0) {
+                return success(null);
+            } else {
+                return error("取消穿线服务失败");
+            }
+        } catch (AccessDeniedException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            return error(e.getMessage());
+        } catch (Exception e) {
+            return error("取消穿线服务时发生错误：" + e.getMessage());
+        }
+    }
+
+    /**
      * 获取穿线服务统计信息
      * @return 统计信息（总服务数、等待、正在、完成、已取消）
      */

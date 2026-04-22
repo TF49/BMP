@@ -218,25 +218,18 @@
                     {{ serviceForm.hasCollapse ? '有塌陷' : '无塌陷' }}
                   </span>
                 </div>
-                <div class="confirm-item">
-                  <span class="confirm-label">服务价格</span>
-                  <span class="confirm-value price">¥{{ formatCurrency(estimatedPrice) }}</span>
-                </div>
+              <div class="confirm-item">
+                <span class="confirm-label">服务价格</span>
+                <span class="confirm-value price">¥{{ formatCurrency(estimatedPrice) }}</span>
+              </div>
+              <div class="confirm-item">
+                <span class="confirm-label">当前会员</span>
+                <span class="confirm-value">{{ currentMemberLabel }}</span>
+              </div>
               </div>
               <el-form :model="serviceForm" label-width="120px" class="stringing-form" style="margin-top: 24px">
-                <el-form-item label="关联会员（可选）">
-                  <el-input v-model="memberKeyword" placeholder="输入姓名/手机号搜索" @change="loadMembers" clearable />
-                  <el-select v-model="serviceForm.memberId" placeholder="选择会员" filterable style="width: 100%; margin-top: 8px">
-                    <el-option
-                      v-for="member in memberOptions"
-                      :key="member.id"
-                      :label="member.memberName"
-                      :value="member.id"
-                    >
-                      <span>{{ member.memberName }}</span>
-                      <span style="margin-left: 8px; color: var(--color-text-secondary, #64748B)">{{ member.phone }}</span>
-                    </el-option>
-                  </el-select>
+                <el-form-item label="关联会员">
+                  <el-input :model-value="currentMemberLabel" disabled />
                 </el-form-item>
                 <el-form-item label="备注">
                   <el-input v-model="serviceForm.remark" type="textarea" :rows="3" placeholder="可选，填写其他需求或说明" />
@@ -281,12 +274,13 @@
                   <p class="service-string">线材：{{ service.stringName || service.stringEquipmentName || '未选择' }}</p>
                   <p class="service-params">磅数：{{ service.pound }}磅 | 穿线法：{{ getStringingMethodText(service.stringingMethod) }}</p>
                   <p class="service-price">价格：¥{{ formatCurrency(service.servicePrice) }}</p>
+                  <p class="service-price">支付状态：{{ getPaymentStatusText(service.paymentStatus) }}</p>
                   <p class="service-time">申请时间：{{ formatDateTime(service.createTime) }}</p>
                 </div>
               </div>
               <div class="service-actions">
                 <el-button
-                  v-if="service.status === 1"
+                  v-if="canCancelService(service)"
                   type="warning"
                   size="small"
                   @click="handleCancelService(service)"
@@ -308,8 +302,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Location, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getVenueList } from '@/api/venue'
-import { getStringOptions, calculateStringingPrice, addStringingService, getStringingList, updateStringingStatus } from '@/api/stringing'
-import { getMemberList } from '@/api/member'
+import { getStringOptions, calculateStringingPrice, addStringingService, getStringingList, cancelStringing } from '@/api/stringing'
+import { getCurrentMember } from '@/api/member'
 
 const activeTab = ref('apply')
 const step = ref(1) // 1-选择场馆, 2-填写球拍信息, 3-选择线材和参数, 4-确认信息并提交
@@ -320,11 +314,10 @@ const steps = ['选择场馆', '填写球拍信息', '选择线材和参数', '�
 const venueList = ref([])
 const selectedVenue = ref(null)
 const stringOptions = ref([])
-const memberOptions = ref([])
-const memberKeyword = ref('')
 const myServices = ref([])
 const filterStatus = ref(null)
 const submitting = ref(false)
+const currentMember = ref(null)
 
 const serviceForm = ref({
   venueId: null,
@@ -348,6 +341,12 @@ const selectedString = computed(() => {
 })
 
 const estimatedPrice = ref(20.00) // 默认手工费
+const currentMemberLabel = computed(() => {
+  const member = currentMember.value
+  if (!member?.id) return '当前用户未绑定会员'
+  const name = member.memberName || member.nickname || `会员 #${member.id}`
+  return member.phone ? `${name} (${member.phone})` : name
+})
 
 const canProceedToStep4 = computed(() => {
   if (serviceForm.value.isOwnString === 1) {
@@ -389,6 +388,17 @@ const getServiceStatusType = (status) => {
   return map[status] || 'info'
 }
 
+const getPaymentStatusText = (status) => {
+  const map = { 0: '待支付', 1: '已支付', 2: '已退款' }
+  return map[status] || '未知'
+}
+
+const canCancelService = (service) => {
+  const status = Number(service?.status ?? -1)
+  const paymentStatus = Number(service?.paymentStatus ?? 0)
+  return status === 1 && paymentStatus !== 1 && paymentStatus !== 2
+}
+
 const getStringingMethodText = (method) => {
   const map = { 'TWO_SECTION': '两节', 'FOUR_SECTION': '四节', 'AUTO': '视球拍而定' }
   return map[method] || method
@@ -417,18 +427,15 @@ const loadStringOptions = async () => {
   }
 }
 
-const loadMembers = async () => {
-  if (!memberKeyword.value) {
-    memberOptions.value = []
-    return
-  }
+const loadCurrentMemberInfo = async () => {
   try {
-    const res = await getMemberList({ keyword: memberKeyword.value, page: 1, size: 20 })
+    const res = await getCurrentMember()
     if (res.code === 200) {
-      memberOptions.value = res.data?.data || res.data || []
+      currentMember.value = res.data || null
     }
   } catch (e) {
-    console.error('加载会员列表失败:', e)
+    currentMember.value = null
+    console.error('加载当前会员失败:', e)
   }
 }
 
@@ -485,11 +492,16 @@ const submitService = async () => {
     ElMessage.warning('请选择线材')
     return
   }
+  if (!currentMember.value?.id) {
+    ElMessage.warning('当前用户未绑定会员，无法提交穿线服务')
+    return
+  }
 
   submitting.value = true
   try {
     const payload = {
       ...serviceForm.value,
+      memberId: currentMember.value.id,
       servicePrice: estimatedPrice.value
     }
     const res = await addStringingService(payload)
@@ -511,8 +523,6 @@ const submitService = async () => {
 
 const resetForm = () => {
   selectedVenue.value = null
-  memberOptions.value = []
-  memberKeyword.value = ''
   serviceForm.value = {
     venueId: null,
     memberId: null,
@@ -552,7 +562,7 @@ const handleCancelService = async (service) => {
     await ElMessageBox.confirm('确定要取消这个申请吗？', '提示', {
       type: 'warning'
     })
-    const res = await updateStringingStatus(service.id, 0)
+    const res = await cancelStringing(service.id)
     if (res.code === 200) {
       ElMessage.success('取消成功')
       loadMyServices()
@@ -562,7 +572,7 @@ const handleCancelService = async (service) => {
   } catch (e) {
     if (e !== 'cancel') {
       console.error('取消申请失败:', e)
-      ElMessage.error('取消失败，请稍后重试')
+      ElMessage.error(e?.message || '取消失败，请稍后重试')
     }
   }
 }
@@ -576,6 +586,7 @@ watch(activeTab, (newTab) => {
 onMounted(() => {
   loadVenues()
   loadStringOptions()
+  loadCurrentMemberInfo()
   if (activeTab.value === 'my-services') {
     loadMyServices()
   }

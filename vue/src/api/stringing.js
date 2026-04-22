@@ -61,6 +61,15 @@ export function updateStringingStatus(id, status) {
   })
 }
 
+// 用户取消自己的穿线服务
+export function cancelStringing(serviceId) {
+  return request({
+    url: '/api/stringing/cancel',
+    method: 'post',
+    params: { serviceId }
+  })
+}
+
 // 统计信息
 export function getStringingStatistics() {
   return withDedupe('GET:/api/stringing/statistics', () =>

@@ -120,6 +120,10 @@
                 <text class="job-label">订单金额</text>
                 <text class="job-value accent">¥{{ job.totalPrice }}</text>
               </view>
+              <view class="job-field">
+                <text class="job-label">支付状态</text>
+                <text class="job-value">{{ paymentStatusLabel(job.paymentStatus) }}</text>
+              </view>
             </view>
           </view>
 
@@ -134,14 +138,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getStringingList, type StringingService } from '@/api/stringing'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { STRINGING_STATUS } from '@/utils/constant'
 
 type JobStatus = 'pending' | 'in_progress' | 'ready' | 'cancelled'
+type PaymentStatus = 'unpaid' | 'paid' | 'refunded'
 
 type JobVm = {
   id: number
@@ -152,9 +158,11 @@ type JobVm = {
   timeLabel: string
   totalPrice: string
   status: JobStatus
+  paymentStatus: PaymentStatus
 }
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 56)
@@ -190,6 +198,18 @@ function statusLabel(status: JobStatus) {
   return '已取消'
 }
 
+function mapPaymentStatus(status: number): PaymentStatus {
+  if (status === 1) return 'paid'
+  if (status === 2) return 'refunded'
+  return 'unpaid'
+}
+
+function paymentStatusLabel(status: PaymentStatus) {
+  if (status === 'paid') return '已支付'
+  if (status === 'refunded') return '已退款'
+  return '待支付'
+}
+
 function formatDateTime(value: string) {
   if (!value) return '未知时间'
   const date = new Date(value)
@@ -216,7 +236,8 @@ const jobs = computed<JobVm[]>(() => {
       tensionLabel: `${String(item.pound ?? item.tension ?? '-').replace(/\.0$/, '')} lbs`,
       timeLabel: formatDateTime(item.createTime),
       totalPrice: formatMoney(item.totalPrice || item.servicePrice),
-      status: mapStatus(Number(item.status))
+      status: mapStatus(Number(item.status)),
+      paymentStatus: mapPaymentStatus(Number(item.paymentStatus ?? 0))
     }))
     .filter((item) => (currentTab.value === 'all' ? true : item.status === currentTab.value))
     .filter((item) => {
@@ -240,9 +261,22 @@ const summary = computed(() => {
 const hasMore = computed(() => rawList.value.length < total.value)
 
 async function fetchList(reset = false) {
-  const memberId = Number((userStore.userInfo as { memberId?: number } | null)?.memberId || userStore.userId || 0)
+  let memberId = 0
+  try {
+    const member = await fetchCurrentMember(reset)
+    memberId = Number(member?.id || 0)
+  } catch (error) {
+    console.error('获取当前会员失败:', error)
+    rawList.value = reset ? [] : rawList.value
+    total.value = reset ? 0 : total.value
+    uni.showToast({ title: '当前会员信息获取失败，请稍后重试', icon: 'none' })
+    return
+  }
+
   if (!memberId) {
-    uni.showToast({ title: '未找到会员信息', icon: 'none' })
+    rawList.value = reset ? [] : rawList.value
+    total.value = reset ? 0 : total.value
+    uni.showToast({ title: '当前用户未绑定会员，无法查看穿线记录', icon: 'none' })
     return
   }
 
@@ -324,6 +358,11 @@ onLoad(async () => {
   }
 
   await fetchList(true)
+})
+
+onShow(() => {
+  if (!userStore.isLoggedIn) return
+  void fetchList(true)
 })
 </script>
 
