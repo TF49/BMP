@@ -164,8 +164,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import MobileLayout from '@/components/MobileLayout.vue'
-import { getStringingByNo, type StringingService } from '@/api/stringing'
+import {
+  getStringingByNo,
+  getStringingPound,
+  getStringingStringLabel,
+  isOwnStringValue,
+  type StringingService
+} from '@/api/stringing'
+import { useUserStore } from '@/store/modules/user'
 import { validateServiceNo } from '@/utils/validate'
 import { safeNavigateBack } from '@/utils/navigation'
 import {
@@ -196,6 +204,7 @@ type QueryResultView = {
   statusBg: string
 }
 
+const userStore = useUserStore()
 const serviceNo = ref('')
 const queryResult = ref<StringingService | null>(null)
 const showResult = ref(false)
@@ -205,19 +214,12 @@ const loading = ref(false)
 const resultView = computed<QueryResultView | null>(() => {
   if (!queryResult.value) return null
 
-  const raw = queryResult.value as unknown as Record<string, unknown>
+  const raw = queryResult.value
   const status = Number(raw.status ?? -1)
-  const isOwnString = raw.isOwnString === 1 || raw.isOwnString === true || raw.ownString === 1 || raw.ownString === true
+  const isOwnString = isOwnStringValue(raw.isOwnString) || isOwnStringValue(raw.ownString)
   const racketBrand = toDisplayText(raw.racketBrand)
   const racketModel = toDisplayText(raw.racketModel)
-  const stringName = toDisplayText(raw.stringName || raw.stringEquipmentName)
-  const stringBrand = toDisplayText(raw.stringBrand)
-  const stringGauge = toDisplayText(raw.stringGauge)
-  const stringLabel = isOwnString
-    ? '自带线材'
-    : [stringName, stringBrand !== '-' || stringGauge !== '-' ? `${stringBrand} / ${stringGauge}` : '']
-        .filter(part => part && part !== '- / -')
-        .join(' · ') || '-'
+  const stringLabel = getStringingStringLabel(raw)
 
   return {
     id: Number(raw.id || 0),
@@ -227,7 +229,7 @@ const resultView = computed<QueryResultView | null>(() => {
     racketTitle: [racketBrand, racketModel].filter(part => part !== '-').join(' ') || '未填写球拍信息',
     stringLabel,
     isOwnString,
-    tensionLabel: formatTension(raw.pound ?? raw.tension),
+    tensionLabel: formatTension(getStringingPound(raw)),
     servicePrice: formatMoney(raw.servicePrice),
     stringPrice: isOwnString ? '' : formatOptionalMoney(raw.stringPrice),
     totalPrice: formatMoney(raw.totalPrice ?? raw.servicePrice),
@@ -298,7 +300,7 @@ function getStatusBgColor(status: number) {
 }
 
 function getPaymentMethodText(method: unknown) {
-  if (!method) return '未知'
+  if (!method) return '待支付'
   const key = String(method)
   const map = PAYMENT_METHOD_TEXT as unknown as Record<string, string>
   return map[key] || key
@@ -316,6 +318,11 @@ function handleBack() {
 }
 
 async function handleQuery() {
+  if (!userStore.isLoggedIn) {
+    uni.redirectTo({ url: '/pages/login/login' })
+    return
+  }
+
   const currentNo = serviceNo.value.trim()
   if (!currentNo) {
     uni.showToast({ title: '请输入服务编号', icon: 'none' })
@@ -361,6 +368,12 @@ function handleViewDetail() {
     url: `/pages/stringing/detail?id=${resultView.value.id}`
   })
 }
+
+onLoad(() => {
+  if (!userStore.isLoggedIn) {
+    uni.redirectTo({ url: '/pages/login/login' })
+  }
+})
 </script>
 
 <style lang="scss" scoped>

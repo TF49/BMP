@@ -195,7 +195,8 @@ import {
   calculatePrice,
   createStringing,
   type StringInfo,
-  type CreateStringingParams
+  type CreateStringingParams,
+  getStringInfoDisplayName
 } from '@/api/stringing'
 import { getVenueList } from '@/api/venue'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
@@ -245,7 +246,7 @@ function todayStr() {
 }
 
 function displayName(s: StringInfo) {
-  return s.stringName || s.equipmentName || s.equipmentCode || `线材 #${s.id}`
+  return getStringInfoDisplayName(s)
 }
 
 const STRING_COPY: Record<string, { tag: string; spec: string }> = {
@@ -431,13 +432,14 @@ async function handleSubmit() {
     uni.hideLoading()
     uni.showToast({ title: '预约已提交', icon: 'success' })
     const id = result?.id
-    setTimeout(() => {
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
       if (id) {
         uni.redirectTo({ url: `/pages/stringing/detail?id=${id}` })
       } else {
         uni.redirectTo({ url: '/pages/stringing/list' })
       }
     }, 800)
+    void timer
   } catch (e) {
     console.error(e)
     uni.hideLoading()

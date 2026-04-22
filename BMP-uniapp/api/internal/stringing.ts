@@ -17,9 +17,13 @@ export interface StringingService {
   stringId?: number
   stringName?: string
   stringEquipmentName?: string
+  /** 历史兼容字段，后端正式字段为 stringName/stringEquipmentName */
+  displayName?: string
   pound?: number | string
-  tension?: number
+  /** 历史兼容字段，后端正式字段为 pound */
+  tension?: number | string
   isOwnString?: number
+  /** 历史兼容字段，后端正式字段为 isOwnString */
   ownString?: number
   stringingMethod?: 'TWO_SECTION' | 'FOUR_SECTION' | 'AUTO' | string
   hasBreakage?: number
@@ -33,8 +37,11 @@ export interface StringingService {
   createTime: string
   updateTime: string
   startTime?: string
+  /** 历史兼容字段，当前接口不保证返回 */
   stringBrand?: string
+  /** 历史兼容字段，当前接口不保证返回 */
   stringGauge?: string
+  /** 历史兼容字段，当前接口不保证返回 */
   stringPrice?: number
 }
 
@@ -47,6 +54,8 @@ export interface StringInfo {
   stringName?: string
   brand?: string
   gauge?: string
+  /** 仅用于前端展示的兼容字段 */
+  displayName?: string
 }
 
 export interface StringingListParams {
@@ -196,7 +205,14 @@ export function getStringList() {
   return request<StringInfo[]>({
     url: API_PATHS.STRINGING.STRINGS,
     method: 'GET'
-  })
+  }).then((list) =>
+    Array.isArray(list)
+      ? list.map((item) => ({
+          ...item,
+          displayName: getStringInfoDisplayName(item)
+        }))
+      : []
+  )
 }
 
 /**
@@ -221,4 +237,25 @@ export function calculatePrice(params: CalculatePriceParams) {
     }
     return result
   })
+}
+
+export function isOwnStringValue(value: unknown) {
+  return value === 1 || value === '1' || value === true
+}
+
+export function getStringingPound(value: Pick<StringingService, 'pound' | 'tension'>) {
+  return value.pound ?? value.tension
+}
+
+export function getStringInfoDisplayName(item?: StringInfo | null) {
+  if (!item) return ''
+  return item.displayName || item.stringName || item.equipmentName || item.equipmentCode || `线材 #${item.id}`
+}
+
+export function getStringingStringLabel(item?: Pick<StringingService, 'isOwnString' | 'ownString' | 'stringName' | 'stringEquipmentName'> | null) {
+  if (!item) return '未知线材'
+  if (isOwnStringValue(item.isOwnString) || isOwnStringValue(item.ownString)) {
+    return item.stringName || '自带线材'
+  }
+  return item.stringName || item.stringEquipmentName || '未知线材'
 }

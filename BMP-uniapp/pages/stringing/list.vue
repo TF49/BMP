@@ -139,7 +139,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { getStringingList, type StringingService } from '@/api/stringing'
+import {
+  getStringingList,
+  getStringingPound,
+  getStringingStringLabel,
+  type StringingService
+} from '@/api/stringing'
 import { useCurrentMember } from '@/composables/useCurrentMember'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
@@ -233,8 +238,8 @@ const jobs = computed<JobVm[]>(() => {
       id: item.id,
       serviceNo: item.serviceNo || `工单 #${item.id}`,
       racketLine: [item.racketBrand, item.racketModel].filter(Boolean).join(' ') || '未填写球拍',
-      stringModel: item.ownString === 1 || item.isOwnString === 1 ? '自带线材' : item.stringName || item.stringEquipmentName || '未知线材',
-      tensionLabel: `${String(item.pound ?? item.tension ?? '-').replace(/\.0$/, '')} lbs`,
+      stringModel: getStringingStringLabel(item),
+      tensionLabel: formatPoundLabel(getStringingPound(item)),
       timeLabel: formatDateTime(item.createTime),
       totalPrice: formatMoney(item.totalPrice || item.servicePrice),
       status: mapStatus(Number(item.status)),
@@ -306,6 +311,11 @@ async function fetchList(reset = false) {
 
 function pad2(value: number) {
   return value < 10 ? `0${value}` : `${value}`
+}
+
+function formatPoundLabel(value: number | string | undefined) {
+  if (value === undefined || value === null || value === '') return '-'
+  return `${String(value).replace(/\.0$/, '')} lbs`
 }
 
 function switchTab(key: typeof currentTab.value) {

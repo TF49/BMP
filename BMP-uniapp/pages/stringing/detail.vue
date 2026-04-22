@@ -100,7 +100,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { cancelStringing, getStringingDetail, type StringingService } from '@/api/stringing'
+import {
+  cancelStringing,
+  getStringingDetail,
+  getStringingPound,
+  getStringingStringLabel,
+  type StringingService
+} from '@/api/stringing'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
@@ -133,7 +139,7 @@ const paymentStatusLabel = computed(() => {
 
 const memberLabel = computed(() => {
   if (!detail.value) return '未知客户'
-  return detail.value.memberName || detail.value.userName || userStore.userInfo?.nickname || userStore.userInfo?.username || `会员 #${detail.value.memberId || '-'}`
+  return detail.value.memberName || detail.value.userName || userStore.userInfo?.username || `会员 #${detail.value.memberId || '-'}`
 })
 
 const racketLabel = computed(() => {
@@ -142,15 +148,13 @@ const racketLabel = computed(() => {
 })
 
 const tensionLabel = computed(() => {
-  const tension = detail.value?.pound ?? detail.value?.tension
+  const tension = detail.value ? getStringingPound(detail.value) : undefined
   if (tension === undefined || tension === null || tension === '') return '未知磅数'
   return `${String(tension).replace(/\.0$/, '')} lbs`
 })
 
 const stringLabel = computed(() => {
-  if (!detail.value) return '未知线材'
-  if (detail.value.isOwnString === 1 || detail.value.ownString === 1) return detail.value.stringName || '自带线材'
-  return detail.value.stringName || detail.value.stringEquipmentName || '未知线材'
+  return getStringingStringLabel(detail.value)
 })
 
 const methodLabel = computed(() => {
