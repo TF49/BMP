@@ -50,11 +50,15 @@
               <uni-icons type="right" size="14" color="#a33e00"></uni-icons>
             </view>
           </view>
-          <scroll-view scroll-x class="hide-scrollbar coach-scroll" :show-scrollbar="false">
+          <view v-if="displayCoaches.length === 0" class="empty-card bg-surface-container-lowest rounded-3xl p-8 text-center">
+            <text class="text-secondary text-sm block">暂无教练数据</text>
+            <text class="text-xs-10 text-secondary mt-2 block">下拉刷新后重试</text>
+          </view>
+          <scroll-view v-else scroll-x class="hide-scrollbar coach-scroll" :show-scrollbar="false">
             <view class="coach-row flex gap-4 pb-4">
               <view
-                v-for="(c, idx) in displayCoaches"
-                :key="idx"
+                v-for="c in displayCoaches"
+                :key="c.id"
                 class="coach-card flex-shrink-0 w-40 bg-surface-container-lowest rounded-2xl p-4"
                 hover-class="coach-card-active"
                 @tap="onCoachTap(c)"
@@ -70,10 +74,6 @@
                 </view>
                 <text class="font-bold text-sm block">{{ c.name }}</text>
                 <text class="text-xs text-secondary mt-1 block">{{ c.title }}</text>
-                <view class="flex items-center mt-2 text-orange-600">
-                  <uni-icons type="star-filled" size="12" color="#ea580c"></uni-icons>
-                  <text class="text-10 font-bold ml-1">{{ c.rating }} ({{ c.reviews }}+)</text>
-                </view>
               </view>
             </view>
           </scroll-view>
@@ -102,7 +102,13 @@
         <view class="mt-8 flex flex-col gap-4">
           <text class="text-xl font-extrabold tracking-tight px-1 block">今日排期</text>
 
-          <view v-if="filteredCourses.length === 0" class="empty-card bg-surface-container-lowest rounded-3xl p-8 text-center">
+          <view v-if="courseListState === 'error'" class="empty-card bg-surface-container-lowest rounded-3xl p-8 text-center">
+            <text class="text-secondary text-sm block">课程加载失败</text>
+            <text class="text-xs-10 text-secondary mt-2 block">{{ courseLoadError || '请稍后重试' }}</text>
+            <button class="retry-btn bg-on-surface text-white h-11 px-6 rounded-xl font-bold text-sm mt-4" @tap="loadCourseList">重新加载</button>
+          </view>
+
+          <view v-else-if="filteredCourses.length === 0" class="empty-card bg-surface-container-lowest rounded-3xl p-8 text-center">
             <text class="text-secondary text-sm block">该日期暂无课程</text>
             <text class="text-xs-10 text-secondary mt-2 block">试试其他日期或清空搜索</text>
           </view>
@@ -261,50 +267,10 @@ const weekDates = computed(() => {
   return out
 })
 
-const DEFAULT_COACHES = [
-  {
-    id: -1,
-    name: 'Zhang Wei',
-    title: '前国家队成员',
-    rating: '4.9',
-    reviews: '120',
-    avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCKHKS3Jdx-Eg62VB1rwleaMzf36RSgWb1ZJhHJEr1YcEHDnHPyMd64Sa0sikeO7ov8ACp5kzdRlO004SGaYuyC2gOyTBD1XBN-lQd0bPPeukWD1Tga3uPZalLJPF8p-hPSYLr-LNaKV2SAFwusljPIraeDjh5dJW9WNUMtjMUYkQG9VVtOMcSEH269e5EdneFRnQlcdZeaEf_fMvg7EWxkEPKwb2JhXUGw6ybXF02Q13jSg1E514CWA_rwHaQ6jacjYZHSmO-ZStUt'
-  },
-  {
-    id: -2,
-    name: 'Lin Xiao',
-    title: '职业级教练',
-    rating: '5.0',
-    reviews: '86',
-    avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCxL55pmkWvbeqd4WvQBQuJVOWKStv1-9J81xYrfiCLlqIEcDKgvIQwqBE4kJ6JECTNX0jee8H5Gdd6H0zkcb5d9fCfvtL57QcshMFwbmgPM5FTaw2GSK2ZDoWCCT5ZelhKFE4NEaZiLvcc0cX0mQWXALWGOouJo4wBEopJS7sgbr0g2HTexTQ9BZH1dlkdMvbi_XFc-cDHS3eH44QOYGpvss5MHPP4zvz_eGPKB9trxL-G6wtNaZ2_JO3TVTY6CziDtBNgpeNwiFvT'
-  },
-  {
-    id: -3,
-    name: 'Coach Chen',
-    title: '青少年教学专家',
-    rating: '4.8',
-    reviews: '210',
-    avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuChWPeRyGiEQEW8oiQLE1Xq_ZkyJl6w-sOmvF0hfei8djt4YkTiUa0NdY-ALuzysmVflkFNGPxoyiagjNJG-E1Xrbd7e_LwtCcNEzIuy_iScI-OH3dYXRzBKOSWIXHspa2wDEyMkotslei7GCwvki9sgfkatkhaCkw9-n49v8TFbwEVNjh0SAPvdqcFkfjAdQOOXhYeI6r2_vNGNU41MTWPY6jeNJ-IamvinsNKj6tyidfMAko_QcYJI7nPDOr_nEeaJsFC3Y7dtYPk'
-  },
-  {
-    id: -4,
-    name: 'Li Qiang',
-    title: '高级技术分析',
-    rating: '4.7',
-    reviews: '45',
-    avatar: ''
-  }
-]
-
 interface CoachCard {
   id: number
   name: string
   title: string
-  rating: string
-  reviews: string
   avatar: string
 }
 
@@ -315,19 +281,16 @@ interface ApiCoach {
 
 const apiCoaches = ref<ApiCoach[]>([])
 const rawCourses = ref<CourseItem[]>([])
+const courseListState = ref<'idle' | 'success' | 'error'>('idle')
+const courseLoadError = ref('')
 
 const displayCoaches = computed<CoachCard[]>(() => {
-  if (apiCoaches.value.length > 0) {
-    return apiCoaches.value.slice(0, 8).map((c, i) => ({
-      id: c.id,
-      name: c.name,
-      title: '专业教练',
-      rating: (4.6 + (i % 5) * 0.08).toFixed(1),
-      reviews: `${50 + i * 17}`,
-      avatar: DEFAULT_COACHES[i % DEFAULT_COACHES.length]?.avatar || ''
-    }))
-  }
-  return DEFAULT_COACHES
+  return apiCoaches.value.slice(0, 8).map((c) => ({
+    id: c.id,
+    name: c.name,
+    title: '专业教练',
+    avatar: ''
+  }))
 })
 
 interface UiCourse {
@@ -345,57 +308,6 @@ interface UiCourse {
   badge: string
   courseDate: string
 }
-
-const MOCK_COURSES: UiCourse[] = [
-  {
-    id: 9001,
-    title: '全能技术进阶班',
-    timeRange: '19:00 - 21:00',
-    location: '3号场地',
-    coachName: 'Zhang Wei',
-    coachRole: 'CHIEF INSTRUCTOR',
-    coachAvatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDaqgXrt8m4j2qxyLVTUtl7dEDa5rirqE6Oe-WpGB6i5W4IkQj-41fe5UYemfnZDBRSwA6eDU1YncqY1V4_FVVBFbjcS1KSND18mW_O2L9aMQe14oEBws9h4KlRfaqbMjbZpRDd8F8dX-TKCf2cqOKodcZlw8sOn6_-eZyCvHTu68p0fg98oSTktkhNpf46W1sNF5CgCxGRLh7za_JJx9raS_TwsAGf7sE0DMw5DJc4dGmurW8cypwGDd2yS6Mmf8H0eaTNxGuMyPFB',
-    price: '1,299',
-    availText: '仅剩 2 名额',
-    availPercent: 85,
-    availSoft: false,
-    badge: 'Filling Fast',
-    courseDate: ''
-  },
-  {
-    id: 9002,
-    title: '青少年羽球启蒙',
-    timeRange: '16:00 - 18:00',
-    location: '1-2号场地',
-    coachName: 'Coach Chen',
-    coachRole: 'JUNIOR EXPERT',
-    coachAvatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCEQz_pwuGXlItfhjwFtwio3yEdxLcSrfpN1PwaZqNUydJzjtZ88HmkjkKlPR5GY52A34O-zrLvdYM3bLcQ3NGBH6JWpCUGNrRR2uWlm6oSSUcjPHZKDjt8OLkae196V2eZ_vO-7uZBXHuEDgOVi-cfZBg_6NB8Vm2BCSANq4GUHrdXp1ti3x1AEZ-N_FDCYuIMDzdM1hIbx7JdWbmUtxI9KLyDCJFXXuD9TfDz6mI2jXwxS1w41H3hq6ZeqaeJBCskHTWTSyTIM9Eh',
-    price: '899',
-    availText: '名额充足',
-    availPercent: 30,
-    availSoft: true,
-    badge: '',
-    courseDate: ''
-  },
-  {
-    id: 9003,
-    title: '体能爆发力专项训练',
-    timeRange: '20:00 - 21:30',
-    location: '5号场地',
-    coachName: 'Lin Xiao',
-    coachRole: 'STRENGTH SPECIALIST',
-    coachAvatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBBkG5hBXblZAdpQBXlWlDr9gsUDlcs8yu6f2dSmN0oQBSROXeFqz-3fCav7PrPJ6ybxjbKC8qxopNs0nZQ7Nb4kw-Bew45yw30QWuMGlzUiHTNY8nMZOf3v5YGIceg25ZXLxe4vTCRv7z4XxubJlISuWsJYZIueNUNVX7vVhFXfU-P5KHdbzmdCU_J7BWxSQWuTO9IBm0RqcBR5oIVxLToOVsT3116eEOK-KBI3D6d67VJ5BG2mEWBzi-xpBwtc82Tw4VrIoiiV6OK',
-    price: '1,500',
-    availText: '仅剩 1 名额',
-    availPercent: 92,
-    availSoft: false,
-    badge: '',
-    courseDate: ''
-  }
-]
 
 const uiCourses = ref<UiCourse[]>([])
 
@@ -473,6 +385,8 @@ function resetFilters() {
 
 async function loadCourseList() {
   try {
+    courseListState.value = 'idle'
+    courseLoadError.value = ''
     const params: Record<string, unknown> = { page: 1, size: 50 }
     if (filterCoachId.value != null) params.coachId = filterCoachId.value
     if (searchKeyword.value.trim()) params.keyword = searchKeyword.value.trim()
@@ -481,17 +395,13 @@ async function loadCourseList() {
     const raw = page as any
     const list = Array.isArray(raw) ? raw : raw?.data ?? []
     rawCourses.value = Array.isArray(list) ? list : []
-    if (rawCourses.value.length === 0) {
-      uiCourses.value = MOCK_COURSES.map((m, i) => ({
-        ...m,
-        id: m.id + i,
-        courseDate: ''
-      }))
-    } else {
-      uiCourses.value = rawCourses.value.map(mapCourseToUi)
-    }
-  } catch {
-    uiCourses.value = MOCK_COURSES.map((m, i) => ({ ...m, id: m.id + i, courseDate: '' }))
+    uiCourses.value = rawCourses.value.map(mapCourseToUi)
+    courseListState.value = 'success'
+  } catch (error: any) {
+    rawCourses.value = []
+    uiCourses.value = []
+    courseListState.value = 'error'
+    courseLoadError.value = error?.message || '请检查网络或稍后重试'
   }
 }
 
@@ -520,10 +430,6 @@ async function loadCoachList() {
 }
 
 function bookCourse(item: UiCourse) {
-  if (item.id >= 9000) {
-    uni.showToast({ title: '展示数据，请连接后端后预约', icon: 'none' })
-    return
-  }
   uni.navigateTo({
     url: `/pages/course/detail?id=${item.id}`
   })
@@ -994,6 +900,16 @@ onPullDownRefresh(() => {
 }
 .book-btn-hover {
   opacity: 0.92;
+}
+.retry-btn {
+  border: none;
+  line-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.retry-btn::after {
+  border: none;
 }
 
 .fab-btn {

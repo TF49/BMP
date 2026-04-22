@@ -23,16 +23,16 @@
       <view class="login-form">
         <!-- Mobile Number Input -->
         <view class="field-group">
-          <text class="field-label">手机号码 MOBILE NUMBER</text>
+          <text class="field-label">用户名 USERNAME</text>
           <view class="input-wrapper">
             <view class="input-container">
-              <text class="input-icon">📱</text>
+              <text class="input-icon">👤</text>
               <input 
                 class="input-field" 
-                v-model="formData.phone" 
-                placeholder="输入您的手机号" 
+                v-model="formData.username" 
+                placeholder="请输入您的用户名" 
                 placeholder-class="input-placeholder"
-                type="number"
+                type="text"
                 @focus="focusPhone = true"
                 @blur="focusPhone = false"
               />
@@ -147,6 +147,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { forgotPassword } from '@/api/auth'
 import { safeNavigateBack } from '@/utils/navigation'
 
 const loading = ref(false)
@@ -159,14 +160,14 @@ const focusPassword = ref(false)
 const focusConfirmPassword = ref(false)
 
 const formData = ref({
-  phone: '',
+  username: '',
   idCard: '',
   password: '',
   confirmPassword: ''
 })
 
-const handleReset = () => {
-  if (!formData.value.phone || !formData.value.idCard || !formData.value.password || !formData.value.confirmPassword) {
+const handleReset = async () => {
+  if (!formData.value.username || !formData.value.idCard || !formData.value.password || !formData.value.confirmPassword) {
     uni.showToast({
       title: '请填写完整信息',
       icon: 'none'
@@ -183,9 +184,15 @@ const handleReset = () => {
   }
 
   loading.value = true
-  
-  // 模拟接口调用，可替换为真实的找回密码接口
-  setTimeout(() => {
+
+  try {
+    await forgotPassword({
+      username: formData.value.username.trim(),
+      idCard: formData.value.idCard.trim(),
+      newPassword: formData.value.password,
+      confirmPassword: formData.value.confirmPassword
+    })
+
     loading.value = false
     uni.showToast({
       title: '重置成功',
@@ -194,7 +201,9 @@ const handleReset = () => {
     setTimeout(() => {
       safeNavigateBack('/pages/login/login')
     }, 1500)
-  }, 1000)
+  } catch {
+    loading.value = false
+  }
 }
 
 const handleBack = () => {

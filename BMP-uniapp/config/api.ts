@@ -17,8 +17,7 @@ export const API_PATHS = {
     LOGOUT: '/auth/logout',
     UPDATE_INFO: '/auth/update',
     UPDATE_PASSWORD: '/auth/change-password',
-    SEND_CODE: '/auth/send-code',
-    UPDATE_PHONE: '/auth/update-phone',
+    FORGOT_PASSWORD: '/auth/forgot-password',
     SUBMIT_FEEDBACK: '/feedback'
   },
   // 场馆相关

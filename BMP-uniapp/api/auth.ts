@@ -92,21 +92,15 @@ export function updatePassword(params: { oldPassword: string; newPassword: strin
 }
 
 /**
- * 发送验证码
+ * 忘记密码
  */
-export function sendVerifyCode(params: { phone: string }) {
-  return post<string>(API_PATHS.AUTH.SEND_CODE, params)
-}
-
-/**
- * 更换手机号
- */
-export function updatePhone(params: {
-  newPhone: string
-  verifyCode: string
-  password: string
+export function forgotPassword(params: {
+  username: string
+  idCard: string
+  newPassword: string
+  confirmPassword: string
 }) {
-  return post<string>(API_PATHS.AUTH.UPDATE_PHONE, params)
+  return post<string>(API_PATHS.AUTH.FORGOT_PASSWORD, params, { needAuth: false })
 }
 
 /**
