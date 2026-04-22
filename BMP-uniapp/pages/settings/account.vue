@@ -23,7 +23,7 @@
             <uni-icons type="person-filled" size="34" color="#ffffff" />
           </view>
           <text class="hero-name">{{ userInfo.nickname || userInfo.username || '未设置昵称' }}</text>
-          <text class="hero-copy">管理你的账号身份、绑定信息和基础资料，这些信息会影响通知、登录安全和用户展示。</text>
+          <text class="hero-copy">查看账号资料展示，并维护当前后端已支持的手机号与性别信息。</text>
           <view class="hero-tags">
             <text class="hero-tag">{{ userInfo.phone || '未绑定手机号' }}</text>
           </view>
@@ -32,34 +32,44 @@
         <view class="section-card">
           <view class="section-head">
             <view>
-              <text class="section-kicker">Identity</text>
-              <text class="section-title">身份资料</text>
+              <text class="section-kicker">Current Profile</text>
+              <text class="section-title">当前资料</text>
             </view>
           </view>
 
           <view class="field-grid">
             <view class="field-card">
               <text class="field-label">用户名</text>
-              <input
-                class="field-input"
-                type="text"
-                :value="userInfo.username"
-                @input="onUsernameChange"
-                placeholder="请输入用户名"
-              />
+              <text class="field-value">{{ userInfo.username || '未设置' }}</text>
             </view>
 
             <view class="field-card">
               <text class="field-label">昵称</text>
+              <text class="field-value">{{ userInfo.nickname || '未设置' }}</text>
+            </view>
+          </view>
+          <text class="section-note">用户名和昵称当前为系统资料展示项，如需调整请联系管理员。</text>
+        </view>
+
+        <view class="section-card">
+          <view class="section-head">
+            <view>
+              <text class="section-kicker">Editable</text>
+              <text class="section-title">当前可编辑项</text>
+            </view>
+          </view>
+
+          <view class="field-grid">
+            <view class="field-card">
+              <text class="field-label">手机号</text>
               <input
                 class="field-input"
-                type="text"
-                :value="userInfo.nickname"
-                @input="onNicknameChange"
-                placeholder="请输入昵称"
+                type="number"
+                :value="userInfo.phone"
+                @input="onPhoneChange"
+                placeholder="请输入手机号"
               />
             </view>
-
             <view class="field-card picker-card">
               <text class="field-label">性别</text>
               <picker mode="selector" :range="genders" :value="userInfo.gender" @change="onGenderChange">
@@ -70,16 +80,12 @@
               </picker>
             </view>
 
-            <view class="field-card picker-card">
+            <view class="field-card">
               <text class="field-label">生日</text>
-              <picker mode="date" :value="userInfo.birthday" @change="onBirthdayChange">
-                <view class="picker-value">
-                  <text>{{ userInfo.birthday || '未设置' }}</text>
-                  <uni-icons type="right" size="14" color="#8e7164" />
-                </view>
-              </picker>
+              <text class="field-value">{{ userInfo.birthday || '未设置' }}</text>
             </view>
           </view>
+          <text class="section-note">生日当前仅展示后端资料，不在本页保存范围内。</text>
         </view>
 
         <view class="section-card">
@@ -170,20 +176,12 @@ const genders = ['保密', '男', '女']
 
 const genderText = computed(() => genders[userInfo.gender] || '保密')
 
-const onUsernameChange = (e: any) => {
-  userInfo.username = e.detail?.value ?? e.target?.value ?? ''
-}
-
-const onNicknameChange = (e: any) => {
-  userInfo.nickname = e.detail?.value ?? e.target?.value ?? ''
+const onPhoneChange = (e: any) => {
+  userInfo.phone = e.detail?.value ?? e.target?.value ?? ''
 }
 
 const onGenderChange = (e: any) => {
   userInfo.gender = parseInt(e.detail.value)
-}
-
-const onBirthdayChange = (e: any) => {
-  userInfo.birthday = e.detail.value
 }
 
 const handleChangePassword = () => {
@@ -218,12 +216,8 @@ const handleSave = async () => {
     uni.showLoading({ title: '保存中...' })
 
     await updateUserInfo({
-      id: userStore.userInfo?.id,
-      username: userInfo.username,
-      nickname: userInfo.nickname,
       phone: userInfo.phone,
-      gender: userInfo.gender,
-      birthday: userInfo.birthday
+      gender: String(userInfo.gender)
     })
 
     uni.hideLoading()
@@ -233,11 +227,8 @@ const handleSave = async () => {
     })
 
     if (userStore.userInfo) {
-      userStore.userInfo.username = userInfo.username
-      userStore.userInfo.nickname = userInfo.nickname
       userStore.userInfo.phone = userInfo.phone
       userStore.userInfo.gender = userInfo.gender
-      userStore.userInfo.birthday = userInfo.birthday
     }
   } catch (error) {
     console.error('保存设置失败:', error)
@@ -465,6 +456,15 @@ onMounted(async () => {
   color: #1a1c1c;
 }
 
+.field-value {
+  display: block;
+  margin-top: 16rpx;
+  min-height: 56rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #1a1c1c;
+}
+
 .field-input {
   width: 100%;
 }
@@ -538,6 +538,14 @@ onMounted(async () => {
   font-size: 22rpx;
   color: #a33e00;
   font-weight: 800;
+}
+
+.section-note {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #8e7164;
 }
 
 .save-panel {

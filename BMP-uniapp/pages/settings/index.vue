@@ -170,7 +170,7 @@ const isDarkMode = ref(false)
 const accountMenus = [
   {
     title: '账户设置',
-    desc: '查看并维护账号基础信息',
+    desc: '查看资料展示并维护手机号、性别',
     path: '/pages/settings/account',
     icon: 'person',
     bgColor: 'rgba(255, 102, 0, 0.12)',
@@ -186,7 +186,7 @@ const accountMenus = [
   },
   {
     title: '个人资料',
-    desc: '编辑昵称、联系方式和基础资料',
+    desc: '查看资料展示并维护当前可编辑项',
     path: '/pages/profile/info',
     icon: 'compose',
     bgColor: 'rgba(163, 62, 0, 0.12)',

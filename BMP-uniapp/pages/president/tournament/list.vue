@@ -317,7 +317,7 @@ async function loadTournaments() {
         page: 1,
         size: 100
       })
-      const list = Array.isArray(res.data) ? (res.data as unknown as TournamentItem[]) : []
+      const list = Array.isArray(res) ? (res as unknown as TournamentItem[]) : []
       tournaments.value = list.map(transformTournament)
     } else {
       // 否则使用列表接口

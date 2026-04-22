@@ -40,6 +40,14 @@ export interface UserInfo {
   gender?: number
   birthday?: string
   nickname?: string
+  signature?: string
+}
+
+export interface UpdateUserInfoParams {
+  phone?: string
+  gender?: number | string
+  avatar?: string
+  signature?: string
 }
 
 /**
@@ -79,8 +87,9 @@ export function logout() {
 
 /**
  * 更新用户信息
+ * 后端当前仅支持：phone、gender、avatar、signature
  */
-export function updateUserInfo(userInfo: any) {
+export function updateUserInfo(userInfo: UpdateUserInfoParams) {
   return post<string>(API_PATHS.AUTH.UPDATE_INFO, userInfo)
 }
 

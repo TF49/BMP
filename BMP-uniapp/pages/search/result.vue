@@ -62,7 +62,7 @@
         </view>
       </scroll-view>
 
-      <scroll-view class="result-content" scroll-y @scrolltolower="loadMore">
+      <scroll-view class="result-content" scroll-y>
         <view v-if="loading && currentList.length === 0" class="state-card">
           <view class="loader-ring"></view>
           <text class="state-title">正在整理搜索结果</text>
@@ -182,12 +182,8 @@
             </view>
           </template>
         </view>
-
-        <view v-if="hasMore && currentList.length > 0" class="footer-state">
-          <text class="footer-text">继续上滑加载更多结果</text>
-        </view>
-        <view v-else-if="showNoMore" class="footer-state">
-          <text class="footer-text">当前分类已经到底了</text>
+        <view v-if="!loading && currentList.length > 0" class="footer-state">
+          <text class="footer-text">当前分类已展示全部搜索结果</text>
         </view>
       </scroll-view>
     </view>
@@ -233,8 +229,6 @@ interface TournamentResult {
   maxParticipants: number
 }
 
-const PAGE_SIZE = 10
-
 const userStore = useUserStore()
 const searchKeyword = ref('')
 const activeTab = ref(0)
@@ -247,8 +241,6 @@ const venues = ref<VenueResult[]>([])
 const courses = ref<CourseResult[]>([])
 const tournaments = ref<TournamentResult[]>([])
 const loading = ref(false)
-const pages = ref([1, 1, 1])
-const totals = ref([0, 0, 0])
 const initialized = ref(false)
 
 const currentList = computed(() => {
@@ -260,10 +252,8 @@ const currentVenues = computed(() => venues.value)
 const currentCourses = computed(() => courses.value)
 const currentTournaments = computed(() => tournaments.value)
 
-const totalCount = computed(() => totals.value.reduce((sum, total) => sum + total, 0))
+const totalCount = computed(() => venues.value.length + courses.value.length + tournaments.value.length)
 const displayKeyword = computed(() => searchKeyword.value.trim() || '未输入')
-const hasMore = computed(() => currentList.value.length < totals.value[activeTab.value])
-const showNoMore = computed(() => !loading.value && currentList.value.length > 0 && !hasMore.value)
 const showEmptyState = computed(() => !loading.value && !!searchKeyword.value.trim() && currentList.value.length === 0)
 
 onLoad((options: Record<string, string | undefined> = {}) => {
@@ -324,27 +314,20 @@ async function loadAllResults() {
   loading.value = true
   try {
     const [venueResult, courseResult, tournamentResult] = await Promise.all([
-      searchVenues({ keyword, page: 1, size: PAGE_SIZE }),
-      searchCourses({ keyword, page: 1, size: PAGE_SIZE }),
-      searchTournaments({ keyword, page: 1, size: PAGE_SIZE })
+      searchVenues({ keyword }),
+      searchCourses({ keyword }),
+      searchTournaments({ keyword })
     ])
 
-    venues.value = Array.isArray(venueResult.data) ? venueResult.data.map(mapVenueResult) : []
-    courses.value = Array.isArray(courseResult.data) ? courseResult.data.map(mapCourseResult) : []
-    tournaments.value = Array.isArray(tournamentResult.data) ? tournamentResult.data.map(mapTournamentResult) : []
-
-    totals.value = [
-      Number(venueResult.total || 0),
-      Number(courseResult.total || 0),
-      Number(tournamentResult.total || 0)
-    ]
+    venues.value = Array.isArray(venueResult) ? venueResult.map(mapVenueResult) : []
+    courses.value = Array.isArray(courseResult) ? courseResult.map(mapCourseResult) : []
+    tournaments.value = Array.isArray(tournamentResult) ? tournamentResult.map(mapTournamentResult) : []
 
     resultTabs.value = [
-      { name: '场馆', count: totals.value[0] },
-      { name: '课程', count: totals.value[1] },
-      { name: '赛事', count: totals.value[2] }
+      { name: '场馆', count: venues.value.length },
+      { name: '课程', count: courses.value.length },
+      { name: '赛事', count: tournaments.value.length }
     ]
-    pages.value = [1, 1, 1]
     initialized.value = true
   } catch (error) {
     console.error('搜索失败:', error)
@@ -352,36 +335,6 @@ async function loadAllResults() {
       title: '搜索失败',
       icon: 'none'
     })
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadMore() {
-  if (loading.value || !hasMore.value) return
-
-  const keyword = searchKeyword.value.trim()
-  if (!keyword) return
-
-  const nextPage = pages.value[activeTab.value] + 1
-  loading.value = true
-  try {
-    if (activeTab.value === 0) {
-      const result = await searchVenues({ keyword, page: nextPage, size: PAGE_SIZE })
-      const appendList = Array.isArray(result.data) ? result.data.map(mapVenueResult) : []
-      venues.value = venues.value.concat(appendList)
-    } else if (activeTab.value === 1) {
-      const result = await searchCourses({ keyword, page: nextPage, size: PAGE_SIZE })
-      const appendList = Array.isArray(result.data) ? result.data.map(mapCourseResult) : []
-      courses.value = courses.value.concat(appendList)
-    } else {
-      const result = await searchTournaments({ keyword, page: nextPage, size: PAGE_SIZE })
-      const appendList = Array.isArray(result.data) ? result.data.map(mapTournamentResult) : []
-      tournaments.value = tournaments.value.concat(appendList)
-    }
-    pages.value[activeTab.value] = nextPage
-  } catch (error) {
-    console.error('加载更多搜索结果失败:', error)
   } finally {
     loading.value = false
   }
@@ -408,7 +361,6 @@ function clearSearch() {
   venues.value = []
   courses.value = []
   tournaments.value = []
-  totals.value = [0, 0, 0]
   resultTabs.value = [
     { name: '场馆', count: 0 },
     { name: '课程', count: 0 },

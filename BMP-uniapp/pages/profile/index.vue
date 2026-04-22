@@ -158,7 +158,7 @@ const quickMenus = [
   },
   {
     label: '个人资料',
-    desc: '编辑昵称、电话和资料',
+    desc: '查看资料展示并维护手机号、性别',
     iconType: 'compose',
     iconColor: '#a33e00',
     bgColor: 'rgba(163, 62, 0, 0.12)',
@@ -225,7 +225,7 @@ const menuItems = computed(() => [
     iconColor: '#5f5e5e',
     bgColor: 'rgba(95, 94, 94, 0.12)',
     value: '',
-    desc: '编辑个人资料与基础信息',
+    desc: '查看资料展示与当前可编辑项',
     path: '/pages/profile/info'
   },
   {
