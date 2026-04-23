@@ -85,13 +85,13 @@
         <view class="section-card">
           <view class="section-head compact">
             <view>
-              <text class="section-kicker">Benefits</text>
-              <text class="section-title">会员权益</text>
+              <text class="section-kicker">Account Overview</text>
+              <text class="section-title">当前可查看的数据</text>
             </view>
           </view>
 
           <view class="benefit-list">
-            <view v-for="item in benefitList" :key="item.title" class="benefit-item">
+            <view v-for="item in accountSummaryList" :key="item.title" class="benefit-item">
               <view class="benefit-icon" :style="{ background: item.bgColor }">
                 <uni-icons :type="item.icon" size="18" :color="item.iconColor" />
               </view>
@@ -159,24 +159,24 @@ const memberInfo = reactive({
   totalConsumption: 0
 })
 
-const benefitList = [
+const accountSummaryList = [
   {
-    title: '会员折扣',
-    desc: '订场、课程和部分服务享受会员专属折扣。',
-    icon: 'gift',
+    title: '会员类型与等级',
+    desc: '当前页面展示后端返回的会员类型、等级和注册信息。',
+    icon: 'person-filled',
     bgColor: 'rgba(255, 102, 0, 0.12)',
     iconColor: '#ff6600'
   },
   {
-    title: '优先预约',
-    desc: '热门时段与热门场馆可更早进入预约节奏。',
-    icon: 'star-filled',
+    title: '账户余额',
+    desc: '可查看当前余额，并前往充值中心补充账户金额。',
+    icon: 'wallet',
     bgColor: 'rgba(0, 98, 161, 0.12)',
     iconColor: '#0062a1'
   },
   {
-    title: '专属服务',
-    desc: '会员身份可享受更完整的服务支持与活动权益。',
+    title: '累计充值与消费',
+    desc: '累计充值和累计消费来自当前会员账户的真实记录汇总。',
     icon: 'medal',
     bgColor: 'rgba(163, 62, 0, 0.12)',
     iconColor: '#a33e00'

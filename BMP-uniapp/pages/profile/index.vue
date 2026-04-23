@@ -23,23 +23,19 @@
             <text class="user-name">{{ displayName }}</text>
             <view class="user-sub">
               <text class="role-badge">{{ memberTypeText }}</text>
-              <text class="user-id">ID: {{ userInfo.memberId || '—' }}</text>
+              <text class="user-id">会员编号：{{ userInfo.memberId || '—' }}</text>
             </view>
           </view>
         </view>
 
         <view class="stats-ribbon">
           <view class="stat-card">
-            <text class="stat-label">Balance</text>
+            <text class="stat-label">余额</text>
             <text class="stat-value">¥{{ formatMoney(userInfo.balance) }}</text>
           </view>
           <view class="stat-card">
-            <text class="stat-label">Points</text>
-            <text class="stat-value">{{ userInfo.points }}</text>
-          </view>
-          <view class="stat-card">
-            <text class="stat-label">Coupons</text>
-            <text class="stat-value">{{ userInfo.coupons }}</text>
+            <text class="stat-label">会员等级</text>
+            <text class="stat-value">{{ memberLevelText }}</text>
           </view>
         </view>
       </view>
@@ -47,12 +43,12 @@
       <view class="page-body">
         <view class="vip-banner" @click="handleOpenMember">
           <view class="vip-copy">
-            <text class="vip-kicker">Membership Access</text>
+            <text class="vip-kicker">Member Profile</text>
             <text class="vip-title">{{ vipTitle }}</text>
-            <text class="vip-desc">享订场优惠、专属权益和更完整的会员身份服务。</text>
+            <text class="vip-desc">查看会员类型、等级、余额、累计充值和累计消费。</text>
           </view>
           <view class="vip-cta">
-            <text>{{ isVipMember ? '查看权益' : '立即开通' }}</text>
+            <text>查看信息</text>
             <uni-icons type="right" size="16" color="#1f1f1f" />
           </view>
         </view>
@@ -141,16 +137,15 @@ const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
 const userInfo = ref({
   username: '微信用户',
   balance: 0,
-  points: 0,
-  coupons: 0,
   memberId: 0,
-  memberType: 'NORMAL'
+  memberType: 'NORMAL',
+  memberLevel: 1
 })
 
 const quickMenus = [
   {
     label: '会员中心',
-    desc: '查看等级、余额和权益',
+    desc: '查看等级、余额和账户信息',
     iconType: 'vip',
     iconColor: '#ff6600',
     bgColor: 'rgba(255, 102, 0, 0.12)',
@@ -216,7 +211,7 @@ const menuItems = computed(() => [
     iconColor: '#ff6600',
     bgColor: 'rgba(255, 102, 0, 0.12)',
     value: memberTypeText.value,
-    desc: '查看等级、权益和账户概况',
+    desc: '查看等级、余额和账户概况',
     path: '/pages/profile/member'
   },
   {
@@ -240,8 +235,7 @@ const menuItems = computed(() => [
 ])
 
 const displayName = computed(() => userInfo.value.username || '微信用户')
-const isVipMember = computed(() => userInfo.value.memberType !== 'NORMAL')
-const vipTitle = computed(() => (isVipMember.value ? '尊享会员权益' : '开通尊享会员'))
+const vipTitle = computed(() => '会员账户概况')
 const memberTypeText = computed(() => {
   const map: Record<string, string> = {
     NORMAL: '普通会员',
@@ -253,6 +247,7 @@ const memberTypeText = computed(() => {
   }
   return map[userInfo.value.memberType] || '普通会员'
 })
+const memberLevelText = computed(() => `Lv.${userInfo.value.memberLevel || 1}`)
 
 function formatMoney(value: number) {
   return Number(value || 0).toFixed(2)
@@ -266,10 +261,9 @@ const loadUserInfo = async () => {
     userInfo.value = {
       username: user?.nickname || user?.username || '微信用户',
       balance: memberInfo.balance || 0,
-      points: 0,
-      coupons: 0,
       memberId: memberInfo.id,
-      memberType: memberInfo.memberType || 'NORMAL'
+      memberType: memberInfo.memberType || 'NORMAL',
+      memberLevel: memberInfo.memberLevel || 1
     }
   } catch (error) {
     console.error('加载用户信息失败:', error)
@@ -447,7 +441,7 @@ onMounted(async () => {
 
 .stats-ribbon {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16rpx;
   margin-top: 28rpx;
 }

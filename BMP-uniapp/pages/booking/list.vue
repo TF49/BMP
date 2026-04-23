@@ -50,23 +50,17 @@
           class="hero-card"
           @tap="handleBookingClick(nextMatch)"
         >
-          <text class="hero-badge">下一场比赛</text>
+          <text class="hero-badge">下一场预约</text>
           <text class="hero-title">{{ nextMatch.venueName }}</text>
           <text class="hero-sub">{{ nextMatch.bookingNo }} · {{ nextMatch.courtName }}</text>
           <view class="hero-grid">
             <view class="hero-cell">
-              <text class="cell-k">DATE</text>
+              <text class="cell-k">预约日期</text>
               <text class="cell-v">{{ formatDateShort(nextMatch.date) }}</text>
             </view>
             <view class="hero-cell">
-              <text class="cell-k">TIME</text>
+              <text class="cell-k">预约时段</text>
               <text class="cell-v">{{ nextMatch.startTime }} - {{ nextMatch.endTime }}</text>
-            </view>
-          </view>
-          <view class="hero-actions">
-            <button class="btn-checkin" @tap.stop="handleCheckIn(nextMatch)">立即签到</button>
-            <view class="btn-share" @tap.stop="handleShare(nextMatch)">
-              <uni-icons type="paperplane" size="18" color="#444" />
             </view>
           </view>
         </view>
@@ -79,12 +73,8 @@
           </view>
           <view class="divider" />
           <view class="stats-row">
-            <text class="stats-v money">${{ stats.totalSpent }}</text>
-            <text class="stats-t">Total Spent</text>
-          </view>
-          <view class="vip">
-            <uni-icons type="medal" size="16" color="#ff8d3a" />
-            <text>金牌会员状态</text>
+            <text class="stats-v money">¥{{ stats.totalSpent }}</text>
+            <text class="stats-t">预约金额合计</text>
           </view>
         </view>
 
@@ -100,16 +90,16 @@
               <text class="booking-no">{{ item.bookingNo }}</text>
               <text class="status" :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</text>
             </view>
-            <text class="amount" :class="{ strike: item.status === 0 }">${{ item.amount }}</text>
+            <text class="amount" :class="{ strike: item.status === 0 }">¥{{ formatAmount(item.amount) }}</text>
           </view>
           <text class="venue" :class="{ muted: item.status === 0 }">{{ item.venueName }}</text>
           <view class="line"><uni-icons type="location" size="14" color="#666" /><text>{{ item.courtName }}</text></view>
           <view class="line"><uni-icons type="calendar" size="14" color="#666" /><text>{{ item.date }}</text></view>
           <view class="line"><uni-icons type="refreshtime" size="14" color="#666" /><text>{{ item.startTime }} - {{ item.endTime }}</text></view>
 
-          <view v-if="item.status === 0" class="refund">退款已入账至钱包</view>
-          <button v-else class="card-btn" :class="{ rebook: item.status === 4 }" @tap.stop="handleAction(item)">
-            {{ item.status === 4 ? '再次预约' : '查看详情' }}
+          <view v-if="item.status === 0" class="refund">{{ item.refundHint }}</view>
+          <button v-else class="card-btn" :class="{ rebook: item.status === 4 && Boolean(item.venueId) }" @tap.stop="handleAction(item)">
+            {{ item.status === 4 && item.venueId ? '查看场馆' : '查看详情' }}
           </button>
         </view>
 
@@ -127,17 +117,33 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import { getBookingList } from '@/api/booking'
+import { getBookingList, type BookingItem } from '@/api/booking'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getAvatarImage } from '@/utils/displayImage'
 import { useCurrentMember } from '@/composables/useCurrentMember'
+
+type BookingCard = {
+  id: number
+  bookingNo: string
+  venueId: number
+  courtId: number
+  venueName: string
+  courtName: string
+  date: string
+  startTime: string
+  endTime: string
+  amount: number
+  status: number
+  paymentStatus: number
+  refundHint: string
+}
 
 const userStore = useUserStore()
 const { fetchCurrentMember } = useCurrentMember()
 const currentTab = ref(0)
 const statusBarHeight = ref(20)
 const tabs = ['全部', '进行中', '已完成']
-const bookingList = ref<any[]>([])
+const bookingList = ref<BookingCard[]>([])
 const loading = ref(false)
 const refreshing = ref(false)
 const topOffset = computed(() => statusBarHeight.value + 54)
@@ -158,11 +164,11 @@ const stats = computed(() => {
   
   return {
     monthlyCount: monthly.length,
-    totalSpent: total.toFixed(0)
+    totalSpent: total.toFixed(2)
   }
 })
 
-// 下一场比赛 (优先支付或进行中的，且日期最近的)
+// 下一场预约（优先已支付或进行中的，且日期最近）
 const nextMatch = computed(() => {
   const ongoing = bookingList.value
     .filter(item => item.status === 2 || item.status === 3)
@@ -200,16 +206,22 @@ const loadBookingList = async () => {
       size: 50
     }
     const result = await getBookingList(params)
-    bookingList.value = result.data.map((booking: any) => ({
+    bookingList.value = (result.data || []).map((booking: BookingItem) => ({
       id: booking.id,
-      venueName: booking.venueName || booking.courtName,
-      courtName: booking.courtName,
+      bookingNo: booking.bookingNo || `BK${new Date(booking.createTime).getTime()}`,
+      venueId: Number(booking.venueId || 0),
+      courtId: Number(booking.courtId || 0),
+      venueName: booking.venueName || booking.courtName || '预约场馆',
+      courtName: booking.courtName || '未分配场地',
       date: booking.bookingDate,
       startTime: booking.startTime,
       endTime: booking.endTime,
-      amount: booking.orderAmount,
-      status: booking.status,
-      bookingNo: booking.bookingNo || `BK${new Date(booking.createTime).getTime()}`
+      amount: Number(booking.orderAmount || 0),
+      status: Number(booking.status || 0),
+      paymentStatus: Number(booking.paymentStatus || 0),
+      refundHint: Number(booking.paymentStatus || 0) === 2
+        ? '该订单已完成退款，可在消费记录中核对。'
+        : '该预约已取消，退款状态请以消费记录和账户余额为准。'
     }))
   } catch (error) {
     console.error('加载预约列表失败:', error)
@@ -254,28 +266,23 @@ const formatDateShort = (dateStr: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
   if (isNaN(date.getTime())) return dateStr
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-  return `${monthNames[date.getMonth()]} ${date.getDate().toString().padStart(2, '0')}`
+  return `${String(date.getMonth() + 1).padStart(2, '0')}月${String(date.getDate()).padStart(2, '0')}日`
 }
 
-const handleBookingClick = (item: any) => {
+const formatAmount = (amount: number) => {
+  return Number(amount || 0).toFixed(2)
+}
+
+const handleBookingClick = (item: BookingCard) => {
   uni.navigateTo({ url: `/pages/booking/detail?id=${item.id}` })
 }
 
-const handleAction = (item: any) => {
-  if (item.status === 4) {
-    uni.navigateTo({ url: `/pages/venue/detail?id=${item.venueId || ''}` })
+const handleAction = (item: BookingCard) => {
+  if (item.status === 4 && item.venueId) {
+    uni.navigateTo({ url: `/pages/venue/detail?id=${item.venueId}` })
   } else {
     handleBookingClick(item)
   }
-}
-
-const handleCheckIn = (item: any) => {
-  uni.showToast({ title: '签到成功', icon: 'success' })
-}
-
-const handleShare = (item: any) => {
-  uni.showToast({ title: '分享功能', icon: 'none' })
 }
 
 const handleNotifications = () => {
@@ -462,31 +469,6 @@ onMounted(() => {
   font-weight: 700;
 }
 
-.hero-actions {
-  margin-top: 18rpx;
-  display: flex;
-  gap: 12rpx;
-  align-items: center;
-}
-
-.btn-checkin {
-  flex: 1;
-  border-radius: 14rpx;
-  background: #ff6a00;
-  color: #fff;
-  font-weight: 700;
-}
-
-.btn-share {
-  width: 84rpx;
-  height: 84rpx;
-  border-radius: 14rpx;
-  background: #efefef;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .stats {
   border-radius: 24rpx;
   background: #171717;
@@ -527,15 +509,6 @@ onMounted(() => {
   margin-top: 14rpx;
   height: 1px;
   background: #2e2e2e;
-}
-
-.vip {
-  margin-top: 20rpx;
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  color: #ff8d3a;
-  font-size: 22rpx;
 }
 
 .card {

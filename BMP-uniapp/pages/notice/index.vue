@@ -21,14 +21,14 @@
           <view class="hero-glow" />
           <text class="hero-kicker">消息动态</text>
           <text class="hero-title">时刻掌握最新动态</text>
-          <text class="hero-copy">课程、赛事、充值与系统通知都集中在这里，阅读后会自动记录已读状态。</text>
+          <text class="hero-copy">课程、赛事、充值与系统通知都集中在这里；当前设备会记录本机已读状态。</text>
           <view class="hero-stats">
             <view class="stat-chip">
-              <text class="stat-label">Unread</text>
+              <text class="stat-label">本机未读</text>
               <text class="stat-value">{{ unreadCount }}</text>
             </view>
             <view class="stat-chip">
-              <text class="stat-label">Total</text>
+              <text class="stat-label">通知总数</text>
               <text class="stat-value">{{ list.length }}</text>
             </view>
           </view>
@@ -53,7 +53,10 @@
 
         <view class="filter-row">
           <view class="filter-pill active">全部</view>
-          <view class="filter-pill ghost" @tap="markAllAsRead">全部已读</view>
+          <view class="filter-pill ghost" @tap="markAllAsRead">本机全部已读</view>
+        </view>
+        <view class="local-note">
+          <text>已读状态仅保存在当前设备，换设备或清除本地数据后不会同步。</text>
         </view>
 
         <view v-if="loading && list.length === 0" class="state-card">
@@ -177,7 +180,7 @@ const markAllAsRead = () => {
   })
   persistReadIds()
   uni.showToast({
-    title: '已全部标为已读',
+    title: '当前设备已全部标为已读',
     icon: 'success'
   })
 }
@@ -416,6 +419,13 @@ onPullDownRefresh(() => {
   display: flex;
   gap: 12rpx;
   margin-top: 20rpx;
+}
+
+.local-note {
+  margin-top: 14rpx;
+  font-size: 20rpx;
+  line-height: 1.6;
+  color: #6b625c;
 }
 
 .filter-pill {

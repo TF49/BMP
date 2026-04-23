@@ -233,7 +233,7 @@ const detail = computed<CourseBookingVm | null>(() => {
     contactNumber: resolvePhone(),
     orderAmount,
     payableAmount: formatMoney(payableValue.value),
-    amountNote: '当前页面仅展示课程订单真实金额，未接入会员折扣拆分时不再补静态优惠。'
+    amountNote: '当前页面仅展示课程订单真实金额，金额拆分能力未接入时不再补静态优惠说明。'
   }
 })
 

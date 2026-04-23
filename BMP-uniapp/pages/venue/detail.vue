@@ -42,7 +42,7 @@
           <view class="hero-noise" />
           <view class="hero-content">
             <view class="hero-badge-row">
-              <text class="hero-badge accent">{{ venue.status === 1 ? 'BOOKING OPEN' : 'TEMP CLOSED' }}</text>
+              <text class="hero-badge accent">{{ venue.status === 1 ? '当前可预约' : '暂不可预约' }}</text>
               <text class="hero-badge glass">{{ openHoursText }}</text>
             </view>
             <text class="hero-title">{{ venue.name || '场馆详情' }}</text>
@@ -51,10 +51,6 @@
               <view class="hero-meta-item">
                 <uni-icons type="location" size="14" color="#ffffff" />
                 <text class="hero-meta-text">{{ venue.location || '暂无地址' }}</text>
-              </view>
-              <view class="hero-meta-item">
-                <uni-icons type="star-filled" size="14" color="#ffffff" />
-                <text class="hero-meta-text">{{ ratingLabel }}</text>
               </view>
             </view>
           </view>
@@ -68,15 +64,15 @@
               <text class="summary-value">{{ displayHourlyPrice }}</text>
               <text class="summary-tail">/ 小时</text>
             </view>
-            <text class="summary-foot">按场地规则自动计算，适合临时约场和固定训练</text>
+            <text class="summary-foot">价格以场地配置和实际下单结果为准</text>
           </view>
           <view class="summary-card dark">
-            <text class="summary-label light">Open Window</text>
+            <text class="summary-label light">营业时间</text>
             <text class="summary-mini light">{{ openHoursText }}</text>
-            <text class="summary-foot light">建议提前 30 分钟到馆热身</text>
+            <text class="summary-foot light">营业时间以场馆当前配置为准</text>
           </view>
           <view class="summary-card">
-            <text class="summary-label">Front Desk</text>
+            <text class="summary-label">场馆联系</text>
             <text class="summary-mini">{{ venue.contactPerson || '场馆前台' }}</text>
             <text class="summary-foot">{{ venue.contactPhone || '暂无联系电话' }}</text>
           </view>
@@ -107,34 +103,21 @@
         <view class="section-card statement-card">
           <view class="section-head compact">
             <view>
-              <text class="section-kicker">Experience</text>
-              <text class="section-title">场馆亮点与氛围</text>
-            </view>
-          </view>
-          <view class="feature-pills">
-            <view v-for="item in amenityList" :key="item.label" class="feature-pill">
-              <uni-icons :type="item.icon" size="16" color="#1a1c1c" />
-              <text class="feature-text">{{ item.label }}</text>
+              <text class="section-kicker">Description</text>
+              <text class="section-title">场馆说明</text>
             </view>
           </view>
           <view class="statement-panel">
-            <text class="statement-title">Professional Atmosphere</text>
+            <text class="statement-title">场馆介绍</text>
             <text class="statement-copy">{{ descriptionText }}</text>
-          </view>
-          <view class="insight-grid">
-            <view v-for="item in experienceNotes" :key="item.title" class="insight-card">
-              <text class="insight-title">{{ item.title }}</text>
-              <text class="insight-value">{{ item.value }}</text>
-              <text class="insight-copy">{{ item.copy }}</text>
-            </view>
           </view>
         </view>
 
         <view class="section-card program-card">
           <view class="section-head compact">
             <view>
-              <text class="section-kicker">Flow Guide</text>
-              <text class="section-title">到馆体验怎么走</text>
+              <text class="section-kicker">Guide</text>
+              <text class="section-title">预约说明</text>
             </view>
           </view>
           <view class="journey-list">
@@ -161,21 +144,21 @@
                 <uni-icons type="phone" size="18" color="#ffffff" />
               </view>
               <text class="action-name">联系场馆</text>
-              <text class="action-copy">确认营业时段、空场情况和到馆细节</text>
+              <text class="action-copy">确认联系电话、营业时间和线下到馆信息</text>
             </view>
             <view class="action-tile" @click="handleHistory">
               <view class="action-icon">
                 <uni-icons type="calendar" size="18" color="#ff6600" />
               </view>
               <text class="action-name">查看预约</text>
-              <text class="action-copy">回到你的历史订单，快速续约熟悉场地</text>
+              <text class="action-copy">返回我的预约，查看当前订单和历史记录</text>
             </view>
             <view class="action-tile" @click="handleLocation">
               <view class="action-icon">
                 <uni-icons type="location" size="18" color="#ff6600" />
               </view>
               <text class="action-name">复制地址</text>
-              <text class="action-copy">把场馆位置发给球友一起约场更省心</text>
+              <text class="action-copy">复制当前场馆地址，方便自行导航或转发</text>
             </view>
           </view>
         </view>
@@ -207,13 +190,13 @@
       <view class="bottom-glass" />
       <view class="bottom-content">
         <view class="bottom-price">
-          <text class="bottom-label">Starting Price</text>
+          <text class="bottom-label">参考价格</text>
           <view class="bottom-amount-row">
             <text class="bottom-currency">¥</text>
             <text class="bottom-amount">{{ displayHourlyPrice }}</text>
             <text class="bottom-unit">/ 小时</text>
           </view>
-          <text class="bottom-foot">{{ venue.status === 1 ? '支持自由预约时段' : '当前暂停在线预约' }}</text>
+          <text class="bottom-foot">{{ venue.status === 1 ? '价格以预约页实时计算结果为准' : '当前暂停在线预约' }}</text>
         </view>
         <view class="bottom-cta" :class="{ disabled: venue.status !== 1 }" @click="handleBook">
           <text class="bottom-cta-text">{{ venue.status === 1 ? '立即预约' : '暂不可预约' }}</text>
@@ -271,19 +254,10 @@ const venue = ref<VenueDetailVm>({
   hourlyPrice: 0
 })
 
-const amenityList = [
-  { icon: 'sound', label: 'Free Wifi' },
-  { icon: 'location', label: 'Parking' },
-  { icon: 'compose', label: 'Locker Room' },
-  { icon: 'staff', label: 'Pro Support' },
-  { icon: 'fire', label: 'Warm-up Zone' },
-  { icon: 'medal', label: 'Match Standard' }
-] as const
-
 const descriptionText = computed(() => {
   return (
     venue.value.description ||
-    '场馆提供标准羽毛球训练与比赛环境，适合日常约场、朋友对打、训练提升与社群活动。整体空间明亮，动线清晰，适合高频复购型用户。'
+    '当前场馆暂无更多图文说明，你仍可以查看基础信息并进入预约流程。'
   )
 })
 
@@ -293,11 +267,13 @@ const displayHourlyPrice = computed(() => {
   return Number.isFinite(price) ? price.toFixed(0) : '0'
 })
 
-const ratingLabel = computed(() => (venue.value.status === 1 ? '4.9 / 120+ 条真实预约反馈' : '当前暂停营业，支持先了解详情'))
 const heroIntro = computed(() => {
+  if (venue.value.description) {
+    return venue.value.description
+  }
   return venue.value.status === 1
-    ? '面向训练、约局和周末社群的高频羽毛球场馆，价格透明、预约快速、体验完整。'
-    : '场馆当前暂停在线预约，你仍可查看详情、保存信息并联系前台确认恢复时间。'
+    ? '当前页面展示场馆的基础信息、营业时间和预约入口，具体可约时段以下单页为准。'
+    : '场馆当前暂不可在线预约，你仍可查看基础信息并联系场馆确认开放时间。'
 })
 
 const spotlightCards = computed(() => [
@@ -305,7 +281,7 @@ const spotlightCards = computed(() => [
     icon: 'location',
     label: '场馆位置',
     value: venue.value.location || '暂无地址信息',
-    desc: '支持复制位置，方便约上球友一起到馆'
+    desc: '可使用复制地址功能保存或转发位置信息'
   },
   {
     icon: 'person',
@@ -317,31 +293,13 @@ const spotlightCards = computed(() => [
     icon: 'refreshtime',
     label: '营业时段',
     value: openHoursText.value,
-    desc: '建议优先预约晚间热门时段'
+    desc: '营业时间以场馆当前配置为准'
   },
   {
     icon: 'wallet',
     label: '价格体系',
     value: `¥${displayHourlyPrice.value} / 小时起`,
-    desc: '金额会按场地规则自动结算'
-  }
-])
-
-const experienceNotes = computed(() => [
-  {
-    title: 'Booking Rhythm',
-    value: venue.value.status === 1 ? '即约即走' : '暂停开放',
-    copy: '支持先看场馆、再选场地、最后确认时段的顺滑链路。'
-  },
-  {
-    title: 'Play Scenario',
-    value: '训练 / 对打 / 社群',
-    copy: '适合固定训练课后加练，也适合临时约局和朋友双打。'
-  },
-  {
-    title: 'On-site Tone',
-    value: '清爽有序',
-    copy: '强调品牌化到馆体验，让页面感受和线下服务保持同一套气质。'
+    desc: '实际金额以预约页实时计算结果为准'
   }
 ])
 
@@ -349,24 +307,24 @@ const bookingJourney = computed(() => [
   {
     step: '01',
     title: '查看场馆信息',
-    copy: '先确认位置、营业时间和价格区间，确保今天这次约场合适。'
+    copy: '先确认位置、营业时间和联系电话，了解场馆当前基础信息。'
   },
   {
     step: '02',
     title: '进入预约页选场地',
-    copy: '系统会展示可预约场地和时间段冲突，避免白跑一趟。'
+    copy: '在预约页查看场地、时段和金额，以下单页的实时结果为准。'
   },
   {
     step: '03',
-    title: '确认订单后到馆开打',
-    copy: '完成下单后可回到预约列表查看状态，也方便后续续约。'
+    title: '完成预约后查看订单',
+    copy: '下单成功后可回到我的预约查看订单状态、时间和费用明细。'
   }
 ])
 
 const servicePromise = computed(() => {
   return venue.value.status === 1
-    ? '你会在下一步看到日期、场地、时间和金额的完整预约链路，页面结构已经和新版 Stitch 用户端保持一致。'
-    : '当前场馆暂未开放在线预约，但场馆资料和前台联系方式已经准备好，恢复营业后可继续沿原链路下单。'
+    ? '下一步会进入真实预约页查看可预约时段、场地和订单金额，最终以下单结果为准。'
+    : '当前场馆暂未开放在线预约，你仍可保存地址和联系电话，后续开放时再继续下单。'
 })
 
 function mapVenue(result: VenueItem): VenueDetailVm {
