@@ -1,4 +1,4 @@
-import { post, get } from '../utils/request'
+import { post, get, put } from '../utils/request'
 import { API_PATHS } from '../config/api'
 
 export interface LoginParams {
@@ -50,6 +50,14 @@ export interface UpdateUserInfoParams {
   signature?: string
 }
 
+export interface UserSettings {
+  loginAlert: boolean
+  strangeDevice: boolean
+  siteMessage: boolean
+  emailNotify?: boolean
+  smsNotify?: boolean
+}
+
 /**
  * 用户登录
  */
@@ -98,6 +106,27 @@ export function updateUserInfo(userInfo: UpdateUserInfoParams) {
  */
 export function updatePassword(params: { oldPassword: string; newPassword: string }) {
   return post<string>(API_PATHS.AUTH.UPDATE_PASSWORD, params)
+}
+
+/**
+ * 获取当前用户设置
+ */
+export function getSettings() {
+  return get<UserSettings>(API_PATHS.AUTH.SETTINGS)
+}
+
+/**
+ * 更新当前用户设置
+ */
+export function updateSettings(params: Partial<UserSettings>) {
+  return put<string>(API_PATHS.AUTH.SETTINGS, params)
+}
+
+/**
+ * 注销账号
+ */
+export function deleteAccount(params: { password: string }) {
+  return post<string>(API_PATHS.AUTH.DELETE_ACCOUNT, params)
 }
 
 /**

@@ -9,53 +9,25 @@
                 <uni-icons type="left" size="18" color="#a33e00" />
                 <text class="hero-brand-text">KINETIC LOGIC</text>
               </view>
-              <text class="hero-side-label">PRIVACY MODE</text>
+              <text class="hero-side-label">DATA CONTROL</text>
             </view>
 
             <view class="hero-copy">
-              <text class="hero-eyebrow">DATA & VISIBILITY</text>
-              <text class="hero-title">把个人可见性与数据权限收拢到一个地方</text>
+              <text class="hero-eyebrow">PRIVACY & ACCOUNT</text>
+              <text class="hero-title">这里改成真实可执行的数据与账户管理</text>
               <text class="hero-subtitle">
-                统一管理个人资料展示、推荐权限、社交入口与数据处理选项，让设置页从旧业务表单升级成 Stitch 风格的偏好中心。
+                不再保留本地假保存的隐私开关，当前仅提供缓存管理、账号注销和边界说明。
               </text>
             </view>
 
             <view class="hero-grid">
               <view class="hero-metric">
-                <text class="metric-label">VISIBLE</text>
-                <text class="metric-value">{{ visibleCount }}/{{ visibleTotal }}</text>
-              </view>
-              <view class="hero-metric">
                 <text class="metric-label">CACHE</text>
                 <text class="metric-value">{{ cacheSize }}</text>
               </view>
-            </view>
-          </view>
-
-          <view v-for="section in privacySections" :key="section.key" class="panel-card">
-            <view class="panel-head">
-              <view>
-                <text class="panel-title">{{ section.title }}</text>
-                <text class="panel-subtitle">{{ section.subtitle }}</text>
-              </view>
-              <text class="panel-tag">{{ section.tag }}</text>
-            </view>
-
-            <view class="setting-list">
-              <view
-                v-for="item in section.items"
-                :key="item.key"
-                class="setting-row"
-              >
-                <view class="setting-copy">
-                  <text class="setting-title">{{ item.title }}</text>
-                  <text class="setting-desc">{{ item.description }}</text>
-                </view>
-                <switch
-                  :checked="settings[item.key]"
-                  color="#ea580c"
-                  @change="toggleSetting(item.key, $event)"
-                />
+              <view class="hero-metric">
+                <text class="metric-label">ACCOUNT</text>
+                <text class="metric-value">可执行注销确认</text>
               </view>
             </view>
           </view>
@@ -64,34 +36,18 @@
             <view class="panel-head">
               <view>
                 <text class="panel-title">数据管理</text>
-                <text class="panel-subtitle">处理缓存、导出数据与账号注销等操作。</text>
+                <text class="panel-subtitle">清理本地缓存时会保留登录态、用户信息和主题设置。</text>
               </view>
-              <text class="panel-tag">DATA CONTROL</text>
+              <text class="panel-tag">DATA</text>
             </view>
 
             <view class="action-list">
               <view class="action-row" @tap="handleClearCache">
                 <view class="action-copy">
                   <text class="action-title">清除缓存</text>
-                  <text class="action-desc">当前缓存 {{ cacheSize }}，保留登录态和关键账户信息。</text>
+                  <text class="action-desc">当前缓存 {{ cacheSize }}，用于清理临时数据和页面缓存。</text>
                 </view>
                 <uni-icons type="right" size="16" color="#94a3b8" />
-              </view>
-
-              <view class="action-row" @tap="handleExportData">
-                <view class="action-copy">
-                  <text class="action-title">导出个人数据</text>
-                  <text class="action-desc">下载你的个人资料、记录和偏好数据副本。</text>
-                </view>
-                <uni-icons type="right" size="16" color="#94a3b8" />
-              </view>
-
-              <view class="action-row danger-row" @tap="handleDeleteAccount">
-                <view class="action-copy">
-                  <text class="action-title danger-text">注销账户</text>
-                  <text class="action-desc">永久删除账户和相关数据，该操作不可撤销。</text>
-                </view>
-                <uni-icons type="right" size="16" color="#f97316" />
               </view>
             </view>
           </view>
@@ -99,27 +55,39 @@
           <view class="panel-card">
             <view class="panel-head">
               <view>
-                <text class="panel-title">隐私文件</text>
-                <text class="panel-subtitle">查看平台隐私说明与用户协议内容。</text>
+                <text class="panel-title">账户处理</text>
+                <text class="panel-subtitle">注销会删除当前账户与相关设置，请谨慎操作。</text>
               </view>
-              <text class="panel-tag">POLICY</text>
+              <text class="panel-tag">ACCOUNT</text>
             </view>
 
-            <view class="action-list">
-              <view class="action-row" @tap="handleViewPrivacyPolicy">
-                <view class="action-copy">
-                  <text class="action-title">查看隐私政策</text>
-                  <text class="action-desc">了解平台如何收集、使用和保护你的数据。</text>
-                </view>
-                <uni-icons type="right" size="16" color="#94a3b8" />
-              </view>
+            <view class="field-card">
+              <text class="field-label">确认密码</text>
+              <input
+                v-model="password"
+                class="field-input"
+                type="password"
+                password
+                placeholder="输入当前登录密码以确认注销"
+              />
+            </view>
 
-              <view class="action-row" @tap="handleViewUserAgreement">
-                <view class="action-copy">
-                  <text class="action-title">查看用户协议</text>
-                  <text class="action-desc">阅读使用本产品前需要了解的条款说明。</text>
-                </view>
-                <uni-icons type="right" size="16" color="#94a3b8" />
+            <button class="danger-btn" :disabled="submitting" @tap="handleDeleteAccount">
+              <text class="danger-top">Delete Account</text>
+              <text class="danger-bottom">{{ submitting ? '注销中...' : '确认注销账户' }}</text>
+            </button>
+          </view>
+
+          <view class="panel-card tips-card">
+            <text class="tips-title">当前边界说明</text>
+            <view class="tips-list">
+              <view class="tip-item">
+                <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
+                <text>隐私政策、用户协议、数据导出等内容暂未提供独立真实页面，因此不再保留假入口。</text>
+              </view>
+              <view class="tip-item">
+                <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
+                <text>如需维护手机号、性别等资料，请前往账户设置或个人资料页。</text>
               </view>
             </view>
           </view>
@@ -130,127 +98,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
+import { deleteAccount } from '@/api/auth'
 import { safeNavigateBack } from '@/utils/navigation'
+import { useThemeStore } from '@/store/modules/theme'
+import { safeReLaunch } from '@/utils/safeRoute'
 
-const STORAGE_KEY = 'privacy_settings'
-
-const settingsDefaults = {
-  showRealName: false,
-  showPhone: false,
-  showBookingHistory: true,
-  allowLocation: true,
-  personalizedRecommendation: true,
-  dataAnalytics: true,
-  allowSearch: true,
-  allowMessage: true
-}
-
-type PrivacySettings = typeof settingsDefaults
-type PrivacySettingKey = keyof PrivacySettings
-
-type PrivacySection = {
-  key: string
-  title: string
-  subtitle: string
-  tag: string
-  items: Array<{
-    key: PrivacySettingKey
-    title: string
-    description: string
-  }>
-}
-
-const settings = reactive<PrivacySettings>({ ...settingsDefaults })
-const cacheSize = ref('0 KB')
 const userStore = useUserStore()
-
-const privacySections: PrivacySection[] = [
-  {
-    key: 'identity',
-    title: '个人信息可见性',
-    subtitle: '决定他人能从你的资料里看到哪些身份信息。',
-    tag: 'IDENTITY',
-    items: [
-      {
-        key: 'showRealName',
-        title: '展示真实姓名',
-        description: '其他用户可以看到你的真实姓名信息。'
-      },
-      {
-        key: 'showPhone',
-        title: '展示手机号',
-        description: '其他用户可以在资料页中查看你的手机号。'
-      },
-      {
-        key: 'showBookingHistory',
-        title: '展示预约记录',
-        description: '允许他人查看你的公开预约和活动参与记录。'
-      }
-    ]
-  },
-  {
-    key: 'data',
-    title: '位置与数据',
-    subtitle: '控制定位能力、个性化推荐和产品分析权限。',
-    tag: 'DATA',
-    items: [
-      {
-        key: 'allowLocation',
-        title: '允许获取位置',
-        description: '用于推荐附近的场馆、活动和服务。'
-      },
-      {
-        key: 'personalizedRecommendation',
-        title: '个性化推荐',
-        description: '根据使用习惯推荐课程、赛事和器材内容。'
-      },
-      {
-        key: 'dataAnalytics',
-        title: '数据分析',
-        description: '帮助我们理解使用行为并持续优化体验。'
-      }
-    ]
-  },
-  {
-    key: 'social',
-    title: '社交设置',
-    subtitle: '决定你是否能被搜索以及是否接收来自他人的消息。',
-    tag: 'SOCIAL',
-    items: [
-      {
-        key: 'allowSearch',
-        title: '允许被搜索',
-        description: '其他用户可以通过昵称或资料搜索到你。'
-      },
-      {
-        key: 'allowMessage',
-        title: '接收私信',
-        description: '允许其他用户向你发送站内私信和互动消息。'
-      }
-    ]
-  }
-]
-
-const visibleKeys: PrivacySettingKey[] = ['showRealName', 'showPhone', 'showBookingHistory', 'allowSearch', 'allowMessage']
-const visibleCount = computed(() => visibleKeys.filter(key => settings[key]).length)
-const visibleTotal = visibleKeys.length
-
-function saveSettings() {
-  uni.setStorageSync(STORAGE_KEY, { ...settings })
-}
-
-function loadSettings() {
-  try {
-    const savedSettings = uni.getStorageSync(STORAGE_KEY) as Partial<PrivacySettings> | ''
-    if (!savedSettings || typeof savedSettings !== 'object') return
-    Object.assign(settings, savedSettings)
-  } catch (error) {
-    console.error('加载隐私设置失败:', error)
-  }
-}
+const themeStore = useThemeStore()
+const cacheSize = ref('0 KB')
+const password = ref('')
+const submitting = ref(false)
 
 function calculateCacheSize() {
   try {
@@ -266,35 +126,31 @@ function calculateCacheSize() {
   }
 }
 
-function toggleSetting(key: PrivacySettingKey, event: any) {
-  settings[key] = !!event?.detail?.value
-  saveSettings()
-}
-
 function handleClearCache() {
   uni.showModal({
     title: '确认清除',
-    content: '确定要清除缓存数据吗？登录状态和重要账户信息会被保留。',
+    content: '确定要清除缓存数据吗？当前登录态、用户信息和主题设置会被保留。',
     success: (res) => {
       if (!res.confirm) return
       try {
         const token = uni.getStorageSync('token')
+        const refreshToken = uni.getStorageSync('refreshToken')
         const userInfo = uni.getStorageSync('userInfo')
-        const privacySettings = uni.getStorageSync(STORAGE_KEY)
-        const notificationSettings = uni.getStorageSync('notification_settings')
+        const themeMode = themeStore.mode
+        const themePrimaryColor = uni.getStorageSync('theme_primary_color')
 
         uni.clearStorageSync()
 
         if (token) uni.setStorageSync('token', token)
+        if (refreshToken) uni.setStorageSync('refreshToken', refreshToken)
         if (userInfo) uni.setStorageSync('userInfo', userInfo)
-        if (privacySettings) uni.setStorageSync(STORAGE_KEY, privacySettings)
-        if (notificationSettings) uni.setStorageSync('notification_settings', notificationSettings)
+        if (themeMode) uni.setStorageSync('theme_mode', themeMode)
+        if (themePrimaryColor) uni.setStorageSync('theme_primary_color', themePrimaryColor)
 
         uni.showToast({
           title: '缓存已清除',
           icon: 'success'
         })
-
         calculateCacheSize()
       } catch (error) {
         uni.showToast({
@@ -306,47 +162,51 @@ function handleClearCache() {
   })
 }
 
-function handleExportData() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
-  })
+function clearSessionAndRedirect() {
+  userStore.logout()
+  safeReLaunch('/pages/login/login', '/pages/login/login')
 }
 
 function handleDeleteAccount() {
+  const currentPassword = password.value.trim()
+  if (!currentPassword) {
+    uni.showToast({
+      title: '请输入当前密码',
+      icon: 'none'
+    })
+    return
+  }
+
   uni.showModal({
     title: '确认注销',
-    content: '注销后你的账户数据将被永久删除，且无法恢复。确定要继续吗？',
+    content: '账户注销后将不可恢复，确定继续吗？',
     confirmColor: '#f97316',
-    success: (res) => {
+    success: async (res) => {
       if (!res.confirm) return
-      uni.showModal({
-        title: '再次确认',
-        content: '请再次确认你要注销账户，此操作不可撤销。',
-        confirmColor: '#f97316',
-        success: (res2) => {
-          if (!res2.confirm) return
-          uni.showToast({
-            title: '功能开发中',
-            icon: 'none'
-          })
-        }
-      })
+
+      try {
+        submitting.value = true
+        uni.showLoading({ title: '注销中...' })
+        await deleteAccount({ password: currentPassword })
+        uni.hideLoading()
+        uni.showToast({
+          title: '账户已注销',
+          icon: 'success'
+        })
+        password.value = ''
+        setTimeout(() => {
+          clearSessionAndRedirect()
+        }, 600)
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({
+          title: error instanceof Error ? error.message : '注销失败，请稍后重试',
+          icon: 'none'
+        })
+      } finally {
+        submitting.value = false
+      }
     }
-  })
-}
-
-function handleViewPrivacyPolicy() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
-  })
-}
-
-function handleViewUserAgreement() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
   })
 }
 
@@ -362,7 +222,6 @@ onMounted(() => {
     return
   }
 
-  loadSettings()
   calculateCacheSize()
 })
 </script>
@@ -543,41 +402,30 @@ onMounted(() => {
   font-weight: 700;
 }
 
-.setting-list,
 .action-list {
   margin-top: 20rpx;
 }
 
-.setting-row,
 .action-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
   padding: 22rpx 0;
-  border-bottom: 1rpx solid rgba(226, 232, 240, 0.82);
 }
 
-.setting-row:last-child,
-.action-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.setting-copy,
 .action-copy {
   flex: 1;
 }
 
-.setting-title,
-.action-title {
+.action-title,
+.field-label {
   display: block;
   font-size: 28rpx;
   color: #0f172a;
   font-weight: 800;
 }
 
-.setting-desc,
 .action-desc {
   display: block;
   margin-top: 10rpx;
@@ -586,11 +434,85 @@ onMounted(() => {
   color: #94a3b8;
 }
 
-.danger-row {
-  border-bottom: none;
+.field-card {
+  margin-top: 22rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+  border: 1rpx solid rgba(255, 102, 0, 0.08);
 }
 
-.danger-text {
-  color: #c2410c;
+.field-input {
+  width: 100%;
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  color: #1f2937;
+}
+
+.danger-btn {
+  width: 100%;
+  min-height: 104rpx;
+  margin-top: 24rpx;
+  border: none;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 55%, #9a3412 100%);
+  box-shadow: 0 22rpx 38rpx rgba(249, 115, 22, 0.24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.danger-btn::after {
+  border: none;
+}
+
+.danger-btn[disabled] {
+  opacity: 0.7;
+}
+
+.danger-top,
+.danger-bottom {
+  color: #ffffff;
+}
+
+.danger-top {
+  font-size: 20rpx;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.danger-bottom {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.tips-card {
+  background:
+    linear-gradient(145deg, rgba(255, 247, 237, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.tips-title {
+  display: block;
+  font-size: 30rpx;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.tips-list {
+  margin-top: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #64748b;
 }
 </style>

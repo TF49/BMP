@@ -1,600 +1,614 @@
 <template>
-  <view class="coach-detail-page">
-    <!-- Header -->
-    <view class="nav-header">
-      <view class="status-bar-placeholder"></view>
-      <view class="nav-content">
-        <view class="nav-left" @click="goBack">
-          <uni-icons type="left" size="24" color="#a33e00"></uni-icons>
+  <view class="page">
+    <view class="header" :style="{ paddingTop: `${statusBarHeight}px` }">
+      <view class="header-inner">
+        <view class="nav-left" @tap="handleBack">
+          <view class="icon-btn">
+            <uni-icons type="left" size="22" color="#ff6600" />
+          </view>
           <text class="nav-title">教练详情</text>
         </view>
       </view>
     </view>
 
-    <scroll-view class="main-content" scroll-y :show-scrollbar="false">
-      <!-- Hero Section -->
-      <view class="hero-section">
-        <image class="hero-bg" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
-        <view class="hero-gradient"></view>
-        <view class="hero-content">
-          <view class="badge">ELITE COACH</view>
-          <view class="name">陈伟杰 (Coach Chen)</view>
-          <view class="rating-row">
-            <view class="stars">
-              <uni-icons type="star-filled" size="18" color="#ff6600" v-for="i in 4" :key="i"></uni-icons>
-              <uni-icons type="starhalf" size="18" color="#ff6600"></uni-icons>
-            </view>
-            <text class="score">4.9</text>
-            <text class="reviews">(128条评价)</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Stats section -->
-      <view class="stats-section">
-        <view class="stat-card">
-          <text class="stat-label">执教年限</text>
-          <text class="stat-value text-primary">15</text>
-          <text class="stat-sub">YEARS EXP.</text>
-        </view>
-        <view class="stat-card">
-          <text class="stat-label">学员总数</text>
-          <text class="stat-value text-primary">1.2k+</text>
-          <text class="stat-sub">STUDENTS</text>
-        </view>
-        <view class="stat-card">
-          <text class="stat-label">学员满意度</text>
-          <text class="stat-value text-primary">98%</text>
-          <text class="stat-sub">SATISFACTION</text>
-        </view>
-        <view class="stat-card">
-          <text class="stat-label">专业等级</text>
-          <text class="stat-value text-primary">精英级</text>
-          <text class="stat-sub">ELITE LEVEL</text>
-        </view>
-      </view>
-
-      <!-- Professional Info & Bio -->
-      <view class="info-section">
-        <view class="section-title">
-          <view class="title-bar"></view>
-          <text>教练简介</text>
-        </view>
-        <view class="bio-text">
-          作为前国家队资深队员，陈教练在羽毛球教学领域深耕15年。他擅长精准的技术拆解与战术分析，尤其在“高爆发进攻”与“步法协同”领域拥有独特的教学体系。他不仅关注技术的提升，更注重运动员心理素质的培养，已帮助数百名青少年及成人学员在地区级比赛中斩获佳绩。
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: headerOffset + 'px' }"
+      :show-scrollbar="false"
+    >
+      <view class="content">
+        <view v-if="loading" class="state-card">
+          <view class="spinner" />
+          <text class="state-text">正在加载教练详情…</text>
         </view>
 
-        <view class="section-title mt-8">
-          <view class="title-bar"></view>
-          <text>技术特长</text>
-        </view>
-        <view class="tags-container">
-          <view class="tag">
-            <uni-icons type="bolt" size="16" color="#5f5e5e"></uni-icons>
-            <text>高级进攻战术</text>
-          </view>
-          <view class="tag">
-            <uni-icons type="refresh" size="16" color="#5f5e5e"></uni-icons>
-            <text>步法灵活性训练</text>
-          </view>
-          <view class="tag">
-            <uni-icons type="heart" size="16" color="#5f5e5e"></uni-icons>
-            <text>比赛心理调节</text>
-          </view>
-          <view class="tag">
-            <uni-icons type="pyramid" size="16" color="#5f5e5e"></uni-icons>
-            <text>专项体能强化</text>
-          </view>
+        <view v-else-if="errorText" class="state-card">
+          <text class="state-text">{{ errorText }}</text>
+          <view class="state-action" @tap="loadCoachDetail">重新加载</view>
         </view>
 
-        <view class="certifications-box">
-          <view class="cert-title">执教资质</view>
-          <view class="cert-item">
-            <uni-icons type="checkbox-filled" size="20" color="#a33e00"></uni-icons>
-            <text>国家一级羽毛球教练员证</text>
-          </view>
-          <view class="cert-item">
-            <uni-icons type="checkbox-filled" size="20" color="#a33e00"></uni-icons>
-            <text>BWF 世界羽联认证高级教练</text>
-          </view>
-          <view class="cert-item">
-            <uni-icons type="checkbox-filled" size="20" color="#a33e00"></uni-icons>
-            <text>专项体能康复师认证</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Available Courses -->
-      <view class="courses-section">
-        <view class="courses-header">
-          <view class="section-title">
-            <view class="title-bar"></view>
-            <text>开设课程</text>
-          </view>
-          <text class="view-all">查看全部</text>
-        </view>
-        
-        <view class="course-list">
-          <!-- Course Card 1 -->
-          <view class="course-card">
-            <image class="course-img" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
-            <view class="course-info">
-              <view class="course-level">ADVANCED / 进阶</view>
-              <view class="course-title">暴风进攻：杀球专项强化班</view>
-              <view class="course-meta">
-                <view class="meta-item">
-                  <uni-icons type="calendar" size="14" color="#5f5e5e"></uni-icons>
-                  <text>12 课时</text>
-                </view>
-                <view class="meta-item">
-                  <uni-icons type="staff" size="14" color="#5f5e5e"></uni-icons>
-                  <text>4人班</text>
-                </view>
+        <template v-else-if="coach">
+          <view class="hero-card">
+            <image class="hero-image" :src="coach.avatar" mode="aspectFill" />
+            <view class="hero-overlay" />
+            <view class="hero-content">
+              <view class="hero-badge">
+                <uni-icons type="star-filled" size="14" color="#ffffff" />
+                <text>{{ coach.statusText }}</text>
+              </view>
+              <text class="hero-title">{{ coach.name }}</text>
+              <text class="hero-sub">{{ coach.venueName || '未关联场馆' }}</text>
+              <view class="hero-rating">
+                <text>评分 {{ coach.ratingText }}</text>
+                <text>·</text>
+                <text>¥{{ coach.priceText }}/小时</text>
               </view>
             </view>
           </view>
 
-          <!-- Course Card 2 -->
-          <view class="course-card">
-            <image class="course-img" src="/static/placeholders/hero.svg" mode="aspectFill"></image>
-            <view class="course-info">
-              <view class="course-level">INTERMEDIATE / 中级</view>
-              <view class="course-title">凌云步法：场上移动效率提升</view>
-              <view class="course-meta">
-                <view class="meta-item">
-                  <uni-icons type="calendar" size="14" color="#5f5e5e"></uni-icons>
-                  <text>8 课时</text>
+          <view class="summary-grid">
+            <view class="summary-card">
+              <text class="summary-label">联系电话</text>
+              <text class="summary-value">{{ coach.phone || '未填写' }}</text>
+            </view>
+            <view class="summary-card">
+              <text class="summary-label">课程数量</text>
+              <text class="summary-value">{{ courses.length }}</text>
+            </view>
+            <view class="summary-card">
+              <text class="summary-label">价格</text>
+              <text class="summary-value">¥{{ coach.priceText }}</text>
+            </view>
+            <view class="summary-card">
+              <text class="summary-label">专长标签</text>
+              <text class="summary-value">{{ specialtyTags.length }} 项</text>
+            </view>
+          </view>
+
+          <view class="section-card">
+            <text class="section-title">执教简介</text>
+            <text class="section-text">{{ coach.experience || '当前教练尚未补充执教经验。' }}</text>
+          </view>
+
+          <view class="section-card">
+            <text class="section-title">技术特长</text>
+            <view v-if="specialtyTags.length" class="chip-wrap">
+              <text v-for="tag in specialtyTags" :key="tag" class="chip">{{ tag }}</text>
+            </view>
+            <text v-else class="section-text">当前教练尚未补充专长标签。</text>
+          </view>
+
+          <view class="section-card">
+            <view class="section-head">
+              <text class="section-title">开设课程</text>
+              <text class="section-note">{{ courses.length > 0 ? '按真实课程列表展示' : '暂无课程' }}</text>
+            </view>
+
+            <view v-if="courses.length === 0" class="empty-card">
+              <text class="empty-title">当前教练还没有可展示课程</text>
+              <text class="empty-desc">后续如新增课程，会在这里自动显示，不再补演示内容。</text>
+            </view>
+
+            <view v-else class="course-list">
+              <view
+                v-for="item in courses"
+                :key="item.id"
+                class="course-card"
+                @tap="goCourseDetail(item.id)"
+              >
+                <view class="course-copy">
+                  <text class="course-name">{{ item.courseName }}</text>
+                  <text class="course-meta">{{ item.courseDate || '待定日期' }} · {{ formatTime(item.startTime) }} - {{ formatTime(item.endTime) }}</text>
+                  <text class="course-meta">{{ item.courtName || item.venueName || '待定场地' }} · ¥{{ formatPrice(item.coursePrice) }}</text>
                 </view>
-                <view class="meta-item">
-                  <uni-icons type="person" size="14" color="#5f5e5e"></uni-icons>
-                  <text>1对1</text>
-                </view>
+                <uni-icons type="right" size="16" color="#94a3b8" />
               </view>
             </view>
           </view>
-        </view>
+        </template>
       </view>
-      <view class="safe-bottom"></view>
     </scroll-view>
 
-    <!-- Footer CTA -->
-    <view class="footer-cta">
-      <view class="price-box">
-        <text class="price-label">单课起价</text>
-        <view class="price-value">
-          <text class="currency">¥</text>
-          <text class="amount">480</text>
-          <text class="unit">/ 小时</text>
-        </view>
+    <view v-if="coach" class="footer">
+      <view class="footer-left">
+        <text class="footer-label">当前教练</text>
+        <text class="footer-value">{{ coach.name }}</text>
       </view>
-      <view class="btn-book" @click="handleBook">
-        <text>预约教练</text>
-        <uni-icons type="arrow-right" size="20" color="#561d00"></uni-icons>
-      </view>
+      <button class="footer-btn" @tap="goCoachCourses">
+        {{ courses.length > 0 ? '查看该教练课程' : '返回课程中心' }}
+      </button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { getCoachDetail, type CoachDto } from '@/api/coach'
+import { getCourseList, type CourseItem } from '@/api/course'
+import { useUserStore } from '@/store/modules/user'
+import { safeNavigateBack } from '@/utils/navigation'
+import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
 
-const goBack = () => {
-  uni.navigateBack()
+type CoachViewModel = {
+  id: number
+  name: string
+  avatar: string
+  venueName: string
+  phone: string
+  specialty: string
+  experience: string
+  ratingText: string
+  priceText: string
+  statusText: string
 }
 
-const handleBook = () => {
-  uni.showToast({
-    title: '预约成功',
-    icon: 'success'
+const userStore = useUserStore()
+
+const statusBarHeight = ref(44)
+const headerOffset = computed(() => statusBarHeight.value + 56)
+const loading = ref(true)
+const errorText = ref('')
+const coachId = ref(0)
+const coach = ref<CoachViewModel | null>(null)
+const courses = ref<CourseItem[]>([])
+
+const specialtyTags = computed(() => {
+  const raw = coach.value?.specialty || ''
+  return raw
+    .split(/[、,，;；/\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 6)
+})
+
+function formatTime(value?: string) {
+  if (!value) return '--:--'
+  return String(value).slice(0, 5)
+}
+
+function formatPrice(value?: number) {
+  return Number(value || 0).toFixed(2)
+}
+
+function mapCoach(item: CoachDto): CoachViewModel {
+  return {
+    id: Number(item.id || 0),
+    name: item.coachName || '未命名教练',
+    avatar: resolveImageUrl(item.avatar) || '/static/placeholders/avatar.svg',
+    venueName: item.venueName || '',
+    phone: item.phone || '',
+    specialty: item.specialty || '',
+    experience: item.experience || '',
+    ratingText: item.rating != null ? Number(item.rating).toFixed(1) : '暂无',
+    priceText: Number(item.hourlyPrice || 0).toFixed(2),
+    statusText: Number(item.status ?? 1) === 1 ? '在岗教练' : '暂停接单'
+  }
+}
+
+async function loadCoachDetail() {
+  if (!coachId.value) {
+    loading.value = false
+    errorText.value = '缺少教练参数'
+    return
+  }
+
+  loading.value = true
+  errorText.value = ''
+  try {
+    const [coachDetail, coursePage] = await Promise.all([
+      getCoachDetail(coachId.value),
+      getCourseList({
+        coachId: coachId.value,
+        page: 1,
+        size: 20
+      })
+    ])
+
+    coach.value = mapCoach(coachDetail)
+    courses.value = Array.isArray(coursePage?.data) ? coursePage.data : []
+  } catch (error) {
+    console.error('加载教练详情失败:', error)
+    errorText.value = error instanceof Error ? error.message : '加载教练详情失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleBack() {
+  safeNavigateBack('/pages/course/list')
+}
+
+function goCourseDetail(id: number) {
+  uni.navigateTo({
+    url: `/pages/course/detail?id=${id}`
   })
 }
+
+function goCoachCourses() {
+  if (courses.value.length > 0) {
+    uni.navigateTo({
+      url: `/pages/course/list?coachId=${coachId.value}`
+    })
+    return
+  }
+  uni.navigateTo({
+    url: '/pages/course/list'
+  })
+}
+
+onLoad(async (options?: Record<string, string | undefined>) => {
+  const sys = getSafeSystemInfo()
+  statusBarHeight.value = sys.statusBarHeight || 44
+
+  if (!userStore.isLoggedIn) {
+    uni.redirectTo({ url: '/pages/login/login' })
+    return
+  }
+
+  coachId.value = Number(options?.id || 0)
+  await loadCoachDetail()
+})
 </script>
 
 <style lang="scss" scoped>
-.coach-detail-page {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: #f9f9f9;
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fbfbfb 0%, #f4f4f4 100%);
 }
 
-.status-bar-placeholder {
-  height: var(--status-bar-height);
-  background-color: #f4f4f5;
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(249, 249, 249, 0.95);
+  backdrop-filter: blur(18px);
 }
 
-.nav-header {
-  background-color: #f4f4f5;
-  position: relative;
-  z-index: 100;
-}
-
-.nav-content {
+.header-inner {
+  min-height: 112rpx;
+  padding: 10rpx 26rpx 18rpx;
   display: flex;
   align-items: center;
-  padding: 0 32rpx;
-  height: 88rpx;
 }
 
 .nav-left {
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  
-  .nav-title {
-    font-size: 36rpx;
-    font-weight: 900;
-    color: #1a1c1c;
-  }
+  gap: 14rpx;
 }
 
-.main-content {
-  flex: 1;
-  overflow-y: auto;
+.icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 9999rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(26, 28, 28, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.hero-section {
+.nav-title {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #a33e00;
+  letter-spacing: -1rpx;
+}
+
+.main-scroll {
+  height: 100vh;
+}
+
+.content {
+  padding: 18rpx 18rpx 220rpx;
+}
+
+.hero-card,
+.summary-card,
+.section-card,
+.state-card {
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.04);
+}
+
+.hero-card {
   position: relative;
-  width: 100%;
-  height: 1060rpx;
+  height: 420rpx;
+  border-radius: 26rpx;
   overflow: hidden;
-  
-  .hero-bg {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  .hero-gradient {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(249,249,249,0) 0%, rgba(249,249,249,1) 100%);
-  }
-  
-  .hero-content {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: 64rpx 48rpx;
-    display: flex;
-    flex-direction: column;
-    gap: 12rpx;
-    
-    .badge {
-      background-color: #ff6600;
-      color: #561d00;
-      width: fit-content;
-      padding: 8rpx 24rpx;
-      border-radius: 999px;
-      font-size: 24rpx;
-      font-weight: 700;
-      letter-spacing: 2rpx;
-    }
-    
-    .name {
-      font-size: 64rpx;
-      font-weight: 700;
-      letter-spacing: -2rpx;
-      color: #1a1c1c;
-      margin-top: 8rpx;
-    }
-    
-    .rating-row {
-      display: flex;
-      align-items: center;
-      gap: 16rpx;
-      margin-top: 8rpx;
-      
-      .stars {
-        display: flex;
-        color: #ff6600;
-      }
-      
-      .score {
-        font-weight: 700;
-        font-size: 32rpx;
-      }
-      
-      .reviews {
-        color: #5f5e5e;
-        font-size: 26rpx;
-        margin-left: 16rpx;
-      }
-    }
-  }
 }
 
-.stats-section {
-  padding: 0 48rpx;
-  margin-top: -32rpx;
-  position: relative;
-  z-index: 10;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24rpx;
-  
-  .stat-card {
-    background-color: #ffffff;
-    padding: 32rpx;
-    border-radius: 24rpx;
-    box-shadow: 0 8rpx 40rpx rgba(0,0,0,0.04);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    
-    .stat-label {
-      color: #5f5e5e;
-      font-size: 20rpx;
-      font-weight: 700;
-      letter-spacing: 2rpx;
-      margin-bottom: 8rpx;
-    }
-    
-    .stat-value {
-      font-size: 48rpx;
-      font-weight: 900;
-      &.text-primary { color: #a33e00; }
-    }
-    
-    .stat-sub {
-      font-size: 20rpx;
-      color: #5a4136;
-      margin-top: 8rpx;
-    }
-  }
-}
-
-.info-section {
-  padding: 64rpx 48rpx 0;
-  
-  .section-title {
-    display: flex;
-    align-items: center;
-    gap: 16rpx;
-    margin-bottom: 32rpx;
-    
-    .title-bar {
-      width: 8rpx;
-      height: 36rpx;
-      background-color: #ff6600;
-      border-radius: 999px;
-    }
-    
-    text {
-      font-size: 40rpx;
-      font-weight: 700;
-      color: #1a1c1c;
-      letter-spacing: -1rpx;
-    }
-  }
-  
-  .mt-8 { margin-top: 64rpx; }
-  
-  .bio-text {
-    color: #5f5e5e;
-    line-height: 1.6;
-    font-size: 30rpx;
-  }
-  
-  .tags-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20rpx;
-    
-    .tag {
-      background-color: #e2dfde;
-      color: #636262;
-      padding: 16rpx 28rpx;
-      border-radius: 16rpx;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 12rpx;
-      font-size: 26rpx;
-    }
-  }
-  
-  .certifications-box {
-    background-color: #ffdbcd;
-    padding: 36rpx;
-    border-radius: 32rpx;
-    margin-top: 48rpx;
-    display: flex;
-    flex-direction: column;
-    gap: 24rpx;
-    
-    .cert-title {
-      color: #7c2e00;
-      font-weight: 700;
-      font-size: 32rpx;
-      margin-bottom: 8rpx;
-    }
-    
-    .cert-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 16rpx;
-      
-      text {
-        color: #7c2e00;
-        font-size: 26rpx;
-        line-height: 1.4;
-      }
-    }
-  }
-}
-
-.courses-section {
-  padding: 80rpx 48rpx 0;
-  
-  .courses-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 48rpx;
-    
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 16rpx;
-      
-      .title-bar {
-        width: 8rpx;
-        height: 36rpx;
-        background-color: #ff6600;
-        border-radius: 999px;
-      }
-      
-      text {
-        font-size: 40rpx;
-        font-weight: 700;
-        color: #1a1c1c;
-        letter-spacing: -1rpx;
-      }
-    }
-    
-    .view-all {
-      color: #a33e00;
-      font-weight: 700;
-      font-size: 24rpx;
-      text-transform: uppercase;
-      letter-spacing: 2rpx;
-      padding-bottom: 4rpx;
-    }
-  }
-  
-  .course-list {
-    display: flex;
-    flex-direction: column;
-    gap: 32rpx;
-  }
-  
-  .course-card {
-    background-color: #ffffff;
-    padding: 16rpx;
-    border-radius: 32rpx;
-    display: flex;
-    gap: 32rpx;
-    box-shadow: 0 8rpx 40rpx rgba(0,0,0,0.02);
-    
-    .course-img {
-      width: 200rpx;
-      height: 200rpx;
-      border-radius: 20rpx;
-      flex-shrink: 0;
-    }
-    
-    .course-info {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding-right: 16rpx;
-      
-      .course-level {
-        color: #a33e00;
-        font-weight: 700;
-        font-size: 20rpx;
-        letter-spacing: -1rpx;
-        margin-bottom: 12rpx;
-      }
-      
-      .course-title {
-        font-weight: 700;
-        font-size: 32rpx;
-        color: #1a1c1c;
-        line-height: 1.3;
-      }
-      
-      .course-meta {
-        display: flex;
-        align-items: center;
-        gap: 24rpx;
-        margin-top: 24rpx;
-        
-        .meta-item {
-          display: flex;
-          align-items: center;
-          gap: 8rpx;
-          color: #5f5e5e;
-          font-size: 24rpx;
-        }
-      }
-    }
-  }
-}
-
-.safe-bottom {
-  height: 200rpx;
-}
-
-.footer-cta {
-  position: fixed;
-  bottom: 0;
-  left: 0;
+.hero-image {
   width: 100%;
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(24px);
-  z-index: 50;
-  padding: 32rpx 48rpx;
-  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  height: 100%;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 17, 31, 0.08) 0%, rgba(6, 17, 31, 0.88) 100%);
+}
+
+.hero-content {
+  position: absolute;
+  left: 26rpx;
+  right: 26rpx;
+  bottom: 24rpx;
+  z-index: 2;
+}
+
+.hero-badge {
+  width: fit-content;
+  min-width: 156rpx;
+  height: 50rpx;
+  padding: 0 20rpx;
+  border-radius: 9999rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.65);
+  background: rgba(32, 44, 58, 0.42);
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.hero-title {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 62rpx;
+  line-height: 1.05;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 3rpx 12rpx rgba(0, 0, 0, 0.32);
+}
+
+.hero-sub {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.hero-rating {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.summary-grid {
+  margin-top: 20rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.summary-card {
+  min-height: 148rpx;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.summary-label {
+  font-size: 22rpx;
+  color: #666666;
+  font-weight: 700;
+}
+
+.summary-value {
+  font-size: 30rpx;
+  line-height: 1.4;
+  font-weight: 900;
+  color: #111111;
+}
+
+.section-card {
+  margin-top: 20rpx;
+  border-radius: 26rpx;
+  padding: 30rpx 26rpx;
+}
+
+.section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid rgba(0,0,0,0.05);
-  
-  .price-box {
-    display: flex;
-    flex-direction: column;
-    
-    .price-label {
-      font-size: 20rpx;
-      font-weight: 700;
-      color: #5f5e5e;
-      letter-spacing: 2rpx;
-    }
-    
-    .price-value {
-      display: flex;
-      align-items: baseline;
-      gap: 4rpx;
-      margin-top: 4rpx;
-      
-      .currency {
-        font-size: 32rpx;
-        font-weight: 900;
-      }
-      
-      .amount {
-        font-size: 48rpx;
-        font-weight: 900;
-      }
-      
-      .unit {
-        font-size: 24rpx;
-        color: #5f5e5e;
-        margin-left: 8rpx;
-      }
-    }
-  }
-  
-  .btn-book {
-    background-color: #ff6600;
-    color: #561d00;
-    padding: 32rpx 64rpx;
-    border-radius: 24rpx;
-    font-weight: 700;
-    font-size: 32rpx;
-    display: flex;
-    align-items: center;
-    gap: 16rpx;
-    box-shadow: 0 16rpx 32rpx rgba(255, 102, 0, 0.2);
-    transition: all 0.2s;
-    
-    &:active {
-      transform: scale(0.96);
-    }
+  gap: 16rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #121212;
+}
+
+.section-note {
+  font-size: 20rpx;
+  color: #8a8a8a;
+}
+
+.section-text {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  color: #666666;
+  line-height: 1.75;
+}
+
+.chip-wrap {
+  margin-top: 20rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.chip {
+  padding: 12rpx 18rpx;
+  border-radius: 9999rpx;
+  background: #fff3eb;
+  color: #a33e00;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.course-list {
+  margin-top: 22rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.course-card {
+  padding: 22rpx;
+  border-radius: 22rpx;
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+  border: 1rpx solid rgba(255, 102, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.course-copy {
+  flex: 1;
+}
+
+.course-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.course-meta {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+.empty-card {
+  margin-top: 20rpx;
+  padding: 26rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+  border: 1rpx solid rgba(255, 102, 0, 0.08);
+}
+
+.empty-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.empty-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: #64748b;
+}
+
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 -8rpx 30rpx rgba(26, 28, 28, 0.05);
+  padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22rpx;
+}
+
+.footer-left {
+  min-width: 180rpx;
+}
+
+.footer-label {
+  display: block;
+  font-size: 20rpx;
+  color: #666666;
+  font-weight: 700;
+}
+
+.footer-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #111111;
+}
+
+.footer-btn {
+  flex: 1;
+  height: 92rpx;
+  border: none;
+  border-radius: 18rpx;
+  background: linear-gradient(135deg, #c94e00 0%, #ff6600 100%);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 900;
+  box-shadow: 0 12rpx 28rpx rgba(255, 102, 0, 0.22);
+}
+
+.state-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  padding: 90rpx 28rpx;
+  text-align: center;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #777777;
+}
+
+.state-action {
+  width: 220rpx;
+  height: 76rpx;
+  margin: 22rpx auto 0;
+  border-radius: 9999rpx;
+  background: #ff6600;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 auto 18rpx;
+  border: 4rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 9999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

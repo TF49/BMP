@@ -267,37 +267,42 @@ function handleWechat() {
 }
 
 function handleWeibo() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
+  uni.showModal({
+    title: '官方微博',
+    content: '当前移动端暂未提供微博跳转入口，可通过客服渠道获取最新赛事与运营动态。',
+    showCancel: false
   })
 }
 
 function handleDouyin() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
+  uni.showModal({
+    title: '抖音号',
+    content: '当前移动端暂未提供抖音直达入口，如需内容更新可关注官方客服通知。',
+    showCancel: false
   })
 }
 
 function handlePrivacyPolicy() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
+  uni.showModal({
+    title: '隐私政策',
+    content: '当前小程序端暂未提供独立隐私政策页面，请以系统内实际已开放功能为准进行资料维护与设置。',
+    showCancel: false
   })
 }
 
 function handleUserAgreement() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
+  uni.showModal({
+    title: '用户协议',
+    content: '当前小程序端暂未提供独立用户协议页面，如需了解服务规则可先查看帮助与反馈页中的能力说明。',
+    showCancel: false
   })
 }
 
 function handleLicenses() {
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
+  uni.showModal({
+    title: '开源许可',
+    content: '第三方依赖许可信息暂未在小程序端单独展示，不影响当前已接入功能使用。',
+    showCancel: false
   })
 }
 

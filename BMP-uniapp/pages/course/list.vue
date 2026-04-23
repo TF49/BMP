@@ -226,7 +226,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getCourseList, getCoachList, type CourseItem } from '@/api/course'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
@@ -444,12 +444,29 @@ function goProfile() {
 }
 
 function onAllCoaches() {
-  uni.showToast({ title: '教练列表即将开放', icon: 'none' })
+  if (displayCoaches.value.length > 0) {
+    onCoachTap(displayCoaches.value[0])
+    return
+  }
+  uni.showToast({ title: '暂无可查看教练', icon: 'none' })
 }
 
-function onCoachTap(_c: CoachCard) {
-  uni.showToast({ title: '教练主页即将开放', icon: 'none' })
+function onCoachTap(c: CoachCard) {
+  if (!c.id) {
+    uni.showToast({ title: '当前教练信息不完整', icon: 'none' })
+    return
+  }
+  uni.navigateTo({
+    url: `/pages/coach/detail?id=${c.id}`
+  })
 }
+
+onLoad((options?: Record<string, string | undefined>) => {
+  const coachId = Number(options?.coachId || 0)
+  if (coachId) {
+    filterCoachId.value = coachId
+  }
+})
 
 onMounted(() => {
   const systemInfo = getSafeSystemInfo()

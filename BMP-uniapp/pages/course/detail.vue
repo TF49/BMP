@@ -49,7 +49,7 @@
             </view>
           </view>
 
-          <view class="coach-card">
+          <view class="coach-card" @tap="handleCoachDetail">
             <view class="coach-main">
               <image class="coach-avatar" src="/static/placeholders/avatar.svg" mode="aspectFill" />
               <view class="coach-info">
@@ -336,6 +336,19 @@ function handleBook() {
   }
   uni.navigateTo({
     url: `/pages/course/booking?id=${detail.value.id}`
+  })
+}
+
+function handleCoachDetail() {
+  if (!course.value?.coachId) {
+    uni.showToast({
+      title: '当前课程未关联教练详情',
+      icon: 'none'
+    })
+    return
+  }
+  uni.navigateTo({
+    url: `/pages/coach/detail?id=${course.value.coachId}`
   })
 }
 

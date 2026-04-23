@@ -14,48 +14,20 @@
 
             <view class="hero-copy">
               <text class="hero-eyebrow">ALERT PREFERENCES</text>
-              <text class="hero-title">统一管理你的通知接收偏好</text>
+              <text class="hero-title">只保留当前真实可保存的通知能力</text>
               <text class="hero-subtitle">
-                预订、支付、系统消息和免打扰时段都收纳在一套 Stitch 风格的设置界面里，减少旧式设置页的割裂感。
+                目前小程序与网页端统一使用后端 `siteMessage` 开关，控制重要通知是否在站内展示。
               </text>
             </view>
 
             <view class="hero-grid">
               <view class="hero-metric">
-                <text class="metric-label">ACTIVE</text>
-                <text class="metric-value">{{ enabledCount }}/{{ totalSwitches }}</text>
+                <text class="metric-label">SYNC</text>
+                <text class="metric-value">与网页端设置同步</text>
               </view>
               <view class="hero-metric">
-                <text class="metric-label">QUIET HOURS</text>
-                <text class="metric-value">{{ settings.dndStart }} - {{ settings.dndEnd }}</text>
-              </view>
-            </view>
-          </view>
-
-          <view v-for="section in notificationSections" :key="section.key" class="panel-card">
-            <view class="panel-head">
-              <view>
-                <text class="panel-title">{{ section.title }}</text>
-                <text class="panel-subtitle">{{ section.subtitle }}</text>
-              </view>
-              <text class="panel-tag">{{ section.tag }}</text>
-            </view>
-
-            <view class="setting-list">
-              <view
-                v-for="item in section.items"
-                :key="item.key"
-                class="setting-row"
-              >
-                <view class="setting-copy">
-                  <text class="setting-title">{{ item.title }}</text>
-                  <text class="setting-desc">{{ item.description }}</text>
-                </view>
-                <switch
-                  :checked="settings[item.key]"
-                  color="#ea580c"
-                  @change="toggleSetting(item.key, $event)"
-                />
+                <text class="metric-label">STATUS</text>
+                <text class="metric-value">{{ settings.siteMessage ? '已开启' : '已关闭' }}</text>
               </view>
             </view>
           </view>
@@ -63,32 +35,30 @@
           <view class="panel-card">
             <view class="panel-head">
               <view>
-                <text class="panel-title">通知时段</text>
-                <text class="panel-subtitle">为夜间休息预留一个安静窗口。</text>
+                <text class="panel-title">站内消息</text>
+                <text class="panel-subtitle">控制通知铃铛、站内提醒和登录后的重要消息展示。</text>
               </view>
-              <text class="panel-tag">DO NOT DISTURB</text>
+              <text class="panel-tag">REAL CAPABILITY</text>
             </view>
 
-            <view class="time-grid">
-              <picker mode="time" :value="settings.dndStart" @change="onDNDStartChange">
-                <view class="time-box">
-                  <text class="time-label">开始时间</text>
-                  <text class="time-value">{{ settings.dndStart }}</text>
-                </view>
-              </picker>
-              <picker mode="time" :value="settings.dndEnd" @change="onDNDEndChange">
-                <view class="time-box">
-                  <text class="time-label">结束时间</text>
-                  <text class="time-value">{{ settings.dndEnd }}</text>
-                </view>
-              </picker>
+            <view class="setting-row">
+              <view class="setting-copy">
+                <text class="setting-title">接收站内消息</text>
+                <text class="setting-desc">保存到后端后，网页端与小程序端会共享同一状态。</text>
+              </view>
+              <switch
+                :checked="settings.siteMessage"
+                :disabled="loading || saving"
+                color="#ea580c"
+                @change="handleToggle"
+              />
             </view>
           </view>
 
           <view class="panel-card tips-card">
-            <text class="tips-title">通知建议</text>
+            <text class="tips-title">说明</text>
             <text class="tips-text">
-              为了获得完整提醒体验，建议同时开启系统推送权限、应用内提示和声音提醒。你也可以在手机系统设置里进一步控制通知样式。
+              推送通知、免打扰、声音和震动提醒属于移动端扩展能力，当前后端未提供对应保存字段，因此这里不再保留假保存开关。
             </text>
           </view>
         </view>
@@ -98,193 +68,59 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
+import { getSettings, updateSettings } from '@/api/auth'
 import { safeNavigateBack } from '@/utils/navigation'
 
-const STORAGE_KEY = 'notification_settings'
-
-const settingsDefaults = {
-  bookingSuccess: true,
-  bookingChange: true,
-  bookingReminder: true,
-  paymentSuccess: true,
-  balanceChange: true,
-  systemMessage: true,
-  eventPush: true,
-  promotion: false,
-  pushNotifications: true,
-  soundAlert: true,
-  vibrationAlert: true,
-  dndStart: '22:00',
-  dndEnd: '08:00'
-}
-
-type NotificationSettings = typeof settingsDefaults
-type NotificationSettingKey = keyof NotificationSettings
-type BooleanSettingKey = {
-  [K in NotificationSettingKey]: NotificationSettings[K] extends boolean ? K : never
-}[NotificationSettingKey]
-
-type NotificationSection = {
-  key: string
-  title: string
-  subtitle: string
-  tag: string
-  items: Array<{
-    key: BooleanSettingKey
-    title: string
-    description: string
-  }>
-}
-
-const settings = reactive<NotificationSettings>({ ...settingsDefaults })
-
-const notificationSections: NotificationSection[] = [
-  {
-    key: 'booking',
-    title: '预订通知',
-    subtitle: '保障预约成功、变更和开场前提醒都能及时送达。',
-    tag: 'BOOKING',
-    items: [
-      {
-        key: 'bookingSuccess',
-        title: '预约成功通知',
-        description: '下单成功后立即收到确认提醒。'
-      },
-      {
-        key: 'bookingChange',
-        title: '预约变更通知',
-        description: '时间、场地或状态变化时第一时间通知你。'
-      },
-      {
-        key: 'bookingReminder',
-        title: '预约提醒',
-        description: '在开始前推送提醒，避免错过场地或课程。'
-      }
-    ]
-  },
-  {
-    key: 'payment',
-    title: '支付通知',
-    subtitle: '聚焦订单支付、余额变更和资金相关提醒。',
-    tag: 'PAYMENT',
-    items: [
-      {
-        key: 'paymentSuccess',
-        title: '支付成功通知',
-        description: '支付完成后返回结果并同步到账提示。'
-      },
-      {
-        key: 'balanceChange',
-        title: '余额变动通知',
-        description: '钱包充值、消费或退款时同步变更信息。'
-      }
-    ]
-  },
-  {
-    key: 'system',
-    title: '系统通知',
-    subtitle: '控制平台消息、活动提醒和营销类推送强度。',
-    tag: 'SYSTEM',
-    items: [
-      {
-        key: 'systemMessage',
-        title: '系统消息',
-        description: '保留账户、服务和订单相关的重要站内消息。'
-      },
-      {
-        key: 'eventPush',
-        title: '活动推送',
-        description: '接收赛事、课程和运营活动的上新提醒。'
-      },
-      {
-        key: 'promotion',
-        title: '优惠活动',
-        description: '在折扣、满减和会员福利更新时收到通知。'
-      }
-    ]
-  },
-  {
-    key: 'device',
-    title: '提醒方式',
-    subtitle: '决定消息是否以推送、声音或震动方式打扰你。',
-    tag: 'DEVICE',
-    items: [
-      {
-        key: 'pushNotifications',
-        title: '接收推送通知',
-        description: '允许应用在系统层级向你发送通知横幅。'
-      },
-      {
-        key: 'soundAlert',
-        title: '声音提醒',
-        description: '收到关键通知时播放提示音。'
-      },
-      {
-        key: 'vibrationAlert',
-        title: '震动提醒',
-        description: '收到通知时触发轻微震动反馈。'
-      }
-    ]
-  }
-]
-
 const userStore = useUserStore()
+const loading = ref(true)
+const saving = ref(false)
+const settings = reactive({
+  siteMessage: true
+})
 
-const booleanKeys: BooleanSettingKey[] = [
-  'bookingSuccess',
-  'bookingChange',
-  'bookingReminder',
-  'paymentSuccess',
-  'balanceChange',
-  'systemMessage',
-  'eventPush',
-  'promotion',
-  'pushNotifications',
-  'soundAlert',
-  'vibrationAlert'
-]
-
-const enabledCount = computed(() => booleanKeys.filter(key => settings[key]).length)
-const totalSwitches = booleanKeys.length
-
-function saveSettings() {
-  uni.setStorageSync(STORAGE_KEY, { ...settings })
-}
-
-function loadSettings() {
+async function loadSettings() {
+  loading.value = true
   try {
-    const savedSettings = uni.getStorageSync(STORAGE_KEY) as Partial<NotificationSettings> | ''
-    if (!savedSettings || typeof savedSettings !== 'object') return
-    Object.assign(settings, savedSettings)
+    const data = await getSettings()
+    settings.siteMessage = data.siteMessage ?? true
   } catch (error) {
     console.error('加载通知设置失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
-function toggleSetting(key: BooleanSettingKey, event: any) {
+async function handleToggle(event: any) {
   const nextValue = !!event?.detail?.value
-  settings[key] = nextValue
-  saveSettings()
-}
+  const previousValue = settings.siteMessage
+  settings.siteMessage = nextValue
+  saving.value = true
 
-function onDNDStartChange(event: { detail?: { value?: string } }) {
-  settings.dndStart = event?.detail?.value || settings.dndStart
-  saveSettings()
-}
-
-function onDNDEndChange(event: { detail?: { value?: string } }) {
-  settings.dndEnd = event?.detail?.value || settings.dndEnd
-  saveSettings()
+  try {
+    await updateSettings({ siteMessage: nextValue })
+    uni.showToast({
+      title: '设置已保存',
+      icon: 'success'
+    })
+  } catch (error) {
+    settings.siteMessage = previousValue
+    uni.showToast({
+      title: error instanceof Error ? error.message : '保存失败，请稍后重试',
+      icon: 'none'
+    })
+  } finally {
+    saving.value = false
+  }
 }
 
 function handleBack() {
   safeNavigateBack('/pages/settings/index')
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (!userStore.isLoggedIn) {
     uni.redirectTo({
       url: '/pages/login/login'
@@ -292,7 +128,7 @@ onMounted(() => {
     return
   }
 
-  loadSettings()
+  await loadSettings()
 })
 </script>
 
@@ -422,8 +258,7 @@ onMounted(() => {
   margin-top: 24rpx;
 }
 
-.hero-metric,
-.time-box {
+.hero-metric {
   padding: 20rpx;
   border-radius: 24rpx;
   background: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
@@ -431,8 +266,7 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
-.metric-label,
-.time-label {
+.metric-label {
   display: block;
   margin-bottom: 12rpx;
   font-size: 18rpx;
@@ -440,8 +274,7 @@ onMounted(() => {
   font-weight: 800;
 }
 
-.metric-value,
-.time-value {
+.metric-value {
   display: block;
   font-size: 26rpx;
   color: #0f172a;
@@ -475,22 +308,12 @@ onMounted(() => {
   font-weight: 700;
 }
 
-.setting-list {
-  margin-top: 20rpx;
-}
-
 .setting-row {
+  margin-top: 20rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
-  padding: 22rpx 0;
-  border-bottom: 1rpx solid rgba(226, 232, 240, 0.82);
-}
-
-.setting-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
 }
 
 .setting-copy {
@@ -510,13 +333,6 @@ onMounted(() => {
   font-size: 22rpx;
   line-height: 1.6;
   color: #94a3b8;
-}
-
-.time-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16rpx;
-  margin-top: 24rpx;
 }
 
 .tips-card {

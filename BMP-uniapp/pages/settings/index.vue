@@ -153,7 +153,7 @@ import { useUserStore } from '@/store/modules/user'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { useThemeStore } from '@/store/modules/theme'
 import MobileLayout from '@/components/MobileLayout.vue'
-import { getCurrentUser } from '@/api/auth'
+import { getCurrentUser, getSettings } from '@/api/auth'
 import { safeNavigateBack } from '@/utils/navigation'
 
 const userInfo = ref({
@@ -166,6 +166,7 @@ const userInfo = ref({
 const userStore = useUserStore()
 const themeStore = useThemeStore()
 const isDarkMode = ref(false)
+const siteMessageEnabled = ref(true)
 
 const accountMenus = [
   {
@@ -178,7 +179,7 @@ const accountMenus = [
   },
   {
     title: '安全设置',
-    desc: '密码、绑定方式与登录保护',
+    desc: '密码修改与真实登录保护开关',
     path: '/pages/settings/security',
     icon: 'locked',
     bgColor: 'rgba(0, 98, 161, 0.12)',
@@ -197,7 +198,7 @@ const accountMenus = [
 const preferenceMenus = [
   {
     title: '通知设置',
-    desc: '控制课程、赛事和系统提醒',
+    desc: '仅保留与网页端同步的站内消息开关',
     path: '/pages/settings/notification',
     icon: 'chatbubble',
     bgColor: 'rgba(255, 181, 150, 0.28)',
@@ -205,7 +206,7 @@ const preferenceMenus = [
   },
   {
     title: '隐私设置',
-    desc: '管理资料展示和授权范围',
+    desc: '数据清理、账号注销与当前边界说明',
     path: '/pages/settings/privacy',
     icon: 'eye-slash',
     bgColor: 'rgba(93, 95, 94, 0.12)',
@@ -234,24 +235,26 @@ const supportMenus = [
 
 const roleLabel = computed(() => userInfo.value.role || '普通用户')
 const levelBadge = computed(() => {
-  if (userInfo.value.phone) return '待完善'
-  return '新用户'
+  if (userInfo.value.phone) return '已完善'
+  return '待完善'
 })
 
 const securityLabel = computed(() => {
-  if (userInfo.value.phone) return 'Medium'
-  return 'Basic'
+  if (userInfo.value.phone && siteMessageEnabled.value) return '已对齐'
+  if (userInfo.value.phone) return '基础保护'
+  return '待完善'
 })
 
 const loadUserInfo = async () => {
   try {
-    const user = await getCurrentUser()
+    const [user, settings] = await Promise.all([getCurrentUser(), getSettings()])
     userInfo.value = {
       username: user.nickname || user.username || '',
       role: user.role || '普通用户',
       avatar: user.avatar || '',
       phone: user.phone || ''
     }
+    siteMessageEnabled.value = settings.siteMessage ?? true
   } catch (error) {
     console.error('加载用户信息失败:', error)
   }

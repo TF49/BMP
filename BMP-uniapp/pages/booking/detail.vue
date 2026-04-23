@@ -97,6 +97,13 @@
               <text class="detail-label">下单时间</text>
               <text class="detail-value">{{ booking.createTime }}</text>
             </view>
+            <view class="detail-row clickable" @tap="openFeeDetail">
+              <text class="detail-label">费用明细</text>
+              <view class="detail-action">
+                <text class="detail-value">查看当前订单金额说明</text>
+                <uni-icons type="right" size="16" color="#94a3b8" />
+              </view>
+            </view>
           </view>
         </view>
 
@@ -218,6 +225,22 @@ const getStatusClass = (status: number) => {
 
 const handleBack = () => {
   safeNavigateBack()
+}
+
+const openFeeDetail = () => {
+  if (!booking.value.id) return
+  const summary = {
+    venueName: booking.value.venueName,
+    courtName: booking.value.courtName,
+    date: booking.value.bookingDate,
+    slot: bookingTimeRange.value,
+    bookingId: booking.value.id,
+    totalAmount: Number(booking.value.orderAmount || 0),
+    payableAmount: Number(booking.value.orderAmount || 0)
+  }
+  uni.navigateTo({
+    url: `/pages/booking/fee-detail?bookingId=${booking.value.id}&data=${encodeURIComponent(JSON.stringify(summary))}&returnUrl=${encodeURIComponent('/pages/booking/detail?id=' + booking.value.id)}`
+  })
 }
 
 const handleCancel = async () => {
@@ -546,6 +569,10 @@ onMounted(async () => {
   border: 1rpx solid rgba(255, 102, 0, 0.08);
 }
 
+.detail-row.clickable {
+  cursor: pointer;
+}
+
 .detail-label {
   font-size: 24rpx;
   color: #7c2d12;
@@ -557,6 +584,14 @@ onMounted(async () => {
   font-size: 25rpx;
   line-height: 1.6;
   color: #334155;
+}
+
+.detail-action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
 }
 
 .tips-list {

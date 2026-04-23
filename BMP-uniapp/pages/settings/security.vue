@@ -26,7 +26,7 @@
             </view>
             <view class="hero-copy">
               <text class="hero-title">{{ securityLevelText }}</text>
-              <text class="hero-sub">建议补齐手机号和登录保护项</text>
+              <text class="hero-sub">当前页面只展示后端真实支持的登录保护设置。</text>
             </view>
           </view>
           <view class="hero-progress">
@@ -47,11 +47,11 @@
               </view>
               <view>
                 <text class="list-title">修改密码</text>
-                <text class="list-desc">定期更换密码更安全</text>
+                <text class="list-desc">通过真实后端接口更新当前登录密码。</text>
               </view>
             </view>
             <view class="list-right">
-              <text class="status-text verified">已设置</text>
+              <text class="status-text verified">可用</text>
               <uni-icons type="right" size="18" color="#94a3b8" />
             </view>
           </view>
@@ -64,13 +64,13 @@
                 <uni-icons type="phone" size="20" color="#0062a1" />
               </view>
               <view>
-                <text class="list-title">绑定手机</text>
-                <text class="list-desc">{{ userInfo.phone || '绑定手机号可找回密码' }}</text>
+                <text class="list-title">手机号维护</text>
+                <text class="list-desc">{{ userInfo.phone || '前往账户设置维护手机号' }}</text>
               </view>
             </view>
             <view class="list-right">
               <text class="status-text" :class="{ verified: !!userInfo.phone }">
-                {{ userInfo.phone ? '已绑定' : '未绑定' }}
+                {{ userInfo.phone ? '已绑定' : '待完善' }}
               </text>
               <uni-icons type="right" size="18" color="#94a3b8" />
             </view>
@@ -78,19 +78,24 @@
         </view>
 
         <view class="section-card">
-          <text class="section-title">高级安全</text>
+          <text class="section-title">登录保护</text>
 
           <view class="switch-row">
             <view class="list-left">
               <view class="list-icon green">
-                <uni-icons type="person-filled" size="20" color="#16a34a" />
+                <uni-icons type="notification-filled" size="20" color="#16a34a" />
               </view>
               <view>
-                <text class="list-title">指纹 / 面容登录</text>
-                <text class="list-desc">使用生物识别快速登录</text>
+                <text class="list-title">登录提醒</text>
+                <text class="list-desc">登录成功后通过站内消息提醒当前账号。</text>
               </view>
             </view>
-            <switch :checked="settings.biometricLogin" @change="toggleSetting('biometricLogin')" color="#ff6600" />
+            <switch
+              :checked="settings.loginAlert"
+              :disabled="savingKey === 'loginAlert' || loading"
+              color="#ff6600"
+              @change="handleToggle('loginAlert', $event)"
+            />
           </view>
 
           <view class="divider" />
@@ -98,62 +103,36 @@
           <view class="switch-row">
             <view class="list-left">
               <view class="list-icon violet">
-                <uni-icons type="hand-up" size="20" color="#7c3aed" />
+                <uni-icons type="locked" size="20" color="#7c3aed" />
               </view>
               <view>
-                <text class="list-title">手势密码</text>
-                <text class="list-desc">设置手势密码保护应用</text>
+                <text class="list-title">异常设备登录提醒</text>
+                <text class="list-desc">检测到新的设备登录时进行额外提醒。</text>
               </view>
             </view>
-            <switch :checked="settings.gesturePassword" @change="toggleSetting('gesturePassword')" color="#ff6600" />
-          </view>
-
-          <view class="divider" />
-
-          <view class="switch-row">
-            <view class="list-left">
-              <view class="list-icon slate">
-                <uni-icons type="locked" size="20" color="#475569" />
-              </view>
-              <view>
-                <text class="list-title">自动锁定</text>
-                <text class="list-desc">离开应用后自动锁定</text>
-              </view>
-            </view>
-            <switch :checked="settings.autoLock" @change="toggleSetting('autoLock')" color="#ff6600" />
-          </view>
-        </view>
-
-        <view class="section-card">
-          <text class="section-title">登录记录</text>
-          <view v-for="(record, index) in loginRecords" :key="index" class="record-row">
-            <view class="list-left">
-              <view class="list-icon light">
-                <uni-icons :type="record.iconType" size="20" :color="record.isCurrent ? '#16a34a' : '#64748b'" />
-              </view>
-              <view>
-                <text class="list-title">{{ record.device }}</text>
-                <text class="list-desc">{{ record.time }}</text>
-              </view>
-            </view>
-            <text v-if="record.isCurrent" class="current-tag">当前设备</text>
+            <switch
+              :checked="settings.strangeDevice"
+              :disabled="savingKey === 'strangeDevice' || loading"
+              color="#ff6600"
+              @change="handleToggle('strangeDevice', $event)"
+            />
           </view>
         </view>
 
         <view class="tips-card">
-          <text class="tips-title">安全建议</text>
+          <text class="tips-title">当前能力边界</text>
           <view class="tips-list">
             <view class="tip-item">
               <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
-              <text>定期更换密码，使用强密码</text>
+              <text>本页配置会保存到后端，与网页端设置保持一致。</text>
             </view>
             <view class="tip-item">
               <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
-              <text>不要在公共设备上保持登录状态</text>
+              <text>生物识别、手势密码等移动端扩展保护能力当前未接入后端，因此不在此页展示。</text>
             </view>
             <view class="tip-item">
               <uni-icons type="checkbox-filled" size="16" color="#16a34a" />
-              <text>绑定手机号以便找回账户</text>
+              <text>若需要找回密码，可在登录页使用用户名、身份证号与新密码流程完成重置。</text>
             </view>
           </view>
         </view>
@@ -165,7 +144,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getCurrentUser } from '@/api/auth'
+import { getCurrentUser, getSettings, updateSettings, type UserSettings } from '@/api/auth'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
@@ -174,85 +153,90 @@ const userStore = useUserStore()
 
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 56)
+const loading = ref(true)
+const savingKey = ref<keyof UserSettings | ''>('')
 
 const userInfo = reactive({
   phone: ''
 })
 
-const settings = reactive({
-  biometricLogin: false,
-  gesturePassword: false,
-  autoLock: true
+const settings = reactive<UserSettings>({
+  loginAlert: true,
+  strangeDevice: true,
+  siteMessage: true
 })
 
-const loginRecords = ref([
-  { device: '当前设备 - 微信小程序', time: '刚刚', iconType: 'phone', isCurrent: true },
-  { device: 'iPhone 14 Pro', time: '2026-04-20 15:30', iconType: 'phone', isCurrent: false },
-  { device: 'Windows PC', time: '2026-04-18 09:15', iconType: 'contact', isCurrent: false }
-])
-
 const securityProgress = computed(() => {
-  let progress = 0
-  progress += 30
+  let progress = 35
   if (userInfo.phone) progress += 25
-  if (settings.biometricLogin || settings.gesturePassword) progress += 20
+  if (settings.loginAlert) progress += 20
+  if (settings.strangeDevice) progress += 20
   return Math.min(progress, 100)
 })
 
 const securityLevel = computed(() => {
   if (securityProgress.value >= 80) return 'high'
-  if (securityProgress.value >= 50) return 'medium'
+  if (securityProgress.value >= 60) return 'medium'
   return 'low'
 })
 
 const securityLevelText = computed(() => {
   if (securityProgress.value >= 80) return '安全'
-  if (securityProgress.value >= 50) return '中等'
-  return '较低'
+  if (securityProgress.value >= 60) return '中等'
+  return '基础'
 })
 
 const securityIconType = computed(() => {
   if (securityProgress.value >= 80) return 'checkbox-filled'
-  if (securityProgress.value >= 50) return 'info'
+  if (securityProgress.value >= 60) return 'info'
   return 'help'
 })
 
 const securityColor = computed(() => {
   if (securityProgress.value >= 80) return '#16a34a'
-  if (securityProgress.value >= 50) return '#f59e0b'
+  if (securityProgress.value >= 60) return '#f59e0b'
   return '#ef4444'
 })
 
-function saveSettings() {
-  uni.setStorageSync('security_settings', settings)
-}
-
-function loadSettings() {
+async function loadPageData() {
+  loading.value = true
   try {
-    const saved = uni.getStorageSync('security_settings')
-    if (saved) Object.assign(settings, saved)
+    const [user, serverSettings] = await Promise.all([getCurrentUser(), getSettings()])
+    userInfo.phone = user.phone || ''
+    settings.loginAlert = serverSettings.loginAlert ?? true
+    settings.strangeDevice = serverSettings.strangeDevice ?? true
+    settings.siteMessage = serverSettings.siteMessage ?? true
   } catch (error) {
     console.error('加载安全设置失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
-function toggleSetting(key: keyof typeof settings) {
-  settings[key] = !settings[key]
-  saveSettings()
+async function handleToggle(key: keyof Pick<UserSettings, 'loginAlert' | 'strangeDevice'>, event: any) {
+  const nextValue = !!event?.detail?.value
+  const previousValue = settings[key]
+  settings[key] = nextValue
+  savingKey.value = key
 
-  if ((key === 'biometricLogin' || key === 'gesturePassword') && settings[key]) {
-    uni.showToast({ title: '功能开发中', icon: 'none' })
-    settings[key] = false
-    saveSettings()
-  }
-}
-
-async function loadUserInfo() {
   try {
-    const user = await getCurrentUser()
-    userInfo.phone = user.phone || ''
+    await updateSettings({
+      loginAlert: settings.loginAlert,
+      strangeDevice: settings.strangeDevice,
+      siteMessage: settings.siteMessage
+    })
+    uni.showToast({
+      title: '设置已保存',
+      icon: 'success'
+    })
   } catch (error) {
-    console.error('加载用户信息失败:', error)
+    settings[key] = previousValue
+    uni.showToast({
+      title: error instanceof Error ? error.message : '保存失败，请稍后重试',
+      icon: 'none'
+    })
+  } finally {
+    savingKey.value = ''
   }
 }
 
@@ -261,7 +245,7 @@ function handleChangePassword() {
 }
 
 function handleBindPhone() {
-  uni.showToast({ title: '手机号绑定功能开发中', icon: 'none' })
+  uni.navigateTo({ url: '/pages/settings/account' })
 }
 
 function handleBack() {
@@ -277,8 +261,7 @@ onLoad(async () => {
     return
   }
 
-  loadSettings()
-  await loadUserInfo()
+  await loadPageData()
 })
 </script>
 
@@ -437,8 +420,7 @@ onLoad(async () => {
 }
 
 .list-row,
-.switch-row,
-.record-row {
+.switch-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -466,11 +448,8 @@ onLoad(async () => {
 
 .list-icon.amber { background: #fff3ec; }
 .list-icon.blue { background: #e0f2fe; }
-.list-icon.rose { background: #fff1f2; }
 .list-icon.green { background: #dcfce7; }
 .list-icon.violet { background: #f3e8ff; }
-.list-icon.slate { background: #e2e8f0; }
-.list-icon.light { background: #f8fafc; }
 
 .list-title {
   display: block;
@@ -509,20 +488,6 @@ onLoad(async () => {
   background: #f1f5f9;
 }
 
-.current-tag {
-  min-width: 108rpx;
-  height: 42rpx;
-  padding: 0 14rpx;
-  border-radius: 9999rpx;
-  background: #dcfce7;
-  color: #16a34a;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18rpx;
-  font-weight: 800;
-}
-
 .tips-list {
   margin-top: 20rpx;
   display: flex;
@@ -532,7 +497,7 @@ onLoad(async () => {
 
 .tip-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12rpx;
   font-size: 24rpx;
   line-height: 1.6;

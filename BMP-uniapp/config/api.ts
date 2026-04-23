@@ -18,6 +18,8 @@ export const API_PATHS = {
     UPDATE_INFO: '/auth/update',
     UPDATE_PASSWORD: '/auth/change-password',
     FORGOT_PASSWORD: '/auth/forgot-password',
+    SETTINGS: '/auth/settings',
+    DELETE_ACCOUNT: '/auth/delete-account',
     SUBMIT_FEEDBACK: '/feedback'
   },
   // 场馆相关

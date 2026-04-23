@@ -93,6 +93,13 @@
               <text class="label">订单金额</text>
               <text class="value">¥{{ amountText }}</text>
             </view>
+            <view class="row clickable" @tap="openFeeDetail">
+              <text class="label">费用明细</text>
+              <view class="inline-action">
+                <text class="value">查看详情</text>
+                <uni-icons type="right" size="16" color="#94a3b8" />
+              </view>
+            </view>
             <view class="row total">
               <text class="label">应付金额</text>
               <text class="total-value">¥{{ amountText }}</text>
@@ -243,6 +250,19 @@ async function loadBooking() {
 
 function handleBack() {
   safeNavigateBack(returnUrl.value)
+}
+
+function openFeeDetail() {
+  if (!booking.value) return
+  const data = encodeURIComponent(JSON.stringify({
+    ...fallbackSummary.value,
+    bookingId: booking.value.id,
+    totalAmount: Number(booking.value.orderAmount || 0),
+    payableAmount: Number(booking.value.orderAmount || 0)
+  }))
+  uni.navigateTo({
+    url: `/pages/booking/fee-detail?bookingId=${booking.value.id}&data=${data}&returnUrl=${encodeURIComponent(returnUrl.value)}`
+  })
 }
 
 async function handlePayment() {
@@ -478,6 +498,10 @@ onLoad((options?: Record<string, string | undefined>) => {
   align-items: flex-end;
 }
 
+.row.clickable {
+  cursor: pointer;
+}
+
 .label,
 .payment-desc {
   color: #6b7280;
@@ -488,6 +512,12 @@ onLoad((options?: Record<string, string | undefined>) => {
   font-size: 26rpx;
   font-weight: 700;
   text-align: right;
+}
+
+.inline-action {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
 }
 
 .payment-item {

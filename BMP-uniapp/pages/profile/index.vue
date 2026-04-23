@@ -174,7 +174,7 @@ const quickMenus = [
   },
   {
     label: '设置中心',
-    desc: '安全、通知与偏好配置',
+    desc: '安全、通知与数据管理',
     iconType: 'gear',
     iconColor: '#5f5e5e',
     bgColor: 'rgba(95, 94, 94, 0.12)',
@@ -234,7 +234,7 @@ const menuItems = computed(() => [
     iconColor: '#0062a1',
     bgColor: 'rgba(0, 98, 161, 0.12)',
     value: '',
-    desc: '安全、通知、隐私和帮助设置',
+    desc: '安全、通知、数据管理和帮助设置',
     path: '/pages/settings/index'
   }
 ])
