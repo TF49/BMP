@@ -523,6 +523,16 @@ public class StringingServiceServiceImpl implements StringingServiceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processPayment(Long serviceId, String paymentMethod) {
+        return processPaymentInternal(serviceId, paymentMethod, null, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int processMemberPayment(Long serviceId, String paymentMethod, Long userId) {
+        return processPaymentInternal(serviceId, paymentMethod, userId, true);
+    }
+
+    private int processPaymentInternal(Long serviceId, String paymentMethod, Long userId, boolean memberPayment) {
         if (!"BALANCE".equals(paymentMethod)) {
             throw new BusinessException("业务订单仅支持余额支付");
         }
@@ -532,8 +542,19 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             throw new ResourceNotFoundException("穿线服务记录不存在");
         }
 
-        // 权限兜底：只有管理员，且场馆管理者仅限自己场馆
-        if (!SecurityUtils.isPresident()) {
+        if (memberPayment) {
+            if (userId == null) {
+                throw new BusinessException("未登录或Token无效");
+            }
+            Member currentMember = memberMapper.findByUserId(userId);
+            boolean isOwnerByUser = service.getUserId() != null && service.getUserId().equals(userId);
+            boolean isOwnerByMember = currentMember != null
+                && currentMember.getId() != null
+                && currentMember.getId().equals(service.getMemberId());
+            if (!isOwnerByUser && !isOwnerByMember) {
+                throw new BusinessException("权限不足，只能支付自己的穿线服务订单");
+            }
+        } else if (!SecurityUtils.isPresident()) {
             if (SecurityUtils.isVenueManager()) {
                 Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
                 if (currentVenueId == null || service.getVenueId() == null || !currentVenueId.equals(service.getVenueId())) {
@@ -585,12 +606,12 @@ public class StringingServiceServiceImpl implements StringingServiceService {
         int updated = stringingServiceMapper.update(service);
         if (updated > 0) {
             try {
-                Long userId = service.getUserId();
-                if (userId == null && service.getMemberId() != null) {
+                Long notifyUserId = service.getUserId();
+                if (notifyUserId == null && service.getMemberId() != null) {
                     Member m = memberMapper.findById(service.getMemberId());
-                    if (m != null && m.getUserId() != null) userId = m.getUserId();
+                    if (m != null && m.getUserId() != null) notifyUserId = m.getUserId();
                 }
-                webSocketPushService.pushOrderStatusToUser(userId, "stringingService", serviceId, 1, "等待穿线", "穿线服务");
+                webSocketPushService.pushOrderStatusToUser(notifyUserId, "stringingService", serviceId, 1, "等待穿线", "穿线服务");
                 webSocketPushService.pushDashboardRefresh();
             } catch (Exception e) {
                 org.slf4j.LoggerFactory.getLogger(StringingServiceServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());

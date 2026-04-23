@@ -26,6 +26,8 @@ import com.badminton.bmp.common.util.SecurityUtils;
  */
 @Service
 public class TournamentServiceImpl implements TournamentService {
+    private static final String FORBIDDEN_SCOPE_MESSAGE = "权限不足：只能操作自己场馆的数据";
+
     @Autowired
     private TournamentMapper tournamentMapper;
     @Autowired
@@ -57,11 +59,11 @@ public class TournamentServiceImpl implements TournamentService {
             }
             throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
         } else {
-            // 普通用户：仅允许查看报名中或进行中的赛事（status == 1 或 2）
-            if (tournament.getStatus() != null && (tournament.getStatus() == 1 || tournament.getStatus() == 2)) {
+            // 普通用户：仅允许查看报名中/进行中/已结束的赛事
+            if (tournament.getStatus() != null && tournament.getStatus() != 0) {
                 return tournament;
             }
-            throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
+            throw new org.springframework.security.access.AccessDeniedException("普通用户不可查看已取消的赛事");
         }
     }
 
@@ -89,14 +91,18 @@ public class TournamentServiceImpl implements TournamentService {
             size = 10;
         }
         int offset = (page - 1) * size;
+        Boolean excludeCancelled = null;
         if (SecurityUtils.isPresident()) {
-            return tournamentMapper.findAll(venueId, status, type, keyword, startTime, endTime, offset, size);
+            return tournamentMapper.findAll(venueId, status, excludeCancelled, type, keyword, startTime, endTime, offset, size);
         } else if (SecurityUtils.isVenueManager()) {
             Long vId = SecurityUtils.getCurrentUserVenueId();
-            return tournamentMapper.findAll(vId, status, type, keyword, startTime, endTime, offset, size);
+            return tournamentMapper.findAll(vId, status, excludeCancelled, type, keyword, startTime, endTime, offset, size);
         } else {
-            // 普通用户：使用传入参数（通常用于浏览）
-            return tournamentMapper.findAll(venueId, status, type, keyword, startTime, endTime, offset, size);
+            excludeCancelled = Boolean.TRUE;
+            if (status != null && status == 0) {
+                return java.util.Collections.emptyList();
+            }
+            return tournamentMapper.findAll(venueId, status, excludeCancelled, type, keyword, startTime, endTime, offset, size);
         }
     }
 
@@ -113,13 +119,18 @@ public class TournamentServiceImpl implements TournamentService {
     @Override
     public int count(Long venueId, Integer status, String type, String keyword,
                      LocalDateTime startTime, LocalDateTime endTime) {
+        Boolean excludeCancelled = null;
         if (SecurityUtils.isPresident()) {
-            return tournamentMapper.count(venueId, status, type, keyword, startTime, endTime);
+            return tournamentMapper.count(venueId, status, excludeCancelled, type, keyword, startTime, endTime);
         } else if (SecurityUtils.isVenueManager()) {
             Long vId = SecurityUtils.getCurrentUserVenueId();
-            return tournamentMapper.count(vId, status, type, keyword, startTime, endTime);
+            return tournamentMapper.count(vId, status, excludeCancelled, type, keyword, startTime, endTime);
         } else {
-            return tournamentMapper.count(venueId, status, type, keyword, startTime, endTime);
+            excludeCancelled = Boolean.TRUE;
+            if (status != null && status == 0) {
+                return 0;
+            }
+            return tournamentMapper.count(venueId, status, excludeCancelled, type, keyword, startTime, endTime);
         }
     }
 
@@ -134,6 +145,18 @@ public class TournamentServiceImpl implements TournamentService {
         // 验证场馆是否存在
         if (venueMapper.findById(tournament.getVenueId()) == null) {
             throw new ResourceNotFoundException("场馆不存在");
+        }
+
+        if (SecurityUtils.isVenueManager()) {
+            Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+            if (currentVenueId == null) {
+                throw new BusinessException("当前账号未绑定场馆，无法新增赛事");
+            }
+            if (!currentVenueId.equals(tournament.getVenueId())) {
+                throw new BusinessException(FORBIDDEN_SCOPE_MESSAGE);
+            }
+        } else if (!SecurityUtils.isPresident()) {
+            throw new BusinessException("权限不足：只有会长和场馆管理员可以新增赛事");
         }
         
         // 验证时间逻辑：报名结束时间应该早于比赛开始时间，比赛结束时间应该晚于比赛开始时间
@@ -258,7 +281,7 @@ public class TournamentServiceImpl implements TournamentService {
                 throw new BusinessException("当前账号未绑定场馆，无法删除赛事");
             }
             if (tournament.getVenueId() == null || !vId.equals(tournament.getVenueId())) {
-                throw new BusinessException("权限不足：只能删除自己场馆的赛事");
+                throw new BusinessException(FORBIDDEN_SCOPE_MESSAGE);
             }
         } else if (!SecurityUtils.isPresident()) {
             throw new BusinessException("权限不足：只有会长和场馆管理员可以删除赛事");
@@ -280,6 +303,18 @@ public class TournamentServiceImpl implements TournamentService {
         if (tournament == null) {
             throw new ResourceNotFoundException("赛事不存在");
         }
+
+        if (SecurityUtils.isVenueManager()) {
+            Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+            if (currentVenueId == null) {
+                throw new BusinessException("当前账号未绑定场馆，无法修改赛事状态");
+            }
+            if (tournament.getVenueId() == null || !currentVenueId.equals(tournament.getVenueId())) {
+                throw new BusinessException(FORBIDDEN_SCOPE_MESSAGE);
+            }
+        } else if (!SecurityUtils.isPresident()) {
+            throw new BusinessException("权限不足：只有会长和场馆管理员可以修改赛事状态");
+        }
         
         // 验证状态值是否有效（与定时任务、统计一致：仅 0～3）
         if (status == null || status < 0 || status > 3) {
@@ -296,12 +331,20 @@ public class TournamentServiceImpl implements TournamentService {
     @Override
     public Map<String, Object> getStatistics() {
         Map<String, Object> stats = new HashMap<>();
-        
-        // 获取总赛事数
-        stats.put("total", tournamentMapper.countAll());
-        
-        // 获取各状态的赛事数量
-        List<Map<String, Object>> statusCounts = tournamentMapper.countByStatus();
+        Long venueFilter = SecurityUtils.isPresident() ? null : SecurityUtils.getCurrentUserVenueId();
+
+        stats.put("total", tournamentMapper.count(venueFilter, null, null, null, null, null, null));
+
+        List<Map<String, Object>> statusCounts = new ArrayList<>();
+        for (int status = 0; status <= 3; status++) {
+            int count = tournamentMapper.count(venueFilter, status, null, null, null, null, null);
+            if (count > 0) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("status", status);
+                item.put("count", count);
+                statusCounts.add(item);
+            }
+        }
         
         // 初始化各状态数量（与定时任务、列表筛选一致：0已取消 1报名中 2进行中 3已结束）
         int cancelled = 0;  // 已取消（0）
@@ -341,8 +384,7 @@ public class TournamentServiceImpl implements TournamentService {
         stats.put("finished", finished);
 
         // 赛事带动效果：各赛事报名人数与收入（真实数据）
-        Long venueFilter = SecurityUtils.isPresident() ? null : SecurityUtils.getCurrentUserVenueId();
-        List<Tournament> tournamentList = tournamentMapper.findAll(venueFilter, null, null, null, null, null, 0, 20);
+        List<Tournament> tournamentList = tournamentMapper.findAll(venueFilter, null, null, null, null, null, null, 0, 20);
         List<Map<String, Object>> tournamentImpact = new ArrayList<>();
         if (tournamentList != null) {
             for (Tournament t : tournamentList) {

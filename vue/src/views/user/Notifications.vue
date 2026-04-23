@@ -94,7 +94,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import api from '@/api'
+import request from '@/utils/request'
+import { getInfo } from '@/api/login'
 
 interface Notification {
   id: number
@@ -135,14 +136,16 @@ const hasPublishPermission = computed(() => {
 const loadNotifications = async () => {
   loading.value = true
   try {
-    const response = await api.get('/api/notifications', {
+    const res: any = await request({
+      url: '/api/notifications',
+      method: 'get',
       params: {
         page: currentPage.value,
         size: pageSize.value
       }
     })
-    if (response.data.code === 200) {
-      const result = response.data.data
+    if (res.code === 200) {
+      const result = res.data || {}
       notificationList.value = result.data || []
       total.value = result.total || 0
     }
@@ -156,9 +159,9 @@ const loadNotifications = async () => {
 // 获取当前用户信息
 const loadCurrentUser = async () => {
   try {
-    const response = await api.get('/api/user/profile')
-    if (response.data.code === 200) {
-      currentUser.value = response.data.data
+    const res: any = await getInfo()
+    if (res.code === 200) {
+      currentUser.value = res.data || null
     }
   } catch (error) {
     console.log('加载用户信息失败')
@@ -213,24 +216,32 @@ const submitNotification = async () => {
     let response
     if (editingId.value) {
       // 编辑通知
-      response = await api.put(`/api/notifications/${editingId.value}`, {
-        title: notificationForm.value.title,
-        content: notificationForm.value.content
+      response = await request({
+        url: `/api/notifications/${editingId.value}`,
+        method: 'put',
+        data: {
+          title: notificationForm.value.title,
+          content: notificationForm.value.content
+        }
       })
     } else {
       // 发布新通知
-      response = await api.post('/api/notifications', {
-        title: notificationForm.value.title,
-        content: notificationForm.value.content
+      response = await request({
+        url: '/api/notifications',
+        method: 'post',
+        data: {
+          title: notificationForm.value.title,
+          content: notificationForm.value.content
+        }
       })
     }
 
-    if (response.data.code === 200) {
+    if (response.code === 200) {
       ElMessage.success(editingId.value ? '通知更新成功' : '通知发布成功')
       publishDialogVisible.value = false
       loadNotifications()
     } else {
-      ElMessage.error(response.data.message)
+      ElMessage.error(response.message)
     }
   } catch (error) {
     ElMessage.error(editingId.value ? '更新通知失败' : '发布通知失败')
@@ -247,12 +258,15 @@ const deleteNotification = (notification: Notification) => {
     type: 'warning'
   }).then(async () => {
     try {
-      const response = await api.delete(`/api/notifications/${notification.id}`)
-      if (response.data.code === 200) {
+      const response: any = await request({
+        url: `/api/notifications/${notification.id}`,
+        method: 'delete'
+      })
+      if (response.code === 200) {
         ElMessage.success('通知删除成功')
         loadNotifications()
       } else {
-        ElMessage.error(response.data.message)
+        ElMessage.error(response.message)
       }
     } catch (error) {
       ElMessage.error('删除通知失败')
@@ -267,9 +281,11 @@ const viewNotification = (notification: Notification) => {
 }
 
 // 格式化日期
-const formatDate = (dateString: string) => {
+const formatDate = (value: string | Notification, _column?: unknown, cellValue?: string) => {
+  const dateString = typeof value === 'string' ? value : cellValue
   if (!dateString) return '-'
   const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return '-'
   return date.toLocaleString('zh-CN')
 }
 

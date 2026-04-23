@@ -280,6 +280,14 @@
               </div>
               <div class="service-actions">
                 <el-button
+                  v-if="canPayService(service)"
+                  type="primary"
+                  size="small"
+                  @click="handlePayService(service)"
+                >
+                  支付
+                </el-button>
+                <el-button
                   v-if="canCancelService(service)"
                   type="warning"
                   size="small"
@@ -302,7 +310,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Location, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getVenueList } from '@/api/venue'
-import { getStringOptions, calculateStringingPrice, addStringingService, getStringingList, cancelStringing } from '@/api/stringing'
+import {
+  getStringOptions,
+  calculateStringingPrice,
+  addStringingService,
+  getStringingList,
+  cancelStringing,
+  processMemberStringingPayment
+} from '@/api/stringing'
 import { getCurrentMember } from '@/api/member'
 
 const activeTab = ref('apply')
@@ -318,6 +333,7 @@ const myServices = ref([])
 const filterStatus = ref(null)
 const submitting = ref(false)
 const currentMember = ref(null)
+const currentBalance = ref(0)
 
 const serviceForm = ref({
   venueId: null,
@@ -399,6 +415,12 @@ const canCancelService = (service) => {
   return status === 1 && paymentStatus !== 1 && paymentStatus !== 2
 }
 
+const canPayService = (service) => {
+  const status = Number(service?.status ?? -1)
+  const paymentStatus = Number(service?.paymentStatus ?? 0)
+  return status === 1 && paymentStatus === 0
+}
+
 const getStringingMethodText = (method) => {
   const map = { 'TWO_SECTION': '两节', 'FOUR_SECTION': '四节', 'AUTO': '视球拍而定' }
   return map[method] || method
@@ -432,9 +454,11 @@ const loadCurrentMemberInfo = async () => {
     const res = await getCurrentMember()
     if (res.code === 200) {
       currentMember.value = res.data || null
+      currentBalance.value = Number(res.data?.balance) || 0
     }
   } catch (e) {
     currentMember.value = null
+    currentBalance.value = 0
     console.error('加载当前会员失败:', e)
   }
 }
@@ -575,6 +599,32 @@ const handleCancelService = async (service) => {
       ElMessage.error(e?.message || '取消失败，请稍后重试')
     }
   }
+}
+
+const handlePayService = (service) => {
+  const amount = Number(service?.servicePrice) || 0
+  ElMessageBox.confirm(
+    `确认使用余额支付该穿线服务吗？\n服务金额：¥${formatCurrency(amount)}\n当前余额：¥${formatCurrency(currentBalance.value)}`,
+    '穿线服务支付确认',
+    {
+      type: 'warning',
+      confirmButtonText: '确认支付',
+      cancelButtonText: '稍后支付'
+    }
+  ).then(async () => {
+    try {
+      const res = await processMemberStringingPayment(service.id, 'BALANCE')
+      if (res.code === 200) {
+        ElMessage.success('支付成功')
+        await Promise.all([loadCurrentMemberInfo(), loadMyServices()])
+      } else {
+        ElMessage.error(res.message || '支付失败')
+      }
+    } catch (e) {
+      console.error('穿线服务支付失败:', e)
+      ElMessage.error(e.response?.data?.message || e.message || '支付失败，请稍后重试')
+    }
+  }).catch(() => {})
 }
 
 watch(activeTab, (newTab) => {

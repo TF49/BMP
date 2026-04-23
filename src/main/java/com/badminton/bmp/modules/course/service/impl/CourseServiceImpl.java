@@ -28,6 +28,8 @@ import com.badminton.bmp.common.util.SecurityUtils;
  */
 @Service
 public class CourseServiceImpl implements CourseService {
+    private static final String FORBIDDEN_SCOPE_MESSAGE = "权限不足：只能操作自己场馆的数据";
+
     @Autowired
     private CourseMapper courseMapper;
     @Autowired
@@ -68,11 +70,11 @@ public class CourseServiceImpl implements CourseService {
             }
             throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
         } else {
-            // 普通用户：仅允许查看正在报名/进行中的课程（status == 1 或 2）
-            if (course.getStatus() != null && (course.getStatus() == 1 || course.getStatus() == 2)) {
+            // 普通用户：仅允许查看报名中/进行中/已结束的课程
+            if (course.getStatus() != null && course.getStatus() != 0) {
                 return course;
             }
-            throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
+            throw new org.springframework.security.access.AccessDeniedException("普通用户不可查看已取消的课程");
         }
     }
 
@@ -96,12 +98,18 @@ public class CourseServiceImpl implements CourseService {
         }
         int offset = (page - 1) * size;
         Long venueFilter = null;
+        Boolean excludeCancelled = null;
         if (SecurityUtils.isPresident()) {
             venueFilter = null;
         } else if (SecurityUtils.isVenueManager()) {
             venueFilter = SecurityUtils.getCurrentUserVenueId();
+        } else {
+            excludeCancelled = Boolean.TRUE;
         }
-        return courseMapper.findAll(venueFilter, coachId, courtId, status, keyword, startTime, endTime, offset, size);
+        if (Boolean.TRUE.equals(excludeCancelled) && status != null && status == 0) {
+            return java.util.Collections.emptyList();
+        }
+        return courseMapper.findAll(venueFilter, coachId, courtId, status, excludeCancelled, keyword, startTime, endTime, offset, size);
     }
 
     /**
@@ -110,12 +118,18 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public int count(Long coachId, Long courtId, Integer status, String keyword, String startTime, String endTime) {
         Long venueFilter = null;
+        Boolean excludeCancelled = null;
         if (SecurityUtils.isPresident()) {
             venueFilter = null;
         } else if (SecurityUtils.isVenueManager()) {
             venueFilter = SecurityUtils.getCurrentUserVenueId();
+        } else {
+            excludeCancelled = Boolean.TRUE;
         }
-        return courseMapper.count(venueFilter, coachId, courtId, status, keyword, startTime, endTime);
+        if (Boolean.TRUE.equals(excludeCancelled) && status != null && status == 0) {
+            return 0;
+        }
+        return courseMapper.count(venueFilter, coachId, courtId, status, excludeCancelled, keyword, startTime, endTime);
     }
 
     /**
@@ -126,16 +140,40 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public int add(Course course) {
-        // 验证教练是否存在
-        if (coachMapper.findById(course.getCoachId()) == null) {
+        com.badminton.bmp.modules.coach.entity.Coach coach = coachMapper.findById(course.getCoachId());
+        if (coach == null) {
             throw new ResourceNotFoundException("教练不存在");
         }
-        
-        // 如果提供了场地ID，验证场地是否存在
-        if (course.getCourtId() != null && courtMapper.findById(course.getCourtId()) == null) {
-            throw new ResourceNotFoundException("场地不存在");
+
+        com.badminton.bmp.modules.court.entity.Court court = null;
+        if (course.getCourtId() != null) {
+            court = courtMapper.findById(course.getCourtId());
+            if (court == null) {
+                throw new ResourceNotFoundException("场地不存在");
+            }
         }
-        
+
+        Long coachVenueId = coach.getVenueId();
+        Long courtVenueId = court != null ? court.getVenueId() : null;
+        if (coachVenueId == null) {
+            throw new BusinessException("所选教练未绑定场馆");
+        }
+        if (court != null && courtVenueId != null && !coachVenueId.equals(courtVenueId)) {
+            throw new BusinessException("所选教练/场地不属于同一场馆");
+        }
+
+        if (SecurityUtils.isVenueManager()) {
+            Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+            if (currentVenueId == null) {
+                throw new BusinessException("当前账号未绑定场馆，无法新增课程");
+            }
+            if (!currentVenueId.equals(coachVenueId) || (courtVenueId != null && !currentVenueId.equals(courtVenueId))) {
+                throw new BusinessException(FORBIDDEN_SCOPE_MESSAGE);
+            }
+        } else if (!SecurityUtils.isPresident()) {
+            throw new BusinessException("权限不足：只有会长和场馆管理员可以新增课程");
+        }
+
         // 验证时间逻辑：结束时间应该晚于开始时间
         if (course.getStartTime() != null && course.getEndTime() != null) {
             if (course.getEndTime().isBefore(course.getStartTime()) || course.getEndTime().equals(course.getStartTime())) {
@@ -198,22 +236,46 @@ public class CourseServiceImpl implements CourseService {
                 }
             }
             if (!hasPermission) {
-                throw new BusinessException("权限不足：只能操作自己场馆的课程");
+                throw new BusinessException(FORBIDDEN_SCOPE_MESSAGE);
             }
         } else if (!SecurityUtils.isPresident()) {
             throw new BusinessException("权限不足：只有会长和场馆管理员可以更新课程");
         }
 
-        // 如果修改了教练ID，验证教练是否存在
-        if (course.getCoachId() != null && coachMapper.findById(course.getCoachId()) == null) {
+        com.badminton.bmp.modules.coach.entity.Coach effectiveCoach =
+                coachMapper.findById(course.getCoachId() != null ? course.getCoachId() : existing.getCoachId());
+        if (effectiveCoach == null) {
             throw new ResourceNotFoundException("教练不存在");
         }
-        
-        // 如果修改了场地ID，验证场地是否存在
-        if (course.getCourtId() != null && courtMapper.findById(course.getCourtId()) == null) {
-            throw new ResourceNotFoundException("场地不存在");
+
+        com.badminton.bmp.modules.court.entity.Court effectiveCourt = null;
+        Long effectiveCourtId = course.getCourtId() != null ? course.getCourtId() : existing.getCourtId();
+        if (effectiveCourtId != null) {
+            effectiveCourt = courtMapper.findById(effectiveCourtId);
+            if (effectiveCourt == null) {
+                throw new ResourceNotFoundException("场地不存在");
+            }
         }
-        
+
+        Long effectiveCoachVenueId = effectiveCoach.getVenueId();
+        Long effectiveCourtVenueId = effectiveCourt != null ? effectiveCourt.getVenueId() : null;
+        if (effectiveCoachVenueId == null) {
+            throw new BusinessException("所选教练未绑定场馆");
+        }
+        if (effectiveCourt != null && effectiveCourtVenueId != null && !effectiveCoachVenueId.equals(effectiveCourtVenueId)) {
+            throw new BusinessException("所选教练/场地不属于同一场馆");
+        }
+        if (SecurityUtils.isVenueManager()) {
+            Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+            if (currentVenueId == null) {
+                throw new BusinessException("当前账号未绑定场馆，无法更新课程");
+            }
+            if (!currentVenueId.equals(effectiveCoachVenueId)
+                    || (effectiveCourtVenueId != null && !currentVenueId.equals(effectiveCourtVenueId))) {
+                throw new BusinessException(FORBIDDEN_SCOPE_MESSAGE);
+            }
+        }
+
         // 验证时间逻辑：结束时间应该晚于开始时间
         java.time.LocalTime startTime = course.getStartTime() != null ? course.getStartTime() : existing.getStartTime();
         java.time.LocalTime endTime = course.getEndTime() != null ? course.getEndTime() : existing.getEndTime();
@@ -292,7 +354,7 @@ public class CourseServiceImpl implements CourseService {
                 }
             }
             if (!hasPermission) {
-                throw new RuntimeException("权限不足：只能删除自己场馆的课程");
+                throw new RuntimeException(FORBIDDEN_SCOPE_MESSAGE);
             }
         } else if (!SecurityUtils.isPresident()) {
             throw new BusinessException("权限不足：只有会长和场馆管理员可以删除课程");
@@ -332,7 +394,7 @@ public class CourseServiceImpl implements CourseService {
                 }
             }
             if (!hasPermission) {
-                throw new BusinessException("权限不足：只能修改自己场馆的课程状态");
+                throw new BusinessException(FORBIDDEN_SCOPE_MESSAGE);
             }
         } else if (!SecurityUtils.isPresident()) {
             throw new BusinessException("权限不足：只有会长和场馆管理员可以修改课程状态");

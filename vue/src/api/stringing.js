@@ -106,6 +106,15 @@ export function processStringingPayment(serviceId, paymentMethod) {
   })
 }
 
+// 普通用户支付本人穿线服务
+export function processMemberStringingPayment(serviceId, paymentMethod) {
+  return request({
+    url: '/api/stringing/member/payment',
+    method: 'post',
+    params: { serviceId, paymentMethod }
+  })
+}
+
 // 穿线服务退款
 export function processStringingRefund(serviceId) {
   return request({

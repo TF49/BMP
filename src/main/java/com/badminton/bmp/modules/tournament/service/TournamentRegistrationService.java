@@ -30,6 +30,15 @@ public interface TournamentRegistrationService {
     int processPayment(Long registrationId, String paymentMethod);
 
     /**
+     * 普通用户支付本人报名单（含余额扣减、消费记录）
+     * @param registrationId 报名ID
+     * @param paymentMethod 支付方式
+     * @param userId 当前用户ID
+     * @return 处理结果
+     */
+    int processMemberPayment(Long registrationId, String paymentMethod, Long userId);
+
+    /**
      * 处理退款（含余额回滚、消费记录冲正）
      * @param registrationId 报名ID
      * @return 处理结果

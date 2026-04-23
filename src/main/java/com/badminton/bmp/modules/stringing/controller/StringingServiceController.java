@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.badminton.bmp.common.util.SecurityUtils;
 
 @Tag(name = "穿线服务模块", description = "穿线服务 CRUD、统计")
 @RestController
@@ -397,6 +398,41 @@ public class StringingServiceController extends BaseController {
             } else {
                 return error("支付处理失败");
             }
+        } catch (RuntimeException e) {
+            return error(e.getMessage());
+        } catch (Exception e) {
+            return error("支付处理时发生错误：" + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "普通用户支付本人穿线服务")
+    @PostMapping("/member/payment")
+    @PreAuthorize("hasAnyRole('USER','MEMBER','PRESIDENT','VENUE_MANAGER')")
+    public Result<Object> processMemberPayment(@RequestParam("serviceId") Long serviceId,
+                                               @RequestParam("paymentMethod") String paymentMethod) {
+        try {
+            if (serviceId == null) {
+                return error("服务ID不能为空");
+            }
+            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
+                return error("支付方式不能为空");
+            }
+            if (!"BALANCE".equals(paymentMethod)) {
+                return error("业务订单仅支持余额支付");
+            }
+
+            if (isAdmin()) {
+                int result = stringingServiceService.processPayment(serviceId, paymentMethod);
+                return result > 0 ? success(null) : error("支付处理失败");
+            }
+
+            com.badminton.bmp.modules.system.entity.User current = SecurityUtils.getCurrentUser();
+            if (current == null || current.getId() == null) {
+                return error("未登录或Token无效");
+            }
+
+            int result = stringingServiceService.processMemberPayment(serviceId, paymentMethod, current.getId());
+            return result > 0 ? success(null) : error("支付处理失败");
         } catch (RuntimeException e) {
             return error(e.getMessage());
         } catch (Exception e) {

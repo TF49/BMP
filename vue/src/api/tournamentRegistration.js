@@ -89,6 +89,15 @@ export function processTournamentRegistrationPayment(registrationId, paymentMeth
   })
 }
 
+// 普通用户支付本人报名
+export function processMemberTournamentRegistrationPayment(registrationId, paymentMethod) {
+  return request({
+    url: '/api/tournament/registration/member/payment',
+    method: 'post',
+    params: { registrationId, paymentMethod }
+  })
+}
+
 // 处理退款
 export function processTournamentRegistrationRefund(registrationId) {
   return request({

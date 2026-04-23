@@ -53,9 +53,9 @@
                   <el-icon><Wallet /></el-icon>
                   微信
                 </el-radio-button>
-                <el-radio-button label="BALANCE">
+                <el-radio-button label="BANK">
                   <el-icon><Money /></el-icon>
-                  余额
+                  银行卡
                 </el-radio-button>
               </el-radio-group>
             </el-form-item>

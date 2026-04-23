@@ -121,6 +121,15 @@ public interface StringingServiceService {
     int processPayment(Long serviceId, String paymentMethod);
 
     /**
+     * 普通用户支付本人穿线服务单（含余额扣减、消费记录、财务流水）
+     * @param serviceId 穿线服务ID
+     * @param paymentMethod 支付方式（仅支持 BALANCE）
+     * @param userId 当前用户ID
+     * @return 影响的行数
+     */
+    int processMemberPayment(Long serviceId, String paymentMethod, Long userId);
+
+    /**
      * 处理退款（含余额回滚、消费记录冲正、财务流水）
      * @param serviceId 穿线服务ID
      * @return 影响的行数

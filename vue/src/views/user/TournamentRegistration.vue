@@ -201,13 +201,17 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Trophy, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getTournamentList } from '@/api/tournament'
-import { getTournamentRegistrationList, addTournamentRegistration, updateTournamentRegistrationStatus } from '@/api/tournamentRegistration'
+import { getCurrentMember } from '@/api/member'
+import {
+  getTournamentRegistrationList,
+  addTournamentRegistration,
+  updateTournamentRegistrationStatus,
+  processMemberTournamentRegistrationPayment
+} from '@/api/tournamentRegistration'
 
-const router = useRouter()
 const activeTab = ref('register')
 const step = ref(1) // 1-选择赛事, 2-填写信息, 3-确认报名
 
@@ -219,6 +223,7 @@ const tournamentList = ref([])
 const myRegistrations = ref([])
 const selectedTournament = ref(null)
 const submitting = ref(false)
+const currentBalance = ref(0)
 
 const registrationForm = ref({
   tournamentId: null
@@ -358,8 +363,41 @@ const loadMyRegistrations = async () => {
   }
 }
 
+const loadCurrentMemberInfo = async () => {
+  try {
+    const res = await getCurrentMember()
+    if (res.code === 200 && res.data) {
+      currentBalance.value = Number(res.data.balance) || 0
+    }
+  } catch (e) {
+    console.error('获取当前会员余额失败:', e)
+  }
+}
+
 const handlePay = (registration) => {
-  ElMessage.warning('当前网页端暂未打通赛事报名在线支付，请联系场馆管理员处理该订单')
+  const fee = Number(registration.registrationFee ?? registration.entryFee ?? 0)
+  ElMessageBox.confirm(
+    `确认使用余额支付该赛事报名吗？\n报名费用：¥${formatCurrency(fee)}\n当前余额：¥${formatCurrency(currentBalance.value)}`,
+    '赛事报名支付确认',
+    {
+      type: 'warning',
+      confirmButtonText: '确认支付',
+      cancelButtonText: '稍后支付'
+    }
+  ).then(async () => {
+    try {
+      const res = await processMemberTournamentRegistrationPayment(registration.id, 'BALANCE')
+      if (res.code === 200) {
+        ElMessage.success('支付成功')
+        await Promise.all([loadCurrentMemberInfo(), loadMyRegistrations(), loadTournaments()])
+      } else {
+        ElMessage.error(res.message || '支付失败')
+      }
+    } catch (e) {
+      console.error('赛事报名支付失败:', e)
+      ElMessage.error(e.response?.data?.message || e.message || '支付失败，请稍后重试')
+    }
+  }).catch(() => {})
 }
 
 const handleCancel = async (registration) => {
@@ -391,6 +429,7 @@ watch(activeTab, (newTab) => {
 
 onMounted(() => {
   loadTournaments()
+  loadCurrentMemberInfo()
   if (activeTab.value === 'my-registrations') {
     loadMyRegistrations()
   }

@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.badminton.bmp.common.util.SecurityUtils;
 
 @Tag(name = "赛事报名模块", description = "赛事报名 CRUD、支付、统计")
 @RestController
@@ -295,6 +296,41 @@ public class TournamentRegistrationController extends BaseController {
             } else {
                 return error("支付处理失败");
             }
+        } catch (RuntimeException e) {
+            return error(e.getMessage());
+        } catch (Exception e) {
+            return error("支付处理时发生错误：" + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "普通用户支付本人赛事报名")
+    @PostMapping("/member/payment")
+    @PreAuthorize("hasAnyRole('USER','MEMBER','PRESIDENT','VENUE_MANAGER')")
+    public Result<Object> processMemberPayment(@RequestParam("registrationId") Long registrationId,
+                                               @RequestParam("paymentMethod") String paymentMethod) {
+        try {
+            if (registrationId == null) {
+                return error("报名ID不能为空");
+            }
+            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
+                return error("支付方式不能为空");
+            }
+            if (!"BALANCE".equals(paymentMethod)) {
+                return error("业务订单仅支持余额支付");
+            }
+
+            if (isAdmin()) {
+                int result = tournamentRegistrationService.processPayment(registrationId, paymentMethod);
+                return result > 0 ? success(null) : error("支付处理失败");
+            }
+
+            com.badminton.bmp.modules.system.entity.User current = SecurityUtils.getCurrentUser();
+            if (current == null || current.getId() == null) {
+                return error("未登录或Token无效");
+            }
+
+            int result = tournamentRegistrationService.processMemberPayment(registrationId, paymentMethod, current.getId());
+            return result > 0 ? success(null) : error("支付处理失败");
         } catch (RuntimeException e) {
             return error(e.getMessage());
         } catch (Exception e) {

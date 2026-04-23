@@ -674,6 +674,16 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processPayment(Long registrationId, String paymentMethod) {
+        return processPaymentInternal(registrationId, paymentMethod, null, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int processMemberPayment(Long registrationId, String paymentMethod, Long userId) {
+        return processPaymentInternal(registrationId, paymentMethod, userId, true);
+    }
+
+    private int processPaymentInternal(Long registrationId, String paymentMethod, Long userId, boolean memberPayment) {
         if (!"BALANCE".equals(paymentMethod)) {
             throw new RuntimeException("业务订单仅支持余额支付");
         }
@@ -684,12 +694,23 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             throw new RuntimeException("报名记录不存在");
         }
 
-        // 权限兜底：只有管理员，且 VM 仅限自己场馆
-        if (!SecurityUtils.isPresident()) {
+        Tournament tournamentForPermission = tournamentMapper.findById(registration.getTournamentId());
+
+        if (memberPayment) {
+            if (userId == null) {
+                throw new RuntimeException("未登录或Token无效");
+            }
+            Member currentMember = memberMapper.findByUserId(userId);
+            if (currentMember == null) {
+                throw new RuntimeException("当前用户未关联会员，无法支付赛事报名");
+            }
+            if (!currentMember.getId().equals(registration.getMemberId())) {
+                throw new RuntimeException("权限不足，只能支付自己的赛事报名");
+            }
+        } else if (!SecurityUtils.isPresident()) {
             if (SecurityUtils.isVenueManager()) {
                 Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
-                Tournament tournament = tournamentMapper.findById(registration.getTournamentId());
-                if (currentVenueId == null || tournament == null || !currentVenueId.equals(tournament.getVenueId())) {
+                if (currentVenueId == null || tournamentForPermission == null || !currentVenueId.equals(tournamentForPermission.getVenueId())) {
                     throw new RuntimeException("权限不足，只能处理自己场馆的赛事报名支付");
                 }
             } else {
@@ -727,8 +748,7 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         );
 
         // 获取场馆ID用于财务记录
-        Tournament tournamentForFinance = tournamentMapper.findById(registration.getTournamentId());
-        Long venueIdForFinance = tournamentForFinance != null ? tournamentForFinance.getVenueId() : null;
+        Long venueIdForFinance = tournamentForPermission != null ? tournamentForPermission.getVenueId() : null;
 
         // 创建财务记录（收入）
         financeService.createFromBusiness(
@@ -749,10 +769,10 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         int updated = tournamentRegistrationMapper.update(registration);
         if (updated > 0) {
             try {
-                Long userId = null;
+                Long notifyUserId = null;
                 Member m = memberMapper.findById(registration.getMemberId());
-                if (m != null && m.getUserId() != null) userId = m.getUserId();
-                webSocketPushService.pushOrderStatusToUser(userId, "tournamentRegistration", registrationId, 2, "已支付", "赛事报名");
+                if (m != null && m.getUserId() != null) notifyUserId = m.getUserId();
+                webSocketPushService.pushOrderStatusToUser(notifyUserId, "tournamentRegistration", registrationId, 2, "已支付", "赛事报名");
                 webSocketPushService.pushDashboardRefresh();
             } catch (Exception e) {
                 org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
