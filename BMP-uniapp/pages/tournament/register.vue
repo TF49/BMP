@@ -251,7 +251,7 @@ const detail = computed<TournamentRegisterVm | null>(() => {
     id: tournament.value.id,
     name: tournament.value.tournamentName || '赛事报名',
     dateRange: formatDateRange(tournament.value.tournamentStart || tournament.value.startDate, tournament.value.tournamentEnd),
-    location: tournament.value.venueName || tournament.value.location || '奥体中心羽毛球馆',
+    location: tournament.value.venueName || tournament.value.location || '场馆待补充',
     feeText: formatMoney(Number(tournament.value.entryFee || 0))
   }
 })
@@ -307,9 +307,10 @@ function toggleAgreement() {
 }
 
 function openRule(type: 'rule' | 'disclaimer') {
-  uni.showToast({
-    title: type === 'rule' ? '竞赛规程将于后续接入' : '免责声明将于后续接入',
-    icon: 'none'
+  uni.showModal({
+    title: type === 'rule' ? '竞赛规程' : '参赛免责声明',
+    content: '当前页面未提供独立详情页，请以赛事详情页、报名页当前说明和赛事主办方最新通知为准。',
+    showCancel: false
   })
 }
 

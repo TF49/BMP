@@ -63,19 +63,19 @@
             <view class="stat-card stat-orange">
               <view class="stat-head">
                 <uni-icons type="bars" size="18" color="#a33e00" />
-                <text>最近30天</text>
+                <text>器材类型</text>
               </view>
-              <text class="stat-value">{{ detail.rentCount }}</text>
-              <text class="stat-label">累计租借</text>
+              <text class="stat-value">{{ detail.typeText }}</text>
+              <text class="stat-label">当前真实分类</text>
             </view>
 
             <view class="stat-card stat-blue">
               <view class="stat-head">
                 <uni-icons type="clock-filled" size="18" color="#0062a1" />
-                <text>平均时长</text>
+                <text>所属场馆</text>
               </view>
-              <text class="stat-value">{{ detail.avgDuration }}</text>
-              <text class="stat-label">每次租借</text>
+              <text class="stat-value">{{ detail.venueText }}</text>
+              <text class="stat-label">按真实资料展示</text>
             </view>
           </view>
 
@@ -83,14 +83,14 @@
             <text class="equipment-name">{{ detail.name }}</text>
             <view class="badge-row">
               <text class="small-badge">品牌: {{ detail.brand }}</text>
-              <text class="small-badge accent">系列: {{ detail.series }}</text>
+              <text class="small-badge accent">型号: {{ detail.modelText }}</text>
             </view>
           </view>
 
           <view class="price-card">
             <view>
-              <text class="price-caption">市场估值</text>
-              <text class="market-price">¥{{ detail.marketPrice }}</text>
+              <text class="price-caption">资产价格</text>
+              <text class="market-price">¥{{ detail.assetPrice }}</text>
             </view>
             <view class="rent-price-box">
               <text class="price-caption">租借价格</text>
@@ -126,34 +126,13 @@
               <text>可租借数量</text>
               <text>总资产池</text>
             </view>
-
-            <view class="inventory-split">
-              <view>
-                <text class="split-label">维护中</text>
-                <text class="split-value">{{ detail.maintainingText }}</text>
-              </view>
-              <view>
-                <text class="split-label">损坏 / 丢失</text>
-                <text class="split-value">{{ detail.damageText }}</text>
-              </view>
-            </view>
           </view>
 
           <view class="action-block">
             <view class="primary-btn" :class="{ disabled: !detail.canRent }" @tap="handleRent">
               <text>{{ detail.canRent ? '立即租借' : '当前不可租借' }}</text>
             </view>
-
-            <view class="secondary-grid">
-              <view class="secondary-btn" @tap="toggleFavorite">
-                <uni-icons :type="isFavorite ? 'heart-filled' : 'heart'" size="20" color="#0062a1" />
-                <text>{{ isFavorite ? '已收藏' : '收藏' }}</text>
-              </view>
-              <view class="secondary-btn danger-lite" @tap="handleShare">
-                <uni-icons type="redo" size="20" color="#ba1a1a" />
-                <text>分享</text>
-              </view>
-            </view>
+            <text class="action-note">当前页面仅支持查看器材详情与发起真实租借，不再保留收藏、分享等未落地动作。</text>
           </view>
         </template>
       </view>
@@ -175,19 +154,17 @@ type EquipmentDetailVm = {
   id: number
   name: string
   brand: string
-  series: string
+  modelText: string
+  typeText: string
+  venueText: string
   levelTag: string
   heroImage: string
   gallery: string[]
-  rentCount: string
-  avgDuration: string
-  marketPrice: string
+  assetPrice: string
   rentalPrice: string
   availableQuantity: number
   totalQuantity: number
   stockPercent: number
-  maintainingText: string
-  damageText: string
   inStock: boolean
   canRent: boolean
 }
@@ -201,7 +178,6 @@ const loading = ref(true)
 const errorText = ref('')
 const equipmentId = ref(0)
 const equipment = ref<EquipmentItem | null>(null)
-const isFavorite = ref(false)
 const selectedImageIndex = ref(0)
 
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
@@ -213,10 +189,14 @@ function formatMoney(value: number) {
   })
 }
 
-function deriveSeries(name: string, model?: string) {
-  const source = `${name} ${model || ''}`.trim()
-  const match = source.match(/(Astrox|Nanoflare|Arcsaber|Voltric|Duora)/i)
-  return match ? match[1].toUpperCase() : 'PRO'
+function resolveTypeLabel(type?: string) {
+  const map: Record<string, string> = {
+    RACKET: '球拍',
+    SHUTTLE: '羽毛球',
+    STRING: '球线',
+    OTHER: '其他器材'
+  }
+  return map[String(type || '').toUpperCase()] || type || '待补充'
 }
 
 function buildGallery(item: EquipmentItem) {
@@ -237,29 +217,24 @@ const detail = computed<EquipmentDetailVm | null>(() => {
   const totalQuantity = Math.max(0, Number(equipment.value.totalQuantity || equipment.value.quantity || 0))
   const availableQuantity = Math.max(0, Number(equipment.value.availableQuantity || equipment.value.quantity || 0))
   const stockPercent = totalQuantity > 0 ? Math.min(100, Math.round((availableQuantity / totalQuantity) * 100)) : 0
-  const missing = Math.max(0, totalQuantity - availableQuantity)
-  const maintaining = Math.min(3, missing)
-  const damaged = Math.max(0, missing - maintaining)
   const rentalPriceNum = Number(equipment.value.rentalPrice || equipment.value.price || 0)
-  const marketPriceNum = Number(equipment.value.price || equipment.value.rentalPrice || 0) * 3.5
+  const assetPriceNum = Number(equipment.value.price || equipment.value.rentalPrice || 0)
 
   return {
     id: equipment.value.id,
     name: equipment.value.equipmentName || '器材详情',
-    brand: (equipment.value.brand || 'YONEX').toUpperCase(),
-    series: deriveSeries(equipment.value.equipmentName || '', equipment.value.model),
-    levelTag: rentalPriceNum >= 40 ? '专业级' : '高性能',
+    brand: (equipment.value.brand || '待补充').toUpperCase(),
+    modelText: equipment.value.model?.trim() || '待补充',
+    typeText: resolveTypeLabel(equipment.value.equipmentType),
+    venueText: equipment.value.venueName?.trim() || '待补充',
+    levelTag: resolveTypeLabel(equipment.value.equipmentType),
     heroImage: currentHero,
     gallery,
-    rentCount: String(Math.max(12, totalQuantity * 7 + availableQuantity)),
-    avgDuration: `${Math.max(1.5, Math.min(4.8, rentalPriceNum / 18)).toFixed(1)}h`,
-    marketPrice: formatMoney(marketPriceNum),
+    assetPrice: formatMoney(assetPriceNum),
     rentalPrice: formatMoney(rentalPriceNum),
     availableQuantity,
     totalQuantity,
     stockPercent,
-    maintainingText: `${maintaining} Units`,
-    damageText: `${damaged} Units`,
     inStock: availableQuantity > 0,
     canRent: availableQuantity > 0 && rentalPriceNum > 0
   }
@@ -312,22 +287,6 @@ function handleRent() {
   }
   uni.navigateTo({
     url: `/pages/equipment/rental?id=${detail.value.id}&quantity=1`
-  })
-}
-
-function toggleFavorite() {
-  isFavorite.value = !isFavorite.value
-  uni.showToast({
-    title: isFavorite.value ? '已加入收藏' : '已取消收藏',
-    icon: 'none'
-  })
-}
-
-function handleShare() {
-  if (!detail.value) return
-  uni.showToast({
-    title: `已准备分享 ${detail.value.name}`,
-    icon: 'none'
   })
 }
 
@@ -730,30 +689,6 @@ onPullDownRefresh(() => {
   font-weight: 700;
 }
 
-.inventory-split {
-  margin-top: 28rpx;
-  padding-top: 24rpx;
-  border-top: 2rpx solid rgba(227, 191, 177, 0.3);
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20rpx;
-}
-
-.split-label {
-  display: block;
-  font-size: 18rpx;
-  color: #5f5e5e;
-  font-weight: 800;
-}
-
-.split-value {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 36rpx;
-  font-weight: 900;
-  color: #111111;
-}
-
 .action-block {
   margin-top: 28rpx;
 }
@@ -778,29 +713,12 @@ onPullDownRefresh(() => {
   box-shadow: none;
 }
 
-.secondary-grid {
+.action-note {
+  display: block;
   margin-top: 16rpx;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14rpx;
-}
-
-.secondary-btn {
-  height: 92rpx;
-  border-radius: 22rpx;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  color: #111111;
-  font-size: 30rpx;
-  font-weight: 900;
-  box-shadow: 0 8rpx 20rpx rgba(26, 28, 28, 0.04);
-}
-
-.danger-lite {
-  color: #ba1a1a;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #6b7280;
 }
 
 .state-card {

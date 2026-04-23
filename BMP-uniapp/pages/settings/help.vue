@@ -20,9 +20,9 @@
 
             <view class="hero-copy">
               <text class="hero-eyebrow">SUPPORT CENTER</text>
-              <text class="hero-title">把会长端帮助入口升级到同一套 Stitch 主题里</text>
+              <text class="hero-title">把帮助说明、联系方式和反馈收纳到一个地方</text>
               <text class="hero-subtitle">
-                这个页面继续保留给会长端帮助入口使用，承接常见说明、联系方式和反馈提交，不影响用户端独立帮助页。
+                当前页面仅保留用户端已真实开放的帮助能力。你可以先查看常见问题，也可以直接提交反馈或联系客服。
               </text>
             </view>
 
@@ -42,19 +42,19 @@
             <view class="panel-head">
               <view>
                 <text class="panel-title">快捷入口</text>
-                <text class="panel-subtitle">遇到问题时先给你一条最快的处理路径。</text>
+                <text class="panel-subtitle">遇到问题时优先给你最短的处理路径。</text>
               </view>
               <text class="panel-tag">QUICK ACTIONS</text>
             </view>
 
             <view class="quick-grid">
-              <view class="quick-card" @tap="handleFeedback">
-                <text class="quick-title">意见反馈</text>
-                <text class="quick-desc">直接填写建议、异常和体验问题</text>
+              <view class="quick-card" @tap="handleTopic('预约相关')">
+                <text class="quick-title">预约帮助</text>
+                <text class="quick-desc">快速查看约场、取消和时间规则说明</text>
               </view>
-              <view class="quick-card" @tap="handleReport">
-                <text class="quick-title">问题举报</text>
-                <text class="quick-desc">针对违规内容或异常情况发起说明</text>
+              <view class="quick-card" @tap="handleFeedback">
+                <text class="quick-title">提交反馈</text>
+                <text class="quick-desc">直接反馈建议、异常和体验问题</text>
               </view>
               <view class="quick-card" @tap="handleCustomerService">
                 <text class="quick-title">在线客服</text>
@@ -104,7 +104,7 @@
             </view>
 
             <view class="topic-list">
-              <view v-for="topic in topics" :key="topic.key" class="topic-row" @tap="handleCategory(topic.label)">
+              <view v-for="topic in topics" :key="topic.key" class="topic-row" @tap="handleTopic(topic.label)">
                 <view class="topic-copy">
                   <text class="topic-title">{{ topic.label }}</text>
                   <text class="topic-desc">{{ topic.description }}</text>
@@ -118,22 +118,12 @@
             <view class="panel-head">
               <view>
                 <text class="panel-title">提交反馈</text>
-                <text class="panel-subtitle">把问题、建议或异常情况集中发给我们。</text>
+                <text class="panel-subtitle">把问题、建议或异常情况直接发给我们。</text>
               </view>
               <text class="panel-tag">FEEDBACK</text>
             </view>
 
             <view class="form-stack">
-              <view class="field-card">
-                <text class="field-label">反馈类型</text>
-                <picker mode="selector" :range="feedbackTypes" @change="onTypeChange">
-                  <view class="picker-value">
-                    <text>{{ selectedType || '请选择反馈类型' }}</text>
-                    <uni-icons type="right" size="14" color="#8e7164" />
-                  </view>
-                </picker>
-              </view>
-
               <view class="field-card">
                 <text class="field-label">问题描述</text>
                 <textarea
@@ -249,8 +239,6 @@ const topics = [
   }
 ]
 
-const feedbackTypes = ['功能建议', '问题反馈', 'Bug 报告', '使用疑问', '其他']
-const selectedType = ref('')
 const feedbackContent = ref('')
 const contactInfo = ref('')
 const submitting = ref(false)
@@ -258,71 +246,6 @@ const scrollTarget = ref('')
 
 function toggleFaq(index: number) {
   faqs[index].expanded = !faqs[index].expanded
-}
-
-function onTypeChange(e: any) {
-  selectedType.value = feedbackTypes[e.detail.value]
-}
-
-async function handleSubmitFeedback() {
-  if (!selectedType.value) {
-    uni.showToast({
-      title: '请选择反馈类型',
-      icon: 'none'
-    })
-    return
-  }
-
-  if (!feedbackContent.value.trim()) {
-    uni.showToast({
-      title: '请输入问题描述',
-      icon: 'none'
-    })
-    return
-  }
-
-  try {
-    submitting.value = true
-    uni.showLoading({
-      title: '提交中...'
-    })
-    const content = `${selectedType.value}：${feedbackContent.value.trim()}`
-    await submitFeedback({
-      content,
-      contact: contactInfo.value.trim() || undefined
-    })
-    uni.hideLoading()
-    uni.showToast({
-      title: '反馈提交成功',
-      icon: 'success'
-    })
-    selectedType.value = ''
-    feedbackContent.value = ''
-    contactInfo.value = ''
-  } catch (error) {
-    console.error('提交反馈失败:', error)
-    uni.hideLoading()
-    uni.showToast({
-      title: error instanceof Error ? error.message : '提交失败，请稍后重试',
-      icon: 'none'
-    })
-  } finally {
-    submitting.value = false
-  }
-}
-
-function handleFeedback() {
-  scrollTarget.value = 'feedback-form'
-  setTimeout(() => {
-    scrollTarget.value = ''
-  }, 350)
-}
-
-function handleReport() {
-  uni.showToast({
-    title: '问题举报入口开发中',
-    icon: 'none'
-  })
 }
 
 function handleCustomerService() {
@@ -345,13 +268,6 @@ function handleCall() {
   })
 }
 
-function handleCategory(label: string) {
-  uni.showToast({
-    title: `${label}可先查看常见问题`,
-    icon: 'none'
-  })
-}
-
 function handleCopyEmail() {
   uni.setClipboardData({
     data: 'support@bmp.com',
@@ -362,6 +278,60 @@ function handleCopyEmail() {
       })
     }
   })
+}
+
+function handleTopic(label: string) {
+  const content = `${label}：`
+  feedbackContent.value = feedbackContent.value.trim() ? feedbackContent.value : content
+  uni.showToast({
+    title: `${label}可先查看常见问题或继续填写反馈`,
+    icon: 'none'
+  })
+}
+
+function handleFeedback() {
+  scrollTarget.value = 'feedback-form'
+  setTimeout(() => {
+    scrollTarget.value = ''
+  }, 350)
+}
+
+async function handleSubmitFeedback() {
+  const content = feedbackContent.value.trim()
+  if (!content) {
+    uni.showToast({
+      title: '请输入问题描述',
+      icon: 'none'
+    })
+    return
+  }
+
+  try {
+    submitting.value = true
+    uni.showLoading({
+      title: '提交中...'
+    })
+    await submitFeedback({
+      content,
+      contact: contactInfo.value.trim() || undefined
+    })
+    uni.hideLoading()
+    uni.showToast({
+      title: '反馈提交成功',
+      icon: 'success'
+    })
+    feedbackContent.value = ''
+    contactInfo.value = ''
+  } catch (error) {
+    console.error('提交反馈失败:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '提交失败，请稍后重试',
+      icon: 'none'
+    })
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handleBack() {
@@ -442,105 +412,146 @@ function handleBack() {
 .hero-brand-text,
 .hero-side-label,
 .hero-eyebrow,
-.metric-label,
 .panel-tag,
-.submit-top {
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+.metric-label {
+  letter-spacing: 0.18em;
 }
 
-.hero-brand-text,
-.hero-side-label,
-.hero-eyebrow,
-.panel-tag,
-.submit-top {
+.hero-brand-text {
   font-size: 20rpx;
-  color: #a33e00;
+  color: #9a3412;
+  font-weight: 800;
 }
 
-.hero-copy,
-.hero-grid,
-.panel-card {
+.hero-side-label {
+  font-size: 20rpx;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.hero-copy {
   position: relative;
   z-index: 1;
 }
 
+.hero-eyebrow {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 18rpx;
+  color: #c2410c;
+  font-weight: 800;
+}
+
 .hero-title {
   display: block;
-  margin-top: 18rpx;
-  font-size: 44rpx;
-  line-height: 1.2;
-  color: #111827;
-  font-weight: 700;
+  font-size: 54rpx;
+  line-height: 1.16;
+  color: #0f172a;
+  font-weight: 800;
 }
 
 .hero-subtitle {
   display: block;
   margin-top: 18rpx;
-  font-size: 26rpx;
-  line-height: 1.7;
-  color: #475569;
+  font-size: 24rpx;
+  line-height: 1.65;
+  color: #64748b;
 }
 
 .hero-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 16rpx;
-  margin-top: 28rpx;
+  margin-top: 24rpx;
 }
 
-.hero-metric {
-  padding: 24rpx;
+.hero-metric,
+.quick-card {
+  padding: 20rpx;
   border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1rpx solid rgba(251, 146, 60, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+  border: 1rpx solid rgba(251, 146, 60, 0.16);
+  box-sizing: border-box;
 }
 
 .metric-label {
   display: block;
+  margin-bottom: 12rpx;
   font-size: 18rpx;
   color: #c2410c;
+  font-weight: 800;
 }
 
 .metric-value {
   display: block;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #1f2937;
-  font-weight: 600;
-  line-height: 1.5;
+  font-size: 26rpx;
+  color: #0f172a;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .panel-card {
   margin-top: 24rpx;
-  padding: 30rpx;
-}
-
-.panel-head {
-  align-items: flex-start;
-  gap: 20rpx;
+  padding: 28rpx;
 }
 
 .panel-title {
   display: block;
-  font-size: 34rpx;
-  color: #111827;
-  font-weight: 700;
+  font-size: 32rpx;
+  color: #0f172a;
+  font-weight: 800;
 }
 
 .panel-subtitle {
   display: block;
-  margin-top: 12rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
   color: #64748b;
+}
+
+.panel-tag {
+  font-size: 18rpx;
+  color: #94a3b8;
+  font-weight: 700;
 }
 
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 16rpx;
-  margin-top: 28rpx;
+  margin-top: 22rpx;
+}
+
+.quick-title,
+.topic-title,
+.field-label,
+.contact-label {
+  display: block;
+  font-size: 28rpx;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.quick-desc,
+.faq-answer-text,
+.topic-desc,
+.field-tip,
+.contact-value {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+.faq-list,
+.topic-list,
+.contact-list,
+.form-stack {
+  margin-top: 20rpx;
 }
 
 .quick-card,
@@ -553,32 +564,6 @@ function handleBack() {
   border: 1rpx solid rgba(255, 102, 0, 0.08);
 }
 
-.quick-card {
-  min-height: 156rpx;
-  padding: 24rpx;
-}
-
-.quick-title,
-.topic-title,
-.field-label,
-.contact-label {
-  display: block;
-  font-size: 28rpx;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.quick-desc,
-.topic-desc,
-.field-tip,
-.contact-value {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 23rpx;
-  line-height: 1.6;
-  color: #64748b;
-}
-
 .faq-list,
 .topic-list,
 .contact-list,
@@ -586,7 +571,6 @@ function handleBack() {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-  margin-top: 28rpx;
 }
 
 .faq-item,
@@ -596,22 +580,28 @@ function handleBack() {
   padding: 24rpx;
 }
 
-.faq-head {
-  gap: 18rpx;
+.contact-list {
+  margin-top: 22rpx;
+}
+
+.faq-item:last-child,
+.topic-row:last-child,
+.contact-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .faq-question {
   flex: 1;
-  font-size: 28rpx;
-  line-height: 1.6;
-  color: #1f2937;
-  font-weight: 600;
+  font-size: 26rpx;
+  color: #0f172a;
+  font-weight: 800;
 }
 
 .faq-toggle {
-  font-size: 30rpx;
+  font-size: 28rpx;
   color: #94a3b8;
-  transition: transform 0.24s ease;
+  transition: transform 0.2s;
 }
 
 .faq-toggle.expanded {
@@ -619,22 +609,7 @@ function handleBack() {
 }
 
 .faq-answer {
-  margin-top: 18rpx;
-  padding-top: 18rpx;
-  border-top: 1rpx solid rgba(255, 102, 0, 0.08);
-}
-
-.faq-answer-text {
-  font-size: 24rpx;
-  line-height: 1.8;
-  color: #64748b;
-}
-
-.topic-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
+  padding-top: 14rpx;
 }
 
 .topic-copy {
@@ -683,6 +658,10 @@ function handleBack() {
   border: none;
 }
 
+.submit-btn[disabled] {
+  opacity: 0.7;
+}
+
 .submit-bottom {
   font-size: 30rpx;
   color: #ffffff;
@@ -692,22 +671,13 @@ function handleBack() {
 .submit-top {
   color: rgba(255, 255, 255, 0.88);
   font-size: 20rpx;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 
 .contact-value {
   margin-top: 0;
-  color: #a33e00;
+  color: #c2410c;
   text-align: right;
-}
-
-@media screen and (max-width: 375px) {
-  .hero-title {
-    font-size: 38rpx;
-  }
-
-  .quick-grid,
-  .hero-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

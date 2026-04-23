@@ -98,16 +98,8 @@
 
             <view class="price-list">
               <view class="price-row">
-                <text class="price-key">课程原价</text>
-                <text class="price-val">¥ {{ detail.originalPrice }}</text>
-              </view>
-              <view class="price-row">
-                <text class="price-key">{{ detail.discountLabel }}</text>
-                <text class="price-val discount">- ¥ {{ detail.discountAmount }}</text>
-              </view>
-              <view class="price-row">
-                <text class="price-key">装备租赁费</text>
-                <text class="price-val">¥ 0.00</text>
+                <text class="price-key">课程订单金额</text>
+                <text class="price-val">¥ {{ detail.orderAmount }}</text>
               </view>
             </view>
 
@@ -115,6 +107,7 @@
               <text class="total-key">实付款</text>
               <text class="total-val">¥ {{ detail.payableAmount }}</text>
             </view>
+            <text class="amount-note">{{ detail.amountNote }}</text>
           </view>
         </template>
       </view>
@@ -152,10 +145,9 @@ type CourseBookingVm = {
   courtText: string
   studentName: string
   contactNumber: string
-  originalPrice: string
-  discountLabel: string
-  discountAmount: string
+  orderAmount: string
   payableAmount: string
+  amountNote: string
 }
 
 const userStore = useUserStore()
@@ -208,20 +200,9 @@ function resolvePhone() {
   return userStore.userInfo?.phone || '未绑定手机号'
 }
 
-function resolveDiscountRate() {
-  return 0.8
-}
-
-const discountAmountValue = computed(() => {
-  if (!course.value) return 0
-  const origin = Number(course.value.coursePrice || 0)
-  return Number((origin * (1 - resolveDiscountRate())).toFixed(2))
-})
-
 const payableValue = computed(() => {
   if (!course.value) return 0
-  const origin = Number(course.value.coursePrice || 0)
-  return Number((origin - discountAmountValue.value).toFixed(2))
+  return Number(course.value.coursePrice || 0)
 })
 
 const canSubmit = computed(() => {
@@ -233,24 +214,26 @@ const detail = computed<CourseBookingVm | null>(() => {
   if (!course.value) return null
 
   const durationText = Number(course.value.courseDuration || 0) > 0 ? `${course.value.courseDuration}分钟` : '时长待定'
-  const venueText = course.value.venueName || '奥体中心羽毛球馆'
-  const courtText = course.value.courtName || course.value.location || '3号VIP场地'
-  const coachRole = course.value.coachInfo?.trim() || '国家一级运动员'
+  const venueText = course.value.venueName?.trim() || '待补充'
+  const courtText = course.value.courtName?.trim() || course.value.location?.trim() || '待补充'
+  const coachName = course.value.coachName?.trim() || ''
+  const coachRole = course.value.coachInfo?.trim() || ''
+  const coachText = coachName && coachRole ? `${coachName} (${coachRole})` : coachName || coachRole || '待补充'
+  const orderAmount = formatMoney(Number(course.value.coursePrice || 0))
 
   return {
     id: course.value.id,
     name: course.value.courseName || '课程预约',
-    coachText: `${course.value.coachName || '待定教练'} (${coachRole})`,
+    coachText,
     dateText: formatDate(course.value.courseDate),
     timeText: `${normalizeTime(course.value.startTime)} - ${normalizeTime(course.value.endTime)} (${durationText})`,
     venueText,
     courtText,
     studentName: resolveStudentName(),
     contactNumber: resolvePhone(),
-    originalPrice: formatMoney(Number(course.value.coursePrice || 0)),
-    discountLabel: 'VIP 会员折扣 (8折)',
-    discountAmount: formatMoney(discountAmountValue.value),
-    payableAmount: formatMoney(payableValue.value)
+    orderAmount,
+    payableAmount: formatMoney(payableValue.value),
+    amountNote: '当前页面仅展示课程订单真实金额，未接入会员折扣拆分时不再补静态优惠。'
   }
 })
 
@@ -636,10 +619,6 @@ onPullDownRefresh(() => {
   color: #111111;
 }
 
-.price-val.discount {
-  color: #a33e00;
-}
-
 .total-row {
   margin-top: 10rpx;
   padding-top: 22rpx;
@@ -662,6 +641,14 @@ onPullDownRefresh(() => {
   font-weight: 900;
   letter-spacing: -2rpx;
   color: #a33e00;
+}
+
+.amount-note {
+  display: block;
+  margin-top: 18rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #6b7280;
 }
 
 .bottom-bar {

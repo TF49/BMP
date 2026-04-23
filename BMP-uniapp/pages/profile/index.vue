@@ -281,10 +281,6 @@ const handleOpenMember = () => {
 }
 
 const handleMenuClick = (path: string) => {
-  if (!path) {
-    uni.showToast({ title: '功能开发中', icon: 'none' })
-    return
-  }
   uni.navigateTo({ url: path })
 }
 

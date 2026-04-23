@@ -182,15 +182,8 @@
           </view>
           <view class="bento-coupon bg-primary-dark rounded-3xl p-8 relative overflow-hidden min-h-240 flex flex-col justify-end">
             <uni-icons type="cart" size="72" color="rgba(255,255,255,0.2)" class="coupon-deco-icon" />
-            <text class="text-white text-2xl font-black italic tracking-tighter mb-2 block">报名优惠券</text>
-            <text class="text-white-80 font-medium mb-4 text-sm block">新用户首赛立减 ¥30.00</text>
-            <button
-              class="coupon-btn w-fit px-6 py-2 bg-white text-primary rounded-xl font-black italic text-sm border-none"
-              hover-class="opacity-95"
-              @tap.stop="claimCoupon"
-            >
-              立即领券
-            </button>
+            <text class="text-white text-2xl font-black italic tracking-tighter mb-2 block">活动说明</text>
+            <text class="text-white-80 font-medium mb-4 text-sm block">如后续开放赛事优惠活动，会在这里展示真实规则与可领取入口。</text>
           </view>
         </view>
       </view>
@@ -342,7 +335,7 @@ const heroSubtitle = computed(() => {
   if (p) return p
   const d = (featured.value?.description || '').trim()
   if (d) return d.slice(0, 80) + (d.length > 80 ? '…' : '')
-  return '挑战巅峰，见证传奇。最高组别冠军奖金高达 50,000 元。'
+  return '当前仅展示后端返回的真实赛事信息，详情以赛事页实际公布内容为准。'
 })
 const showHeroCountdown = computed(() => !!featured.value)
 
@@ -460,10 +453,6 @@ function goNotice() {
 
 function goRanking() {
   uni.navigateTo({ url: '/pages/profile/index' })
-}
-
-function claimCoupon() {
-  uni.showToast({ title: '优惠券活动即将上线', icon: 'none' })
 }
 
 onMounted(() => {

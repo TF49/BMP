@@ -206,7 +206,7 @@ const faqs = reactive([
   },
   {
     question: '忘记密码怎么办？',
-    answer: '在登录页点击找回密码，按绑定手机号或其他验证方式重置密码。',
+    answer: '在登录页点击找回密码，按用户名、身份证号和新密码完成重置。',
     expanded: false
   }
 ])

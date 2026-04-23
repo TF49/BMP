@@ -6,8 +6,8 @@
           <uni-icons type="left" size="22" color="#ff6600" />
         </view>
         <text class="header-title">课程详情</text>
-        <view class="round-btn" @tap="toggleFavorite">
-          <uni-icons :type="isFavorite ? 'heart-filled' : 'heart'" size="20" color="#ff6600" />
+        <view class="round-btn ghost-btn">
+          <uni-icons type="info" size="18" color="#ff6600" />
         </view>
       </view>
     </view>
@@ -39,7 +39,7 @@
             <view class="hero-content">
               <view class="hero-badge">
                 <uni-icons type="bolt" size="14" color="#ffffff" />
-                <text>精英系列</text>
+                <text>{{ detail.levelText }}</text>
               </view>
               <text class="hero-title">{{ detail.name }}</text>
               <view class="hero-rating">
@@ -165,6 +165,7 @@ type CourseDetailVm = {
   name: string
   coachName: string
   coachRole: string
+  levelText: string
   ratingText: string
   durationText: string
   scheduleText: string
@@ -186,7 +187,6 @@ const headerOffset = computed(() => statusBarHeight.value + 56)
 const refreshing = ref(false)
 const loading = ref(true)
 const errorText = ref('')
-const isFavorite = ref(false)
 const courseId = ref(0)
 const course = ref<CourseItem | null>(null)
 
@@ -246,9 +246,7 @@ function buildSyllabus(source?: string): SyllabusItem[] {
 
 function coachRole(courseInfo: CourseItem) {
   if (courseInfo.coachInfo?.trim()) return courseInfo.coachInfo.trim()
-  if ((courseInfo.level || '').includes('高级')) return '国家队运动员'
-  if ((courseInfo.level || '').includes('中')) return '国家队运动员'
-  return '国家队运动员'
+  return '教练信息待补充'
 }
 
 const detail = computed<CourseDetailVm | null>(() => {
@@ -258,9 +256,11 @@ const detail = computed<CourseDetailVm | null>(() => {
   const currentStudents = Number(course.value.currentStudents || 0)
   const remaining = Math.max(0, maxStudents - currentStudents)
   const progress = maxStudents > 0 ? Math.min(100, Math.round((currentStudents / maxStudents) * 100)) : 0
-  const locationName = course.value.venueName || course.value.courtName || '动能竞技场'
-  const locationAddress = course.value.location || course.value.courtName || '体育枢纽大道 128 号'
+  const locationName = course.value.venueName?.trim() || course.value.courtName?.trim() || '场地信息待补充'
+  const locationAddress = course.value.location?.trim() || '地址待补充'
   const canBook = remaining > 0 && Number(course.value.status ?? 1) === 1
+  const rating = course.value.coachRating
+  const reviewCount = Array.isArray(course.value.reviews) ? course.value.reviews.length : 0
 
   let hotText = '热卖中'
   if (!canBook) hotText = '名额已满'
@@ -269,9 +269,10 @@ const detail = computed<CourseDetailVm | null>(() => {
   return {
     id: course.value.id,
     name: course.value.courseName || '课程详情',
-    coachName: course.value.coachName || '待定教练',
+    coachName: course.value.coachName?.trim() || '待补充',
     coachRole: coachRole(course.value),
-    ratingText: `${Number(course.value.coachRating || 4.9).toFixed(1)} (${course.value.reviews?.length || 128} 条评价)`,
+    levelText: course.value.level?.trim() || '课程信息',
+    ratingText: rating != null ? `${Number(rating).toFixed(1)}${reviewCount > 0 ? ` (${reviewCount} 条评价)` : ''}` : '暂无评分',
     durationText: `${Math.max(1, Math.ceil(Number(course.value.courseDuration || 120) / 30))}周 (${Math.max(1, Math.ceil(Number(course.value.courseDuration || 120) / 15))}节课)`,
     scheduleText: `${formatDate(course.value.courseDate)}\n${normalizeTime(course.value.startTime)}`,
     priceText: formatMoney(Number(course.value.coursePrice || 0)),
@@ -309,19 +310,17 @@ function handleBack() {
   safeNavigateBack('/pages/course/list')
 }
 
-function toggleFavorite() {
-  isFavorite.value = !isFavorite.value
-  uni.showToast({
-    title: isFavorite.value ? '已加入收藏' : '已取消收藏',
-    icon: 'none'
-  })
-}
-
 function openLocation() {
   if (!detail.value) return
-  uni.showToast({
-    title: `导航到${detail.value.locationName}`,
-    icon: 'none'
+  if (!course.value?.location?.trim()) {
+    uni.showToast({ title: '当前未提供场地地址', icon: 'none' })
+    return
+  }
+  uni.setClipboardData({
+    data: course.value.location.trim(),
+    success: () => {
+      uni.showToast({ title: '地址已复制', icon: 'success' })
+    }
   })
 }
 
@@ -413,6 +412,10 @@ onPullDownRefresh(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.round-btn.ghost-btn {
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .header-title {

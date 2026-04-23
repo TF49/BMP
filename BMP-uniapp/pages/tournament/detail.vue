@@ -6,9 +6,7 @@
           <uni-icons type="left" size="22" color="#ff6600" />
         </view>
         <text class="header-title">赛事详情</text>
-        <view class="round-btn ghost-btn" @tap="handleShare">
-          <uni-icons type="redo" size="18" color="#ff6600" />
-        </view>
+        <view class="header-spacer" />
       </view>
     </view>
 
@@ -86,13 +84,9 @@
                     v-for="event in group.events"
                     :key="`${group.dayLabel}-${event.title}`"
                     class="timeline-event"
-                    :class="{ featured: event.featured }"
                   >
-                    <view>
-                      <text class="event-title">{{ event.title }}</text>
-                      <text class="event-place">{{ event.place }}</text>
-                    </view>
-                    <text class="event-time">{{ event.time }}</text>
+                    <text class="event-title">{{ event.title }}</text>
+                    <text class="event-time">{{ event.value }}</text>
                   </view>
                 </view>
               </view>
@@ -168,9 +162,7 @@ import { getSafeSystemInfo } from '@/utils/systemInfo'
 
 type TimelineEvent = {
   title: string
-  place: string
-  time: string
-  featured?: boolean
+  value: string
 }
 
 type TimelineGroup = {
@@ -257,31 +249,6 @@ function formatDateRange(start?: string, end?: string) {
   return `${startMonth}月${startDay}日 - ${endMonth}月${endDay}日`
 }
 
-function formatWeekday(raw?: string) {
-  const date = toDate(raw)
-  if (!date) return '待定'
-  const weekMap = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
-  return weekMap[date.getDay()]
-}
-
-function addDays(raw: string | undefined, days: number) {
-  const date = toDate(raw)
-  if (!date) return null
-  date.setDate(date.getDate() + days)
-  return date
-}
-
-function formatDayLabel(date: Date | null, fallback: string) {
-  if (!date) return fallback
-  return `${date.getMonth() + 1}月${date.getDate()}日`
-}
-
-function formatWeekLabel(date: Date | null, fallback: string) {
-  if (!date) return fallback
-  const weekMap = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
-  return weekMap[date.getDay()]
-}
-
 function resolveStatusText(status?: number) {
   const map: Record<number, string> = {
     0: '已取消',
@@ -314,62 +281,35 @@ function resolvePrizeText(item: TournamentItem) {
   const moneyMatch = source.match(/¥\s*[\d,]+(?:\.\d+)?/)
   if (moneyMatch) return moneyMatch[0].replace(/\s+/g, '')
   if (source) return source.length > 14 ? `${source.slice(0, 14)}…` : source
-  return '¥5,000'
+  return '待公布'
 }
 
 function buildSchedule(item: TournamentItem): TimelineGroup[] {
-  const start = toDate(item.tournamentStart || item.startDate)
-  const end = toDate(item.tournamentEnd || item.tournamentStart || item.startDate)
-  const midStart = addDays(item.tournamentStart || item.startDate, 1)
-  const midEnd = addDays(item.tournamentEnd || item.tournamentStart || item.startDate, -1)
-  const venue = item.venueName || item.location || '中心场地'
-
-  const groups: TimelineGroup[] = [
+  return [
     {
-      dayLabel: formatDayLabel(start, '首日'),
-      weekLabel: formatWeekLabel(start, '待定'),
+      dayLabel: '报名阶段',
+      weekLabel: 'Registration',
       events: [
-        { title: '签到与检录', place: '主大厅', time: '上午 08:00' },
-        { title: '开幕式', place: venue, time: '上午 09:30' }
+        { title: '报名开始', value: formatFullDate(item.registrationStart) },
+        { title: '报名截止', value: formatFullDate(item.registrationEnd || item.registrationDeadline) }
+      ]
+    },
+    {
+      dayLabel: '比赛阶段',
+      weekLabel: 'Tournament',
+      events: [
+        { title: '比赛开始', value: formatFullDate(item.tournamentStart || item.startDate) },
+        { title: '比赛结束', value: formatFullDate(item.tournamentEnd) }
       ]
     }
   ]
-
-  if (midStart && end && midStart.getTime() < end.getTime()) {
-    groups.push({
-      dayLabel:
-        midEnd && midEnd.getTime() >= midStart.getTime()
-          ? `${midStart.getMonth() + 1}月${midStart.getDate()}日-${midEnd.getDate()}日`
-          : formatDayLabel(midStart, '中段赛程'),
-      weekLabel:
-        midEnd && midEnd.getTime() >= midStart.getTime()
-          ? `${formatWeekLabel(midStart, '周中')} - ${formatWeekLabel(midEnd, '周中')}`
-          : formatWeekLabel(midStart, '周中'),
-      events: [
-        { title: '预选赛', place: '所有场地', time: '09:00 - 18:00' }
-      ]
-    })
-  }
-
-  groups.push({
-    dayLabel: formatDayLabel(end, '决赛日'),
-    weekLabel: formatWeekLabel(end, '待定'),
-    events: [
-      { title: '决赛与颁奖典礼', place: venue, time: '14:00', featured: true }
-    ]
-  })
-
-  return groups
 }
 
 function buildRules(item: TournamentItem) {
   const source = String(item.rules || '').trim()
   if (!source) {
     return [
-      '参赛选手必须在预定比赛时间前至少 30 分钟到达并检录。',
-      '采用世界羽联标准计分系统，三局两胜，每局 21 分。',
-      '比赛场地仅允许穿着无痕室内球鞋。',
-      '裁判长的决定即为最终裁决。'
+      '当前页面未提供独立赛事规则详情，请以赛事主办方最新通知和现场安排为准。'
     ]
   }
 
@@ -394,7 +334,7 @@ const detail = computed<TournamentDetailVm | null>(() => {
     id: tournament.value.id,
     name: tournament.value.tournamentName || '赛事详情',
     statusText,
-    location: tournament.value.venueName || tournament.value.location || '市中心动能体育馆',
+    location: tournament.value.venueName || tournament.value.location || '场馆待补充',
     dateRange: formatDateRange(tournament.value.tournamentStart || tournament.value.startDate, tournament.value.tournamentEnd),
     levelText: resolveLevelText(tournament.value),
     modeText: resolveModeText(tournament.value),
@@ -432,14 +372,6 @@ async function loadTournamentDetail() {
 
 function handleBack() {
   safeNavigateBack('/pages/tournament/list')
-}
-
-function handleShare() {
-  if (!detail.value) return
-  uni.showToast({
-    title: `已准备分享 ${detail.value.name}`,
-    icon: 'none'
-  })
 }
 
 function handleRegister() {
@@ -521,6 +453,11 @@ onPullDownRefresh(() => {
 
 .ghost-btn {
   background: rgba(255, 255, 255, 0.92);
+}
+
+.header-spacer {
+  width: 72rpx;
+  height: 72rpx;
 }
 
 .header-title {
@@ -720,28 +657,10 @@ onPullDownRefresh(() => {
   gap: 18rpx;
 }
 
-.timeline-event.featured {
-  background: rgba(255, 102, 0, 0.06);
-  border: 2rpx solid rgba(255, 102, 0, 0.15);
-}
-
 .event-title {
-  display: block;
   font-size: 28rpx;
   font-weight: 900;
   color: #1a1c1c;
-}
-
-.timeline-event.featured .event-title,
-.timeline-event.featured .event-time {
-  color: #a33e00;
-}
-
-.event-place {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  color: #6b7280;
 }
 
 .event-time {
