@@ -990,6 +990,11 @@ html.theme-dark-mode .page-subtitle {
   padding: 24px;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
 }
 
 .venue-card:hover {
@@ -1004,9 +1009,14 @@ html.theme-dark-mode .page-subtitle {
 }
 
 .venue-icon {
-  text-align: center;
   color: var(--color-primary, #2563EB);
-  margin-bottom: 16px;
+}
+
+.venue-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .venue-name {
@@ -1020,6 +1030,7 @@ html.theme-dark-mode .page-subtitle {
   font-size: 14px;
   color: var(--color-text-secondary, #64748B);
   margin: 0 0 8px 0;
+  text-align: center;
 }
 
 .venue-status {
