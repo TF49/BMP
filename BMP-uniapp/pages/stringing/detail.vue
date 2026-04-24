@@ -266,7 +266,7 @@ function handlePay() {
         await Promise.all([loadDetail(), fetchCurrentMember(true)])
         uni.hideLoading()
         uni.showToast({
-          title: `${PAYMENT_METHOD_TEXT.BALANCE}支付成功`,
+          title: `${PAYMENT_METHOD_TEXT.BALANCE}支付完成`,
           icon: 'success'
         })
       } catch (error) {

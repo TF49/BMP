@@ -1,5 +1,6 @@
 import { post, get, put } from '../utils/request'
 import { API_PATHS } from '../config/api'
+import { API_BASE_URL } from '@/config/api'
 
 export interface LoginParams {
   username: string
@@ -41,6 +42,10 @@ export interface UserInfo {
   birthday?: string
   nickname?: string
   signature?: string
+}
+
+export interface UploadAvatarResult {
+  url: string
 }
 
 export interface UpdateUserInfoParams {
@@ -99,6 +104,37 @@ export function logout() {
  */
 export function updateUserInfo(userInfo: UpdateUserInfoParams) {
   return post<string>(API_PATHS.AUTH.UPDATE_INFO, userInfo)
+}
+
+export function uploadAvatar(filePath: string) {
+  return new Promise<UploadAvatarResult>((resolve, reject) => {
+    const token = uni.getStorageSync('token') || ''
+    uni.uploadFile({
+      url: `${API_BASE_URL}${API_PATHS.AUTH.UPLOAD_AVATAR}`,
+      filePath,
+      name: 'file',
+      header: token
+        ? {
+            Authorization: `Bearer ${token}`
+          }
+        : {},
+      success: (res) => {
+        try {
+          const parsed = JSON.parse(res.data || '{}')
+          if (res.statusCode === 200 && parsed?.code === 200 && parsed?.data?.url) {
+            resolve(parsed.data as UploadAvatarResult)
+            return
+          }
+          reject(new Error(parsed?.message || parsed?.msg || '头像上传失败'))
+        } catch (error) {
+          reject(error instanceof Error ? error : new Error('头像上传失败'))
+        }
+      },
+      fail: (error) => {
+        reject(new Error(error?.errMsg || '头像上传失败'))
+      }
+    })
+  })
 }
 
 /**

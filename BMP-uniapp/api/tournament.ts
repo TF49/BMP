@@ -12,5 +12,6 @@ export {
   getTournamentDetail,
   createTournamentRegistration,
   getTournamentRegistrationDetail,
+  getTournamentRegistrationList,
   processMemberTournamentRegistrationPayment
 } from '@/api/internal/tournament'

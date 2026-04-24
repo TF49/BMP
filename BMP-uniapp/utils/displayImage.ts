@@ -1,3 +1,5 @@
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
+
 const DEFAULT_AVATAR = '/static/placeholders/avatar.svg'
 const DEFAULT_COVER = '/static/placeholders/hero.svg'
 
@@ -28,7 +30,8 @@ export function getDisplayImage(url?: string | null, fallback = DEFAULT_COVER) {
   }
   // #endif
 
-  return url
+  const resolved = resolveImageUrl(url)
+  return resolved || url
 }
 
 export function getAvatarImage(url?: string | null) {

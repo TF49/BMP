@@ -202,11 +202,11 @@ async function handlePayment() {
       if (!res.confirm || !detail.value) return
       try {
         submitting.value = true
-        uni.showLoading({ title: '支付中...' })
+        uni.showLoading({ title: '余额支付中...' })
         await processMemberTournamentRegistrationPayment(detail.value.id, 'BALANCE')
         await Promise.all([loadDetail(), fetchCurrentMember(true)])
         uni.hideLoading()
-        uni.showToast({ title: '支付成功', icon: 'success' })
+        uni.showToast({ title: '余额支付成功', icon: 'success' })
       } catch (error) {
         console.error('赛事报名支付失败:', error)
         uni.hideLoading()

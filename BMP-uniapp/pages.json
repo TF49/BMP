@@ -474,6 +474,13 @@
       }
     },
     {
+      "path": "pages/profile/orders",
+      "style": {
+        "navigationBarTitleText": "订单中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/profile/records",
       "style": {
         "navigationBarTitleText": "消费记录",
@@ -502,6 +509,13 @@
       }
     },
     {
+      "path": "pages/course/booking-detail",
+      "style": {
+        "navigationBarTitleText": "课程预约详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/equipment/detail",
       "style": {
         "navigationBarTitleText": "器材详情",
@@ -512,6 +526,13 @@
       "path": "pages/equipment/rental",
       "style": {
         "navigationBarTitleText": "器材租借",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/equipment/rental-detail",
+      "style": {
+        "navigationBarTitleText": "器材租借详情",
         "navigationStyle": "custom"
       }
     },

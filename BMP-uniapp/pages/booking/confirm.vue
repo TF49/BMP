@@ -270,7 +270,7 @@ async function handlePayment() {
 
   try {
     submitting.value = true
-    uni.showLoading({ title: '支付确认中...' })
+    uni.showLoading({ title: '余额确认中...' })
 
     if (isPresidentFlow.value) {
       await processPayment(booking.value.id, selectedPayment.value)
@@ -284,7 +284,7 @@ async function handlePayment() {
       await Promise.all([loadBooking(), fetchCurrentMember(true)])
     }
     uni.hideLoading()
-    uni.showToast({ title: '支付成功', icon: 'success' })
+    uni.showToast({ title: '余额支付成功', icon: 'success' })
 
     setTimeout(() => {
       uni.reLaunch({ url: returnUrl.value })

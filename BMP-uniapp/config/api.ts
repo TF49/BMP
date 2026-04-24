@@ -16,6 +16,7 @@ export const API_PATHS = {
     REFRESH: '/auth/refresh',
     LOGOUT: '/auth/logout',
     UPDATE_INFO: '/auth/update',
+    UPLOAD_AVATAR: '/auth/upload-avatar',
     UPDATE_PASSWORD: '/auth/change-password',
     FORGOT_PASSWORD: '/auth/forgot-password',
     SETTINGS: '/auth/settings',

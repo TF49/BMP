@@ -12,8 +12,8 @@
 
         <view class="hero-copy">
           <text class="hero-eyebrow">DISCOVER THE NEXT SESSION</text>
-          <text class="hero-title">搜索你想去的场馆、课程和赛事</text>
-          <text class="hero-subtitle">把高频入口统一成新的 Stitch 风格，先从搜索开始。</text>
+          <text class="hero-title">搜索场馆、课程、赛事和器材</text>
+          <text class="hero-subtitle">当前搜索闭环已对齐四类能力，入口文案和结果页保持一致。</text>
         </view>
 
         <view class="search-card">
@@ -45,6 +45,10 @@
             <view class="quick-action" @click="searchFromPreset('周末比赛')">
               <text class="quick-action-label">EVENT</text>
               <text class="quick-action-text">周末比赛</text>
+            </view>
+            <view class="quick-action" @click="searchFromPreset('尤尼克斯球拍')">
+              <text class="quick-action-label">EQUIPMENT</text>
+              <text class="quick-action-text">尤尼克斯球拍</text>
             </view>
           </view>
 
@@ -136,11 +140,11 @@ const SEARCH_HISTORY_KEY = 'search_history'
 
 const searchKeyword = ref('')
 const searchHistory = ref<string[]>([])
-const hotSearches = ref(['奥体中心', '羽毛球培训', '青少年训练营', '周末比赛', '场地包场', '器材租借'])
+const hotSearches = ref(['奥体中心', '羽毛球培训', '青少年训练营', '周末比赛', '场地包场', '球拍租借'])
 const suggestions = ref<string[]>([])
 const showSuggestions = ref(false)
 
-const placeholderText = computed(() => '搜索场馆、教练、课程或赛事...')
+const placeholderText = computed(() => '搜索场馆、课程、赛事或器材...')
 
 watch(searchKeyword, (newValue) => {
   const keyword = newValue.trim()
@@ -399,7 +403,7 @@ try {
 
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16rpx;
   margin-top: 20rpx;
 }

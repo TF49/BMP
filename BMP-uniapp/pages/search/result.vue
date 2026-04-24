@@ -13,7 +13,7 @@
         <view class="headline-block">
           <text class="headline-eyebrow">SEARCH OUTPUT</text>
           <text class="headline-title">为你筛选 Stitch 化用户端搜索结果</text>
-          <text class="headline-subtitle">场馆、课程、赛事统一用一套更产品化的搜索结果结构承接。</text>
+          <text class="headline-subtitle">场馆、课程、赛事、器材统一用一套更产品化的搜索结果结构承接。</text>
         </view>
 
         <view class="search-bar">
@@ -22,7 +22,7 @@
             v-model="searchKeyword"
             class="search-input"
             type="text"
-            placeholder="搜索场馆、教练、课程或赛事..."
+            placeholder="搜索场馆、课程、赛事或器材..."
             confirm-type="search"
             @confirm="handleSearch"
           />
@@ -147,7 +147,7 @@
             </view>
           </template>
 
-          <template v-else>
+          <template v-else-if="activeTab === 2">
             <view
               v-for="item in currentTournaments"
               :key="`tournament-${item.id}`"
@@ -181,6 +181,55 @@
               </view>
             </view>
           </template>
+
+          <template v-else>
+            <view
+              v-for="item in currentEquipment"
+              :key="`equipment-${item.id}`"
+              class="result-card"
+              @click="goToEquipmentDetail(item)"
+            >
+              <view class="result-card-media equipment-media">
+                <image
+                  v-if="item.image"
+                  class="result-image"
+                  :src="resolveImageUrl(item.image)"
+                  mode="aspectFill"
+                />
+                <view v-else class="media-placeholder">
+                  <text class="placeholder-label">EQUIPMENT</text>
+                </view>
+                <view class="floating-badge">READY TO RENT</view>
+              </view>
+
+              <view class="result-card-body">
+                <view class="card-heading">
+                  <view>
+                    <text class="card-kicker">EQUIPMENT</text>
+                    <text class="card-title">{{ item.name }}</text>
+                  </view>
+                  <text class="card-price">¥{{ item.price }}/次</text>
+                </view>
+                <view class="meta-row">
+                  <view class="meta-chip">
+                    <uni-icons type="shop" size="14" color="#a33e00"></uni-icons>
+                    <text>{{ item.brand }}</text>
+                  </view>
+                  <view class="meta-chip">
+                    <uni-icons type="wallet" size="14" color="#a33e00"></uni-icons>
+                    <text>押金 ¥{{ item.deposit }}</text>
+                  </view>
+                  <view class="meta-chip">
+                    <uni-icons type="person" size="14" color="#a33e00"></uni-icons>
+                    <text>库存 {{ item.availableQuantity }}</text>
+                  </view>
+                </view>
+                <view class="tag-row">
+                  <text v-for="(tag, tagIndex) in item.tags" :key="tagIndex" class="inline-tag">{{ tag.text }}</text>
+                </view>
+              </view>
+            </view>
+          </template>
         </view>
         <view v-if="!loading && currentList.length > 0" class="footer-state">
           <text class="footer-text">当前分类已展示全部搜索结果</text>
@@ -195,39 +244,19 @@ import { computed, onMounted, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
-import { searchCourses, searchTournaments, searchVenues } from '@/api/search'
+import { searchCourses, searchEquipment, searchTournaments, searchVenues } from '@/api/search'
 import { safeNavigateBack } from '@/utils/navigation'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
-
-interface VenueResult {
-  id: number
-  name: string
-  location: string
-  price: number
-  image?: string
-  rating: number
-  tags: Array<{ text: string }>
-}
-
-interface CourseResult {
-  id: number
-  name: string
-  coachName: string
-  price: number
-  level: string
-  date: string
-  time: string
-}
-
-interface TournamentResult {
-  id: number
-  name: string
-  date: string
-  fee: number
-  status: number
-  participants: number
-  maxParticipants: number
-}
+import {
+  mapCourseSearchResult,
+  mapEquipmentSearchResult,
+  mapTournamentSearchResult,
+  mapVenueSearchResult,
+  type CourseSearchCard,
+  type EquipmentSearchCard,
+  type TournamentSearchCard,
+  type VenueSearchCard
+} from '@/utils/searchResult'
 
 const userStore = useUserStore()
 const searchKeyword = ref('')
@@ -235,77 +264,42 @@ const activeTab = ref(0)
 const resultTabs = ref([
   { name: '场馆', count: 0 },
   { name: '课程', count: 0 },
-  { name: '赛事', count: 0 }
+  { name: '赛事', count: 0 },
+  { name: '器材', count: 0 }
 ])
-const venues = ref<VenueResult[]>([])
-const courses = ref<CourseResult[]>([])
-const tournaments = ref<TournamentResult[]>([])
+const venues = ref<VenueSearchCard[]>([])
+const courses = ref<CourseSearchCard[]>([])
+const tournaments = ref<TournamentSearchCard[]>([])
+const equipment = ref<EquipmentSearchCard[]>([])
 const loading = ref(false)
 const initialized = ref(false)
 
 const currentList = computed(() => {
   if (activeTab.value === 0) return venues.value
   if (activeTab.value === 1) return courses.value
-  return tournaments.value
+  if (activeTab.value === 2) return tournaments.value
+  return equipment.value
 })
 const currentVenues = computed(() => venues.value)
 const currentCourses = computed(() => courses.value)
 const currentTournaments = computed(() => tournaments.value)
+const currentEquipment = computed(() => equipment.value)
 
-const totalCount = computed(() => venues.value.length + courses.value.length + tournaments.value.length)
+const totalCount = computed(() => venues.value.length + courses.value.length + tournaments.value.length + equipment.value.length)
 const displayKeyword = computed(() => searchKeyword.value.trim() || '未输入')
 const showEmptyState = computed(() => !loading.value && !!searchKeyword.value.trim() && currentList.value.length === 0)
 
-onLoad((options: Record<string, string | undefined> = {}) => {
-  if (options.keyword) {
+onLoad((options?: Record<string, string | undefined>) => {
+  if (options?.keyword) {
     searchKeyword.value = decodeURIComponent(options.keyword)
   }
-  if (options.tab) {
+  if (options?.tab) {
     const tabIndex = Number(options.tab)
-    if (!Number.isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 2) {
+    if (!Number.isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 3) {
       activeTab.value = tabIndex
     }
   }
 })
-
-function mapVenueResult(item: any): VenueResult {
-  return {
-    id: item.id,
-    name: item.venueName || item.name || '未命名场馆',
-    location: item.address || item.location || '',
-    price: item.hourlyPrice || item.price || 0,
-    image: item.venueImage || item.image,
-    rating: item.rating || 4.6,
-    tags: [
-      { text: item.surfaceType || '室内' },
-      { text: item.hasParking ? '停车' : '预约' }
-    ]
-  }
-}
-
-function mapCourseResult(item: any): CourseResult {
-  return {
-    id: item.id,
-    name: item.courseName || item.name || '未命名课程',
-    coachName: item.coachName || '教练待定',
-    price: item.coursePrice || item.price || 0,
-    level: item.level || '标准课程',
-    date: item.courseDate || item.date || '',
-    time: `${item.startTime || ''}${item.startTime || item.endTime ? ' - ' : ''}${item.endTime || ''}`.trim()
-  }
-}
-
-function mapTournamentResult(item: any): TournamentResult {
-  return {
-    id: item.id,
-    name: item.tournamentName || item.name || '未命名赛事',
-    date: item.startDate || item.date || '',
-    fee: item.entryFee || item.fee || 0,
-    status: item.status ?? 1,
-    participants: item.currentParticipants || item.participants || 0,
-    maxParticipants: item.maxParticipants || 0
-  }
-}
 
 async function loadAllResults() {
   const keyword = searchKeyword.value.trim()
@@ -313,20 +307,23 @@ async function loadAllResults() {
 
   loading.value = true
   try {
-    const [venueResult, courseResult, tournamentResult] = await Promise.all([
+    const [venueResult, courseResult, tournamentResult, equipmentResult] = await Promise.all([
       searchVenues({ keyword }),
       searchCourses({ keyword }),
-      searchTournaments({ keyword })
+      searchTournaments({ keyword }),
+      searchEquipment({ keyword })
     ])
 
-    venues.value = Array.isArray(venueResult) ? venueResult.map(mapVenueResult) : []
-    courses.value = Array.isArray(courseResult) ? courseResult.map(mapCourseResult) : []
-    tournaments.value = Array.isArray(tournamentResult) ? tournamentResult.map(mapTournamentResult) : []
+    venues.value = Array.isArray(venueResult) ? venueResult.map(mapVenueSearchResult) : []
+    courses.value = Array.isArray(courseResult) ? courseResult.map(mapCourseSearchResult) : []
+    tournaments.value = Array.isArray(tournamentResult) ? tournamentResult.map(mapTournamentSearchResult) : []
+    equipment.value = Array.isArray(equipmentResult) ? equipmentResult.map(mapEquipmentSearchResult) : []
 
     resultTabs.value = [
       { name: '场馆', count: venues.value.length },
       { name: '课程', count: courses.value.length },
-      { name: '赛事', count: tournaments.value.length }
+      { name: '赛事', count: tournaments.value.length },
+      { name: '器材', count: equipment.value.length }
     ]
     initialized.value = true
   } catch (error) {
@@ -361,10 +358,12 @@ function clearSearch() {
   venues.value = []
   courses.value = []
   tournaments.value = []
+  equipment.value = []
   resultTabs.value = [
     { name: '场馆', count: 0 },
     { name: '课程', count: 0 },
-    { name: '赛事', count: 0 }
+    { name: '赛事', count: 0 },
+    { name: '器材', count: 0 }
   ]
 }
 
@@ -390,21 +389,27 @@ function getStatusClass(status: number) {
   return classMap[status] || ''
 }
 
-function goToVenueDetail(venue: VenueResult) {
+function goToVenueDetail(venue: VenueSearchCard) {
   uni.navigateTo({
     url: `/pages/venue/detail?id=${venue.id}`
   })
 }
 
-function goToCourseDetail(course: CourseResult) {
+function goToCourseDetail(course: CourseSearchCard) {
   uni.navigateTo({
     url: `/pages/course/detail?id=${course.id}`
   })
 }
 
-function goToTournamentDetail(tournament: TournamentResult) {
+function goToTournamentDetail(tournament: TournamentSearchCard) {
   uni.navigateTo({
     url: `/pages/tournament/detail?id=${tournament.id}`
+  })
+}
+
+function goToEquipmentDetail(item: EquipmentSearchCard) {
+  uni.navigateTo({
+    url: `/pages/equipment/detail?id=${item.id}`
   })
 }
 
@@ -649,6 +654,10 @@ onMounted(async () => {
 
 .venue-media {
   background: linear-gradient(135deg, #ffd7b5 0%, #fff7ed 100%);
+}
+
+.equipment-media {
+  background: linear-gradient(135deg, #fee2e2 0%, #fff7ed 100%);
 }
 
 .result-image {

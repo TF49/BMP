@@ -20,7 +20,8 @@
         <view class="hero-card">
           <view class="hero-glow" />
           <view class="hero-head">
-            <view class="hero-avatar">
+            <image v-if="avatarUrl" class="hero-avatar-image" :src="avatarUrl" mode="aspectFill" />
+            <view v-else class="hero-avatar">
               <uni-icons type="person-filled" size="30" color="#ffffff" />
             </view>
             <view class="hero-meta">
@@ -155,6 +156,7 @@ import { useThemeStore } from '@/store/modules/theme'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { getCurrentUser, getSettings } from '@/api/auth'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getAvatarImage } from '@/utils/displayImage'
 
 const userInfo = ref({
   username: '',
@@ -171,7 +173,7 @@ const siteMessageEnabled = ref(true)
 const accountMenus = [
   {
     title: '账户设置',
-    desc: '查看资料展示并维护手机号、性别',
+    desc: '查看资料摘要并前往统一资料页编辑',
     path: '/pages/settings/account',
     icon: 'person',
     bgColor: 'rgba(255, 102, 0, 0.12)',
@@ -187,7 +189,7 @@ const accountMenus = [
   },
   {
     title: '个人资料',
-    desc: '查看资料展示并维护当前可编辑项',
+    desc: '维护头像、手机号、性别与个性签名',
     path: '/pages/profile/info',
     icon: 'compose',
     bgColor: 'rgba(163, 62, 0, 0.12)',
@@ -234,6 +236,7 @@ const supportMenus = [
 ] as const
 
 const roleLabel = computed(() => userInfo.value.role || '普通用户')
+const avatarUrl = computed(() => getAvatarImage(userInfo.value.avatar))
 const levelBadge = computed(() => {
   if (userInfo.value.phone) return '已完善'
   return '待完善'
@@ -406,6 +409,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2rpx solid rgba(255, 255, 255, 0.32);
+}
+
+.hero-avatar-image {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 999rpx;
   border: 2rpx solid rgba(255, 255, 255, 0.32);
 }
 

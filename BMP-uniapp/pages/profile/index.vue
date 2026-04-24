@@ -15,7 +15,8 @@
 
         <view class="hero-main">
           <view class="avatar-wrap">
-            <view class="avatar-core">
+            <image v-if="avatarUrl" class="avatar-image" :src="avatarUrl" mode="aspectFill" />
+            <view v-else class="avatar-core">
               <uni-icons type="person-filled" size="34" color="#ffffff" />
             </view>
           </view>
@@ -128,6 +129,7 @@ import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { useUserStore } from '@/store/modules/user'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { useCurrentMember } from '@/composables/useCurrentMember'
+import { getAvatarImage } from '@/utils/displayImage'
 
 const userStore = useUserStore()
 const { fetchCurrentMember } = useCurrentMember()
@@ -153,11 +155,19 @@ const quickMenus = [
   },
   {
     label: '个人资料',
-    desc: '查看资料展示并维护手机号、性别',
+    desc: '维护头像、手机号、性别和个性签名',
     iconType: 'compose',
     iconColor: '#a33e00',
     bgColor: 'rgba(163, 62, 0, 0.12)',
     path: '/pages/profile/info'
+  },
+  {
+    label: '订单中心',
+    desc: '统一查看预约、报名、租借和服务订单',
+    iconType: 'calendar',
+    iconColor: '#ff6600',
+    bgColor: 'rgba(255, 102, 0, 0.12)',
+    path: '/pages/profile/orders'
   },
   {
     label: '充值中心',
@@ -179,13 +189,13 @@ const quickMenus = [
 
 const menuItems = computed(() => [
   {
-    label: '预订记录',
+    label: '订单中心',
     iconType: 'calendar',
     iconColor: '#ff6600',
     bgColor: 'rgba(255, 102, 0, 0.12)',
     value: '',
-    desc: '查看你的场地预约与历史订单',
-    path: '/pages/booking/list'
+    desc: '统一查看场地、课程、赛事、器材和穿线订单',
+    path: '/pages/profile/orders'
   },
   {
     label: '充值中心',
@@ -220,7 +230,7 @@ const menuItems = computed(() => [
     iconColor: '#5f5e5e',
     bgColor: 'rgba(95, 94, 94, 0.12)',
     value: '',
-    desc: '查看资料展示与当前可编辑项',
+    desc: '维护头像、手机号、性别与个性签名',
     path: '/pages/profile/info'
   },
   {
@@ -235,6 +245,7 @@ const menuItems = computed(() => [
 ])
 
 const displayName = computed(() => userInfo.value.username || '微信用户')
+const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 const vipTitle = computed(() => '会员账户概况')
 const memberTypeText = computed(() => {
   const map: Record<string, string> = {
@@ -392,6 +403,12 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   box-shadow: 0 14rpx 30rpx rgba(255, 102, 0, 0.22);
+  overflow: hidden;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
 }
 
 .avatar-core {

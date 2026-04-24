@@ -1,8 +1,8 @@
-# 羽擎（BMP）微信小程序
+# 羽擎（BMP）UniApp 用户端
 
 ## 项目简介
 
-基于 UniApp + Vue 3 + TypeScript 开发的羽擎微信小程序，与 Web 端共享同一套后端 API。
+基于 UniApp + Vue 3 + TypeScript 开发的羽擎用户端，与 Web 端共享同一套后端 API。
 
 ## 技术栈
 
@@ -14,8 +14,8 @@
 
 ## 项目结构
 
-```
-uniapp/
+```text
+BMP-uniapp/
 ├── api/              # API接口封装
 ├── components/        # 组件
 ├── config/            # 配置文件
@@ -75,10 +75,10 @@ npm run build:mp-weixin
 <u-button type="primary">按钮</u-button>
 ```
 
-### 当前已知问题
+### 当前状态
 
-- `npm run build:mp-weixin` 目前受 `@dcloudio/uni-app` 与 `vue` 依赖矩阵影响，存在版本冲突（非 uView 组件语法问题）。
-- 需要统一 `@dcloudio/*` 与 `vue/@vue/*` 版本后再进行最终构建验证。
+- `npm run build:mp-weixin` 已可执行，可作为用户端回归构建命令。
+- 当前仓库仍存在部分历史类型债务，主要集中在 president 端和旧字符串服务类型定义，判断进度时请结合最新 `type-check-errors.txt` 一起看。
 
 ## 开发规范
 

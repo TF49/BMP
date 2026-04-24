@@ -166,9 +166,9 @@ const customAmount = ref('')
 const selectedPay = ref(0)
 
 const payMethods = [
-  { code: 'WECHAT' as const, title: '微信支付', sub: '微信支付', icon: 'weixin', iconBg: 'green', iconColor: '#16a34a' },
-  { code: 'ALIPAY' as const, title: '支付宝', sub: '支付宝', icon: 'compose', iconBg: 'blue', iconColor: '#2563eb' },
-  { code: 'BANK' as const, title: '银行卡', sub: '银行卡支付', icon: 'wallet', iconBg: 'slate', iconColor: '#475569' }
+  { code: 'WECHAT' as const, title: '业务充值', sub: '按当前业务模型即时入账', icon: 'wallet', iconBg: 'green', iconColor: '#16a34a' },
+  { code: 'ALIPAY' as const, title: '余额补充', sub: '用于记录不同充值来源', icon: 'compose', iconBg: 'blue', iconColor: '#2563eb' },
+  { code: 'BANK' as const, title: '线下收款登记', sub: '保留后续扩展的充值来源标记', icon: 'wallet', iconBg: 'slate', iconColor: '#475569' }
 ]
 
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
@@ -242,7 +242,7 @@ async function onConfirm() {
       paymentMethod: payMethods[selectedPay.value].code,
       orderType: 'RECHARGE'
     })
-    uni.showToast({ title: '充值成功', icon: 'success' })
+    uni.showToast({ title: '业务充值成功', icon: 'success' })
     await loadMember()
     setTimeout(() => {
       uni.navigateTo({ url: '/pages/recharge/records' })
