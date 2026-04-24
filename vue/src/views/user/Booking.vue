@@ -131,6 +131,13 @@
             <div class="selected-info-card">
               <div class="info-item">
                 <div class="info-icon-wrap info-icon-venue">
+                  <el-icon :size="22"><CircleCheck /></el-icon>
+                </div>
+                <span class="info-label">当前会员</span>
+                <span class="info-value">{{ currentMember?.memberName || '未获取到会员信息' }}</span>
+              </div>
+              <div class="info-item">
+                <div class="info-icon-wrap info-icon-venue">
                   <el-icon :size="22"><OfficeBuilding /></el-icon>
                 </div>
                 <span class="info-label">场馆</span>
@@ -255,6 +262,16 @@
                   </div>
                 </div>
               </el-form-item>
+                <el-form-item label="补充说明" class="time-form-item-occupancy">
+                  <el-input
+                    v-model="timeForm.remark"
+                    type="textarea"
+                    :rows="3"
+                    maxlength="500"
+                    show-word-limit
+                    placeholder="可选，填写给会长的补充说明"
+                  />
+                </el-form-item>
               </el-form>
             </div>
           </div>
@@ -271,6 +288,10 @@
               <h4 class="section-title">预订详情</h4>
               <div class="confirm-info">
                 <div class="confirm-item">
+                  <span class="confirm-label">当前会员</span>
+                  <span class="confirm-value">{{ currentMember?.memberName || '-' }}</span>
+                </div>
+                <div class="confirm-item">
                   <span class="confirm-label">场馆</span>
                   <span class="confirm-value">{{ selectedVenue?.venueName }}</span>
                 </div>
@@ -285,6 +306,10 @@
                 <div class="confirm-item">
                   <span class="confirm-label">费用</span>
                   <span class="confirm-value price">¥{{ estimatedCost }}</span>
+                </div>
+                <div class="confirm-item">
+                  <span class="confirm-label">补充说明</span>
+                  <span class="confirm-value">{{ timeForm.remark || '无' }}</span>
                 </div>
               </div>
             </div>
@@ -385,6 +410,7 @@ import {
   getBookingRangeOccupancy
 } from '@/api/booking'
 import { useAuth } from '@/composables/useAuth'
+import { getCurrentMember } from '@/api/member'
 
 const router = useRouter()
 const { userRole } = useAuth()
@@ -402,6 +428,7 @@ const selectedVenue = ref(null)
 const selectedCourt = ref(null)
 const myBookings = ref([])
 const filterStatus = ref(null)
+const currentMember = ref(null)
 
 // 选择场地步骤使用的日期（与管理员端一致：按日期显示场地状态）
 const getLocalTodayDateStr = () => {
@@ -417,7 +444,8 @@ const todayBookingCounts = ref({})
 const timeForm = ref({
   date: '',
   startTime: '',
-  endTime: ''
+  endTime: '',
+  remark: ''
 })
 
 // 当前时刻占用情况
@@ -593,6 +621,7 @@ const selectCourt = (court) => {
   step.value = 3
   // 预约日期默认使用「选择场地」步骤所选日期，与管理员端日期设计一致
   timeForm.value.date = bookingDateForCourts.value || getLocalTodayDateStr()
+  timeForm.value.remark = ''
   rangeOccupancy.value = { count: null, users: [] }
   fetchCurrentOccupancy()
 }
@@ -695,7 +724,8 @@ const submitBooking = async () => {
       courtId: selectedCourt.value.id,
       bookingDate: timeForm.value.date,
       startTime: `${timeForm.value.startTime}:00`,
-      endTime: `${timeForm.value.endTime}:00`
+      endTime: `${timeForm.value.endTime}:00`,
+      remark: timeForm.value.remark
     })
     
     if (res.code === 200) {
@@ -704,7 +734,7 @@ const submitBooking = async () => {
       step.value = 1
       selectedVenue.value = null
       selectedCourt.value = null
-      timeForm.value = { date: '', startTime: '', endTime: '' }
+      timeForm.value = { date: '', startTime: '', endTime: '', remark: '' }
       // 切换到我的预约标签页
       activeTab.value = 'my-bookings'
       loadMyBookings()
@@ -800,13 +830,25 @@ watch(activeTab, (newTab) => {
     selectedCourt.value = null
     bookingDateForCourts.value = getLocalTodayDateStr()
     todayBookingCounts.value = {}
-    timeForm.value = { date: '', startTime: '', endTime: '' }
+    timeForm.value = { date: '', startTime: '', endTime: '', remark: '' }
     currentOccupancy.value = { count: null, users: [] }
     rangeOccupancy.value = { count: null, users: [] }
   }
 })
 
+const loadCurrentMember = async () => {
+  try {
+    const res = await getCurrentMember()
+    if (res.code === 200) {
+      currentMember.value = res.data
+    }
+  } catch (e) {
+    console.error('加载当前会员信息失败:', e)
+  }
+}
+
 onMounted(() => {
+  loadCurrentMember()
   loadVenues()
   if (activeTab.value === 'my-bookings') {
     loadMyBookings()
@@ -1291,6 +1333,9 @@ html.theme-dark-mode .page-subtitle {
 .venue-info {
   flex: 1;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .venue-name {
@@ -1304,11 +1349,13 @@ html.theme-dark-mode .page-subtitle {
   font-size: 14px;
   color: var(--color-text-secondary, #64748B);
   margin: 0 0 12px 0;
+  text-align: center;
 }
 
 .venue-tags {
   display: flex;
   justify-content: center;
+  width: 100%;
   gap: 8px;
 }
 

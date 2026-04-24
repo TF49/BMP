@@ -228,7 +228,9 @@ public class StringingServiceServiceImpl implements StringingServiceService {
                 throw new BusinessException("服务单号已存在");
             }
             // 以下赋值在锁内完成，保证与单号一致
-            if (service.getServicePrice() == null) {
+            if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
+                service.setServicePrice(calculatePrice(service.getStringId(), service.getIsOwnString()));
+            } else if (service.getServicePrice() == null) {
                 service.setServicePrice(calculatePrice(service.getStringId(), service.getIsOwnString()));
             }
             LocalDateTime now = LocalDateTime.now();

@@ -75,14 +75,18 @@
           <el-empty v-if="courseList.length === 0" description="暂无可用课程" :image-size="120" />
         </div>
 
-        <!-- 步骤2: 选择时间 -->
+        <!-- 步骤2: 完善信息 -->
         <div v-if="step === 2" class="course-step">
           <div class="step-header">
             <el-button :icon="ArrowLeft" @click="step = 1" text>返回选择课程</el-button>
-            <h3 class="step-title">选择课程时间</h3>
+            <h3 class="step-title">完善预约信息</h3>
           </div>
           <div class="time-section">
             <div class="selected-info-card">
+              <div class="info-item">
+                <span class="info-label">当前会员</span>
+                <span class="info-value">{{ currentMember?.memberName || '未获取到会员信息' }}</span>
+              </div>
               <div class="info-item">
                 <span class="info-label">课程名称</span>
                 <span class="info-value">{{ selectedCourse?.courseName }}</span>
@@ -92,23 +96,23 @@
                 <span class="info-value">{{ selectedCourse?.coachName || '未分配' }}</span>
               </div>
               <div class="info-item">
-                <span class="info-label">时长</span>
-                <span class="info-value">{{ selectedCourse?.duration || 60 }}分钟</span>
+                <span class="info-label">课程时间</span>
+                <span class="info-value">{{ formatSelectedCourseSchedule(selectedCourse) }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">价格</span>
-                <span class="info-value price">¥{{ formatCurrency(selectedCourse?.price) }}</span>
+                <span class="info-value price">¥{{ formatCurrency(getCoursePrice(selectedCourse)) }}</span>
               </div>
             </div>
             <el-form :model="bookingForm" label-width="120px" class="time-form">
-              <el-form-item label="课程时间">
-                <el-date-picker
-                  v-model="bookingForm.courseTime"
-                  type="datetime"
-                  placeholder="选择课程时间"
-                  value-format="YYYY-MM-DD HH:mm:ss"
-                  style="width: 100%"
-                  size="large"
+              <el-form-item label="补充说明">
+                <el-input
+                  v-model="bookingForm.remark"
+                  type="textarea"
+                  :rows="3"
+                  maxlength="500"
+                  show-word-limit
+                  placeholder="可选，填写想补充给会长或教练的说明"
                 />
               </el-form-item>
             </el-form>
@@ -144,12 +148,20 @@
                   <span class="confirm-value">{{ selectedCourse?.coachName || '未分配' }}</span>
                 </div>
                 <div class="confirm-item">
+                  <span class="confirm-label">当前会员</span>
+                  <span class="confirm-value">{{ currentMember?.memberName || '-' }}</span>
+                </div>
+                <div class="confirm-item">
                   <span class="confirm-label">课程时间</span>
-                  <span class="confirm-value">{{ bookingForm.courseTime }}</span>
+                  <span class="confirm-value">{{ formatSelectedCourseSchedule(selectedCourse) }}</span>
                 </div>
                 <div class="confirm-item">
                   <span class="confirm-label">价格</span>
-                  <span class="confirm-value price">¥{{ formatCurrency(selectedCourse?.price) }}</span>
+                  <span class="confirm-value price">¥{{ formatCurrency(getCoursePrice(selectedCourse)) }}</span>
+                </div>
+                <div class="confirm-item">
+                  <span class="confirm-label">补充说明</span>
+                  <span class="confirm-value">{{ bookingForm.remark || '无' }}</span>
                 </div>
               </div>
               <div class="confirm-actions">
@@ -228,6 +240,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Tickets, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getCourseList } from '@/api/course'
 import { getCourseBookingList, addCourseBooking, payMemberCourseBooking, updateCourseBookingStatus } from '@/api/courseBooking'
+import { getCurrentMember } from '@/api/member'
 
 const router = useRouter()
 const activeTab = ref('book')
@@ -241,10 +254,11 @@ const courseList = ref([])
 const myCourses = ref([])
 const selectedCourse = ref(null)
 const submitting = ref(false)
+const currentMember = ref(null)
 
 const bookingForm = ref({
   courseId: null,
-  courseTime: ''
+  remark: ''
 })
 
 const formatCurrency = (val) => {
@@ -261,6 +275,16 @@ const formatTimeRange = (start, end) => {
   const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`
   const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`
   return `${dateStr} ${startTime}-${endTime}`
+}
+
+const getCoursePrice = (course) => course?.coursePrice ?? course?.price ?? 0
+
+const formatSelectedCourseSchedule = (course) => {
+  if (!course) return '-'
+  if (course.courseDate && course.courseStartTime && course.courseEndTime) {
+    return `${course.courseDate} ${String(course.courseStartTime).slice(0, 5)}-${String(course.courseEndTime).slice(0, 5)}`
+  }
+  return formatCourseTime(course)
 }
 
 /** 课程预约列表项：用 courseDate + courseStartTime/courseEndTime 格式化显示 */
@@ -302,7 +326,7 @@ const selectCourse = (course) => {
   selectedCourse.value = course
   bookingForm.value = {
     courseId: course.id,
-    courseTime: ''
+    remark: ''
   }
   step.value = 2
 }
@@ -311,7 +335,7 @@ const resetBookingForm = () => {
   selectedCourse.value = null
   bookingForm.value = {
     courseId: null,
-    courseTime: ''
+    remark: ''
   }
   step.value = 1
 }
@@ -326,7 +350,7 @@ const submitBooking = async () => {
   try {
     const res = await addCourseBooking({
       courseId: bookingForm.value.courseId,
-      orderAmount: selectedCourse.value.coursePrice ?? selectedCourse.value.price
+      remark: bookingForm.value.remark
     })
     
     if (res.code === 200) {
@@ -343,6 +367,17 @@ const submitBooking = async () => {
     ElMessage.error('预约失败，请稍后重试')
   } finally {
     submitting.value = false
+  }
+}
+
+const loadCurrentMember = async () => {
+  try {
+    const res = await getCurrentMember()
+    if (res.code === 200) {
+      currentMember.value = res.data
+    }
+  } catch (e) {
+    console.error('加载当前会员信息失败:', e)
   }
 }
 
@@ -417,6 +452,7 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(() => {
+  loadCurrentMember()
   loadCourses()
   if (activeTab.value === 'my-courses') {
     loadMyCourses()

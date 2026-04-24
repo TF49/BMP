@@ -88,8 +88,7 @@
         "requiredPrivateInfos" : [
             "chooseLocation",
             "getLocation"
-        ],
-        "lazyCodeLoading" : "requiredComponents"
+        ]
     },
     "mp-alipay" : {
         "usingComponents" : true

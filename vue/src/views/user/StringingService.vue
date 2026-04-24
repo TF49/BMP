@@ -70,6 +70,10 @@
                 <span class="info-label">选择场馆</span>
                 <span class="info-value">{{ selectedVenue?.venueName }}</span>
               </div>
+              <div class="info-item">
+                <span class="info-label">当前会员</span>
+                <span class="info-value">{{ currentMemberLabel }}</span>
+              </div>
             </div>
             <el-form :model="serviceForm" label-width="120px" class="stringing-form">
               <el-form-item label="球拍品牌" required>
@@ -80,6 +84,14 @@
               </el-form-item>
               <el-form-item label="球拍描述">
                 <el-input v-model="serviceForm.racketDescription" type="textarea" :rows="3" placeholder="可选，描述球拍的特殊情况" />
+              </el-form-item>
+              <el-form-item label="补充说明">
+                <el-input
+                  v-model="serviceForm.remark"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="可选，填写穿线偏好、着急取拍时间、特殊注意事项，方便后台直接处理"
+                />
               </el-form-item>
               <el-form-item label="是否存在断裂">
                 <el-switch v-model="serviceForm.hasBreakage" :active-value="1" :inactive-value="0" />
@@ -110,6 +122,14 @@
           </div>
           <div class="form-section">
             <div class="selected-info-card">
+              <div class="info-item">
+                <span class="info-label">场馆</span>
+                <span class="info-value">{{ selectedVenue?.venueName }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">当前会员</span>
+                <span class="info-value">{{ currentMemberLabel }}</span>
+              </div>
               <div class="info-item">
                 <span class="info-label">球拍</span>
                 <span class="info-value">{{ serviceForm.racketBrand }} {{ serviceForm.racketModel }}</span>
@@ -153,7 +173,7 @@
               <el-form-item label="预计价格">
                 <div class="price-preview">
                   <span class="price-value">¥{{ formatCurrency(estimatedPrice) }}</span>
-                  <span class="price-note">（线材价格 + 手工费20元）</span>
+                  <span class="price-note">{{ priceRuleNote }}</span>
                 </div>
               </el-form-item>
             </el-form>
@@ -202,6 +222,10 @@
                   <span class="confirm-value">
                     {{ serviceForm.isOwnString ? `自带：${serviceForm.stringName}` : (selectedString?.equipmentName || '未选择') }}
                   </span>
+                </div>
+                <div class="confirm-item">
+                  <span class="confirm-label">是否自带线材</span>
+                  <span class="confirm-value">{{ serviceForm.isOwnString ? '是' : '否' }}</span>
                 </div>
                 <div class="confirm-item">
                   <span class="confirm-label">磅数</span>
@@ -363,6 +387,11 @@ const currentMemberLabel = computed(() => {
   const name = member.memberName || member.nickname || `会员 #${member.id}`
   return member.phone ? `${name} (${member.phone})` : name
 })
+const priceRuleNote = computed(() => (
+  serviceForm.value.isOwnString === 1
+    ? '自带线材仅收手工费 20 元'
+    : '系统线材按所选线材价格计费'
+))
 
 const canProceedToStep4 = computed(() => {
   if (serviceForm.value.isOwnString === 1) {

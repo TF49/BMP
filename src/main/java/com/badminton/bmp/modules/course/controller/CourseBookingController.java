@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 @Tag(name = "课程预约模块", description = "课程预约 CRUD、支付、统计")
 @RestController
@@ -126,8 +128,14 @@ public class CourseBookingController extends BaseController {
     @Operation(summary = "新增课程预约")
     @PostMapping("/add")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> addBooking(@Valid @RequestBody CourseBooking booking) {
+    public Result<Object> addBooking(@Valid @RequestBody CourseBookingCreateRequest request) {
         try {
+            CourseBooking booking = new CourseBooking();
+            booking.setMemberId(request.getMemberId());
+            booking.setCourseId(request.getCourseId());
+            booking.setOrderAmount(request.getOrderAmount());
+            booking.setStatus(request.getStatus());
+            booking.setRemark(request.getRemark());
 
             // 验证必填字段（管理员必填会员；普通用户可为空，由后端从当前用户补全）
             if (isAdmin() && booking.getMemberId() == null) {
@@ -404,5 +412,15 @@ public class CourseBookingController extends BaseController {
         } catch (Exception e) {
             return error("获取会员列表时发生错误：" + e.getMessage());
         }
+    }
+
+    @Data
+    private static class CourseBookingCreateRequest {
+        private Long memberId;
+        @NotNull(message = "课程ID不能为空")
+        private Long courseId;
+        private java.math.BigDecimal orderAmount;
+        private Integer status;
+        private String remark;
     }
 }

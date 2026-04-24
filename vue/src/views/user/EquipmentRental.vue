@@ -129,10 +129,14 @@
         <div v-if="step === 3" class="equipment-step">
           <div class="step-header">
             <el-button :icon="ArrowLeft" @click="step = 2" text>返回选择数量</el-button>
-            <h3 class="step-title">选择租借时间</h3>
+            <h3 class="step-title">完善租借信息</h3>
           </div>
           <div class="time-section">
             <div class="selected-info-card">
+              <div class="info-item">
+                <span class="info-label">当前会员</span>
+                <span class="info-value">{{ currentMember?.memberName || '未获取到会员信息' }}</span>
+              </div>
               <div class="info-item">
                 <span class="info-label">器材</span>
                 <span class="info-value">{{ selectedEquipment?.equipmentName || selectedEquipment?.equipmentCode }}</span>
@@ -143,22 +147,22 @@
               </div>
             </div>
             <el-form :model="rentalForm" label-width="120px" class="time-form">
-              <el-form-item label="开始时间">
+              <el-form-item label="租借日期">
                 <el-date-picker
-                  v-model="rentalForm.startTime"
-                  type="datetime"
-                  placeholder="选择开始时间"
-                  value-format="YYYY-MM-DD HH:mm:ss"
+                  v-model="rentalForm.rentalDate"
+                  type="date"
+                  placeholder="选择租借日期"
+                  value-format="YYYY-MM-DD"
                   style="width: 100%"
                   size="large"
                 />
               </el-form-item>
-              <el-form-item label="结束时间">
+              <el-form-item label="预计归还日期">
                 <el-date-picker
-                  v-model="rentalForm.endTime"
-                  type="datetime"
-                  placeholder="选择结束时间"
-                  value-format="YYYY-MM-DD HH:mm:ss"
+                  v-model="rentalForm.expectedReturnDate"
+                  type="date"
+                  placeholder="选择预计归还日期"
+                  value-format="YYYY-MM-DD"
                   style="width: 100%"
                   size="large"
                 />
@@ -168,13 +172,28 @@
                   <span class="cost-value">¥{{ estimatedRentalCost }}</span>
                 </div>
               </el-form-item>
+              <el-form-item label="预计押金">
+                <div class="estimated-cost">
+                  <span class="cost-value">¥{{ estimatedDeposit }}</span>
+                </div>
+              </el-form-item>
+              <el-form-item label="补充说明">
+                <el-input
+                  v-model="rentalForm.remark"
+                  type="textarea"
+                  :rows="3"
+                  maxlength="500"
+                  show-word-limit
+                  placeholder="可选，填写给会长的补充说明"
+                />
+              </el-form-item>
             </el-form>
             <div class="step-actions">
               <el-button @click="step = 2" size="large">返回</el-button>
               <el-button 
                 type="primary" 
                 @click="step = 4" 
-                :disabled="!rentalForm.startTime || !rentalForm.endTime"
+                :disabled="!rentalForm.rentalDate || !rentalForm.expectedReturnDate"
                 size="large"
               >
                 下一步
@@ -194,6 +213,10 @@
               <h4 class="confirm-title">租借信息</h4>
               <div class="confirm-info">
                 <div class="confirm-item">
+                  <span class="confirm-label">当前会员</span>
+                  <span class="confirm-value">{{ currentMember?.memberName || '-' }}</span>
+                </div>
+                <div class="confirm-item">
                   <span class="confirm-label">器材名称</span>
                   <span class="confirm-value">{{ selectedEquipment?.equipmentName || selectedEquipment?.equipmentCode }}</span>
                 </div>
@@ -202,16 +225,24 @@
                   <span class="confirm-value">{{ rentalForm.quantity }} 件</span>
                 </div>
                 <div class="confirm-item">
-                  <span class="confirm-label">开始时间</span>
-                  <span class="confirm-value">{{ rentalForm.startTime }}</span>
+                  <span class="confirm-label">租借日期</span>
+                  <span class="confirm-value">{{ rentalForm.rentalDate }}</span>
                 </div>
                 <div class="confirm-item">
-                  <span class="confirm-label">结束时间</span>
-                  <span class="confirm-value">{{ rentalForm.endTime }}</span>
+                  <span class="confirm-label">预计归还日期</span>
+                  <span class="confirm-value">{{ rentalForm.expectedReturnDate }}</span>
                 </div>
                 <div class="confirm-item">
                   <span class="confirm-label">预计费用</span>
                   <span class="confirm-value price">¥{{ estimatedRentalCost }}</span>
+                </div>
+                <div class="confirm-item">
+                  <span class="confirm-label">预计押金</span>
+                  <span class="confirm-value price">¥{{ estimatedDeposit }}</span>
+                </div>
+                <div class="confirm-item">
+                  <span class="confirm-label">补充说明</span>
+                  <span class="confirm-value">{{ rentalForm.remark || '无' }}</span>
                 </div>
               </div>
 
@@ -280,8 +311,9 @@
                 </div>
                 <div class="rental-details">
                   <p class="rental-equipment">{{ rental.equipmentName }}</p>
-                  <p class="rental-time">租借时间：{{ formatTimeRange(rental.startTime, rental.endTime) }}</p>
+                  <p class="rental-time">租借日期：{{ rental.rentalDate || '-' }} | 预计归还：{{ rental.expectedReturnDate || '-' }}</p>
                   <p class="rental-amount">押金：¥{{ formatCurrency(rental.depositAmount || rental.deposit) }} | 租金：¥{{ formatCurrency(rental.rentalAmount) }}</p>
+                  <p class="rental-time">备注：{{ rental.remark || '无' }}</p>
                   <p class="rental-payment">
                     支付状态：<el-tag :type="rental.paymentStatus === 1 ? 'success' : 'warning'" size="small">{{ rental.paymentStatus === 1 ? '已支付' : '待支付' }}</el-tag>
                     <span v-if="rental.paymentStatus === 1" style="margin-left: 8px">支付方式：{{ getPaymentMethodText(rental.paymentMethod) }}</span>
@@ -298,7 +330,7 @@
                   支付
                 </el-button>
                 <el-button
-                  v-if="rental.status === 1"
+                  v-if="rental.status === 1 && rental.paymentStatus === 1"
                   type="warning"
                   size="small"
                   @click="handleReturn(rental)"
@@ -350,6 +382,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ShoppingBag, CircleCheck, ArrowLeft, Wallet } from '@element-plus/icons-vue'
 import { getEquipmentList, getEquipmentTypes } from '@/api/equipment'
 import { getEquipmentRentalList, addEquipmentRental, updateEquipmentRentalStatus, processEquipmentRentalPayment } from '@/api/equipmentRental'
+import { getCurrentMember } from '@/api/member'
 
 const activeTab = ref('rent')
 const step = ref(1) // 1-选择器材, 2-选择数量, 3-选择时间, 4-确认租借
@@ -364,6 +397,7 @@ const equipmentTypes = ref([])
 const myRentals = ref([])
 const selectedEquipment = ref(null)
 const submitting = ref(false)
+const currentMember = ref(null)
 
 const payDialogVisible = ref(false)
 const payLoading = ref(false)
@@ -373,8 +407,9 @@ const payForm = ref({ amount: 0, method: 'BALANCE' })
 const rentalForm = ref({
   equipmentId: null,
   quantity: 1,
-  startTime: '',
-  endTime: '',
+  rentalDate: '',
+  expectedReturnDate: '',
+  remark: '',
   paymentMethod: 'BALANCE'
 })
 
@@ -383,14 +418,20 @@ const paymentMethodOptions = [
 ]
 
 const estimatedRentalCost = computed(() => {
-  if (!selectedEquipment.value || !rentalForm.value.startTime || !rentalForm.value.endTime) {
+  if (!selectedEquipment.value || !rentalForm.value.rentalDate || !rentalForm.value.expectedReturnDate) {
     return '0.00'
   }
-  const start = new Date(rentalForm.value.startTime)
-  const end = new Date(rentalForm.value.endTime)
-  const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
+  const start = new Date(`${rentalForm.value.rentalDate}T00:00:00`)
+  const end = new Date(`${rentalForm.value.expectedReturnDate}T00:00:00`)
+  const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)))
   const cost = days * (selectedEquipment.value.rentalPrice || 0) * (rentalForm.value.quantity || 1)
   return cost.toFixed(2)
+})
+
+const estimatedDeposit = computed(() => {
+  const deposit = Number(selectedEquipment.value?.rentalDeposit || 0)
+  const quantity = Number(rentalForm.value.quantity || 0)
+  return (deposit * quantity).toFixed(2)
 })
 
 const formatCurrency = (val) => {
@@ -478,8 +519,9 @@ const selectEquipment = (equipment) => {
   rentalForm.value = {
     equipmentId: equipment.id,
     quantity: 1,
-    startTime: '',
-    endTime: '',
+    rentalDate: '',
+    expectedReturnDate: '',
+    remark: '',
     paymentMethod: 'BALANCE'
   }
   step.value = 2
@@ -490,8 +532,9 @@ const resetRentalForm = () => {
   rentalForm.value = {
     equipmentId: null,
     quantity: 1,
-    startTime: '',
-    endTime: '',
+    rentalDate: '',
+    expectedReturnDate: '',
+    remark: '',
     paymentMethod: 'BALANCE'
   }
   step.value = 1
@@ -505,15 +548,20 @@ watch(() => rentalForm.value.quantity, (newVal) => {
 })
 
 // 监听时间变化，自动进入下一步
-watch([() => rentalForm.value.startTime, () => rentalForm.value.endTime], ([start, end]) => {
+watch([() => rentalForm.value.rentalDate, () => rentalForm.value.expectedReturnDate], ([start, end]) => {
   if (step.value === 3 && start && end) {
     // 可以添加自动进入下一步的逻辑，或者让用户手动点击
   }
 })
 
 const submitRental = async () => {
-  if (!rentalForm.value.startTime || !rentalForm.value.endTime) {
-    ElMessage.warning('请选择租借时间')
+  if (!rentalForm.value.rentalDate || !rentalForm.value.expectedReturnDate) {
+    ElMessage.warning('请选择租借日期和预计归还日期')
+    step.value = 3
+    return
+  }
+  if (rentalForm.value.expectedReturnDate < rentalForm.value.rentalDate) {
+    ElMessage.warning('预计归还日期不能早于租借日期')
     step.value = 3
     return
   }
@@ -527,8 +575,9 @@ const submitRental = async () => {
     const res = await addEquipmentRental({
       equipmentId: rentalForm.value.equipmentId,
       quantity: rentalForm.value.quantity,
-      startTime: rentalForm.value.startTime,
-      endTime: rentalForm.value.endTime,
+      rentalDate: rentalForm.value.rentalDate,
+      expectedReturnDate: rentalForm.value.expectedReturnDate,
+      remark: rentalForm.value.remark,
       paymentMethod: rentalForm.value.paymentMethod
     })
     
@@ -640,12 +689,24 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(() => {
+  loadCurrentMember()
   loadEquipmentTypes()
   loadEquipment()
   if (activeTab.value === 'my-rentals') {
     loadMyRentals()
   }
 })
+
+const loadCurrentMember = async () => {
+  try {
+    const res = await getCurrentMember()
+    if (res.code === 200) {
+      currentMember.value = res.data
+    }
+  } catch (e) {
+    console.error('加载当前会员信息失败:', e)
+  }
+}
 </script>
 
 <style scoped>

@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -144,6 +145,22 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
     @Override
     @Transactional
     public int add(EquipmentRental rental) {
+        if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
+            com.badminton.bmp.modules.system.entity.User current = SecurityUtils.getCurrentUser();
+            if (current == null) {
+                throw new RuntimeException("请先登录");
+            }
+            Member currentMember = memberMapper.findByUserId(current.getId());
+            if (currentMember == null) {
+                throw new RuntimeException("当前用户未关联会员，无法新增器材租借");
+            }
+            if (rental.getMemberId() == null) {
+                rental.setMemberId(currentMember.getId());
+            } else if (!currentMember.getId().equals(rental.getMemberId())) {
+                throw new RuntimeException("权限不足，只能为自己创建租借单");
+            }
+        }
+
         // 验证会员是否存在
         Member member = memberMapper.findById(rental.getMemberId());
         if (member == null) {
@@ -169,7 +186,9 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             if (equipment.getVenueId() == null || !vId.equals(equipment.getVenueId())) {
                 throw new RuntimeException("权限不足：只能操作自己场馆的器材租借");
             }
-        } else if (!SecurityUtils.isPresident() && !SecurityUtils.getCurrentUserRoles().contains("USER")) {
+        } else if (!SecurityUtils.isPresident()
+                && !SecurityUtils.getCurrentUserRoles().contains("USER")
+                && !SecurityUtils.getCurrentUserRoles().contains("MEMBER")) {
             throw new RuntimeException("权限不足");
         }
 
@@ -197,13 +216,20 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
         if (rental.getQuantity() == null || rental.getQuantity() <= 0) {
             throw new RuntimeException("租借数量必须大于0");
         }
-
-        // 目前 rentalDate 是 LocalDate，仅记录日期；计费小时数暂按 1 小时起步 * 租期天数
-        // 如后续将 rentalDate 升级为 LocalDateTime，可精细到按起止时间计算。
-        int durationHours = 1;
-        if (rental.getRentalDate() != null) {
-            durationHours = 1;
+        if (rental.getRentalDate() == null) {
+            throw new RuntimeException("租借日期不能为空");
         }
+        if (rental.getExpectedReturnDate() != null && rental.getExpectedReturnDate().isBefore(rental.getRentalDate())) {
+            throw new RuntimeException("预计归还日期不能早于租借日期");
+        }
+
+        LocalDate expectedReturnDate = rental.getExpectedReturnDate() != null
+                ? rental.getExpectedReturnDate()
+                : rental.getRentalDate().plusDays(7);
+        rental.setExpectedReturnDate(expectedReturnDate);
+
+        long rentalDays = Math.max(1, ChronoUnit.DAYS.between(rental.getRentalDate(), expectedReturnDate));
+        int durationHours = Math.toIntExact(Math.max(24, rentalDays * 24));
 
         // 单价快照与押金
         if (rental.getUnitPrice() == null || rental.getUnitPrice().compareTo(java.math.BigDecimal.ZERO) <= 0) {
@@ -219,15 +245,13 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             }
         }
 
-        // 若金额未指定或为0，则按 单价 × 数量 × 小时数 计算
-        if (rental.getRentalAmount() == null || rental.getRentalAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            if (rental.getUnitPrice() == null) {
-                throw new RuntimeException("当前器材未配置租借价格，无法自动计算租借金额");
-            }
-            java.math.BigDecimal hours = java.math.BigDecimal.valueOf(durationHours);
-            java.math.BigDecimal qty = java.math.BigDecimal.valueOf(rental.getQuantity());
-            rental.setRentalAmount(rental.getUnitPrice().multiply(hours).multiply(qty));
+        // 用户创建一律以后端按“日租金 × 天数 × 数量”重算金额
+        if (rental.getUnitPrice() == null) {
+            throw new RuntimeException("当前器材未配置租借价格，无法自动计算租借金额");
         }
+        java.math.BigDecimal dayCount = java.math.BigDecimal.valueOf(rentalDays);
+        java.math.BigDecimal quantityDecimal = java.math.BigDecimal.valueOf(rental.getQuantity());
+        rental.setRentalAmount(rental.getUnitPrice().multiply(dayCount).multiply(quantityDecimal));
 
         rental.setDurationHours(durationHours);
 
@@ -235,11 +259,6 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
         LocalDateTime now = LocalDateTime.now();
         rental.setCreateTime(now);
         rental.setUpdateTime(now);
-
-        // 设置预计归还日期（默认为租借日期+7天）
-        if (rental.getExpectedReturnDate() == null && rental.getRentalDate() != null) {
-            rental.setExpectedReturnDate(rental.getRentalDate().plusDays(7));
-        }
 
         // 设置默认状态为租借中（1）
         if (rental.getStatus() == null) {
@@ -483,6 +502,32 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
         EquipmentRental rental = equipmentRentalMapper.findById(id);
         if (rental == null) {
             throw new RuntimeException("租借记录不存在");
+        }
+
+        if (!SecurityUtils.isPresident()) {
+            if (SecurityUtils.isVenueManager()) {
+                Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+                Equipment equipment = equipmentMapper.findById(rental.getEquipmentId());
+                if (currentVenueId == null || equipment == null || equipment.getVenueId() == null
+                        || !currentVenueId.equals(equipment.getVenueId())) {
+                    throw new RuntimeException("权限不足，只能修改自己场馆的租借状态");
+                }
+            } else {
+                com.badminton.bmp.modules.system.entity.User current = SecurityUtils.getCurrentUser();
+                if (current == null) {
+                    throw new RuntimeException("请先登录");
+                }
+                Member member = memberMapper.findByUserId(current.getId());
+                if (member == null || !member.getId().equals(rental.getMemberId())) {
+                    throw new RuntimeException("权限不足，只能修改自己的租借状态");
+                }
+                if (status == null || (status != 0 && status != 2)) {
+                    throw new RuntimeException("普通用户仅可取消租借或确认归还");
+                }
+                if (status == 2 && (rental.getPaymentStatus() == null || rental.getPaymentStatus() != 1)) {
+                    throw new RuntimeException("租借订单未支付，不能直接归还");
+                }
+            }
         }
 
         // 验证状态值是否有效

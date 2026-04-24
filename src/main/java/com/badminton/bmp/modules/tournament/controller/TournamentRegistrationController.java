@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.badminton.bmp.common.util.SecurityUtils;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 @Tag(name = "赛事报名模块", description = "赛事报名 CRUD、支付、统计")
 @RestController
@@ -120,8 +122,15 @@ public class TournamentRegistrationController extends BaseController {
     @Operation(summary = "新增赛事报名")
     @PostMapping("/add")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> addRegistration(@Valid @RequestBody TournamentRegistration registration) {
+    public Result<Object> addRegistration(@Valid @RequestBody TournamentRegistrationCreateRequest request) {
         try {
+            TournamentRegistration registration = new TournamentRegistration();
+            registration.setTournamentId(request.getTournamentId());
+            registration.setMemberId(request.getMemberId());
+            registration.setPartnerId(request.getPartnerId());
+            registration.setEntryFee(request.getEntryFee());
+            registration.setStatus(request.getStatus());
+            registration.setRemark(request.getRemark());
 
             // 验证必填字段（普通用户可不传会员ID，由后端按当前用户补全）
             if (registration.getMemberId() == null && isAdmin()) {
@@ -428,5 +437,16 @@ public class TournamentRegistrationController extends BaseController {
         } catch (Exception e) {
             return error("获取会员列表时发生错误：" + e.getMessage());
         }
+    }
+
+    @Data
+    private static class TournamentRegistrationCreateRequest {
+        private Long memberId;
+        @NotNull(message = "赛事ID不能为空")
+        private Long tournamentId;
+        private Long partnerId;
+        private java.math.BigDecimal entryFee;
+        private Integer status;
+        private String remark;
     }
 }

@@ -147,7 +147,7 @@
       </view>
     </scroll-view>
 
-    <view class="fixed right-6 bottom-10 w-14 h-14 gradient-cta text-white rounded-full flex items-center justify-center shadow-2xl transition-transform z-60" hover-class="scale-95" @tap="navigateTo('/pages/venue/list')">
+    <view class="fixed right-6 bottom-32 w-14 h-14 gradient-cta text-white rounded-full flex items-center justify-center shadow-2xl transition-transform z-60" hover-class="scale-95" @tap="navigateTo('/pages/venue/list')">
       <uni-icons type="plusempty" size="24" color="#ffffff"></uni-icons>
     </view>
   </view>
@@ -329,7 +329,7 @@ const navigateTo = (url: string) => {
 .z-10 { z-index: 10; }
 .z-60 { z-index: 200; }
 .right-6 { right: 24rpx; }
-.bottom-10 { bottom: 40rpx; }
+.bottom-32 { bottom: 200rpx; }
 .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
 .absolute-bottom-right { position: absolute; right: -16rpx; bottom: -16rpx; }
 .font-bold { font-weight: bold; }

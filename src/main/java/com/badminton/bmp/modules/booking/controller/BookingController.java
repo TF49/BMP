@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 import com.badminton.bmp.common.util.SecurityUtils;
 
 @Tag(name = "场地预约模块", description = "预约 CRUD、支付、退款、统计与运营数据")
@@ -148,8 +150,15 @@ public class BookingController extends BaseController {
     @Operation(summary = "新增预约")
     @PostMapping("/add")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> addBooking(@Valid @RequestBody Booking booking) {
+    public Result<Object> addBooking(@Valid @RequestBody BookingCreateRequest request) {
         try {
+            Booking booking = new Booking();
+            booking.setMemberId(request.getMemberId());
+            booking.setCourtId(request.getCourtId());
+            booking.setBookingDate(request.getBookingDate());
+            booking.setStartTime(request.getStartTime());
+            booking.setEndTime(request.getEndTime());
+            booking.setRemark(request.getRemark());
 
             // 添加预约记录
             int result = bookingService.add(booking);
@@ -634,6 +643,20 @@ public class BookingController extends BaseController {
         if (v == null) return null;
         if (v instanceof Number) return ((Number) v).longValue();
         try { return Long.parseLong(v.toString()); } catch (NumberFormatException e) { return null; }
+    }
+
+    @Data
+    private static class BookingCreateRequest {
+        private Long memberId;
+        @NotNull(message = "场地ID不能为空")
+        private Long courtId;
+        @NotNull(message = "预约日期不能为空")
+        private LocalDate bookingDate;
+        @NotNull(message = "开始时间不能为空")
+        private LocalTime startTime;
+        @NotNull(message = "结束时间不能为空")
+        private LocalTime endTime;
+        private String remark;
     }
 
     /**

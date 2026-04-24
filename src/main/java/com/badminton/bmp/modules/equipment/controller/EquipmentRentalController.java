@@ -16,8 +16,12 @@ import org.springframework.security.access.AccessDeniedException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,12 +120,16 @@ public class EquipmentRentalController extends BaseController {
     @Operation(summary = "新增租借")
     @PostMapping("/add")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> addRental(@Valid @RequestBody EquipmentRental rental) {
+    public Result<Object> addRental(@Valid @RequestBody EquipmentRentalCreateRequest request) {
         try {
-            // 权限验证：仅管理员可添加租借记录
-            if (!isAdmin()) {
-                return error("权限不足，仅管理员可执行此操作");
-            }
+            EquipmentRental rental = new EquipmentRental();
+            rental.setMemberId(request.getMemberId());
+            rental.setEquipmentId(request.getEquipmentId());
+            rental.setQuantity(request.getQuantity());
+            rental.setRentalDate(request.getRentalDate());
+            rental.setExpectedReturnDate(request.getExpectedReturnDate());
+            rental.setPaymentMethod(request.getPaymentMethod());
+            rental.setRemark(request.getRemark());
 
             // 添加租借记录
             int result = equipmentRentalService.add(rental);
@@ -208,14 +216,9 @@ public class EquipmentRentalController extends BaseController {
      */
     @Operation(summary = "更新租借状态")
     @PutMapping("/status")
-    @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
+    @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
     public Result<Object> updateRentalStatus(@RequestParam("id") Long id, @RequestParam("status") Integer status) {
         try {
-            // 权限验证：仅管理员可更新状态
-            if (!isAdmin()) {
-                return error("权限不足，仅管理员可执行此操作");
-            }
-
             if (id == null) {
                 return error("租借记录ID不能为空");
             }
@@ -383,5 +386,20 @@ public class EquipmentRentalController extends BaseController {
         } catch (Exception e) {
             return error("获取会员列表时发生错误：" + e.getMessage());
         }
+    }
+
+    @Data
+    private static class EquipmentRentalCreateRequest {
+        private Long memberId;
+        @NotNull(message = "器材ID不能为空")
+        private Long equipmentId;
+        @NotNull(message = "租借数量不能为空")
+        @Min(value = 1, message = "租借数量必须大于0")
+        private Integer quantity;
+        @NotNull(message = "租借日期不能为空")
+        private LocalDate rentalDate;
+        private LocalDate expectedReturnDate;
+        private String paymentMethod;
+        private String remark;
     }
 }
