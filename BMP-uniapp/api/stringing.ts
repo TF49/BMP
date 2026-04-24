@@ -12,6 +12,7 @@ export {
   getStringingDetail,
   getStringingByNo,
   createStringing,
+  processMemberStringingPayment,
   getStringList,
   calculatePrice,
   cancelStringing,

@@ -101,6 +101,8 @@ export const API_PATHS = {
       LIST: '/tournament/registration/list',
       ADD: '/tournament/registration/add',
       DETAIL: '/tournament/registration/info',
+      PAYMENT: '/tournament/registration/payment',
+      MEMBER_PAYMENT: '/tournament/registration/member/payment',
       APPROVE: '/tournament/registration/approve',
       REJECT: '/tournament/registration/reject'
     }
@@ -136,6 +138,9 @@ export const API_PATHS = {
     INFO: '/stringing/info',
     INFO_NO: '/stringing/info/no',
     ADD: '/stringing/add',
+    PAYMENT: '/stringing/payment',
+    MEMBER_PAYMENT: '/stringing/member/payment',
+    REFUND: '/stringing/refund',
     CANCEL: '/stringing/cancel',
     DETAIL: '/stringing/info',
     UPDATE: '/stringing/update',

@@ -59,11 +59,7 @@ public class TournamentServiceImpl implements TournamentService {
             }
             throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
         } else {
-            // 普通用户：仅允许查看报名中/进行中/已结束的赛事
-            if (tournament.getStatus() != null && tournament.getStatus() != 0) {
-                return tournament;
-            }
-            throw new org.springframework.security.access.AccessDeniedException("普通用户不可查看已取消的赛事");
+            return tournament;
         }
     }
 
@@ -91,18 +87,13 @@ public class TournamentServiceImpl implements TournamentService {
             size = 10;
         }
         int offset = (page - 1) * size;
-        Boolean excludeCancelled = null;
         if (SecurityUtils.isPresident()) {
-            return tournamentMapper.findAll(venueId, status, excludeCancelled, type, keyword, startTime, endTime, offset, size);
+            return tournamentMapper.findAll(venueId, status, type, keyword, startTime, endTime, offset, size);
         } else if (SecurityUtils.isVenueManager()) {
             Long vId = SecurityUtils.getCurrentUserVenueId();
-            return tournamentMapper.findAll(vId, status, excludeCancelled, type, keyword, startTime, endTime, offset, size);
+            return tournamentMapper.findAll(vId, status, type, keyword, startTime, endTime, offset, size);
         } else {
-            excludeCancelled = Boolean.TRUE;
-            if (status != null && status == 0) {
-                return java.util.Collections.emptyList();
-            }
-            return tournamentMapper.findAll(venueId, status, excludeCancelled, type, keyword, startTime, endTime, offset, size);
+            return tournamentMapper.findAll(venueId, status, type, keyword, startTime, endTime, offset, size);
         }
     }
 
@@ -119,18 +110,13 @@ public class TournamentServiceImpl implements TournamentService {
     @Override
     public int count(Long venueId, Integer status, String type, String keyword,
                      LocalDateTime startTime, LocalDateTime endTime) {
-        Boolean excludeCancelled = null;
         if (SecurityUtils.isPresident()) {
-            return tournamentMapper.count(venueId, status, excludeCancelled, type, keyword, startTime, endTime);
+            return tournamentMapper.count(venueId, status, type, keyword, startTime, endTime);
         } else if (SecurityUtils.isVenueManager()) {
             Long vId = SecurityUtils.getCurrentUserVenueId();
-            return tournamentMapper.count(vId, status, excludeCancelled, type, keyword, startTime, endTime);
+            return tournamentMapper.count(vId, status, type, keyword, startTime, endTime);
         } else {
-            excludeCancelled = Boolean.TRUE;
-            if (status != null && status == 0) {
-                return 0;
-            }
-            return tournamentMapper.count(venueId, status, excludeCancelled, type, keyword, startTime, endTime);
+            return tournamentMapper.count(venueId, status, type, keyword, startTime, endTime);
         }
     }
 
@@ -333,11 +319,11 @@ public class TournamentServiceImpl implements TournamentService {
         Map<String, Object> stats = new HashMap<>();
         Long venueFilter = SecurityUtils.isPresident() ? null : SecurityUtils.getCurrentUserVenueId();
 
-        stats.put("total", tournamentMapper.count(venueFilter, null, null, null, null, null, null));
+        stats.put("total", tournamentMapper.count(venueFilter, null, null, null, null, null));
 
         List<Map<String, Object>> statusCounts = new ArrayList<>();
         for (int status = 0; status <= 3; status++) {
-            int count = tournamentMapper.count(venueFilter, status, null, null, null, null, null);
+            int count = tournamentMapper.count(venueFilter, status, null, null, null, null);
             if (count > 0) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("status", status);
@@ -384,7 +370,7 @@ public class TournamentServiceImpl implements TournamentService {
         stats.put("finished", finished);
 
         // 赛事带动效果：各赛事报名人数与收入（真实数据）
-        List<Tournament> tournamentList = tournamentMapper.findAll(venueFilter, null, null, null, null, null, null, 0, 20);
+        List<Tournament> tournamentList = tournamentMapper.findAll(venueFilter, null, null, null, null, null, 0, 20);
         List<Map<String, Object>> tournamentImpact = new ArrayList<>();
         if (tournamentList != null) {
             for (Tournament t : tournamentList) {

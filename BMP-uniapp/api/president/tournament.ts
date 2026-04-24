@@ -5,7 +5,8 @@ export type {
   TournamentItem,
   TournamentPayload,
   TournamentRegistrationParams,
-  TournamentRegistrationItem
+  TournamentRegistrationItem,
+  TournamentRegistrationPaymentMethod
 } from '@/api/internal/tournament'
 export {
   getTournamentList,
@@ -15,5 +16,7 @@ export {
   getTournamentRegistrationList,
   createTournamentRegistration,
   getTournamentRegistrationDetail,
+  processTournamentRegistrationPayment,
+  processMemberTournamentRegistrationPayment,
   updateTournamentRegistrationStatus
 } from '@/api/internal/tournament'

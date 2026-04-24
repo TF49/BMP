@@ -19,7 +19,6 @@ public interface TournamentMapper {
             "WHERE t.del_flag = 0 " +
             "<if test='venueId != null'> AND t.venue_id = #{venueId} </if>" +
             "<if test='status != null'> AND t.status = #{status} </if>" +
-            "<if test='excludeCancelled != null and excludeCancelled'> AND t.status != 0 </if>" +
             "<if test='type != null and type != \"\"'> AND t.tournament_type = #{type} </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND t.tournament_name LIKE CONCAT('%', #{keyword}, '%') </if>" +
@@ -30,7 +29,6 @@ public interface TournamentMapper {
             "</script>")
     List<Tournament> findAll(@Param("venueId") Long venueId,
                              @Param("status") Integer status,
-                             @Param("excludeCancelled") Boolean excludeCancelled,
                              @Param("type") String type,
                              @Param("keyword") String keyword,
                              @Param("startTime") LocalDateTime startTime,
@@ -42,7 +40,6 @@ public interface TournamentMapper {
             "SELECT COUNT(*) FROM biz_tournament t WHERE t.del_flag = 0 " +
             "<if test='venueId != null'> AND t.venue_id = #{venueId} </if>" +
             "<if test='status != null'> AND t.status = #{status} </if>" +
-            "<if test='excludeCancelled != null and excludeCancelled'> AND t.status != 0 </if>" +
             "<if test='type != null and type != \"\"'> AND t.tournament_type = #{type} </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND t.tournament_name LIKE CONCAT('%', #{keyword}, '%') </if>" +
@@ -51,7 +48,6 @@ public interface TournamentMapper {
             "</script>")
     int count(@Param("venueId") Long venueId,
               @Param("status") Integer status,
-              @Param("excludeCancelled") Boolean excludeCancelled,
               @Param("type") String type,
               @Param("keyword") String keyword,
               @Param("startTime") LocalDateTime startTime,

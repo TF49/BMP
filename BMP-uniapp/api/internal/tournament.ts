@@ -73,9 +73,20 @@ export interface TournamentRegistrationItem {
   partnerName?: string
   entryFee: number
   paymentMethod: string
+  paymentStatus?: number
   status: number
   createTime: string
+  updateTime?: string
+  remark?: string
+  matchResult?: string
+  tournamentStart?: string
+  tournamentEnd?: string
+  tournamentStartTime?: string
+  tournamentEndTime?: string
+  venueName?: string
 }
+
+export type TournamentRegistrationPaymentMethod = 'BALANCE'
 
 /**
  * 获取赛事列表
@@ -174,6 +185,28 @@ export function getTournamentRegistrationDetail(id: number) {
   return request<TournamentRegistrationItem>({
     url: `${API_PATHS.TOURNAMENT.REGISTRATION.DETAIL}/${id}`,
     method: 'GET'
+  })
+}
+
+export function processTournamentRegistrationPayment(
+  registrationId: number,
+  paymentMethod: TournamentRegistrationPaymentMethod
+) {
+  return request<null>({
+    url: `${API_PATHS.TOURNAMENT.REGISTRATION.PAYMENT}?registrationId=${registrationId}&paymentMethod=${paymentMethod}`,
+    method: 'POST',
+    data: undefined
+  })
+}
+
+export function processMemberTournamentRegistrationPayment(
+  registrationId: number,
+  paymentMethod: TournamentRegistrationPaymentMethod
+) {
+  return request<null>({
+    url: `${API_PATHS.TOURNAMENT.REGISTRATION.MEMBER_PAYMENT}?registrationId=${registrationId}&paymentMethod=${paymentMethod}`,
+    method: 'POST',
+    data: undefined
   })
 }
 

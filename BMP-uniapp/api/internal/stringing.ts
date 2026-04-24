@@ -165,7 +165,15 @@ export function createStringing(params: CreateStringingParams) {
 
 export function processStringingPayment(serviceId: number, paymentMethod: StringingPaymentMethod) {
   return request<null>({
-    url: `/stringing/payment?serviceId=${serviceId}&paymentMethod=${paymentMethod}`,
+    url: `${API_PATHS.STRINGING.PAYMENT}?serviceId=${serviceId}&paymentMethod=${paymentMethod}`,
+    method: 'POST',
+    data: undefined
+  })
+}
+
+export function processMemberStringingPayment(serviceId: number, paymentMethod: StringingPaymentMethod) {
+  return request<null>({
+    url: `${API_PATHS.STRINGING.MEMBER_PAYMENT}?serviceId=${serviceId}&paymentMethod=${paymentMethod}`,
     method: 'POST',
     data: undefined
   })
@@ -173,7 +181,7 @@ export function processStringingPayment(serviceId: number, paymentMethod: String
 
 export function processStringingRefund(serviceId: number) {
   return request<null>({
-    url: `/stringing/refund?serviceId=${serviceId}`,
+    url: `${API_PATHS.STRINGING.REFUND}?serviceId=${serviceId}`,
     method: 'POST',
     data: undefined
   })

@@ -530,6 +530,13 @@
       }
     },
     {
+      "path": "pages/tournament/registration-detail",
+      "style": {
+        "navigationBarTitleText": "报名详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/recharge/records",
       "style": {
         "navigationBarTitleText": "充值记录",

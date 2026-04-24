@@ -76,6 +76,10 @@
                 <text class="field-value remark">{{ detail.remark || '无' }}</text>
               </view>
             </view>
+
+            <view v-if="showPayAction" class="action-row">
+              <view class="action-btn" @click="handlePay">确认收款 / 余额支付</view>
+            </view>
           </template>
         </view>
       </scroll-view>
@@ -87,15 +91,22 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getTournamentRegistrationDetail, type TournamentRegistrationItem } from '@/api/president/tournament'
+import {
+  getTournamentRegistrationDetail,
+  processTournamentRegistrationPayment,
+  type TournamentRegistrationItem
+} from '@/api/president/tournament'
 import { formatAmount, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
+import { PAYMENT_METHOD_TEXT } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 
 type TournamentRegistrationDetail = TournamentRegistrationItem & {
   paymentStatus?: number
   remark?: string
   matchResult?: string
+  tournamentStart?: string
+  tournamentEnd?: string
   tournamentStartTime?: string
   tournamentEndTime?: string
 }
@@ -126,11 +137,17 @@ const paymentStatusLabel = computed(() => {
   return '支付状态未知'
 })
 
+const showPayAction = computed(() => {
+  if (!detail.value) return false
+  const paymentStatus = Number(detail.value.paymentStatus ?? 0)
+  return Number(detail.value.status ?? -1) === 1 && paymentStatus !== 1 && paymentStatus !== 2
+})
+
 const tournamentTimeLabel = computed(() => {
   const current = detail.value
   if (!current) return '未知赛事时间'
-  const start = formatDateTime(current.tournamentStartTime)
-  const end = formatDateTime(current.tournamentEndTime)
+  const start = formatDateTime(current.tournamentStartTime || current.tournamentStart)
+  const end = formatDateTime(current.tournamentEndTime || current.tournamentEnd)
   if (start && end) return `${start} - ${end}`
   return start || end || '未知赛事时间'
 })
@@ -151,6 +168,34 @@ async function loadDetail(id: number) {
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.TOURNAMENT_REGISTRATION_LIST)
+}
+
+async function handlePay() {
+  if (!detail.value || !showPayAction.value) return
+  uni.showModal({
+    title: '确认余额代支付',
+    content: `将为该报名单按会员余额完成支付。\n支付金额：¥${formatAmount(detail.value.entryFee || 0)}`,
+    success: async (res) => {
+      if (!res.confirm || !detail.value) return
+      try {
+        uni.showLoading({ title: '支付中...' })
+        await processTournamentRegistrationPayment(detail.value.id, 'BALANCE')
+        await loadDetail(detail.value.id)
+        uni.hideLoading()
+        uni.showToast({
+          title: `${PAYMENT_METHOD_TEXT.BALANCE}支付成功`,
+          icon: 'success'
+        })
+      } catch (error) {
+        console.error('Failed to process tournament registration payment:', error)
+        uni.hideLoading()
+        uni.showToast({
+          title: error instanceof Error ? error.message : '支付失败',
+          icon: 'none'
+        })
+      }
+    }
+  })
 }
 
 onLoad((options) => {
@@ -297,5 +342,21 @@ onLoad((options) => {
 
 .remark {
   white-space: pre-wrap;
+}
+
+.action-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  min-width: 240rpx;
+  padding: 22rpx 28rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  background: #ffedd5;
+  color: #c2410c;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 </style>

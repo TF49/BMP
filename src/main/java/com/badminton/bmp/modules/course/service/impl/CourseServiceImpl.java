@@ -70,11 +70,7 @@ public class CourseServiceImpl implements CourseService {
             }
             throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
         } else {
-            // 普通用户：仅允许查看报名中/进行中/已结束的课程
-            if (course.getStatus() != null && course.getStatus() != 0) {
-                return course;
-            }
-            throw new org.springframework.security.access.AccessDeniedException("普通用户不可查看已取消的课程");
+            return course;
         }
     }
 
@@ -98,18 +94,12 @@ public class CourseServiceImpl implements CourseService {
         }
         int offset = (page - 1) * size;
         Long venueFilter = null;
-        Boolean excludeCancelled = null;
         if (SecurityUtils.isPresident()) {
             venueFilter = null;
         } else if (SecurityUtils.isVenueManager()) {
             venueFilter = SecurityUtils.getCurrentUserVenueId();
-        } else {
-            excludeCancelled = Boolean.TRUE;
         }
-        if (Boolean.TRUE.equals(excludeCancelled) && status != null && status == 0) {
-            return java.util.Collections.emptyList();
-        }
-        return courseMapper.findAll(venueFilter, coachId, courtId, status, excludeCancelled, keyword, startTime, endTime, offset, size);
+        return courseMapper.findAll(venueFilter, coachId, courtId, status, keyword, startTime, endTime, offset, size);
     }
 
     /**
@@ -118,18 +108,12 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public int count(Long coachId, Long courtId, Integer status, String keyword, String startTime, String endTime) {
         Long venueFilter = null;
-        Boolean excludeCancelled = null;
         if (SecurityUtils.isPresident()) {
             venueFilter = null;
         } else if (SecurityUtils.isVenueManager()) {
             venueFilter = SecurityUtils.getCurrentUserVenueId();
-        } else {
-            excludeCancelled = Boolean.TRUE;
         }
-        if (Boolean.TRUE.equals(excludeCancelled) && status != null && status == 0) {
-            return 0;
-        }
-        return courseMapper.count(venueFilter, coachId, courtId, status, excludeCancelled, keyword, startTime, endTime);
+        return courseMapper.count(venueFilter, coachId, courtId, status, keyword, startTime, endTime);
     }
 
     /**

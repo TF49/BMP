@@ -91,23 +91,13 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
 
         // 处理 HTTP 状态码错误（非认证接口）
         if (statusCode === 403) {
-          console.error('API 请求被拒绝 (403)，可能是权限不足或 token 无效')
-          userStore.logout()
+          console.error('API 请求被拒绝 (403)，当前账号无权访问该资源')
+          const errorMessage = (data as any)?.message || (data as any)?.msg || '权限不足'
           uni.showToast({
-            title: '权限不足，请重新登录',
+            title: errorMessage,
             icon: 'none'
           })
-          setTimeout(() => {
-            // 检查当前页面，避免重复跳转
-            const pages = getCurrentPages()
-            const currentPage = pages[pages.length - 1]
-            if (currentPage && currentPage.route !== 'pages/login/login') {
-              uni.redirectTo({
-                url: '/pages/login/login'
-              })
-            }
-          }, 1500)
-          reject(new Error('权限不足'))
+          reject(new Error(errorMessage))
           return
         }
 

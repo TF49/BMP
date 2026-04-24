@@ -29,7 +29,6 @@ public interface CourseMapper {
             "<if test='coachId != null'> AND c.coach_id = #{coachId} </if>" +
             "<if test='courtId != null'> AND c.court_id = #{courtId} </if>" +
             "<if test='status != null'> AND c.status = #{status} </if>" +
-            "<if test='excludeCancelled != null and excludeCancelled'> AND c.status != 0 </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND c.course_name LIKE CONCAT('%', #{keyword}, '%') </if>" +
             "<if test='startTime != null and startTime != \"\"'> AND CONCAT(c.course_date,' ',c.start_time) &gt;= #{startTime} </if>" +
@@ -41,7 +40,6 @@ public interface CourseMapper {
                         @Param("coachId") Long coachId,
                         @Param("courtId") Long courtId,
                         @Param("status") Integer status,
-                        @Param("excludeCancelled") Boolean excludeCancelled,
                         @Param("keyword") String keyword,
                         @Param("startTime") String startTime,
                         @Param("endTime") String endTime,
@@ -57,7 +55,6 @@ public interface CourseMapper {
             "<if test='coachId != null'> AND c.coach_id = #{coachId} </if>" +
             "<if test='courtId != null'> AND c.court_id = #{courtId} </if>" +
             "<if test='status != null'> AND c.status = #{status} </if>" +
-            "<if test='excludeCancelled != null and excludeCancelled'> AND c.status != 0 </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND c.course_name LIKE CONCAT('%', #{keyword}, '%') </if>" +
             "<if test='startTime != null and startTime != \"\"'> AND CONCAT(c.course_date,' ',c.start_time) &gt;= #{startTime} </if>" +
@@ -67,7 +64,6 @@ public interface CourseMapper {
               @Param("coachId") Long coachId,
               @Param("courtId") Long courtId,
               @Param("status") Integer status,
-              @Param("excludeCancelled") Boolean excludeCancelled,
               @Param("keyword") String keyword,
               @Param("startTime") String startTime,
               @Param("endTime") String endTime);

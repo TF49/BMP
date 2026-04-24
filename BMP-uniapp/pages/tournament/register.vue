@@ -338,7 +338,7 @@ async function handleSubmit() {
     uni.showLoading({ title: '报名中...' })
     const member = await fetchCurrentMember()
 
-    await createTournamentRegistration({
+    const registration = await createTournamentRegistration({
       memberId: Number(member.id || 0),
       tournamentId: detail.value.id,
       name: form.value.name.trim(),
@@ -357,6 +357,12 @@ async function handleSubmit() {
     })
 
     setTimeout(() => {
+      if (registration?.id) {
+        uni.redirectTo({
+          url: `/pages/tournament/registration-detail?registrationId=${registration.id}&tournamentId=${detail.value?.id}`
+        })
+        return
+      }
       uni.redirectTo({
         url: `/pages/tournament/detail?id=${detail.value?.id}`
       })

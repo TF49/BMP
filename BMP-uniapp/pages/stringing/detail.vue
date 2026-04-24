@@ -53,6 +53,10 @@
               <text class="field-label">支付状态</text>
               <text class="field-value">{{ paymentStatusLabel }}</text>
             </view>
+            <view class="field-row">
+              <text class="field-label">当前余额</text>
+              <text class="field-value">¥{{ memberBalanceText }}</text>
+            </view>
           </view>
 
           <view class="section-card">
@@ -84,6 +88,9 @@
           </view>
 
           <view class="action-row">
+            <view v-if="showPayButton" class="action-btn pay" @tap="handlePay">
+              余额支付
+            </view>
             <view v-if="showCancelButton" class="action-btn secondary" @tap="handleCancel">
               取消服务
             </view>
@@ -105,14 +112,17 @@ import {
   getStringingDetail,
   getStringingPound,
   getStringingStringLabel,
+  processMemberStringingPayment,
   type StringingService
 } from '@/api/stringing'
+import { useCurrentMember } from '@/composables/useCurrentMember'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
-import { STRINGING_STATUS } from '@/utils/constant'
+import { PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 
 const userStore = useUserStore()
+const { currentMember, fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 56)
@@ -136,6 +146,8 @@ const paymentStatusLabel = computed(() => {
   if (paymentStatus === 2) return '已退款'
   return '待支付'
 })
+
+const memberBalanceText = computed(() => Number(currentMember.value?.balance || 0).toFixed(2))
 
 const memberLabel = computed(() => {
   if (!detail.value) return '未知客户'
@@ -172,6 +184,11 @@ const showCancelButton = computed(() => {
   return status === STRINGING_STATUS.WAITING && paymentStatus !== 1 && paymentStatus !== 2
 })
 
+const showPayButton = computed(() => {
+  if (!detail.value) return false
+  return Number(detail.value.status ?? -1) === STRINGING_STATUS.WAITING && Number(detail.value.paymentStatus ?? 0) === 0
+})
+
 function formatDateTime(value?: string) {
   if (!value) return ''
   const date = new Date(value)
@@ -202,7 +219,8 @@ async function loadDetail() {
   loading.value = true
   errorText.value = ''
   try {
-    detail.value = await getStringingDetail(serviceId.value)
+    const [serviceDetail] = await Promise.all([getStringingDetail(serviceId.value), fetchCurrentMember(true)])
+    detail.value = serviceDetail
   } catch (error) {
     console.error('加载穿线详情失败:', error)
     errorText.value = error instanceof Error ? error.message : '加载穿线详情失败'
@@ -229,6 +247,35 @@ async function handleCancel() {
       } catch (error) {
         console.error('取消服务失败:', error)
         uni.showToast({ title: error instanceof Error ? error.message : '取消失败', icon: 'none' })
+      }
+    }
+  })
+}
+
+function handlePay() {
+  if (!detail.value || !showPayButton.value) return
+  const amount = formatAmount(detail.value.totalPrice || detail.value.servicePrice || 0)
+  uni.showModal({
+    title: '确认余额支付',
+    content: `将使用本人余额支付穿线服务。\n当前余额：¥${memberBalanceText.value}\n支付金额：¥${amount}`,
+    success: async (res) => {
+      if (!res.confirm || !detail.value) return
+      try {
+        uni.showLoading({ title: '支付中...' })
+        await processMemberStringingPayment(detail.value.id, 'BALANCE')
+        await Promise.all([loadDetail(), fetchCurrentMember(true)])
+        uni.hideLoading()
+        uni.showToast({
+          title: `${PAYMENT_METHOD_TEXT.BALANCE}支付成功`,
+          icon: 'success'
+        })
+      } catch (error) {
+        console.error('穿线支付失败:', error)
+        uni.hideLoading()
+        uni.showToast({
+          title: error instanceof Error ? error.message : '支付失败',
+          icon: 'none'
+        })
       }
     }
   })
@@ -417,6 +464,12 @@ onLoad(async (options?: Record<string, string | undefined>) => {
   background: #ffffff;
   color: #ba1a1a;
   box-shadow: 0 8rpx 20rpx rgba(26, 28, 28, 0.04);
+}
+
+.action-btn.pay {
+  background: #fff3eb;
+  color: #a33e00;
+  box-shadow: 0 8rpx 20rpx rgba(163, 62, 0, 0.08);
 }
 
 .action-btn.primary {
