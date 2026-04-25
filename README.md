@@ -1,135 +1,172 @@
 # 羽擎（Badminton Management Platform，BMP）
 
-> **项目状态**：Web 端 ✅ 主要功能完成；移动端 UniApp（`BMP-uniapp/`）🚧 持续迭代中；移动端 Android（`BMPandroid/`）🚧 开发中。  
-> **后端端口**：`9090`（默认）｜**Web 前端端口**：`8080`（默认）
+> 当前仓库是一个单仓多端项目：`Spring Boot` 后端 + `Vue 3` Web 端 + `UniApp` 移动端。  
+> 本文档内容基于 2026-04-25 对代码、配置、构建结果和测试结果的复核整理，不以现有分析类 Markdown 作为依据。
 
-## 项目简介
+## 当前项目结论
 
-BMP 是一个面向羽毛球场馆运营的前后端分离系统，覆盖 **场馆 / 场地 / 会员 / 预约 / 器材 / 教练课程 / 赛事 / 充值 / 财务统计** 等业务，并提供：
+- 后端是项目核心，围绕场馆经营形成了较完整的业务中台。
+- `vue/` 不只是后台管理端，还混合了承载官网、用户端、教练端三类入口。
+- `BMP-uniapp/` 已不只是普通用户小程序，实际包含用户端和 `president` 移动管理端两套入口。
+- 当前仓库里未看到 `BMPandroid/` 目录，旧文档里对 Android 端的描述已不再适用。
 
-- **Web 管理端**（`vue/`）：管理端 + 用户端 + 教练端（多角色路由与按钮级权限）
-- **移动端（UniApp）**（`BMP-uniapp/`）：微信小程序/H5/App（按当前工程配置与实现进度）
-- **移动端（Android）**（`BMPandroid/`）：原生 Android 应用（Gradle，需用 Android Studio 打开该目录）
+## 技术栈
 
-## 技术栈（按前后端拆分）
+### 后端
 
-### 后端（Java / Spring Boot）
+- Java 17
+- Spring Boot 3.2.0
+- Spring Security
+- MyBatis-Plus 3.5.15
+- MySQL 8.x
+- Spring Cache + Redis
+- Spring WebSocket + STOMP + SockJS
+- SpringDoc OpenAPI / Swagger UI
+- EasyExcel
 
-- **语言与构建**
-  - Java **17**
-  - Maven（Spring Boot Maven Plugin）
-- **核心框架**
-  - Spring Boot **3.2.0**（Spring Web / Validation / AOP / Scheduling）
-  - Spring Security（无状态鉴权，JWT Filter）
-  - MyBatis-Plus **3.5.15**（Boot 3 专用 starter）
-- **数据与缓存**
-  - MySQL Connector/J **8.0.33**（数据库：MySQL 8.x）
-  - HikariCP（连接池）
-  - Spring Cache + Redis（`spring-boot-starter-data-redis`；未启用 Redis 时回退内存缓存）
-- **实时通信**
-  - WebSocket（STOMP + SockJS，后端 endpoint：`/ws`）
-- **文档与导出**
-  - SpringDoc OpenAPI + Swagger UI **2.3.0**（`/swagger-ui.html`）
-  - EasyExcel **3.3.2**（Excel 导入/导出）
-- **工程与通用能力**
-  - Lombok
-  - 全局异常处理（`@RestControllerAdvice`）
+### Web 端
 
-### 前端（Web 管理端：Vue 3）
+- Vue 3.5
+- Vue Router 4
+- Element Plus 2.11
+- Axios 1.13
+- ECharts 6
+- Vue CLI 5
+- TypeScript + JavaScript 混合工程
 
-- **框架与工程化**
-  - Vue **3.5.24**
-  - Vue Router **4.6.3**（Hash 路由；多角色路由守卫）
-  - Vue CLI **5**（`vue-cli-service`）
-  - TypeScript **5.9.3**（工程启用 TS；部分文件仍为 JS）
-  - Babel（生产环境移除 console：`transform-remove-console`）
-  - Sass（`sass` + `sass-loader`）
-- **UI 与可视化**
-  - Element Plus **2.11.8**
-  - ECharts **6.0.0**
-  - `@element-plus/icons-vue`
-  - 自定义样式：`src/styles/uiverse/`、`src/styles/site.css`
-- **网络与鉴权**
-  - Axios **1.13.2**（请求拦截器：Bearer Token；内置 RefreshToken 自动刷新队列）
-  - `js-cookie`
-  - `jsencrypt`（RSA 加解密工具，见 `src/utils/jsencrypt.js`）
-- **实时通信**
-  - `@stomp/stompjs` + `sockjs-client`（对接后端 STOMP：订阅 `/topic/...`、`/user/queue/...`）
-- **其他**
-  - `@ctrl/tinycolor`（颜色工具）
+### UniApp 端
 
-### 前端（移动端：UniApp）
+- UniApp 3 + Vue 3
+- Vite
+- Pinia
+- uview-plus
+- Vitest
+- TypeScript
 
-以 `BMP-uniapp/package.json` 为准：
-
-- UniApp（`@dcloudio/uni-app`）+ Vue 3
-- Vite（`@dcloudio/vite-plugin-uni`）
-- Pinia（状态管理）
-- dayjs / lodash-es
-- `@dcloudio/uni-ui`
-- Vitest（含 `vitest`、`@vitest/ui`）
-
-## 目录结构（核心）
+## 当前结构
 
 ```text
 BMP/
-├─ pom.xml                      # 后端 Maven 配置（Spring Boot 3.2 / Java 17）
-├─ src/main/java/com/badminton/bmp/
-│  ├─ modules/                  # 业务模块（controller/service/mapper/entity）
-│  ├─ config/                   # 安全、缓存、Swagger、定时任务、WebSocket 等配置
-│  ├─ common/                   # JWT/Result/异常/通用工具等
-│  └─ websocket/                # STOMP + 推送服务
-├─ src/main/resources/
-│  ├─ application.properties    # 公共配置（端口/DB/JWT/Swagger/Redis）
-│  ├─ application-dev.properties
-│  └─ application-prod.properties
-├─ vue/                         # Web 管理端（Vue 3 + Element Plus）
-├─ BMP-uniapp/                  # 移动端（UniApp）
-└─ BMPandroid/                  # 移动端 Android（Gradle，用 Android Studio 打开此目录）
+├─ pom.xml
+├─ src/
+│  └─ main/
+│     ├─ java/com/badminton/bmp/
+│     │  ├─ common/
+│     │  ├─ config/
+│     │  ├─ framework/
+│     │  ├─ modules/
+│     │  └─ websocket/
+│     └─ resources/
+│        ├─ application.properties
+│        ├─ application-dev.properties
+│        ├─ application-prod.properties
+│        └─ sql/badminton.sql
+├─ vue/
+├─ BMP-uniapp/
+├─ uploads/
+├─ logs/
+└─ 多份根目录文档
 ```
 
-## 快速开始（本地开发）
+## 业务模块
 
-### 环境要求
+后端 `modules/` 当前包含以下 15 个业务域：
 
-- **JDK 17**
-- **Maven 3.6+**（建议 3.9+）
-- **MySQL 8.x**
-- **Node.js 16+**（建议 18+）
-- **Redis（可选）**：仅当你需要启用 Redis 缓存
+- `activity`
+- `booking`
+- `coach`
+- `course`
+- `court`
+- `dashboard`
+- `equipment`
+- `finance`
+- `member`
+- `notification`
+- `search`
+- `stringing`
+- `system`
+- `tournament`
+- `venue`
 
-### 1) 初始化数据库
+这些模块已经覆盖了场馆、场地、预约、会员、充值、财务、教练课程、赛事、器材租借、通知、搜索等主流程。
 
-使用 `src/main/resources/sql/badminton.sql` 初始化（建表 + 示例数据）。文档细节见 `数据库设计文档.md`。
+## 多端职责
 
-### 2) 启动后端
+### 后端
 
-- 配置文件：`src/main/resources/application.properties`
-  - **数据库**：`spring.datasource.*`
-  - **JWT 密钥**：通过环境变量 `JWT_SECRET` 提供（必填，至少 32 字节）
-  - **环境切换**：`SPRING_PROFILES_ACTIVE=dev|prod`
-  - **WebSocket 来源白名单**：`WS_ALLOWED_ORIGINS`（逗号分隔）
-  - **Redis（可选）**：`REDIS_HOST/REDIS_PORT/REDIS_PASSWORD`
+- 统一提供 `/api/**` REST 接口
+- 统一 JWT 认证和刷新
+- 在服务层做数据权限兜底
+- 提供 WebSocket 推送管理端待办和用户订单状态
+- 通过定时任务推进预约、课程、赛事、租借等状态
 
-启动前建议先设置环境变量（Windows 示例）：
+### Web 端
 
-```powershell
-$env:DB_USERNAME="root"
-$env:DB_PASSWORD="你的数据库密码"
-$env:JWT_SECRET="请替换为至少32字节的高强度密钥"
-$env:WS_ALLOWED_ORIGINS="http://localhost:8080,http://127.0.0.1:8080"
-```
+- 官网入口：`/site`
+- 管理端：`PRESIDENT`、`VENUE_MANAGER`
+- 用户端：`USER`、`MEMBER`
+- 教练端：`COACH`
 
-启动命令：
+### UniApp 端
+
+- 用户端：首页、场馆预订、课程、器材、赛事、充值、个人中心
+- 会长移动端：`pages/president/**`
+- 当前角色策略并不完全统一，详见“已确认问题”
+
+## 已确认问题
+
+### 1. Web 端体积偏大
+
+2026-04-25 执行 `vue` 构建时通过，但出现明显体积告警：
+
+- `chunk-element-plus` 约 1.0 MiB
+- `chunk-echarts` 约 896 KiB
+- `chunk-vendors` 约 776 KiB
+- 主入口合计约 2.25 MiB
+
+这说明 Web 端功能已经很多，但按当前打包方式，首屏和弱网体验会受影响。
+
+### 2. UniApp 角色策略存在不一致
+
+`BMP-uniapp/utils/roleCheck.ts` 中：
+
+- `isAllowedRole()` 只允许 `USER` 和 `PRESIDENT`
+- `isUserRole()` 却又把 `MEMBER` 视为用户端角色
+
+这意味着业务语义已经把 `MEMBER` 当普通用户体系的一部分，但登录放行逻辑并没有完全跟上。
+
+### 3. 文档与仓库现状曾出现漂移
+
+- 旧 README 提到的 `BMPandroid/` 当前仓库内不存在
+- 根目录存在多份分析类文档，部分时间戳、规模数据、完成度描述已经落后于当前代码状态
+
+### 4. 后端自动化测试明显偏弱
+
+- `pom.xml` 中已没有测试依赖
+- 本次仅验证了后端可编译，未发现成体系的后端单元测试/集成测试
+
+这意味着后端的稳定性目前主要依赖人工联调和运行时验证。
+
+## 已验证结果
+
+2026-04-25 在当前仓库完成了以下验证：
+
+- 后端：`mvn -q -DskipTests compile` 通过
+- Web：`npm run build` 通过
+- UniApp：`npm run type-check` 通过
+- UniApp：`npm test` 通过，3 个测试文件、8 个测试全部通过
+
+## 本地启动
+
+### 后端
 
 ```bash
 mvn spring-boot:run
 ```
 
-- **API Base URL**：`http://localhost:9090`
-- **Swagger UI**：`http://localhost:9090/swagger-ui.html`
+默认端口：`9090`
 
-### 3) 启动 Web 前端（Vue）
+### Web
 
 ```bash
 cd vue
@@ -137,12 +174,7 @@ npm install
 npm run serve
 ```
 
-开发环境下 `vue.config.js` 会将：
-
-- `/api` 代理到 `http://localhost:9090`
-- `/ws` 以 WebSocket 方式代理到后端
-
-### 4) 启动移动端（UniApp / 微信小程序）
+### UniApp
 
 ```bash
 cd BMP-uniapp
@@ -150,23 +182,14 @@ npm install
 npm run dev:mp-weixin
 ```
 
-### 5) 移动端 Android
+## 根目录文档说明
 
-用 **Android Studio** 打开 `BMPandroid/` 目录，按常规 Android 项目构建与运行。
+当前根目录保留了多份说明文档。若继续维护本仓库，建议逐步收敛为：
 
-## 默认账号（示例数据）
-
-初始化脚本通常会内置示例账号；如需对外部署，请务必自行修改/重置默认账号与密码。
-
-## 文档索引
-
-- `项目开发文档.md`
-- `API文档.md`
-- `数据库设计文档.md`
-- `模块化测试文档.md`
-- `Dashboard虚拟数据对接清单.md`
-- `项目结构分析.md`（目录与多端结构说明）
+- `README.md`：只保留当前状态、启动方式、结构总览
+- `项目分析总结.md`：保留深度分析、风险、演进建议
+- `项目结构分析.md`：保留目录、职责、边界说明
 
 ---
 
-**最后更新**：2026-02-27
+**最后更新**：2026-04-25
