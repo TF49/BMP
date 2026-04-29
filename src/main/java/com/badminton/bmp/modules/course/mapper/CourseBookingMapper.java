@@ -14,15 +14,24 @@ import java.util.Map;
 @Mapper
 public interface CourseBookingMapper {
 
-    @Select("SELECT cb.*, m.member_name, c.course_name, co.coach_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+    @Select("SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
             "LEFT JOIN sys_member m ON cb.member_id = m.id " +
             "LEFT JOIN biz_course c ON cb.course_id = c.id " +
+            "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
             "LEFT JOIN sys_coach co ON c.coach_id = co.id " +
             "WHERE cb.id = #{id} AND cb.del_flag = 0")
     CourseBooking findById(@Param("id") Long id);
 
+    @Select("SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+            "LEFT JOIN sys_member m ON cb.member_id = m.id " +
+            "INNER JOIN biz_course c ON cb.course_id = c.id " +
+            "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
+            "LEFT JOIN sys_coach co ON c.coach_id = co.id " +
+            "WHERE cb.id = #{id} AND cb.del_flag = 0 AND c.coach_id = #{coachId}")
+    CourseBooking findByIdAndCoachId(@Param("coachId") Long coachId, @Param("id") Long id);
+
     @Select("<script>" +
-            "SELECT cb.*, m.member_name, c.course_name, co.coach_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+            "SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
             "LEFT JOIN sys_member m ON cb.member_id = m.id " +
             "LEFT JOIN biz_course c ON cb.course_id = c.id " +
             "LEFT JOIN sys_coach co ON c.coach_id = co.id " +
@@ -88,6 +97,12 @@ public interface CourseBookingMapper {
             "WHERE id = #{id} AND del_flag = 0")
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
 
+    @Update("UPDATE biz_course_booking SET status = #{status}, remark = #{remark}, update_time = NOW() " +
+            "WHERE id = #{id} AND del_flag = 0")
+    int updateStatusAndRemark(@Param("id") Long id,
+                              @Param("status") Integer status,
+                              @Param("remark") String remark);
+
     @Select("<script>" +
             "SELECT COUNT(*) > 0 FROM biz_course_booking " +
             "WHERE booking_no = #{bookingNo} AND del_flag = 0 " +
@@ -127,9 +142,10 @@ public interface CourseBookingMapper {
 
     /** 按教练过滤：当前教练所教课程的预约列表（教练端用） */
     @Select("<script>" +
-            "SELECT cb.*, m.member_name, c.course_name, co.coach_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+            "SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
             "LEFT JOIN sys_member m ON cb.member_id = m.id " +
             "INNER JOIN biz_course c ON cb.course_id = c.id " +
+            "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
             "LEFT JOIN sys_coach co ON c.coach_id = co.id " +
             "WHERE cb.del_flag = 0 AND c.coach_id = #{coachId} " +
             "<if test='status != null'> AND cb.status = #{status} </if>" +

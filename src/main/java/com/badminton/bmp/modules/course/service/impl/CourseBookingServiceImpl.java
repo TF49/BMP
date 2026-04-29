@@ -178,6 +178,75 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         return courseBookingMapper.countByCoachId(coachId, status, keyword);
     }
 
+    @Override
+    public CourseBooking findByIdForCoach(Long coachId, Long id) {
+        if (coachId == null || id == null) {
+            return null;
+        }
+        return courseBookingMapper.findByIdAndCoachId(coachId, id);
+    }
+
+    @Override
+    @Transactional
+    public int updateStatusForCoach(Long coachId, Long id, Integer status, String remark) {
+        if (coachId == null) {
+            throw new RuntimeException("未绑定教练档案，请联系管理员处理");
+        }
+        if (id == null) {
+            throw new RuntimeException("预约记录ID不能为空");
+        }
+        if (status == null || (status != 0 && status != 3 && status != 4)) {
+            throw new RuntimeException("教练仅可更新为已取消、进行中或已完成");
+        }
+
+        CourseBooking booking = courseBookingMapper.findByIdAndCoachId(coachId, id);
+        if (booking == null) {
+            throw new RuntimeException("预约记录不存在或无权操作");
+        }
+
+        Integer oldStatus = booking.getStatus();
+        if (oldStatus == null) {
+            throw new RuntimeException("预约状态异常，无法操作");
+        }
+        if (oldStatus == 0) {
+            throw new RuntimeException("该预约已取消，不能重复处理");
+        }
+        if (oldStatus == 4) {
+            throw new RuntimeException("该预约已完成，不能重复处理");
+        }
+
+        boolean legalTransition =
+                (oldStatus == 2 && (status == 0 || status == 3)) ||
+                (oldStatus == 3 && (status == 0 || status == 4));
+        if (!legalTransition) {
+            throw new RuntimeException("当前预约状态不允许执行该操作");
+        }
+
+        String nextRemark = remark != null ? remark.trim() : booking.getRemark();
+        int result = courseBookingMapper.updateStatusAndRemark(id, status, nextRemark);
+        if (result > 0) {
+            if ((oldStatus >= 1 && oldStatus <= 3) && !(status >= 1 && status <= 3)) {
+                Course course = courseMapper.findById(booking.getCourseId());
+                if (course != null) {
+                    int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
+                    courseMapper.updateCurrentStudents(booking.getCourseId(), Math.max(0, current - 1));
+                }
+            }
+            try {
+                Long userId = null;
+                Member member = memberMapper.findById(booking.getMemberId());
+                if (member != null && member.getUserId() != null) {
+                    userId = member.getUserId();
+                }
+                webSocketPushService.pushOrderStatusToUser(userId, "courseBooking", id, status, courseBookingStatusText(status), "课程预约");
+                webSocketPushService.pushDashboardRefresh();
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(CourseBookingServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+            }
+        }
+        return result;
+    }
+
     /**
      * 添加课程预约记录
      * @param booking 预约记录对象

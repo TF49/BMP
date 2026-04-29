@@ -12,6 +12,8 @@ public interface CourseBookingService {
     /** 教练端：当前教练所教课程的预约列表 */
     List<CourseBooking> findAllForCoach(Long coachId, Integer status, String keyword, int page, int size);
     int countForCoach(Long coachId, Integer status, String keyword);
+    CourseBooking findByIdForCoach(Long coachId, Long id);
+    int updateStatusForCoach(Long coachId, Long id, Integer status, String remark);
     int add(CourseBooking booking);
     int update(CourseBooking booking);
     int deleteById(Long id);

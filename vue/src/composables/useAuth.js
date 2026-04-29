@@ -51,6 +51,11 @@ export function useAuth() {
   const isUser = computed(() => userRole.value === 'USER')
 
   /**
+   * 检查是否为教练
+   */
+  const isCoach = computed(() => userRole.value === 'COACH')
+
+  /**
    * 检查是否为管理员（协会会长或场馆管理者）
    */
   const isAdmin = computed(() => isPresident.value || isVenueManager.value)
@@ -61,6 +66,7 @@ export function useAuth() {
     isPresident,
     isVenueManager,
     isUser,
+    isCoach,
     isAdmin
   }
 }

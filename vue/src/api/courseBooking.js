@@ -19,6 +19,23 @@ export function getBookingsForCoach(params) {
   })
 }
 
+// 教练端：预约详情
+export function getBookingDetailForCoach(id) {
+  return request({
+    url: `/api/course/booking/for-coach/${id}`,
+    method: 'get'
+  })
+}
+
+// 教练端：更新预约状态
+export function updateBookingStatusForCoach(data) {
+  return request({
+    url: '/api/course/booking/for-coach/status',
+    method: 'put',
+    data
+  })
+}
+
 // 预约详情
 export function getCourseBookingInfo(id) {
   return request({

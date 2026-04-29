@@ -1,37 +1,92 @@
 <template>
   <div class="coach-bookings">
-    <h2 class="page-title">预约明细</h2>
-    <p class="page-subtitle">您所教课程的预约记录（仅查看）</p>
-
-    <div class="toolbar">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="预约单号/课程名/会员名"
-        clearable
-        style="width: 200px"
-        @keyup.enter="loadList"
-      />
-      <el-select v-model="searchStatus" placeholder="状态" clearable style="width: 120px" @change="loadList">
-        <el-option label="待支付" :value="1" />
-        <el-option label="已支付" :value="2" />
-        <el-option label="进行中" :value="3" />
-        <el-option label="已完成" :value="4" />
-        <el-option label="已取消" :value="0" />
-      </el-select>
-      <el-button type="primary" @click="loadList">查询</el-button>
+    <div class="page-hero">
+      <div>
+        <h2 class="page-title">预约明细</h2>
+        <p class="page-subtitle">查看课程预约、签到到课、登记缺席或取消</p>
+      </div>
+      <div class="hero-tip">
+        <span class="hero-tip-label">教练权限</span>
+        <span class="hero-tip-value">可签到 / 完成 / 取消</span>
+      </div>
     </div>
 
-    <el-table v-loading="loading" :data="list" stripe>
-      <el-table-column prop="bookingNo" label="预约单号" width="140" />
-      <el-table-column prop="courseName" label="课程" min-width="120" />
-      <el-table-column prop="memberName" label="会员" width="100" />
-      <el-table-column prop="courseDate" label="日期" width="110" />
-      <el-table-column label="金额" width="100">
-        <template #default="{ row }">¥{{ (row.orderAmount ?? 0).toFixed(2) }}</template>
+    <div class="toolbar-card">
+      <div class="toolbar">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="预约单号 / 课程名 / 会员名"
+          clearable
+          class="toolbar-input"
+          @keyup.enter="loadList"
+        />
+        <el-select v-model="searchStatus" placeholder="全部状态" clearable class="toolbar-select" @change="loadList">
+          <el-option label="待支付" :value="1" />
+          <el-option label="已支付" :value="2" />
+          <el-option label="进行中" :value="3" />
+          <el-option label="已完成" :value="4" />
+          <el-option label="已取消" :value="0" />
+        </el-select>
+        <el-button type="primary" @click="loadList">查询</el-button>
+      </div>
+    </div>
+
+    <el-table v-loading="loading" :data="list" stripe class="booking-table">
+      <el-table-column prop="memberName" label="会员" min-width="110" />
+      <el-table-column prop="courseName" label="课程" min-width="150" show-overflow-tooltip />
+      <el-table-column label="上课时间" min-width="180">
+        <template #default="{ row }">
+          {{ formatCourseTime(row) }}
+        </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="90">
+      <el-table-column prop="courtName" label="场地" min-width="110" />
+      <el-table-column prop="orderAmount" label="金额" width="110">
+        <template #default="{ row }">¥{{ formatAmount(row.orderAmount) }}</template>
+      </el-table-column>
+      <el-table-column prop="paymentStatus" label="支付状态" width="110">
+        <template #default="{ row }">
+          <el-tag :type="paymentStatusType(row.paymentStatus)" size="small">
+            {{ paymentStatusText(row.paymentStatus) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="备注" min-width="170" show-overflow-tooltip>
+        <template #default="{ row }">{{ row.remark || '-' }}</template>
+      </el-table-column>
+      <el-table-column label="操作" min-width="280" fixed="right">
+        <template #default="{ row }">
+          <div class="action-group">
+            <el-button link type="primary" @click="openDetail(row.id)">查看详情</el-button>
+            <el-button
+              v-if="canStart(row)"
+              link
+              type="success"
+              @click="openStatusDialog(row, 3)"
+            >
+              签到上课
+            </el-button>
+            <el-button
+              v-if="canComplete(row)"
+              link
+              type="success"
+              @click="openStatusDialog(row, 4)"
+            >
+              完成课程
+            </el-button>
+            <el-button
+              v-if="canCancel(row)"
+              link
+              type="danger"
+              @click="openStatusDialog(row, 0)"
+            >
+              缺席/取消
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -47,12 +102,102 @@
         @size-change="loadList"
       />
     </div>
+
+    <el-dialog
+      v-model="detailVisible"
+      title="预约详情"
+      width="640px"
+      destroy-on-close
+    >
+      <div v-loading="detailLoading">
+        <template v-if="detail">
+          <el-descriptions :column="2" border class="detail-descriptions">
+            <el-descriptions-item label="预约单号">{{ detail.bookingNo }}</el-descriptions-item>
+            <el-descriptions-item label="会员">{{ detail.memberName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="课程">{{ detail.courseName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="教练">{{ detail.coachName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="日期">{{ detail.courseDate || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="场地">{{ detail.courtName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="时间">{{ formatCourseTime(detail) }}</el-descriptions-item>
+            <el-descriptions-item label="金额">¥{{ formatAmount(detail.orderAmount) }}</el-descriptions-item>
+            <el-descriptions-item label="支付状态">
+              <el-tag :type="paymentStatusType(detail.paymentStatus)" size="small">
+                {{ paymentStatusText(detail.paymentStatus) }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="状态">
+              <el-tag :type="statusType(detail.status)" size="small">{{ statusText(detail.status) }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatDateTime(detail.createTime) }}</el-descriptions-item>
+            <el-descriptions-item label="备注" :span="2">{{ detail.remark || '无' }}</el-descriptions-item>
+          </el-descriptions>
+
+          <el-alert
+            v-if="showRefundHint(detail)"
+            type="warning"
+            :closable="false"
+            show-icon
+            class="detail-hint"
+            title="该预约已取消，但仍为已支付状态，请联系管理员处理退款。"
+          />
+
+          <div class="detail-actions">
+            <el-button v-if="canStart(detail)" type="success" @click="openStatusDialog(detail, 3)">签到上课</el-button>
+            <el-button v-if="canComplete(detail)" type="primary" @click="openStatusDialog(detail, 4)">完成课程</el-button>
+            <el-button v-if="canCancel(detail)" type="danger" plain @click="openStatusDialog(detail, 0)">缺席/取消</el-button>
+          </div>
+        </template>
+        <el-empty v-else-if="detailLoadFailed" description="预约详情加载失败" />
+        <el-empty v-else description="暂无预约详情" />
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="statusVisible"
+      :title="statusDialogTitle"
+      width="460px"
+      destroy-on-close
+      @closed="resetStatusDialog"
+    >
+      <div class="status-dialog-body">
+        <div class="status-dialog-summary">
+          <div class="summary-label">当前预约</div>
+          <div class="summary-value">{{ currentActionRow?.bookingNo || '-' }}</div>
+          <div class="summary-sub">{{ currentActionRow?.memberName || '-' }} · {{ currentActionRow?.courseName || '-' }}</div>
+        </div>
+
+        <el-form label-position="top">
+          <el-form-item :label="statusRemarkLabel">
+            <el-input
+              v-model="statusRemark"
+              type="textarea"
+              :rows="3"
+              :placeholder="statusRemarkPlaceholder"
+              maxlength="500"
+              show-word-limit
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <el-button @click="statusVisible = false">取消</el-button>
+        <el-button type="primary" :loading="statusSubmitting" @click="submitStatusUpdate">
+          确认
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getBookingsForCoach } from '@/api/courseBooking'
+import { computed, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import {
+  getBookingsForCoach,
+  getBookingDetailForCoach,
+  updateBookingStatusForCoach
+} from '@/api/courseBooking'
 
 const loading = ref(false)
 const list = ref([])
@@ -62,14 +207,89 @@ const size = ref(10)
 const searchKeyword = ref('')
 const searchStatus = ref(null)
 
+const detailVisible = ref(false)
+const detailLoading = ref(false)
+const detail = ref(null)
+const detailLoadFailed = ref(false)
+
+const statusVisible = ref(false)
+const statusSubmitting = ref(false)
+const currentActionRow = ref(null)
+const targetStatus = ref(null)
+const statusRemark = ref('')
+
 const statusText = (s) => {
   const m = { 0: '已取消', 1: '待支付', 2: '已支付', 3: '进行中', 4: '已完成' }
   return m[s] ?? '未知'
 }
+
+const paymentStatusText = (s) => {
+  const m = { 0: '未支付', 1: '已支付', 2: '已退款' }
+  return m[s] ?? '未知'
+}
+
+const paymentStatusType = (s) => {
+  const m = { 0: 'warning', 1: 'success', 2: 'info' }
+  return m[s] ?? 'info'
+}
+
 const statusType = (s) => {
   const m = { 0: 'info', 1: 'warning', 2: 'success', 3: 'primary', 4: '' }
   return m[s] ?? 'info'
 }
+
+const formatAmount = (value) => {
+  const amount = Number(value ?? 0)
+  return Number.isFinite(amount) ? amount.toFixed(2) : '0.00'
+}
+
+const formatTimeValue = (value) => {
+  if (!value) return ''
+  return String(value).slice(0, 5)
+}
+
+const formatCourseTime = (row) => {
+  if (!row) return '-'
+  const dateText = row.courseDate || '-'
+  const start = formatTimeValue(row.courseStartTime || row.startTime)
+  const end = formatTimeValue(row.courseEndTime || row.endTime)
+  if (!start && !end) return dateText
+  return `${dateText} ${start || '--:--'} - ${end || '--:--'}`
+}
+
+const formatDateTime = (value) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const mi = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  return `${y}-${m}-${d} ${h}:${mi}:${s}`
+}
+
+const canStart = (row) => Number(row?.status) === 2
+const canComplete = (row) => Number(row?.status) === 3
+const canCancel = (row) => {
+  const status = Number(row?.status)
+  return status === 2 || status === 3
+}
+
+const showRefundHint = (row) => Number(row?.status) === 0 && Number(row?.paymentStatus) === 1
+
+const statusDialogTitle = computed(() => {
+  const map = { 0: '登记缺席 / 取消预约', 3: '签到上课', 4: '完成课程' }
+  return map[targetStatus.value] || '更新状态'
+})
+
+const statusRemarkLabel = computed(() => targetStatus.value === 0 ? '原因备注' : '课后备注')
+const statusRemarkPlaceholder = computed(() => {
+  if (targetStatus.value === 0) return '可填写缺席、取消或异常结束原因'
+  if (targetStatus.value === 4) return '可填写上课情况、课后说明'
+  return '可选，填写签到说明'
+})
 
 const loadList = async () => {
   loading.value = true
@@ -95,13 +315,224 @@ const loadList = async () => {
   }
 }
 
-onMounted(() => loadList())
+const openDetail = async (id) => {
+  detailVisible.value = true
+  detailLoading.value = true
+  detail.value = null
+  detailLoadFailed.value = false
+  try {
+    const res = await getBookingDetailForCoach(id)
+    if (res?.code === 200) {
+      detail.value = res.data
+    } else {
+      detailLoadFailed.value = true
+    }
+  } catch (_) {
+    detailLoadFailed.value = true
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+const openStatusDialog = (row, status) => {
+  currentActionRow.value = row
+  targetStatus.value = status
+  statusRemark.value = row?.remark || ''
+  statusVisible.value = true
+}
+
+const resetStatusDialog = () => {
+  currentActionRow.value = null
+  targetStatus.value = null
+  statusRemark.value = ''
+}
+
+const syncRowAfterStatusUpdate = async (id) => {
+  await loadList()
+  if (detailVisible.value && detail.value?.id === id) {
+    await openDetail(id)
+  }
+}
+
+const submitStatusUpdate = async () => {
+  if (!currentActionRow.value?.id || targetStatus.value == null) return
+  statusSubmitting.value = true
+  try {
+    const res = await updateBookingStatusForCoach({
+      id: currentActionRow.value.id,
+      status: targetStatus.value,
+      remark: statusRemark.value?.trim() || undefined
+    })
+    if (res?.code === 200) {
+      const successMessage = targetStatus.value === 0
+        ? '已登记缺席/取消；若订单已支付，请联系管理员处理退款'
+        : '状态已更新'
+      ElMessage.success(successMessage)
+      statusVisible.value = false
+      await syncRowAfterStatusUpdate(currentActionRow.value.id)
+    } else {
+      ElMessage.error(res?.message || '更新失败')
+    }
+  } catch (e) {
+    ElMessage.error(e?.message || '更新失败')
+  } finally {
+    statusSubmitting.value = false
+  }
+}
+
+loadList()
 </script>
 
 <style scoped>
-.coach-bookings { max-width: 100%; }
-.page-title { font-size: 22px; font-weight: 600; margin: 0 0 4px 0; }
-.page-subtitle { color: var(--el-text-color-secondary); margin: 0 0 16px 0; font-size: 14px; }
-.toolbar { margin-bottom: 16px; display: flex; gap: 12px; align-items: center; }
-.pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
+.coach-bookings {
+  max-width: 100%;
+}
+
+.page-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.page-subtitle {
+  color: var(--el-text-color-secondary);
+  margin: 0;
+  font-size: 14px;
+}
+
+.hero-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
+  min-width: 140px;
+}
+
+.hero-tip-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.hero-tip-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+.toolbar-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
+  margin-bottom: 16px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.toolbar-input {
+  width: 260px;
+}
+
+.toolbar-select {
+  width: 140px;
+}
+
+.booking-table {
+  width: 100%;
+}
+
+.action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+
+.pagination-wrap {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detail-descriptions {
+  margin-bottom: 20px;
+}
+
+.detail-hint {
+  margin-bottom: 20px;
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.status-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.status-dialog-summary {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 6px;
+}
+
+.summary-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.summary-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+@media (max-width: 900px) {
+  .page-hero {
+    flex-direction: column;
+  }
+
+  .hero-tip {
+    align-items: flex-start;
+  }
+
+  .toolbar-input,
+  .toolbar-select {
+    width: 100%;
+  }
+
+  .pagination-wrap {
+    justify-content: center;
+  }
+}
 </style>

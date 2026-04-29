@@ -51,6 +51,7 @@ public class CourseBooking {
     private String memberName;
     private String courseName;
     private String coachName;
+    private String courtName;
     private LocalDate courseDate;
     private LocalTime courseStartTime;
     private LocalTime courseEndTime;

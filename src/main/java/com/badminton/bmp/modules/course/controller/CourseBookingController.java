@@ -81,6 +81,45 @@ public class CourseBookingController extends BaseController {
         }
     }
 
+    @Operation(summary = "教练端预约详情", description = "COACH 角色：仅返回当前教练所教课程下的预约详情")
+    @GetMapping("/for-coach/{id}")
+    @PreAuthorize("hasRole('COACH')")
+    public Result<CourseBooking> getBookingDetailForCoach(@PathVariable("id") Long id) {
+        try {
+            Long coachId = coachService.getCurrentCoachIdOrNull();
+            if (coachId == null) {
+                return error("未绑定教练档案，请联系管理员在教练管理中关联账号");
+            }
+            CourseBooking booking = courseBookingService.findByIdForCoach(coachId, id);
+            return booking != null ? success(booking) : error("预约记录不存在或无权查看");
+        } catch (RuntimeException e) {
+            return error(e.getMessage());
+        } catch (Exception e) {
+            return error("获取预约详情时发生错误：" + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "教练端更新预约状态", description = "COACH 角色：仅可对自己课程的预约执行签到、完成或取消")
+    @PutMapping("/for-coach/status")
+    @PreAuthorize("hasRole('COACH')")
+    public Result<Object> updateBookingStatusForCoach(@RequestBody CoachBookingStatusRequest request) {
+        try {
+            Long coachId = coachService.getCurrentCoachIdOrNull();
+            if (coachId == null) {
+                return error("未绑定教练档案，请联系管理员在教练管理中关联账号");
+            }
+            if (request == null || request.getId() == null) {
+                return error("预约记录ID不能为空");
+            }
+            int result = courseBookingService.updateStatusForCoach(coachId, request.getId(), request.getStatus(), request.getRemark());
+            return result > 0 ? success(null) : error("更新预约状态失败");
+        } catch (RuntimeException e) {
+            return error(e.getMessage());
+        } catch (Exception e) {
+            return error("更新预约状态时发生错误：" + e.getMessage());
+        }
+    }
+
     @Operation(summary = "课程预约列表", description = "支持会员/课程/状态/关键词筛选与分页")
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
@@ -420,6 +459,15 @@ public class CourseBookingController extends BaseController {
         @NotNull(message = "课程ID不能为空")
         private Long courseId;
         private java.math.BigDecimal orderAmount;
+        private Integer status;
+        private String remark;
+    }
+
+    @Data
+    private static class CoachBookingStatusRequest {
+        @NotNull(message = "预约ID不能为空")
+        private Long id;
+        @NotNull(message = "状态不能为空")
         private Integer status;
         private String remark;
     }
