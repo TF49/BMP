@@ -672,9 +672,65 @@
       }
     },
     {
+      "path": "pages/coach/index",
+      "style": {
+        "navigationBarTitleText": "教练工作台",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/coach/detail",
       "style": {
         "navigationBarTitleText": "教练详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/courses",
+      "style": {
+        "navigationBarTitleText": "我的课程",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/schedule",
+      "style": {
+        "navigationBarTitleText": "教练日程",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/bookings",
+      "style": {
+        "navigationBarTitleText": "预约明细",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/students",
+      "style": {
+        "navigationBarTitleText": "学员名单",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/history",
+      "style": {
+        "navigationBarTitleText": "课程历史记录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/unbound",
+      "style": {
+        "navigationBarTitleText": "未绑定档案",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/coach/profile",
+      "style": {
+        "navigationBarTitleText": "我的档案",
         "navigationStyle": "custom"
       }
     }
