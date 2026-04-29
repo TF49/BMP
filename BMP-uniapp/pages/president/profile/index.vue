@@ -4,7 +4,7 @@
       <view class="top-bar" :style="{ paddingTop: `${statusBarHeight}px` }">
         <view class="top-bar-left">
           <image class="top-bar-avatar" :src="headerAvatar" mode="aspectFill" />
-          <text class="top-bar-title">President Profile</text>
+          <text class="top-bar-title">{{ profileTitle }}</text>
         </view>
         <view class="top-bar-settings" @tap="goSettings">
           <uni-icons type="gear" size="22" color="#ea580c" />
@@ -20,7 +20,7 @@
             <view class="user-meta">
               <text class="user-name">{{ displayName }}</text>
               <view class="user-sub">
-                <text class="role-badge">协会会长</text>
+                <text class="role-badge">{{ roleLabel }}</text>
                 <text class="user-id">{{ idLabel }}</text>
               </view>
             </view>
@@ -29,7 +29,7 @@
           <view class="brief-card">
             <view class="brief-card-bg" />
             <view class="brief-card-inner">
-              <text class="brief-label">协会经营简报</text>
+              <text class="brief-label">管理端经营简报</text>
               <text class="brief-amount">{{ briefingAmount }}</text>
             </view>
             <view class="brief-actions">
@@ -43,29 +43,17 @@
           <view class="section">
             <text class="section-title">Core Management</text>
             <view class="grid-2">
-              <view class="grid-tile" hover-class="grid-tile-hover" @tap="openTabPage(PRESIDENT_PAGES.VENUE_LIST)">
+              <view
+                v-for="item in coreManagementTiles"
+                :key="item.label"
+                class="grid-tile"
+                hover-class="grid-tile-hover"
+                @tap="item.action()"
+              >
                 <view class="tile-icon-wrap">
-                  <uni-icons type="location" size="28" color="#a33e00" />
+                  <uni-icons :type="item.icon" size="28" color="#a33e00" />
                 </view>
-                <text class="tile-label">场馆管理</text>
-              </view>
-              <view class="grid-tile" hover-class="grid-tile-hover" @tap="goMemberManagement">
-                <view class="tile-icon-wrap">
-                  <uni-icons type="staff" size="28" color="#a33e00" />
-                </view>
-                <text class="tile-label">会员管理</text>
-              </view>
-              <view class="grid-tile" hover-class="grid-tile-hover" @tap="goCoachCourses">
-                <view class="tile-icon-wrap">
-                  <uni-icons type="compose" size="28" color="#a33e00" />
-                </view>
-                <text class="tile-label">教练课程</text>
-              </view>
-              <view class="grid-tile" hover-class="grid-tile-hover" @tap="goTournaments">
-                <view class="tile-icon-wrap">
-                  <uni-icons type="medal" size="28" color="#a33e00" />
-                </view>
-                <text class="tile-label">赛事活动</text>
+                <text class="tile-label">{{ item.label }}</text>
               </view>
             </view>
           </view>
@@ -153,12 +141,14 @@ import { PRESIDENT_TAB_BAR_LIST } from '@/utils/presidentTabBar'
 import { getPresidentDashboardSummary, type PresidentDashboardSummary } from '@/api/president/dashboard'
 import { formatAmount } from '@/utils/format'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { getRoleName, isPresidentRole } from '@/utils/roleCheck'
 
 const userStore = useUserStore()
 const userInfo = computed(() => userStore.userInfo)
 const statusBarHeight = ref(44)
 const summary = ref<PresidentDashboardSummary | null>(null)
 const summaryLoading = ref(false)
+const isPresident = computed(() => isPresidentRole(userInfo.value?.role))
 
 const TAB_RELAUNCH_PATHS = new Set(PRESIDENT_TAB_BAR_LIST.map((t) => `/${t.pagePath}`))
 
@@ -166,11 +156,13 @@ const placeholderAvatar = '/static/placeholders/avatar.svg'
 
 const headerAvatar = computed(() => userInfo.value?.avatar || placeholderAvatar)
 const mainAvatar = computed(() => userInfo.value?.avatar || placeholderAvatar)
+const roleLabel = computed(() => getRoleName(userInfo.value?.role) || '管理账号')
+const profileTitle = computed(() => '管理中心')
 
 const displayName = computed(() => {
   const u = userInfo.value
-  if (!u) return '协会会长'
-  return (u.nickname || u.username || '').trim() || '协会会长'
+  if (!u) return '管理账号'
+  return (u.nickname || u.username || '').trim() || roleLabel.value
 })
 
 const idLabel = computed(() => {
@@ -260,6 +252,31 @@ function goSettings() {
 function goHelp() {
   openPage('/pages/settings/help')
 }
+
+const coreManagementTiles = computed(() => {
+  return [
+    {
+      label: '场馆管理',
+      icon: 'location',
+      action: () => openTabPage(PRESIDENT_PAGES.VENUE_LIST)
+    },
+    {
+      label: '会员管理',
+      icon: 'staff',
+      action: goMemberManagement
+    },
+    {
+      label: '教练课程',
+      icon: 'compose',
+      action: goCoachCourses
+    },
+    {
+      label: '赛事活动',
+      icon: 'medal',
+      action: goTournaments
+    }
+  ]
+})
 
 async function loadSummary() {
   summaryLoading.value = true

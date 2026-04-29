@@ -287,7 +287,7 @@ import { getCourtList, type CourtItem } from '@/api/court'
 import { createBooking, getBookingRangeOccupancy, type BookingOccupancyUser } from '@/api/booking'
 import { useUserStore } from '@/store/modules/user'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
-import { isPresidentRole } from '@/utils/roleCheck'
+import { isManagementRole } from '@/utils/roleCheck'
 import { formatAmount } from '@/utils/format'
 import { useCurrentMember } from '@/composables/useCurrentMember'
 
@@ -616,8 +616,8 @@ async function handleSubmit() {
       bookingId: (res as any)?.id
     }
 
-    const isPresident = isPresidentRole(userStore.userInfo?.role)
-    const returnUrl = isPresident ? `/pages/president/venue/detail?id=${venueId.value}` : '/pages/booking/list'
+    const isManagement = isManagementRole(userStore.userInfo?.role)
+    const returnUrl = isManagement ? `/pages/president/venue/detail?id=${venueId.value}` : '/pages/booking/list'
 
     uni.navigateTo({
       url: `/pages/booking/confirm?bookingId=${encodeURIComponent(String((res as any)?.id || bookingSummary.bookingId || ''))}&data=${encodeURIComponent(JSON.stringify(bookingSummary))}&returnUrl=${encodeURIComponent(returnUrl)}`

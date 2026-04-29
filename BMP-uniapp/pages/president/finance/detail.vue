@@ -16,7 +16,7 @@
         <view class="detail-row"><text class="label">操作人</text><text class="value">{{ detail.operatorName || '—' }}</text></view>
         <view class="detail-row"><text class="label">备注</text><text class="value">{{ detail.remark || '—' }}</text></view>
         <view class="detail-row"><text class="label">创建时间</text><text class="value">{{ detail.createTime || '—' }}</text></view>
-        <view class="btn-row">
+        <view v-if="isPresident" class="btn-row">
           <view class="btn-del" @click="onDelete">删除记录</view>
         </view>
       </view>
@@ -31,6 +31,8 @@ import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { getFinanceInfo, deleteFinance, type FinanceItem } from '@/api/president/finance'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { useUserStore } from '@/store/modules/user'
+import { isPresidentRole } from '@/utils/roleCheck'
 
 const id = computed(() => {
   const pages = getCurrentPages()
@@ -39,6 +41,8 @@ const id = computed(() => {
 })
 const loading = ref(true)
 const detail = ref<FinanceItem | null>(null)
+const userStore = useUserStore()
+const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
 
 function formatNum(v: unknown) {
   const n = Number(v)
@@ -59,9 +63,13 @@ async function load() {
 }
 
 function onDelete() {
+  if (!isPresident.value) {
+    uni.showToast({ title: '当前账号无权删除财务记录', icon: 'none' })
+    return
+  }
   uni.showModal({
     title: '确认删除',
-    content: '确定要删除该财务记录吗？仅会长可操作。',
+    content: '确定要删除该财务记录吗？该操作仅协会会长可执行。',
     success: async (res) => {
       if (!res.confirm) return
       try {

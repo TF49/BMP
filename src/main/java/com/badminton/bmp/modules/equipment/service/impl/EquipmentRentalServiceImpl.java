@@ -302,7 +302,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             if (oldEquipmentForScope == null || oldEquipmentForScope.getVenueId() == null || !vId.equals(oldEquipmentForScope.getVenueId())) {
                 throw new RuntimeException("权限不足：只能操作自己场馆的器材租借");
             }
-        } else if (!SecurityUtils.isPresident() && !SecurityUtils.getCurrentUserRoles().contains("USER")) {
+        } else if (!SecurityUtils.isPresident() && !SecurityUtils.isUser()) {
             throw new RuntimeException("权限不足");
         }
 

@@ -31,7 +31,7 @@ public class RechargeRecord {
     private LocalDateTime rechargeTime;
 
     @NotBlank
-    @Pattern(regexp = "USER|ADMIN")
+    @Pattern(regexp = "USER|MEMBER|ADMIN")
     private String operatorType;
 
     private Long operatorId;

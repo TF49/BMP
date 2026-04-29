@@ -80,9 +80,10 @@ public class SecurityUtils {
         return getCurrentUserRoles().stream().anyMatch(r -> "VENUE_MANAGER".equalsIgnoreCase(r));
     }
 
-    /** 是否为普通用户（未升级会员） */
+    /** 是否为用户端角色（USER / MEMBER） */
     public static boolean isUser() {
-        return getCurrentUserRoles().stream().anyMatch(r -> "USER".equalsIgnoreCase(r));
+        return getCurrentUserRoles().stream().anyMatch(r ->
+                "USER".equalsIgnoreCase(r) || "MEMBER".equalsIgnoreCase(r));
     }
 
     /** 是否为会员角色 */
@@ -123,4 +124,3 @@ public class SecurityUtils {
         return roles.iterator().next();
     }
 }
-

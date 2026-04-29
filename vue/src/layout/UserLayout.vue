@@ -273,7 +273,7 @@ onMounted(async () => {
     const title = payload.title || '预约'
     ElMessage.success(`${title}状态已更新：${payload.statusText}`)
   })
-  if (getToken() && userInfo.value.role === 'USER') {
+  if (getToken() && (userInfo.value.role === 'USER' || userInfo.value.role === 'MEMBER')) {
     connectWebSocket()
   }
   window.addEventListener('storage', handleStorageChange)

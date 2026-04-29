@@ -14,7 +14,7 @@
 import { computed, onMounted } from 'vue'
 import PresidentTabBar from './PresidentTabBar.vue'
 import { useUserStore } from '@/store/modules/user'
-import { isPresidentRole } from '@/utils/roleCheck'
+import { isManagementRole } from '@/utils/roleCheck'
 import { safeReLaunch } from '@/utils/safeRoute'
 
 const props = withDefaults(
@@ -57,7 +57,7 @@ const rootClassList = computed(() => {
 
 onMounted(() => {
   const userStore = useUserStore()
-  if (!isPresidentRole(userStore.userRole)) {
+  if (!isManagementRole(userStore.userRole)) {
     safeReLaunch('/pages/index/index', '/pages/index/index')
   }
 })

@@ -4,7 +4,9 @@
 export const USER_ROLES = {
   PRESIDENT: 'PRESIDENT', // 协会会长
   VENUE_MANAGER: 'VENUE_MANAGER', // 场馆管理者
-  USER: 'USER' // 普通用户
+  USER: 'USER', // 普通用户
+  MEMBER: 'MEMBER', // 会员
+  COACH: 'COACH' // 教练
 } as const
 
 /**

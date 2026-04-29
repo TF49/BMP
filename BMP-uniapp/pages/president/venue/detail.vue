@@ -182,7 +182,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
-import { isPresidentRole } from '@/utils/roleCheck'
+import { isManagementRole } from '@/utils/roleCheck'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { getVenueInfo, deleteVenue, type VenueItem } from '@/api/president/venue'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
@@ -294,7 +294,7 @@ onLoad((options?: Record<string, string | undefined>) => {
 })
 
 onMounted(() => {
-  if (!isPresidentRole(userStore.userRole)) {
+  if (!isManagementRole(userStore.userRole)) {
     safeReLaunch('/pages/index/index', '/pages/index/index')
   }
 })

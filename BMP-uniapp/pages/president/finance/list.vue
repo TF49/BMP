@@ -45,7 +45,7 @@
         <!-- Welcome & Role Badge -->
         <view class="welcome-section">
           <view class="title-wrap">
-            <text class="role-badge">会长管理后台</text>
+            <text class="role-badge">移动管理后台</text>
             <view class="page-title">
               <text class="title-main">财务 </text>
               <text class="title-italic">脉搏</text>

@@ -1,9 +1,9 @@
 <template>
   <view>
-    <PresidentIndex v-if="isPresident" />
+    <PresidentIndex v-if="isManagement" />
     <MemberIndex v-else />
-    <CustomTabBar v-if="!isPresident" :current="0" />
-    <PresidentTabBar v-if="isPresident" />
+    <CustomTabBar v-if="!isManagement" :current="0" />
+    <PresidentTabBar v-if="isManagement" />
   </view>
 </template>
 
@@ -14,10 +14,10 @@ import PresidentTabBar from '@/components/president/PresidentTabBar.vue'
 import MemberIndex from './components/MemberIndex.vue'
 import PresidentIndex from './components/PresidentIndex.vue'
 import { useUserStore } from '@/store/modules/user'
-import { isPresidentRole } from '@/utils/roleCheck'
+import { isManagementRole } from '@/utils/roleCheck'
 
 const userStore = useUserStore()
-const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
+const isManagement = computed(() => isManagementRole(userStore.userInfo?.role))
 </script>
 
 <style scoped>

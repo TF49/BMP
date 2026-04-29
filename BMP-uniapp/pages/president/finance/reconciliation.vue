@@ -13,7 +13,7 @@
           <uni-icons type="info-filled" size="20" color="#ea580c" />
           <text class="info-title">对账说明</text>
         </view>
-        <text class="info-text">对账将汇总各业务模块财务数据，包括场地预约、课程预约、器材租借、穿线服务等，生成完整的财务报表。仅协会会长可操作。</text>
+        <text class="info-text">{{ reconciliationHint }}</text>
       </view>
 
       <view class="stats-grid">
@@ -28,9 +28,9 @@
       </view>
 
       <view class="btn-wrap">
-        <view class="btn-run" :class="{ loading: running }" @click="runRecon">
+        <view class="btn-run" :class="{ loading: running, disabled: !isPresident }" @click="runRecon">
           <uni-icons v-if="!running" type="checkmarkempty" size="20" color="#ffffff" />
-          <text>{{ running ? '对账中...' : '执行全面对账' }}</text>
+          <text>{{ running ? '对账中...' : isPresident ? '执行全面对账' : '仅会长可执行全面对账' }}</text>
         </view>
       </view>
 
@@ -88,6 +88,8 @@ import { reconciliation } from '@/api/president/finance'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { formatDateTime } from '@/utils/format'
+import { useUserStore } from '@/store/modules/user'
+import { isPresidentRole } from '@/utils/roleCheck'
 
 function onBack() {
   safeNavigateBack(PRESIDENT_PAGES.FINANCE_LIST)
@@ -96,6 +98,13 @@ function onBack() {
 const running = ref(false)
 const result = ref<Record<string, any> | null>(null)
 const lastReconciliationTime = ref<string>('')
+const userStore = useUserStore()
+const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
+const reconciliationHint = computed(() =>
+  isPresident.value
+    ? '对账将汇总各业务模块财务数据，包括场地预约、课程预约、器材租借、穿线服务等，生成完整的财务报表。'
+    : '对账将汇总各业务模块财务数据，包括场地预约、课程预约、器材租借、穿线服务等。当前账号可查看状态，全面对账需由协会会长执行。'
+)
 
 const statusText = computed(() => {
   if (running.value) return '对账中'
@@ -134,6 +143,10 @@ function getBusinessName(key: string | number): string {
 
 async function runRecon() {
   if (running.value) return
+  if (!isPresident.value) {
+    uni.showToast({ title: '当前账号仅可查看对账状态', icon: 'none' })
+    return
+  }
   running.value = true
   result.value = null
   
@@ -268,6 +281,10 @@ onLoad(() => {
   &.loading {
     opacity: 0.7;
     box-shadow: 0 8rpx 16rpx rgba(234, 88, 12, 0.2);
+  }
+
+  &.disabled {
+    opacity: 0.65;
   }
 }
 

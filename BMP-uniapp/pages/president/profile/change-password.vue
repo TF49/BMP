@@ -94,7 +94,7 @@ async function handleSubmit() {
       newPassword: form.value.newPassword
     })
     uni.showToast({
-      title: '密码已修改，请使用新密码重新登录会长工作台',
+      title: '密码已修改，请使用新密码重新登录移动管理端',
       icon: 'success',
       duration: 2500
     })

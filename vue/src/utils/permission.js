@@ -11,7 +11,8 @@ import { getUserInfo } from '@/utils/auth'
 export const ROLES = {
   PRESIDENT: 'PRESIDENT',       // 协会会长
   VENUE_MANAGER: 'VENUE_MANAGER', // 场馆管理者
-  USER: 'USER'                  // 普通用户
+  USER: 'USER',                 // 普通用户
+  MEMBER: 'MEMBER'              // 会员
 }
 
 /**
@@ -49,11 +50,11 @@ export function isVenueManager() {
 }
 
 /**
- * 检查是否为普通用户
+ * 检查是否为用户端角色
  * @returns {boolean}
  */
 export function isUser() {
-  return getCurrentRole() === ROLES.USER
+  return [ROLES.USER, ROLES.MEMBER].includes(getCurrentRole())
 }
 
 /**

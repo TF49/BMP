@@ -18,8 +18,8 @@
               mode="aspectFill"
             />
             <view class="drawer-profile-text">
-              <text class="drawer-name">会长办公室</text>
-              <text class="drawer-role">Kinetic Logic 管理员</text>
+              <text class="drawer-name">移动管理端</text>
+              <text class="drawer-role">{{ drawerRoleLabel }}</text>
             </view>
           </view>
           <view class="drawer-nav">
@@ -203,9 +203,11 @@ import {
   updateStringingStatus,
   type StringingService
 } from '@/api/president/stringing'
+import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getRoleName, isPresidentRole } from '@/utils/roleCheck'
 
 type JobStatus = 'in_progress' | 'pending' | 'ready' | 'cancelled'
 
@@ -231,10 +233,13 @@ const loading = ref(false)
 const records = ref<StringingService[]>([])
 const keyword = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+const userStore = useUserStore()
+const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
+const drawerRoleLabel = computed(() => getRoleName(userStore.userInfo?.role))
 
-const drawerNav = ref([
+const drawerNav = computed(() => [
   { label: '仪表盘', icon: 'home', active: false, action: 'dashboard' as const },
-  { label: '协会管理', icon: 'staff', active: true, action: 'assoc' as const },
+  { label: isPresident.value ? '协会管理' : '会员管理', icon: 'staff', active: true, action: 'assoc' as const },
   { label: '赛事联赛', icon: 'flag', active: false, action: 'league' as const },
   { label: '设置', icon: 'gear', active: false, action: 'settings' as const }
 ])
@@ -367,7 +372,7 @@ function onDrawerNav(item: (typeof drawerNav.value)[0]) {
     return
   }
   if (item.action === 'assoc') {
-    uni.reLaunch({ url: PRESIDENT_PAGES.USER_LIST })
+    uni.reLaunch({ url: isPresident.value ? PRESIDENT_PAGES.USER_LIST : PRESIDENT_PAGES.MEMBER_LIST })
     return
   }
   if (item.action === 'league') {

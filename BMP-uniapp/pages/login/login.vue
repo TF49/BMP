@@ -109,8 +109,7 @@ import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import { login } from '@/api/auth'
-import { isAllowedRole, isPresidentRole } from '@/utils/roleCheck'
-import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { checkAndHandleRole, getRoleHomePath } from '@/utils/roleCheck'
 import { safeReLaunch } from '@/utils/safeRoute'
 
 const userStore = useUserStore()
@@ -163,14 +162,14 @@ onShow(async () => {
 
   // 验证角色权限
   const role = userStore.userInfo?.role
-  if (!role || !isAllowedRole(role)) {
+  if (!checkAndHandleRole(role)) {
     userStore.logout()
     return
   }
 
   // 跳转到首页
   setTimeout(() => {
-    safeReLaunch('/pages/index/index')
+    safeReLaunch(getRoleHomePath(role))
   }, 50)
 })
 
@@ -192,12 +191,7 @@ const handleLogin = async () => {
     })
 
     const role = res.user?.role
-    if (res.user && role && !isAllowedRole(role)) {
-      uni.showToast({
-        title: '该角色请使用网页端管理系统登录',
-        icon: 'none',
-        duration: 3000
-      })
+    if (!checkAndHandleRole(role)) {
       loading.value = false
       return
     }
@@ -229,7 +223,7 @@ const handleLogin = async () => {
 
     // 缩短延迟时间，提升用户体验
     setTimeout(() => {
-      safeReLaunch('/pages/index/index')
+      safeReLaunch(getRoleHomePath(role))
     }, 1000)
   } catch (err: any) {
     // 过滤框架内部超时错误

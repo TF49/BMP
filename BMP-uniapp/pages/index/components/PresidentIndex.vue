@@ -12,7 +12,7 @@
         <view class="hero-card">
           <image class="hero-image" mode="aspectFill" src="/static/placeholders/hero.svg" />
           <view class="hero-mask">
-            <text class="hero-tag">会长工作台</text>
+            <text class="hero-tag">{{ managementTag }}</text>
             <text class="hero-title">BMP 经营概览</text>
             <text class="hero-sub">{{ summaryTimeLabel }}</text>
           </view>
@@ -44,14 +44,14 @@
           <view class="section">
             <view class="section-head">
               <text class="section-title">管理中心</text>
-              <text class="section-link" @tap="navigateTo(PRESIDENT_PAGES.USER_LIST)">查看全部</text>
+                <text class="section-link" @tap="navigateTo(managementOverviewPath)">查看全部</text>
             </view>
 
             <view class="shortcut-grid">
-              <view v-for="item in shortcuts" :key="item.label" class="shortcut-item" @tap="navigateTo(item.path)">
-                <uni-icons :type="item.icon" size="24" color="#a33e00" />
-                <text class="shortcut-label">{{ item.label }}</text>
-              </view>
+                <view v-for="item in shortcuts" :key="item.label" class="shortcut-item" @tap="navigateTo(item.path)">
+                  <uni-icons :type="item.icon" size="24" color="#a33e00" />
+                  <text class="shortcut-label">{{ item.label }}</text>
+                </view>
             </view>
           </view>
 
@@ -88,6 +88,8 @@ import { getPresidentDashboardSummary, type PresidentDashboardSummary } from '@/
 import { isPresidentTabPage, PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { formatAmount, formatDate } from '@/utils/format'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { useUserStore } from '@/store/modules/user'
+import { isPresidentRole } from '@/utils/roleCheck'
 
 interface MetricItem {
   label: string
@@ -104,23 +106,41 @@ interface AlertItem {
   path: string
 }
 
+interface ShortcutItem {
+  label: string
+  path: string
+  icon: string
+}
+
 const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
 const loading = ref(false)
 const loadError = ref('')
 const summary = ref<PresidentDashboardSummary | null>(null)
+const userStore = useUserStore()
+const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
+const managementTag = computed(() => '管理工作台')
 
-const shortcuts = [
-  { label: '场馆管理', path: PRESIDENT_PAGES.VENUE_LIST, icon: 'location' },
-  { label: '场地管理', path: PRESIDENT_PAGES.COURT_LIST, icon: 'calendar' },
-  { label: '预约管理', path: PRESIDENT_PAGES.BOOKING_LIST, icon: 'list' },
-  { label: '教练管理', path: PRESIDENT_PAGES.COACH_LIST, icon: 'staff' },
-  { label: '课程管理', path: PRESIDENT_PAGES.COURSE_LIST, icon: 'compose' },
-  { label: '会员中心', path: PRESIDENT_PAGES.MEMBER_LIST, icon: 'person' },
-  { label: '员工管理', path: PRESIDENT_PAGES.USER_LIST, icon: 'person' },
-  { label: '器材库存', path: PRESIDENT_PAGES.EQUIPMENT_LIST, icon: 'cart' },
-  { label: '赛事中心', path: PRESIDENT_PAGES.TOURNAMENT_LIST, icon: 'medal' }
-]
+const shortcuts = computed(() => {
+  const items: ShortcutItem[] = [
+    { label: '场馆管理', path: PRESIDENT_PAGES.VENUE_LIST, icon: 'location' },
+    { label: '场地管理', path: PRESIDENT_PAGES.COURT_LIST, icon: 'calendar' },
+    { label: '预约管理', path: PRESIDENT_PAGES.BOOKING_LIST, icon: 'list' },
+    { label: '教练管理', path: PRESIDENT_PAGES.COACH_LIST, icon: 'staff' },
+    { label: '课程管理', path: PRESIDENT_PAGES.COURSE_LIST, icon: 'compose' },
+    { label: '会员中心', path: PRESIDENT_PAGES.MEMBER_LIST, icon: 'person' },
+    { label: '器材库存', path: PRESIDENT_PAGES.EQUIPMENT_LIST, icon: 'cart' },
+    { label: '赛事中心', path: PRESIDENT_PAGES.TOURNAMENT_LIST, icon: 'medal' }
+  ]
+
+  if (isPresident.value) {
+    items.splice(6, 0, { label: '员工管理', path: PRESIDENT_PAGES.USER_LIST, icon: 'person' })
+  }
+
+  return items
+})
+
+const managementOverviewPath = computed(() => (isPresident.value ? PRESIDENT_PAGES.USER_LIST : PRESIDENT_PAGES.VENUE_LIST))
 
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null

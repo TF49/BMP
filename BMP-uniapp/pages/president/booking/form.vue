@@ -162,7 +162,7 @@
           <uni-icons type="wallet" size="16" color="#ffffff" />
           <text>创建预约并去结算</text>
         </view>
-        <text class="suite">创建后默认待支付，支付流程与现有会长端保持一致</text>
+        <text class="suite">创建后默认待支付，支付流程与现有移动管理端保持一致</text>
       </view>
     </view>
   </PresidentLayout>

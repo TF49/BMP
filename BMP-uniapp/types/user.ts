@@ -4,7 +4,7 @@
 export interface User {
   id: number
   username: string
-  role: 'PRESIDENT' | 'VENUE_MANAGER' | 'USER'
+  role: 'PRESIDENT' | 'VENUE_MANAGER' | 'USER' | 'MEMBER' | 'COACH'
   status: number
   venueId?: number
 }

@@ -126,7 +126,7 @@
 import { ref, computed } from 'vue'
 import MobileLayout from '@/components/MobileLayout.vue'
 import { useUserStore } from '@/store/modules/user'
-import { isPresidentRole } from '@/utils/roleCheck'
+import { isManagementRole } from '@/utils/roleCheck'
 import { updatePassword } from '@/api/auth'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { safeNavigateBack } from '@/utils/navigation'
@@ -197,8 +197,8 @@ const handleSubmit = async () => {
     })
 
     const userStore = useUserStore()
-    const tip = isPresidentRole(userStore.userRole)
-      ? '密码已修改，请使用新密码重新登录会长工作台'
+    const tip = isManagementRole(userStore.userRole)
+      ? '密码已修改，请使用新密码重新登录移动管理端'
       : '修改成功，请使用新密码重新登录'
     uni.showToast({ title: tip, icon: 'success', duration: 2500 })
     setTimeout(() => {

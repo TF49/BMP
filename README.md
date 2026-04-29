@@ -110,8 +110,11 @@ BMP/
 ### UniApp 端
 
 - 用户端：首页、场馆预订、课程、器材、赛事、充值、个人中心
-- 会长移动端：`pages/president/**`
-- 当前角色策略并不完全统一，详见“已确认问题”
+- 移动管理端：`pages/president/**`，由 `PRESIDENT` 与 `VENUE_MANAGER` 共用
+- 当前支持角色：
+  - 用户端：`USER`、`MEMBER`
+  - 移动管理端：`PRESIDENT`、`VENUE_MANAGER`
+  - `COACH`：本轮仍未开放移动端入口
 
 ## 已确认问题
 
@@ -126,14 +129,15 @@ BMP/
 
 这说明 Web 端功能已经很多，但按当前打包方式，首屏和弱网体验会受影响。
 
-### 2. UniApp 角色策略存在不一致
+### 2. UniApp 角色策略已完成第一阶段收口
 
 `BMP-uniapp/utils/roleCheck.ts` 中：
 
-- `isAllowedRole()` 只允许 `USER` 和 `PRESIDENT`
-- `isUserRole()` 却又把 `MEMBER` 视为用户端角色
+- `USER` 与 `MEMBER` 统一作为用户端角色放行
+- `PRESIDENT` 与 `VENUE_MANAGER` 统一进入现有移动管理端框架
+- `COACH` 明确提示移动端暂未开放，不再误导为入口异常
 
-这意味着业务语义已经把 `MEMBER` 当普通用户体系的一部分，但登录放行逻辑并没有完全跟上。
+这意味着 Web、UniApp 与后端在第一阶段已经统一到同一套角色口径上。
 
 ### 3. 文档与仓库现状曾出现漂移
 
