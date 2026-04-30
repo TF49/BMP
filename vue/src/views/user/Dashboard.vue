@@ -189,6 +189,20 @@ const greeting = computed(() => {
   return '晚上好'
 })
 
+const getMemberRoleLabel = (memberType, level) => {
+  if (memberType === 'NORMAL' || !memberType) {
+    return '普通用户'
+  }
+  const safeLevel = Number(level) || 0
+  if (safeLevel >= 3) {
+    return 'SVIP用户'
+  }
+  if (safeLevel > 0) {
+    return `会员 Lv.${safeLevel}`
+  }
+  return '会员'
+}
+
 // VIP 等级展示文案（与后端 MemberServiceImpl 等逻辑一致：1 银卡 2 金卡 3+ VIP）
 const vipLevelLabel = computed(() => {
   const level = memberLevel.value
@@ -299,8 +313,7 @@ const loadBalance = async () => {
     if (res.code === 200 && res.data) {
       balance.value = res.data.balance != null ? Number(res.data.balance) : 0
       memberLevel.value = res.data.memberLevel != null ? Number(res.data.memberLevel) : 0
-      // 如果会员信息中有 memberType，也可以根据它来更新标签（但优先使用 userInfo.role）
-      // memberType: NORMAL -> 普通用户，MEMBER -> 会员
+      userRoleLabel.value = getMemberRoleLabel(res.data.memberType, res.data.memberLevel)
     }
   } catch (e) {
     console.error('获取余额失败:', e)

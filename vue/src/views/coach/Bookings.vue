@@ -1,17 +1,43 @@
 <template>
   <div class="coach-bookings">
     <div class="page-hero">
-      <div>
+      <div class="hero-copy">
         <h2 class="page-title">预约明细</h2>
         <p class="page-subtitle">查看课程预约、签到到课、登记缺席或取消</p>
       </div>
-      <div class="hero-tip">
-        <span class="hero-tip-label">教练权限</span>
-        <span class="hero-tip-value">可签到 / 完成 / 取消</span>
+      <div class="hero-actions">
+        <div class="hero-tip">
+          <span class="hero-tip-label">教练权限</span>
+          <span class="hero-tip-value">可签到 / 完成 / 取消</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="overview-grid">
+      <div class="overview-card">
+        <div class="overview-label">待签到</div>
+        <div class="overview-value">{{ bookingSummary.ready }}</div>
+        <div class="overview-desc">已支付待处理的预约</div>
+      </div>
+      <div class="overview-card">
+        <div class="overview-label">进行中</div>
+        <div class="overview-value">{{ bookingSummary.ongoing }}</div>
+        <div class="overview-desc">正在上课的预约</div>
+      </div>
+      <div class="overview-card">
+        <div class="overview-label">已完成</div>
+        <div class="overview-value">{{ bookingSummary.finished }}</div>
+        <div class="overview-desc">已完成的课节记录</div>
       </div>
     </div>
 
     <div class="toolbar-card">
+      <div class="toolbar-header">
+        <div>
+          <div class="toolbar-title">工作筛选</div>
+          <div class="toolbar-subtitle">先按课程、会员或状态聚焦，再处理签到与异常</div>
+        </div>
+      </div>
       <div class="toolbar">
         <el-input
           v-model="searchKeyword"
@@ -54,47 +80,60 @@
       <el-button type="primary" @click="loadList">重试</el-button>
     </div>
 
-    <el-table v-else v-loading="loading" :data="list" stripe class="booking-table">
-      <el-table-column prop="memberName" label="会员" min-width="110" />
-      <el-table-column prop="courseName" label="课程" min-width="150" show-overflow-tooltip />
-      <el-table-column label="上课时间" min-width="180">
-        <template #default="{ row }">
-          {{ formatCourseTime(row) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="courtName" label="场地" min-width="110" />
-      <el-table-column prop="orderAmount" label="金额" width="110">
-        <template #default="{ row }">¥{{ formatAmount(row.orderAmount) }}</template>
-      </el-table-column>
-      <el-table-column prop="paymentStatus" label="支付状态" width="110">
-        <template #default="{ row }">
-          <el-tag :type="paymentStatusType(row.paymentStatus)" size="small">
-            {{ paymentStatusText(row.paymentStatus) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag :type="formatStatusType(row.status, BOOKING_STATUS_TYPE_MAP)" size="small">
-            {{ formatStatusText(row.status, BOOKING_STATUS_TEXT_MAP) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="备注" min-width="170" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.remark || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="操作" min-width="280" fixed="right">
-        <template #default="{ row }">
-          <div class="action-group">
+    <template v-else>
+      <div v-if="list.length" v-loading="loading" class="booking-list">
+        <article v-for="row in list" :key="row.id" class="booking-card">
+          <div class="booking-card-top">
+            <div class="booking-main">
+              <div class="booking-name-row">
+                <div class="booking-member">{{ row.memberName || '-' }}</div>
+                <span class="booking-divider">/</span>
+                <div class="booking-course">{{ row.courseName || '-' }}</div>
+              </div>
+              <div class="booking-time">{{ formatCourseTime(row) }}</div>
+            </div>
+            <div class="booking-tag-group">
+              <el-tag :type="paymentStatusType(row.paymentStatus)" size="small">
+                {{ paymentStatusText(row.paymentStatus) }}
+              </el-tag>
+              <el-tag :type="formatStatusType(row.status, BOOKING_STATUS_TYPE_MAP)" size="small">
+                {{ formatStatusText(row.status, BOOKING_STATUS_TEXT_MAP) }}
+              </el-tag>
+            </div>
+          </div>
+
+          <div class="booking-meta-grid">
+            <div class="meta-block">
+              <span class="meta-label">预约单号</span>
+              <span class="meta-value">{{ row.bookingNo || '-' }}</span>
+            </div>
+            <div class="meta-block">
+              <span class="meta-label">场地</span>
+              <span class="meta-value">{{ row.courtName || '未安排场地' }}</span>
+            </div>
+            <div class="meta-block">
+              <span class="meta-label">金额</span>
+              <span class="meta-value">¥{{ formatAmount(row.orderAmount) }}</span>
+            </div>
+            <div class="meta-block">
+              <span class="meta-label">备注</span>
+              <span class="meta-value">{{ row.remark || '-' }}</span>
+            </div>
+          </div>
+
+          <div class="booking-card-actions">
             <el-button link type="primary" @click="openDetail(row.id)">查看详情</el-button>
             <el-button v-if="row.memberId" link type="primary" @click="openMemberHistory(row.memberId)">学员历史</el-button>
             <el-button v-if="canStart(row)" link type="success" @click="openStatusDialog(row, 3)">签到上课</el-button>
             <el-button v-if="canComplete(row)" link type="success" @click="openStatusDialog(row, 4)">完成课程</el-button>
             <el-button v-if="canCancel(row)" link type="danger" @click="openStatusDialog(row, 0)">缺席/取消</el-button>
           </div>
-        </template>
-      </el-table-column>
-    </el-table>
+        </article>
+      </div>
+      <div v-else-if="!loading" class="empty-wrap">
+        <el-empty description="当前筛选条件下暂无预约记录" :image-size="120" />
+      </div>
+    </template>
 
     <div class="pagination-wrap">
       <el-pagination
@@ -322,6 +361,15 @@ const loadFailed = ref(false)
 const errorMessage = ref('请稍后重试')
 
 const hasVisibleFilters = computed(() => activeCourseFilterId.value != null || searchStatus.value !== null)
+
+const bookingSummary = computed(() => {
+  const data = list.value || []
+  return {
+    ready: data.filter((item) => Number(item.status) === 2).length,
+    ongoing: data.filter((item) => Number(item.status) === 3).length,
+    finished: data.filter((item) => Number(item.status) === 4).length
+  }
+})
 
 const paymentStatusText = (status) => {
   const map = { 0: '未支付', 1: '已支付', 2: '已退款' }
@@ -631,6 +679,18 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .page-title {
   font-size: 22px;
   font-weight: 600;
@@ -643,6 +703,46 @@ onMounted(() => {
   font-size: 14px;
 }
 
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.overview-card {
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.overview-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  border-color: color-mix(in srgb, var(--color-primary, #2563EB) 18%, var(--color-border, #e2e8f0));
+}
+
+.overview-label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.overview-value {
+  margin-top: 10px;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.overview-desc {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
 .hero-tip {
   display: flex;
   flex-direction: column;
@@ -653,6 +753,13 @@ onMounted(() => {
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-light);
   min-width: 140px;
+  transition: all 0.3s ease;
+}
+
+.hero-tip:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent);
 }
 
 .hero-tip-label {
@@ -673,6 +780,33 @@ onMounted(() => {
   border: 1px solid var(--color-border, #e2e8f0);
   box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
   margin-bottom: 16px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toolbar-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-primary, #2563EB) 18%, var(--color-border, #e2e8f0));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.toolbar-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.toolbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.toolbar-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
 .toolbar {
@@ -692,6 +826,12 @@ onMounted(() => {
   margin-bottom: 16px;
   background: var(--el-color-primary-light-9);
   border: 1px solid var(--el-color-primary-light-5);
+  transition: all 0.3s ease;
+}
+
+.filter-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent);
 }
 
 .filter-banner-text {
@@ -712,15 +852,115 @@ onMounted(() => {
   width: 140px;
 }
 
-.booking-table {
-  width: 100%;
+.booking-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
 }
 
-.action-group {
+.booking-card {
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.booking-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-primary, #2563EB) 18%, var(--color-border, #e2e8f0));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.10), 0 4px 12px color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent);
+}
+
+.booking-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.booking-main {
+  min-width: 0;
+}
+
+.booking-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.booking-member,
+.booking-course {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.booking-divider {
+  color: var(--el-text-color-secondary);
+}
+
+.booking-time {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--color-primary, var(--el-color-primary, #2563EB));
+  font-weight: 600;
+}
+
+.booking-tag-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 8px;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.booking-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.meta-block {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
+}
+
+.meta-label {
+  display: block;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.meta-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.booking-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.empty-wrap {
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 16px;
 }
 
 .pagination-wrap {
@@ -739,6 +979,13 @@ onMounted(() => {
   border-radius: 16px;
   border: 1px solid var(--el-border-color-light);
   background: var(--el-fill-color-light);
+  transition: all 0.3s ease;
+}
+
+.member-info-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent);
 }
 
 .member-info-header {
@@ -805,6 +1052,13 @@ onMounted(() => {
   border-radius: 12px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-light);
+  transition: all 0.3s ease;
+}
+
+.status-dialog-summary:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent);
 }
 
 .summary-label {
@@ -829,6 +1083,11 @@ onMounted(() => {
   .page-hero,
   .member-info-header {
     flex-direction: column;
+  }
+
+  .overview-grid,
+  .booking-meta-grid {
+    grid-template-columns: 1fr;
   }
 
   .hero-tip {

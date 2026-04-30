@@ -88,7 +88,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { UserFilled, ArrowDown, User, SwitchButton, Odometer, Document, Calendar, List, Postcard, WarningFilled } from '@element-plus/icons-vue'
+import { UserFilled, ArrowDown, User, SwitchButton, Odometer, Document, Calendar, List, WarningFilled } from '@element-plus/icons-vue'
 import ThemeSelector from '@/components/ThemeSelector.vue'
 import { getCurrentCoach } from '@/api/coach'
 import { getToken, removeToken, removeRefreshToken } from '@/utils/auth'
@@ -102,8 +102,7 @@ const navItems = [
   { path: '/coach/dashboard', title: '工作台', icon: Odometer },
   { path: '/coach/courses', title: '我的课程', icon: Document },
   { path: '/coach/schedule', title: '我的课表', icon: Calendar },
-  { path: '/coach/bookings', title: '预约明细', icon: List },
-  { path: '/coach/profile', title: '我的档案', icon: Postcard }
+  { path: '/coach/bookings', title: '预约明细', icon: List }
 ]
 
 const displayName = computed(() => {
@@ -229,8 +228,23 @@ html.theme-dark-mode .coach-header {
   border-radius: 12px;
 }
 
+.logo-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-primary, #2563EB), var(--color-secondary, #8B5CF6));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
 .logo-section:hover {
   transform: translateY(-2px) scale(1.02);
+}
+
+.logo-section:hover::before {
+  opacity: 0.1;
 }
 
 .logo-icon {
@@ -246,6 +260,22 @@ html.theme-dark-mode .coach-header {
   height: 32px;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+
+.logo-section:hover .badminton-logo {
+  filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--color-primary, #2563EB) 40%, transparent));
+  transform: scale(1.1) rotate(5deg);
+  animation: none;
 }
 
 .logo-text {
@@ -260,10 +290,10 @@ html.theme-dark-mode .coach-header {
   font-size: 12px;
   font-weight: 500;
   color: var(--color-primary, #2563EB);
-  background: rgba(37, 99, 235, 0.1);
+  background: color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent);
   padding: 2px 8px;
   border-radius: 8px;
-  border: 1px solid rgba(37, 99, 235, 0.25);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563EB) 25%, transparent);
 }
 
 .top-nav {
@@ -284,6 +314,22 @@ html.theme-dark-mode .coach-header {
   font-weight: 500;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  overflow: hidden;
+}
+
+.nav-item::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: var(--color-primary, #2563EB);
+  opacity: 0.1;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+  z-index: 0;
 }
 
 .nav-item:hover {
@@ -292,11 +338,25 @@ html.theme-dark-mode .coach-header {
   transform: translateY(-1px);
 }
 
+.nav-item:hover::before {
+  width: 100px;
+  height: 100px;
+}
+
+.nav-item > * {
+  position: relative;
+  z-index: 1;
+}
+
 .nav-item.active {
-  background: linear-gradient(135deg, var(--color-card-bg-hover, #EFF6FF) 0%, rgba(37, 99, 235, 0.08) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-card-bg-hover, #EFF6FF) 0%,
+    color-mix(in srgb, var(--color-primary, #2563EB) 8%, transparent) 100%
+  );
   color: var(--color-primary, #2563EB);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary, #2563EB) 15%, transparent);
 }
 
 .nav-item.active::after {
@@ -309,7 +369,19 @@ html.theme-dark-mode .coach-header {
   height: 3px;
   background: linear-gradient(90deg, transparent, var(--color-primary, #2563EB), transparent);
   border-radius: 3px 3px 0 0;
-  box-shadow: 0 -2px 8px rgba(37, 99, 235, 0.4);
+  animation: slideIn 0.3s ease-out;
+  box-shadow: 0 -2px 8px color-mix(in srgb, var(--color-primary, #2563EB) 40%, transparent);
+}
+
+@keyframes slideIn {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 60%;
+    opacity: 1;
+  }
 }
 
 .header-right {
@@ -329,13 +401,34 @@ html.theme-dark-mode .coach-header {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid var(--color-border, #E2E8F0);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.user-info::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent), transparent);
+  transition: left 0.5s ease;
 }
 
 .user-info:hover {
   background: linear-gradient(135deg, var(--color-card-bg-hover, #EFF6FF) 0%, var(--color-background, #F1F5F9) 100%);
   border-color: var(--color-primary-light, #60A5FA);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25), 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary, #2563EB) 25%, transparent), 0 2px 8px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px) scale(1.02);
+}
+
+.user-info:hover::before {
+  left: 100%;
+}
+
+.user-info:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .username {
@@ -397,6 +490,16 @@ html.theme-dark-mode .coach-header {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateY(20px) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-width: 1024px) {

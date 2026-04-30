@@ -199,6 +199,7 @@ import { ElMessage } from 'element-plus'
 import { UserFilled, Clock, Lock, Setting, Bell, QuestionFilled } from '@element-plus/icons-vue'
 import { useUserProfile, type CurrentUserProfile } from '@/composables/useUserProfile'
 import { uploadAvatar, changePassword, updateUserInfo } from '@/api/login'
+import { getCurrentMember } from '@/api/member'
 import { getUserInfo, setUserInfo } from '@/utils/auth'
 
 const formRef = ref<FormInstance>()
@@ -222,6 +223,9 @@ const profileForm = reactive<CurrentUserProfile>({
   signature: '',
   createTime: ''
 })
+
+const currentMemberType = ref('')
+const currentMemberLevel = ref(0)
 
 // 加入时间格式化为 yyyy-MM-dd HH:mm（用于 title 等完整展示）
 const formatJoinTime = (dateTime: string | undefined): string => {
@@ -273,14 +277,49 @@ watch(
 
 // 角色中文名称（使用公共工具函数）
 import { getRoleName } from '@/utils/roleHelper'
-const roleName = computed(() => getRoleName(profileForm.role))
+const getMemberRoleLabel = (memberType: string, level: number) => {
+  if (memberType === 'NORMAL' || !memberType) {
+    return '普通用户'
+  }
+  const safeLevel = Number(level) || 0
+  if (safeLevel >= 3) {
+    return 'SVIP用户'
+  }
+  if (safeLevel > 0) {
+    return `会员 Lv.${safeLevel}`
+  }
+  return '会员'
+}
+
+const roleName = computed(() => {
+  if (currentMemberType.value) {
+    return getMemberRoleLabel(currentMemberType.value, currentMemberLevel.value)
+  }
+  return getRoleName(profileForm.role)
+})
 
 // 角色对应的标签样式
 const roleTagType = computed<'danger' | 'warning' | 'success' | ''>(() => {
+  if (currentMemberType.value === 'NORMAL') return 'success'
+  if (currentMemberType.value === 'MEMBER') {
+    return currentMemberLevel.value >= 3 ? 'warning' : 'success'
+  }
   if (profileForm.role === 'PRESIDENT') return 'danger'
   if (profileForm.role === 'VENUE_MANAGER') return 'warning'
   return 'success'
 })
+
+const loadCurrentMember = async () => {
+  try {
+    const res: any = await getCurrentMember()
+    if (res?.code === 200 && res?.data) {
+      currentMemberType.value = res.data.memberType || ''
+      currentMemberLevel.value = Number(res.data.memberLevel ?? 0)
+    }
+  } catch (error) {
+    console.error('获取当前会员信息失败:', error)
+  }
+}
 
 // 表单校验规则
 const rules: FormRules = {
@@ -464,6 +503,7 @@ const handleQuickAction = (type: 'password' | 'security' | 'notification' | 'hel
 
 onMounted(() => {
   loadProfile()
+  loadCurrentMember()
 })
 </script>
 
@@ -893,4 +933,3 @@ $transition-base: 0.2s ease;
   }
 }
 </style>
-

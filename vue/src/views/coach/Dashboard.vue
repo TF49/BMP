@@ -734,6 +734,66 @@ onMounted(async () => {
 .coach-dashboard {
   max-width: 1200px;
   margin: 0 auto;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  50% {
+    transform: scale(1.15) rotate(5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .coach-info-card {
@@ -746,10 +806,48 @@ onMounted(async () => {
   gap: 24px;
   color: #ffffff;
   box-shadow: 0 12px 40px rgba(37, 99, 235, 0.3), 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  animation: cardEntrance 0.6s ease-out;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.coach-info-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: shimmer 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.coach-info-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.coach-info-card:not(.not-bound):hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--color-primary, #2563EB) 28%, transparent), 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
 .coach-info-card.not-bound {
   background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  animation: none;
+}
+
+.coach-info-card.not-bound::before,
+.coach-info-card.not-bound::after {
+  display: none;
 }
 
 .empty-workbench {
@@ -782,6 +880,15 @@ onMounted(async () => {
 
 .coach-avatar {
   border: 4px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 4px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+}
+
+.coach-info-card:not(.not-bound):hover .coach-avatar {
+  transform: scale(1.05) rotate(5deg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 0 0 6px rgba(255, 255, 255, 0.15);
 }
 
 .coach-badge {
@@ -790,6 +897,17 @@ onMounted(async () => {
   border-radius: 16px;
   font-size: 12px;
   font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.coach-info-card:not(.not-bound):hover .coach-badge {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .coach-details {
@@ -800,17 +918,24 @@ onMounted(async () => {
   margin: 0 0 8px;
   font-size: 28px;
   font-weight: 700;
+  position: relative;
+  z-index: 1;
+  animation: fadeInUp 0.6s ease-out 0.2s both;
 }
 
 .coach-greeting {
   margin: 0 0 16px;
   font-size: 16px;
   opacity: 0.9;
+  position: relative;
+  z-index: 1;
 }
 
 .coach-stats {
   display: flex;
   gap: 32px;
+  position: relative;
+  z-index: 1;
 }
 
 .stat-item {
@@ -831,10 +956,45 @@ onMounted(async () => {
 
 .coach-actions .action-btn {
   background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
   border: 2px solid rgba(255, 255, 255, 0.35);
   color: #fff;
   font-weight: 600;
+  padding: 12px 24px;
   border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.coach-actions .action-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.coach-info-card:not(.not-bound) .coach-actions .action-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.coach-info-card:not(.not-bound) .coach-actions .action-btn:hover::before {
+  width: 200px;
+  height: 200px;
+}
+
+.coach-info-card:not(.not-bound) .coach-actions .action-btn:active {
+  transform: translateY(-1px) scale(1.02);
 }
 
 .quick-actions,
@@ -877,6 +1037,36 @@ onMounted(async () => {
   gap: 16px;
   cursor: pointer;
   text-align: left;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border, #E2E8F0);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary, #2563EB) 8%, transparent), transparent);
+  transition: left 0.5s ease;
+}
+
+.action-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15), 0 4px 12px color-mix(in srgb, var(--color-primary, #2563EB) 18%, transparent);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+}
+
+.action-card:hover::before {
+  left: 100%;
+}
+
+.action-card:active {
+  transform: translateY(-3px) scale(1.01);
 }
 
 .action-icon {
@@ -888,6 +1078,23 @@ onMounted(async () => {
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+}
+
+.action-card:hover .action-icon {
+  transform: scale(1.15) rotate(5deg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.action-card .action-icon .el-icon {
+  transition: transform 0.3s ease;
+}
+
+.action-card:hover .action-icon .el-icon {
+  transform: scale(1.1);
 }
 
 .action-content {
@@ -923,6 +1130,28 @@ onMounted(async () => {
   border: 1px solid var(--color-border, #E2E8F0);
   border-radius: 18px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary, #2563EB) 4%, transparent) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+}
+
+.stat-card:hover::before {
+  opacity: 1;
 }
 
 .stat-icon {
@@ -933,6 +1162,13 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   color: #fff;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.stat-card:hover .stat-icon {
+  transform: scale(1.1) rotate(5deg);
+  animation: iconPulse 1.5s ease-in-out infinite;
 }
 
 .stat-pending .stat-icon {
@@ -955,6 +1191,14 @@ onMounted(async () => {
   font-size: 28px;
   font-weight: 700;
   color: var(--color-text-primary, #1E293B);
+  margin-bottom: 4px;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-content .stat-value {
+  transform: scale(1.05);
+  color: var(--color-primary, var(--el-color-primary, #2563EB));
 }
 
 .stat-content .stat-label {
@@ -970,6 +1214,12 @@ onMounted(async () => {
 
 .board-panel {
   padding: 18px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.board-panel:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+  border-color: color-mix(in srgb, var(--color-primary, #2563EB) 18%, var(--color-border, #E2E8F0));
 }
 
 .panel-header {
@@ -997,6 +1247,52 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.course-card::before,
+.booking-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-primary, var(--el-color-primary, #2563EB));
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.course-card::after,
+.booking-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary, #2563EB) 7%, transparent), transparent);
+  transition: left 0.5s ease;
+}
+
+.course-card:hover,
+.booking-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12), 0 4px 10px color-mix(in srgb, var(--color-primary, #2563EB) 14%, transparent);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+}
+
+.course-card:hover::before,
+.booking-card:hover::before {
+  transform: scaleY(1);
+}
+
+.course-card:hover::after,
+.booking-card:hover::after {
+  left: 100%;
 }
 
 .course-main,
@@ -1061,6 +1357,11 @@ onMounted(async () => {
   border-radius: 16px;
   background: #fff7f7;
   border: 1px solid #f5c2c7;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.error-state:hover {
+  box-shadow: 0 6px 18px rgba(194, 65, 12, 0.08);
 }
 
 .error-title {

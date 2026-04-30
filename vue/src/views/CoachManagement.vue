@@ -110,7 +110,7 @@
               <span class="price-text">¥{{ formatCurrency(scope.row.hourlyPrice) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="rating" label="评分" min-width="100">
+          <el-table-column prop="rating" label="评分" min-width="150">
             <template #default="scope">
               <el-rate v-model="scope.row.rating" disabled show-score :max="5" />
             </template>

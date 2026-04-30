@@ -145,6 +145,13 @@ const paymentStatusText = (status) => {
   border-radius: 16px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-light);
+  transition: all 0.3s ease;
+}
+
+.member-header:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent);
 }
 
 .member-name {
@@ -197,6 +204,45 @@ const paymentStatusText = (status) => {
   border-radius: 14px;
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-blank, #fff);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.history-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-primary, var(--el-color-primary, #2563EB));
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.history-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary, #2563EB) 7%, transparent), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.history-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12), 0 4px 10px color-mix(in srgb, var(--color-primary, #2563EB) 14%, transparent);
+}
+
+.history-card:hover::before {
+  transform: scaleY(1);
+}
+
+.history-card:hover::after {
+  transform: translateX(100%);
 }
 
 .history-title-row {
@@ -242,6 +288,11 @@ const paymentStatusText = (status) => {
   flex-direction: column;
   gap: 12px;
   align-items: flex-start;
+  transition: box-shadow 0.2s ease;
+}
+
+.error-state:hover {
+  box-shadow: 0 6px 18px rgba(194, 65, 12, 0.08);
 }
 
 .error-title {

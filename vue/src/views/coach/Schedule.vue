@@ -1,11 +1,17 @@
 <template>
   <div class="coach-schedule">
     <div class="page-hero">
-      <div>
+      <div class="hero-copy">
         <h2 class="page-title">我的课表</h2>
         <p class="page-subtitle">按天或按周查看课程安排，快速进入详情、学员名单与预约管理</p>
       </div>
-      <el-button @click="goToToday">回到今天</el-button>
+      <div class="hero-actions">
+        <div class="hero-tip">
+          <span class="hero-tip-label">{{ viewMode === 'day' ? '当前日期' : '当前周' }}</span>
+          <span class="hero-tip-value">{{ currentRangeLabel }}</span>
+        </div>
+        <el-button @click="goToToday">回到今天</el-button>
+      </div>
     </div>
 
     <div class="stats-grid">
@@ -51,7 +57,7 @@
 
       <div class="toolbar-bottom">
         <div class="range-summary">
-          <span class="range-summary-label">{{ viewMode === 'day' ? '当前日期' : '当前周' }}</span>
+          <span class="range-summary-label">浏览范围</span>
           <span class="range-summary-value">{{ currentRangeLabel }}</span>
         </div>
         <el-button type="primary" @click="reloadSchedule">刷新课表</el-button>
@@ -621,6 +627,40 @@ watch(
   margin-bottom: 16px;
 }
 
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-tip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 170px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--color-card-bg, #fff) 100%);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563EB) 12%, var(--color-border, #e2e8f0));
+}
+
+.hero-tip-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.hero-tip-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary, var(--el-color-primary, #2563EB));
+}
+
 .page-title {
   font-size: 22px;
   font-weight: 600;
@@ -644,8 +684,14 @@ watch(
   background: var(--color-card-bg, #fff);
   border: 1px solid var(--color-border, #e2e8f0);
   border-radius: 18px;
-  padding: 20px 22px;
+  padding: 18px 20px;
   box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 10px color-mix(in srgb, var(--color-primary, #2563EB) 12%, transparent);
 }
 
 .stat-label {
@@ -655,7 +701,7 @@ watch(
 
 .stat-value {
   margin-top: 8px;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--el-text-color-primary);
 }
@@ -685,6 +731,13 @@ watch(
   border: 1px solid var(--color-border, #e2e8f0);
   box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
   margin-bottom: 16px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toolbar-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-primary, #2563EB) 18%, var(--color-border, #e2e8f0));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
 }
 
 .toolbar-top,
@@ -696,7 +749,9 @@ watch(
 }
 
 .toolbar-bottom {
-  margin-top: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--el-border-color-light);
 }
 
 .toolbar-actions {
@@ -720,6 +775,7 @@ watch(
   font-size: 14px;
   min-width: 180px;
   text-align: center;
+  font-weight: 600;
 }
 
 .range-summary {
@@ -748,6 +804,11 @@ watch(
   flex-direction: column;
   gap: 12px;
   align-items: flex-start;
+  transition: box-shadow 0.2s ease;
+}
+
+.error-state:hover {
+  box-shadow: 0 6px 18px rgba(194, 65, 12, 0.08);
 }
 
 .error-title {
@@ -794,15 +855,16 @@ watch(
   border: 1px solid rgba(67, 233, 123, 0.28);
   background: linear-gradient(135deg, rgba(67, 233, 123, 0.08), rgba(56, 249, 215, 0.12));
   border-radius: 16px;
-  padding: 16px;
+  padding: 14px 16px;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .upcoming-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(67, 233, 123, 0.15);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 10px 24px rgba(67, 233, 123, 0.16);
 }
 
 .upcoming-time {
@@ -831,11 +893,17 @@ watch(
 }
 
 .schedule-group {
-  padding: 18px;
+  padding: 16px;
   border-radius: 18px;
   background: var(--color-card-bg, #fff);
   border: 1px solid var(--color-border, #e2e8f0);
   box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.schedule-group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
 }
 
 .schedule-group.is-today-group {
@@ -873,10 +941,35 @@ watch(
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px;
+  padding: 14px 16px;
   border-radius: 14px;
   background: var(--el-fill-color-blank, #fff);
   border: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.course-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-primary, var(--el-color-primary, #2563EB));
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.course-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: var(--color-primary-light, var(--el-color-primary-light-5, #60A5FA));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1), 0 4px 10px color-mix(in srgb, var(--color-primary, #2563EB) 12%, transparent);
+}
+
+.course-card:hover::before {
+  transform: scaleY(1);
 }
 
 .course-card.is-ongoing {
@@ -895,7 +988,7 @@ watch(
 }
 
 .course-time {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--el-color-primary);
   font-weight: 600;
 }
@@ -910,18 +1003,18 @@ watch(
 
 .course-name {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
 
 .course-meta {
-  margin-top: 8px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
@@ -958,6 +1051,7 @@ watch(
 
 @media (max-width: 900px) {
   .page-hero,
+  .hero-actions,
   .toolbar-top,
   .toolbar-bottom,
   .group-header,

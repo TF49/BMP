@@ -1,18 +1,49 @@
 <template>
   <div class="coach-my-courses">
     <div class="page-hero">
-      <div>
+      <div class="hero-copy">
         <h2 class="page-title">我的课程</h2>
         <p class="page-subtitle">从这里查看排课详情、学员名单，并快速进入对应预约明细</p>
       </div>
-      <el-button @click="resetFilters">重置筛选</el-button>
+      <div class="hero-actions">
+        <div class="hero-chip">
+          <span class="hero-chip-label">当前课程</span>
+          <span class="hero-chip-value">{{ total }}</span>
+        </div>
+        <el-button @click="resetFilters">重置筛选</el-button>
+      </div>
+    </div>
+
+    <div class="overview-grid">
+      <div class="overview-card">
+        <div class="overview-label">进行中</div>
+        <div class="overview-value">{{ summaryStats.ongoing }}</div>
+        <div class="overview-desc">当前正在带的课程</div>
+      </div>
+      <div class="overview-card">
+        <div class="overview-label">报名中</div>
+        <div class="overview-value">{{ summaryStats.open }}</div>
+        <div class="overview-desc">可继续接收预约</div>
+      </div>
+      <div class="overview-card">
+        <div class="overview-label">已结束</div>
+        <div class="overview-value">{{ summaryStats.finished }}</div>
+        <div class="overview-desc">已完成课节记录</div>
+      </div>
     </div>
 
     <div class="toolbar-card">
+      <div class="toolbar-header">
+        <div>
+          <div class="toolbar-title">轻筛选</div>
+          <div class="toolbar-subtitle">按课程名、状态和日期快速收敛列表</div>
+        </div>
+        <div v-if="hasActiveFilters" class="active-filter-tip">已启用筛选</div>
+      </div>
       <div class="toolbar">
         <el-input
           v-model="searchKeyword"
-          placeholder="课程名称"
+          placeholder="搜索课程名称"
           clearable
           class="toolbar-input"
           @keyup.enter="handleSearch"
@@ -42,6 +73,11 @@
         />
         <el-button type="primary" @click="handleSearch">查询</el-button>
       </div>
+      <div v-if="hasActiveFilters" class="filter-summary">
+        <span v-if="searchKeyword" class="filter-tag">关键词：{{ searchKeyword }}</span>
+        <span v-if="searchStatus !== null" class="filter-tag">状态：{{ formatStatusText(searchStatus, COURSE_STATUS_TEXT_MAP) }}</span>
+        <span v-if="dateRange.length === 2" class="filter-tag">{{ dateRange[0] }} 至 {{ dateRange[1] }}</span>
+      </div>
     </div>
 
     <div v-if="loadFailed" class="error-state">
@@ -51,33 +87,35 @@
     </div>
 
     <template v-else>
-      <el-table v-if="list.length" v-loading="loading" :data="list" stripe class="course-table">
-        <el-table-column prop="courseName" label="课程名称" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="courtName" label="场地" min-width="120" show-overflow-tooltip />
-        <el-table-column label="时间" min-width="190">
-          <template #default="{ row }">
-            {{ formatCourseTime(row) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="人数" width="110">
-          <template #default="{ row }">{{ formatStudentCount(row) }}</template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
+      <div v-if="list.length" v-loading="loading" class="course-list">
+        <article v-for="row in list" :key="row.id" class="course-card">
+          <div class="course-card-top">
+            <div>
+              <div class="course-name">{{ row.courseName || '-' }}</div>
+              <div class="course-time">{{ formatCourseTime(row) }}</div>
+            </div>
             <el-tag :type="formatStatusType(row.status, COURSE_STATUS_TYPE_MAP)" size="small">
               {{ formatStatusText(row.status, COURSE_STATUS_TEXT_MAP) }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" min-width="180" fixed="right">
-          <template #default="{ row }">
-            <div class="action-group">
-              <el-button link type="primary" @click="openDetail(row)">查看详情</el-button>
-              <el-button link type="success" @click="goToBookings(row)">查看预约</el-button>
+          </div>
+
+          <div class="course-meta-grid">
+            <div class="meta-block">
+              <span class="meta-label">场地</span>
+              <span class="meta-value">{{ row.courtName || '未安排场地' }}</span>
             </div>
-          </template>
-        </el-table-column>
-      </el-table>
+            <div class="meta-block">
+              <span class="meta-label">人数</span>
+              <span class="meta-value">{{ formatStudentCount(row) }}</span>
+            </div>
+          </div>
+
+          <div class="course-card-actions">
+            <el-button link type="primary" @click="openDetail(row)">查看详情</el-button>
+            <el-button link type="success" @click="goToBookings(row)">查看预约</el-button>
+          </div>
+        </article>
+      </div>
 
       <div v-else-if="!loading" class="empty-wrap">
         <EmptyState
@@ -200,6 +238,15 @@ const memberHistorySize = ref(10)
 
 const hasActiveFilters = computed(() => {
   return Boolean(searchKeyword.value?.trim() || searchStatus.value != null || (dateRange.value?.length === 2))
+})
+
+const summaryStats = computed(() => {
+  const data = list.value || []
+  return {
+    open: data.filter((item) => Number(item.status) === 1).length,
+    ongoing: data.filter((item) => Number(item.status) === 2).length,
+    finished: data.filter((item) => Number(item.status) === 3).length
+  }
 })
 
 const buildParams = () => {
@@ -448,6 +495,40 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--color-card-bg, #fff) 100%);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563EB) 12%, var(--color-border, #e2e8f0));
+}
+
+.hero-chip-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.hero-chip-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary, var(--el-color-primary, #2563EB));
+}
+
 .page-title {
   font-size: 22px;
   font-weight: 600;
@@ -460,6 +541,46 @@ onMounted(() => {
   font-size: 14px;
 }
 
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.overview-card {
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.overview-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  border-color: color-mix(in srgb, var(--color-primary, #2563EB) 18%, var(--color-border, #e2e8f0));
+}
+
+.overview-label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.overview-value {
+  margin-top: 10px;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.overview-desc {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
 .toolbar-card {
   padding: 16px;
   border-radius: 16px;
@@ -467,6 +588,43 @@ onMounted(() => {
   border: 1px solid var(--color-border, #e2e8f0);
   box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
   margin-bottom: 16px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toolbar-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-primary, #2563EB) 18%, var(--color-border, #e2e8f0));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.toolbar-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.toolbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.toolbar-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.active-filter-tip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary, var(--el-color-primary, #2563EB));
+  background: color-mix(in srgb, var(--color-primary, #2563EB) 8%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563EB) 16%, var(--color-border, #e2e8f0));
 }
 
 .toolbar {
@@ -474,6 +632,24 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+.filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
 }
 
 .toolbar-input {
@@ -488,15 +664,81 @@ onMounted(() => {
   width: 320px;
 }
 
-.course-table {
-  width: 100%;
+.course-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
-.action-group {
+.course-card {
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.course-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-primary, #2563EB) 18%, var(--color-border, #e2e8f0));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.10), 0 4px 12px color-mix(in srgb, var(--color-primary, #2563EB) 10%, transparent);
+}
+
+.course-card-top {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.course-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.course-time {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--color-primary, var(--el-color-primary, #2563EB));
+  font-weight: 600;
+}
+
+.course-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.meta-block {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-light);
+}
+
+.meta-label {
+  display: block;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.meta-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.course-card-actions {
+  display: flex;
   align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .empty-wrap {
@@ -507,6 +749,11 @@ onMounted(() => {
   background: var(--color-card-bg, #fff);
   border: 1px solid var(--color-border, #e2e8f0);
   border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.empty-wrap:hover {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
 
 .error-state {
@@ -518,6 +765,11 @@ onMounted(() => {
   flex-direction: column;
   gap: 12px;
   align-items: flex-start;
+  transition: box-shadow 0.2s ease;
+}
+
+.error-state:hover {
+  box-shadow: 0 6px 18px rgba(194, 65, 12, 0.08);
 }
 
 .error-title {
@@ -540,6 +792,16 @@ onMounted(() => {
 @media (max-width: 900px) {
   .page-hero {
     flex-direction: column;
+  }
+
+  .hero-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .overview-grid,
+  .course-list {
+    grid-template-columns: 1fr;
   }
 
   .toolbar-input,
