@@ -18,17 +18,34 @@
           placeholder="预约单号 / 课程名 / 会员名"
           clearable
           class="toolbar-input"
-          @keyup.enter="loadList"
+          @keyup.enter="applySearch"
+          @clear="applySearch"
         />
-        <el-select v-model="searchStatus" placeholder="全部状态" clearable class="toolbar-select" @change="loadList">
+        <el-select v-model="searchStatus" placeholder="全部状态" clearable class="toolbar-select" @change="applySearch">
           <el-option label="待支付" :value="1" />
           <el-option label="已支付" :value="2" />
           <el-option label="进行中" :value="3" />
           <el-option label="已完成" :value="4" />
           <el-option label="已取消" :value="0" />
         </el-select>
-        <el-button type="primary" @click="loadList">查询</el-button>
+        <el-button type="primary" @click="applySearch">查询</el-button>
       </div>
+    </div>
+
+    <div v-if="hasVisibleFilters" class="filter-banner">
+      <div class="filter-banner-text">
+        <span v-if="activeCourseFilterId">
+          当前仅显示课程
+          <span class="filter-banner-name">{{ activeCourseFilterName || `#${activeCourseFilterId}` }}</span>
+          的预约记录
+        </span>
+        <span v-if="searchStatus !== null">
+          <template v-if="activeCourseFilterId">，</template>
+          当前聚焦状态
+          <span class="filter-banner-name">{{ formatStatusText(searchStatus, BOOKING_STATUS_TEXT_MAP) }}</span>
+        </span>
+      </div>
+      <el-button link type="primary" @click="clearRouteFilters">清除筛选</el-button>
     </div>
 
     <el-table v-loading="loading" :data="list" stripe class="booking-table">
@@ -52,7 +69,9 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
+          <el-tag :type="formatStatusType(row.status, BOOKING_STATUS_TYPE_MAP)" size="small">
+            {{ formatStatusText(row.status, BOOKING_STATUS_TEXT_MAP) }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="备注" min-width="170" show-overflow-tooltip>
@@ -62,30 +81,10 @@
         <template #default="{ row }">
           <div class="action-group">
             <el-button link type="primary" @click="openDetail(row.id)">查看详情</el-button>
-            <el-button
-              v-if="canStart(row)"
-              link
-              type="success"
-              @click="openStatusDialog(row, 3)"
-            >
-              签到上课
-            </el-button>
-            <el-button
-              v-if="canComplete(row)"
-              link
-              type="success"
-              @click="openStatusDialog(row, 4)"
-            >
-              完成课程
-            </el-button>
-            <el-button
-              v-if="canCancel(row)"
-              link
-              type="danger"
-              @click="openStatusDialog(row, 0)"
-            >
-              缺席/取消
-            </el-button>
+            <el-button v-if="row.memberId" link type="primary" @click="openMemberHistory(row.memberId)">学员历史</el-button>
+            <el-button v-if="canStart(row)" link type="success" @click="openStatusDialog(row, 3)">签到上课</el-button>
+            <el-button v-if="canComplete(row)" link type="success" @click="openStatusDialog(row, 4)">完成课程</el-button>
+            <el-button v-if="canCancel(row)" link type="danger" @click="openStatusDialog(row, 0)">缺席/取消</el-button>
           </div>
         </template>
       </el-table-column>
@@ -99,16 +98,11 @@
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
         @current-change="loadList"
-        @size-change="loadList"
+        @size-change="handleSizeChange"
       />
     </div>
 
-    <el-dialog
-      v-model="detailVisible"
-      title="预约详情"
-      width="640px"
-      destroy-on-close
-    >
+    <el-dialog v-model="detailVisible" title="预约详情" width="760px" destroy-on-close>
       <div v-loading="detailLoading">
         <template v-if="detail">
           <el-descriptions :column="2" border class="detail-descriptions">
@@ -126,11 +120,54 @@
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="状态">
-              <el-tag :type="statusType(detail.status)" size="small">{{ statusText(detail.status) }}</el-tag>
+              <el-tag :type="formatStatusType(detail.status, BOOKING_STATUS_TYPE_MAP)" size="small">
+                {{ formatStatusText(detail.status, BOOKING_STATUS_TEXT_MAP) }}
+              </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDateTime(detail.createTime) }}</el-descriptions-item>
             <el-descriptions-item label="备注" :span="2">{{ detail.remark || '无' }}</el-descriptions-item>
           </el-descriptions>
+
+          <div class="member-info-card">
+            <div class="member-info-header">
+              <div>
+                <div class="member-info-title">学员信息</div>
+                <div class="member-info-subtitle">查看本次预约关联学员的基础资料与历史记录</div>
+              </div>
+              <el-button v-if="detail.memberId" link type="primary" @click="openMemberHistory(detail.memberId)">查看历史记录</el-button>
+            </div>
+
+            <div v-loading="memberPreviewLoading">
+              <template v-if="memberPreview">
+                <div class="member-info-grid">
+                  <div class="member-info-item">
+                    <span class="member-info-label">姓名</span>
+                    <span class="member-info-value">{{ memberPreview.memberName || '-' }}</span>
+                  </div>
+                  <div class="member-info-item">
+                    <span class="member-info-label">手机号</span>
+                    <span class="member-info-value">{{ memberPreview.phone || '-' }}</span>
+                  </div>
+                  <div class="member-info-item">
+                    <span class="member-info-label">会员类型</span>
+                    <span class="member-info-value">{{ memberTypeText(memberPreview.memberType) }}</span>
+                  </div>
+                  <div class="member-info-item">
+                    <span class="member-info-label">状态</span>
+                    <span class="member-info-value">{{ memberStatusText(memberPreview.status) }}</span>
+                  </div>
+                </div>
+              </template>
+              <el-alert
+                v-else-if="memberPreviewLoadFailed"
+                type="warning"
+                :closable="false"
+                show-icon
+                :title="memberPreviewErrorMessage"
+              />
+              <el-empty v-else description="暂无学员信息" />
+            </div>
+          </div>
 
           <el-alert
             v-if="showRefundHint(detail)"
@@ -182,22 +219,56 @@
 
       <template #footer>
         <el-button @click="statusVisible = false">取消</el-button>
-        <el-button type="primary" :loading="statusSubmitting" @click="submitStatusUpdate">
-          确认
-        </el-button>
+        <el-button type="primary" :loading="statusSubmitting" @click="submitStatusUpdate">确认</el-button>
       </template>
     </el-dialog>
+
+    <MemberHistoryDrawer
+      v-model="memberHistoryVisible"
+      :member-loading="memberLoading"
+      :member-load-failed="memberLoadFailed"
+      :member-error-message="memberErrorMessage"
+      :member="memberInfo"
+      :history-loading="memberHistoryLoading"
+      :history-load-failed="memberHistoryLoadFailed"
+      :history-error-message="memberHistoryErrorMessage"
+      :history="memberHistoryList"
+      :history-page="memberHistoryPage"
+      :history-size="memberHistorySize"
+      :history-total="memberHistoryTotal"
+      @reload-member="reloadMemberInfo"
+      @reload-history="reloadMemberHistory"
+      @history-page-change="handleMemberHistoryPageChange"
+      @history-size-change="handleMemberHistorySizeChange"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  getBookingsForCoach,
   getBookingDetailForCoach,
+  getBookingsForCoach,
   updateBookingStatusForCoach
 } from '@/api/courseBooking'
+import { getMemberConsumeList, getMemberInfo } from '@/api/member'
+import MemberHistoryDrawer from './components/MemberHistoryDrawer.vue'
+import {
+  BOOKING_STATUS_TEXT_MAP,
+  BOOKING_STATUS_TYPE_MAP,
+  MEMBER_STATUS_TEXT_MAP,
+  MEMBER_TYPE_TEXT_MAP,
+  formatAmount,
+  formatCourseTime,
+  formatDateTime,
+  formatStatusText,
+  formatStatusType
+} from './coachViewUtils'
+
+const route = useRoute()
+const router = useRouter()
 
 const loading = ref(false)
 const list = ref([])
@@ -206,11 +277,19 @@ const page = ref(1)
 const size = ref(10)
 const searchKeyword = ref('')
 const searchStatus = ref(null)
+const activeCourseFilterId = ref(null)
+const activeCourseFilterName = ref('')
+const routeStatusFilter = ref(null)
 
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref(null)
 const detailLoadFailed = ref(false)
+
+const memberPreviewLoading = ref(false)
+const memberPreview = ref(null)
+const memberPreviewLoadFailed = ref(false)
+const memberPreviewErrorMessage = ref('请稍后重试')
 
 const statusVisible = ref(false)
 const statusSubmitting = ref(false)
@@ -218,57 +297,34 @@ const currentActionRow = ref(null)
 const targetStatus = ref(null)
 const statusRemark = ref('')
 
-const statusText = (s) => {
-  const m = { 0: '已取消', 1: '待支付', 2: '已支付', 3: '进行中', 4: '已完成' }
-  return m[s] ?? '未知'
+const memberHistoryVisible = ref(false)
+const activeMemberId = ref(null)
+const memberLoading = ref(false)
+const memberLoadFailed = ref(false)
+const memberErrorMessage = ref('请稍后重试')
+const memberInfo = ref(null)
+const memberHistoryLoading = ref(false)
+const memberHistoryLoadFailed = ref(false)
+const memberHistoryErrorMessage = ref('请稍后重试')
+const memberHistoryList = ref([])
+const memberHistoryTotal = ref(0)
+const memberHistoryPage = ref(1)
+const memberHistorySize = ref(10)
+
+const hasVisibleFilters = computed(() => activeCourseFilterId.value != null || searchStatus.value !== null)
+
+const paymentStatusText = (status) => {
+  const map = { 0: '未支付', 1: '已支付', 2: '已退款' }
+  return map[status] ?? '未知'
 }
 
-const paymentStatusText = (s) => {
-  const m = { 0: '未支付', 1: '已支付', 2: '已退款' }
-  return m[s] ?? '未知'
+const paymentStatusType = (status) => {
+  const map = { 0: 'warning', 1: 'success', 2: 'info' }
+  return map[status] ?? 'info'
 }
 
-const paymentStatusType = (s) => {
-  const m = { 0: 'warning', 1: 'success', 2: 'info' }
-  return m[s] ?? 'info'
-}
-
-const statusType = (s) => {
-  const m = { 0: 'info', 1: 'warning', 2: 'success', 3: 'primary', 4: '' }
-  return m[s] ?? 'info'
-}
-
-const formatAmount = (value) => {
-  const amount = Number(value ?? 0)
-  return Number.isFinite(amount) ? amount.toFixed(2) : '0.00'
-}
-
-const formatTimeValue = (value) => {
-  if (!value) return ''
-  return String(value).slice(0, 5)
-}
-
-const formatCourseTime = (row) => {
-  if (!row) return '-'
-  const dateText = row.courseDate || '-'
-  const start = formatTimeValue(row.courseStartTime || row.startTime)
-  const end = formatTimeValue(row.courseEndTime || row.endTime)
-  if (!start && !end) return dateText
-  return `${dateText} ${start || '--:--'} - ${end || '--:--'}`
-}
-
-const formatDateTime = (value) => {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  const h = String(date.getHours()).padStart(2, '0')
-  const mi = String(date.getMinutes()).padStart(2, '0')
-  const s = String(date.getSeconds()).padStart(2, '0')
-  return `${y}-${m}-${d} ${h}:${mi}:${s}`
-}
+const memberTypeText = (value) => formatStatusText(value, MEMBER_TYPE_TEXT_MAP)
+const memberStatusText = (value) => formatStatusText(value, MEMBER_STATUS_TEXT_MAP)
 
 const canStart = (row) => Number(row?.status) === 2
 const canComplete = (row) => Number(row?.status) === 3
@@ -297,6 +353,7 @@ const loadList = async () => {
     const res = await getBookingsForCoach({
       page: page.value,
       size: size.value,
+      courseId: activeCourseFilterId.value ?? undefined,
       status: searchStatus.value ?? undefined,
       keyword: searchKeyword.value?.trim() || undefined
     })
@@ -315,15 +372,87 @@ const loadList = async () => {
   }
 }
 
+const applyRouteFilters = () => {
+  const courseId = route.query.courseId
+  const parsedCourseId = courseId != null && courseId !== '' ? Number(courseId) : null
+  activeCourseFilterId.value = Number.isFinite(parsedCourseId) ? parsedCourseId : null
+  activeCourseFilterName.value = typeof route.query.courseName === 'string' ? route.query.courseName : ''
+
+  const queryStatus = route.query.status
+  const parsedStatus = queryStatus != null && queryStatus !== '' ? Number(queryStatus) : null
+  routeStatusFilter.value = Number.isInteger(parsedStatus) ? parsedStatus : null
+
+  if (routeStatusFilter.value !== null) {
+    searchStatus.value = routeStatusFilter.value
+  }
+}
+
+const clearRouteFilters = async () => {
+  activeCourseFilterId.value = null
+  activeCourseFilterName.value = ''
+  routeStatusFilter.value = null
+  searchStatus.value = null
+  page.value = 1
+  await router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      courseId: undefined,
+      courseName: undefined,
+      status: undefined
+    }
+  })
+}
+
+const applySearch = () => {
+  if (routeStatusFilter.value !== null && searchStatus.value !== routeStatusFilter.value) {
+    routeStatusFilter.value = null
+  }
+  page.value = 1
+  loadList()
+}
+
+const handleSizeChange = () => {
+  page.value = 1
+  loadList()
+}
+
+const loadMemberPreview = async (memberId) => {
+  if (!memberId) {
+    memberPreview.value = null
+    return
+  }
+  memberPreviewLoading.value = true
+  memberPreviewLoadFailed.value = false
+  memberPreviewErrorMessage.value = '请稍后重试'
+  try {
+    const res = await getMemberInfo(memberId)
+    if (res?.code === 200) {
+      memberPreview.value = res.data
+      return
+    }
+    throw new Error(res?.message || '学员信息获取失败')
+  } catch (error) {
+    memberPreview.value = null
+    memberPreviewLoadFailed.value = true
+    memberPreviewErrorMessage.value = error?.message || '请稍后重试'
+  } finally {
+    memberPreviewLoading.value = false
+  }
+}
+
 const openDetail = async (id) => {
   detailVisible.value = true
   detailLoading.value = true
   detail.value = null
   detailLoadFailed.value = false
+  memberPreview.value = null
+  memberPreviewLoadFailed.value = false
   try {
     const res = await getBookingDetailForCoach(id)
     if (res?.code === 200) {
       detail.value = res.data
+      await loadMemberPreview(res.data?.memberId)
     } else {
       detailLoadFailed.value = true
     }
@@ -373,14 +502,103 @@ const submitStatusUpdate = async () => {
     } else {
       ElMessage.error(res?.message || '更新失败')
     }
-  } catch (e) {
-    ElMessage.error(e?.message || '更新失败')
+  } catch (error) {
+    ElMessage.error(error?.message || '更新失败')
   } finally {
     statusSubmitting.value = false
   }
 }
 
-loadList()
+const loadMemberInfo = async () => {
+  if (!activeMemberId.value) return
+  memberLoading.value = true
+  memberLoadFailed.value = false
+  memberErrorMessage.value = '请稍后重试'
+  try {
+    const res = await getMemberInfo(activeMemberId.value)
+    if (res?.code === 200) {
+      memberInfo.value = res.data
+      return
+    }
+    throw new Error(res?.message || '学员信息获取失败')
+  } catch (error) {
+    memberInfo.value = null
+    memberLoadFailed.value = true
+    memberErrorMessage.value = error?.message || '请稍后重试'
+  } finally {
+    memberLoading.value = false
+  }
+}
+
+const loadMemberHistory = async () => {
+  if (!activeMemberId.value) return
+  memberHistoryLoading.value = true
+  memberHistoryLoadFailed.value = false
+  memberHistoryErrorMessage.value = '请稍后重试'
+  try {
+    const res = await getMemberConsumeList(activeMemberId.value, {
+      page: memberHistoryPage.value,
+      size: memberHistorySize.value
+    })
+    if (res?.code === 200 && res?.data) {
+      memberHistoryList.value = res.data.data ?? []
+      memberHistoryTotal.value = res.data.total ?? 0
+      return
+    }
+    throw new Error(res?.message || '历史记录获取失败')
+  } catch (error) {
+    memberHistoryList.value = []
+    memberHistoryTotal.value = 0
+    memberHistoryLoadFailed.value = true
+    memberHistoryErrorMessage.value = error?.message || '请稍后重试'
+  } finally {
+    memberHistoryLoading.value = false
+  }
+}
+
+const openMemberHistory = async (memberId) => {
+  if (!memberId) {
+    ElMessage.error('学员ID缺失，无法查看历史记录')
+    return
+  }
+  activeMemberId.value = memberId
+  memberHistoryVisible.value = true
+  memberHistoryPage.value = 1
+  await Promise.all([loadMemberInfo(), loadMemberHistory()])
+}
+
+const reloadMemberInfo = async () => {
+  await loadMemberInfo()
+}
+
+const reloadMemberHistory = async () => {
+  await loadMemberHistory()
+}
+
+const handleMemberHistoryPageChange = (nextPage) => {
+  memberHistoryPage.value = nextPage
+  loadMemberHistory()
+}
+
+const handleMemberHistorySizeChange = (nextSize) => {
+  memberHistorySize.value = nextSize
+  memberHistoryPage.value = 1
+  loadMemberHistory()
+}
+
+watch(
+  () => [route.query.courseId, route.query.courseName, route.query.status],
+  () => {
+    applyRouteFilters()
+    page.value = 1
+    loadList()
+  }
+)
+
+onMounted(() => {
+  applyRouteFilters()
+  loadList()
+})
 </script>
 
 <style scoped>
@@ -447,6 +665,28 @@ loadList()
   align-items: center;
 }
 
+.filter-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-5);
+}
+
+.filter-banner-text {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+}
+
+.filter-banner-name {
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
 .toolbar-input {
   width: 260px;
 }
@@ -474,6 +714,57 @@ loadList()
 
 .detail-descriptions {
   margin-bottom: 20px;
+}
+
+.member-info-card {
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-light);
+}
+
+.member-info-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.member-info-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.member-info-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.member-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.member-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.member-info-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.member-info-value {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
 }
 
 .detail-hint {
@@ -518,7 +809,8 @@ loadList()
 }
 
 @media (max-width: 900px) {
-  .page-hero {
+  .page-hero,
+  .member-info-header {
     flex-direction: column;
   }
 
@@ -529,6 +821,15 @@ loadList()
   .toolbar-input,
   .toolbar-select {
     width: 100%;
+  }
+
+  .filter-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .member-info-grid {
+    grid-template-columns: 1fr;
   }
 
   .pagination-wrap {

@@ -162,20 +162,20 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     }
 
     @Override
-    public List<CourseBooking> findAllForCoach(Long coachId, Integer status, String keyword, int page, int size) {
+    public List<CourseBooking> findAllForCoach(Long coachId, Long courseId, Integer status, String keyword, int page, int size) {
         if (coachId == null) return java.util.Collections.emptyList();
         if (page < 1) page = 1;
         if (size < 1 || size > 100) size = 10;
         int offset = (page - 1) * size;
         if (keyword != null && keyword.trim().isEmpty()) keyword = null;
-        return courseBookingMapper.findAllByCoachId(coachId, status, keyword, offset, size);
+        return courseBookingMapper.findAllByCoachId(coachId, courseId, status, keyword, offset, size);
     }
 
     @Override
-    public int countForCoach(Long coachId, Integer status, String keyword) {
+    public int countForCoach(Long coachId, Long courseId, Integer status, String keyword) {
         if (coachId == null) return 0;
         if (keyword != null && keyword.trim().isEmpty()) keyword = null;
-        return courseBookingMapper.countByCoachId(coachId, status, keyword);
+        return courseBookingMapper.countByCoachId(coachId, courseId, status, keyword);
     }
 
     @Override

@@ -49,6 +49,7 @@ public class CourseBookingController extends BaseController {
     @GetMapping("/for-coach")
     @PreAuthorize("hasRole('COACH')")
     public Result<Object> getBookingsForCoach(
+            @RequestParam(value = "courseId", required = false) Long courseId,
             @RequestParam(value = "status", required = false) Integer status,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "page", defaultValue = "1") int page,
@@ -67,8 +68,8 @@ public class CourseBookingController extends BaseController {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;
             if (keyword != null && keyword.trim().isEmpty()) keyword = null;
-            List<CourseBooking> bookings = courseBookingService.findAllForCoach(coachId, status, keyword, page, size);
-            int total = courseBookingService.countForCoach(coachId, status, keyword);
+            List<CourseBooking> bookings = courseBookingService.findAllForCoach(coachId, courseId, status, keyword, page, size);
+            int total = courseBookingService.countForCoach(coachId, courseId, status, keyword);
             Map<String, Object> result = new HashMap<>();
             result.put("data", bookings);
             result.put("total", total);

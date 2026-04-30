@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import com.badminton.bmp.common.util.SecurityUtils;
@@ -31,6 +32,9 @@ import com.badminton.bmp.common.util.SecurityUtils;
  */
 @Service
 public class CoachServiceImpl implements CoachService {
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^1\\d{10}$");
+    private static final int SPECIALTY_MAX_LENGTH = 300;
+    private static final int EXPERIENCE_MAX_LENGTH = 1000;
 
     @Autowired
     private CoachMapper coachMapper;
@@ -109,12 +113,33 @@ public class CoachServiceImpl implements CoachService {
         }
         Coach existing = coachMapper.findById(coachId);
         if (existing == null) throw new ResourceNotFoundException("教练不存在");
-        String name = coachName != null ? coachName : existing.getCoachName();
-        String ph = phone != null ? phone : existing.getPhone();
-        String spec = specialty != null ? specialty : existing.getSpecialty();
-        String exp = experience != null ? experience : existing.getExperience();
-        String av = avatar != null ? avatar : existing.getAvatar();
+        String name = trimToNull(coachName != null ? coachName : existing.getCoachName());
+        String ph = trimToNull(phone != null ? phone : existing.getPhone());
+        String spec = trimToNull(specialty != null ? specialty : existing.getSpecialty());
+        String exp = trimToNull(experience != null ? experience : existing.getExperience());
+        String av = trimToNull(avatar != null ? avatar : existing.getAvatar());
+
+        if (name == null) {
+            throw new BusinessException("教练姓名不能为空");
+        }
+        if (ph != null && !PHONE_PATTERN.matcher(ph).matches()) {
+            throw new BusinessException("请输入有效的11位手机号");
+        }
+        if (spec != null && spec.length() > SPECIALTY_MAX_LENGTH) {
+            throw new BusinessException("专业特长不能超过" + SPECIALTY_MAX_LENGTH + "字");
+        }
+        if (exp != null && exp.length() > EXPERIENCE_MAX_LENGTH) {
+            throw new BusinessException("教学经验不能超过" + EXPERIENCE_MAX_LENGTH + "字");
+        }
         return coachMapper.updateSelfProfile(coachId, name, ph, spec, exp, av);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Override

@@ -148,6 +148,7 @@ public interface CourseBookingMapper {
             "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
             "LEFT JOIN sys_coach co ON c.coach_id = co.id " +
             "WHERE cb.del_flag = 0 AND c.coach_id = #{coachId} " +
+            "<if test='courseId != null'> AND cb.course_id = #{courseId} </if>" +
             "<if test='status != null'> AND cb.status = #{status} </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND (cb.booking_no LIKE CONCAT('%', #{keyword}, '%') " +
@@ -157,6 +158,7 @@ public interface CourseBookingMapper {
             "LIMIT #{offset}, #{limit}" +
             "</script>")
     List<CourseBooking> findAllByCoachId(@Param("coachId") Long coachId,
+                                         @Param("courseId") Long courseId,
                                          @Param("status") Integer status,
                                          @Param("keyword") String keyword,
                                          @Param("offset") int offset,
@@ -167,6 +169,7 @@ public interface CourseBookingMapper {
             "INNER JOIN biz_course c ON cb.course_id = c.id " +
             "LEFT JOIN sys_member m ON cb.member_id = m.id " +
             "WHERE cb.del_flag = 0 AND c.coach_id = #{coachId} " +
+            "<if test='courseId != null'> AND cb.course_id = #{courseId} </if>" +
             "<if test='status != null'> AND cb.status = #{status} </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND (cb.booking_no LIKE CONCAT('%', #{keyword}, '%') " +
@@ -174,6 +177,7 @@ public interface CourseBookingMapper {
             "OR c.course_name LIKE CONCAT('%', #{keyword}, '%')) </if>" +
             "</script>")
     int countByCoachId(@Param("coachId") Long coachId,
+                       @Param("courseId") Long courseId,
                        @Param("status") Integer status,
                        @Param("keyword") String keyword);
 
