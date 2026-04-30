@@ -92,9 +92,11 @@ import { UserFilled, ArrowDown, User, SwitchButton, Odometer, Document, Calendar
 import ThemeSelector from '@/components/ThemeSelector.vue'
 import { getCurrentCoach } from '@/api/coach'
 import { getToken, removeToken, removeRefreshToken } from '@/utils/auth'
+import { COACH_PROFILE_UPDATED_EVENT, isCoachUnboundError } from '@/views/coach/coachViewUtils'
 
 const router = useRouter()
 const coachInfo = ref(null)
+const coachUnbound = ref(false)
 
 const navItems = [
   { path: '/coach/dashboard', title: '工作台', icon: Odometer },
@@ -124,7 +126,7 @@ const coachAvatarUrl = computed(() => {
 
 const coachInfoLoaded = ref(false)
 const showUnboundTip = computed(() => {
-  return getToken() && coachInfo.value === null && coachInfoLoaded.value
+  return getToken() && coachUnbound.value && coachInfoLoaded.value
 })
 
 const handleCommand = (command) => {
@@ -141,15 +143,18 @@ const handleCommand = (command) => {
 const loadCoachInfo = async () => {
   if (!getToken()) return
   coachInfoLoaded.value = false
+  coachUnbound.value = false
   try {
     const res = await getCurrentCoach()
     if (res?.code === 200 && res?.data) {
       coachInfo.value = res.data
     } else {
       coachInfo.value = null
+      coachUnbound.value = true
     }
-  } catch (_) {
+  } catch (error) {
     coachInfo.value = null
+    coachUnbound.value = isCoachUnboundError(error)
   } finally {
     coachInfoLoaded.value = true
   }
@@ -158,10 +163,12 @@ const loadCoachInfo = async () => {
 onMounted(() => {
   loadCoachInfo()
   window.addEventListener('storage', loadCoachInfo)
+  window.addEventListener(COACH_PROFILE_UPDATED_EVENT, loadCoachInfo)
 })
 
 onUnmounted(() => {
   window.removeEventListener('storage', loadCoachInfo)
+  window.removeEventListener(COACH_PROFILE_UPDATED_EVENT, loadCoachInfo)
 })
 </script>
 

@@ -31,6 +31,8 @@ import lombok.Data;
 @RestController
 @RequestMapping("/api/course/booking")
 public class CourseBookingController extends BaseController {
+    private static final String COACH_UNBOUND_MESSAGE = "未绑定教练档案，请联系管理员在教练管理中关联账号";
+
     @Autowired
     private CourseBookingService courseBookingService;
     @Autowired
@@ -57,13 +59,7 @@ public class CourseBookingController extends BaseController {
         try {
             Long coachId = coachService.getCurrentCoachIdOrNull();
             if (coachId == null) {
-                Map<String, Object> empty = new HashMap<>();
-                empty.put("data", java.util.Collections.emptyList());
-                empty.put("total", 0);
-                empty.put("page", page);
-                empty.put("size", size);
-                empty.put("pages", 0);
-                return success(empty);
+                return error(COACH_UNBOUND_MESSAGE);
             }
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;
@@ -89,7 +85,7 @@ public class CourseBookingController extends BaseController {
         try {
             Long coachId = coachService.getCurrentCoachIdOrNull();
             if (coachId == null) {
-                return error("未绑定教练档案，请联系管理员在教练管理中关联账号");
+                return error(COACH_UNBOUND_MESSAGE);
             }
             CourseBooking booking = courseBookingService.findByIdForCoach(coachId, id);
             return booking != null ? success(booking) : error("预约记录不存在或无权查看");
@@ -107,7 +103,7 @@ public class CourseBookingController extends BaseController {
         try {
             Long coachId = coachService.getCurrentCoachIdOrNull();
             if (coachId == null) {
-                return error("未绑定教练档案，请联系管理员在教练管理中关联账号");
+                return error(COACH_UNBOUND_MESSAGE);
             }
             if (request == null || request.getId() == null) {
                 return error("预约记录ID不能为空");

@@ -21,6 +21,7 @@ import java.util.Map;
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import com.badminton.bmp.common.util.SecurityUtils;
+import com.badminton.bmp.modules.system.entity.User;
 
 /**
  * 课程业务实现类
@@ -69,9 +70,35 @@ public class CourseServiceImpl implements CourseService {
                 }
             }
             throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
+        } else if (SecurityUtils.getCurrentUserRoles().stream().anyMatch(r -> "COACH".equalsIgnoreCase(r))) {
+            Long coachVenueId = resolveCurrentCoachVenueId();
+            if (coachVenueId != null) {
+                if (course.getCoachId() != null) {
+                    com.badminton.bmp.modules.coach.entity.Coach coach = coachMapper.findById(course.getCoachId());
+                    if (coach != null && coachVenueId.equals(coach.getVenueId())) {
+                        return course;
+                    }
+                }
+                if (course.getCourtId() != null) {
+                    com.badminton.bmp.modules.court.entity.Court court = courtMapper.findById(course.getCourtId());
+                    if (court != null && coachVenueId.equals(court.getVenueId())) {
+                        return course;
+                    }
+                }
+            }
+            throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
         } else {
             return course;
         }
+    }
+
+    private Long resolveCurrentCoachVenueId() {
+        User current = SecurityUtils.getCurrentUser();
+        if (current == null || current.getId() == null) {
+            return null;
+        }
+        com.badminton.bmp.modules.coach.entity.Coach coach = coachMapper.findByUserId(current.getId());
+        return coach != null ? coach.getVenueId() : null;
     }
 
     /**

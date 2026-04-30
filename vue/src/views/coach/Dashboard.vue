@@ -1,7 +1,15 @@
 <template>
   <div class="coach-dashboard">
     <div v-loading="coachLoading" class="coach-info-card" :class="{ 'not-bound': notBound }">
-      <template v-if="notBound">
+      <template v-if="coachLoadFailed">
+        <div class="empty-workbench">
+          <div class="empty-title">工作台加载失败</div>
+          <p class="empty-description">{{ coachLoadErrorMessage }}</p>
+          <el-button type="primary" @click="reloadCoachDashboard">重试</el-button>
+        </div>
+      </template>
+
+      <template v-else-if="notBound">
         <div class="empty-workbench">
           <div class="empty-title">尚未绑定教练档案</div>
           <p class="empty-description">请联系管理员在教练管理中为当前账号关联教练档案，绑定后即可查看课程、课表与预约工作台。</p>
@@ -267,6 +275,7 @@ import MemberHistoryDrawer from './components/MemberHistoryDrawer.vue'
 import {
   BOOKING_STATUS_TEXT_MAP,
   BOOKING_STATUS_TYPE_MAP,
+  COACH_UNBOUND_MESSAGE,
   COURSE_STATUS_TEXT_MAP,
   COURSE_STATUS_TYPE_MAP,
   compareCourseTime,
@@ -275,6 +284,7 @@ import {
   formatStatusText,
   formatStatusType,
   formatStudentCount,
+  isCoachUnboundError,
   isTodayCourseOngoing,
   toAbsoluteAssetUrl
 } from './coachViewUtils'
@@ -284,6 +294,8 @@ const router = useRouter()
 const coachLoading = ref(false)
 const coachInfo = ref(null)
 const notBound = ref(false)
+const coachLoadFailed = ref(false)
+const coachLoadErrorMessage = ref('工作台加载失败，请稍后重试')
 
 const dashboardStats = ref({
   pendingBookings: 0,
@@ -392,6 +404,8 @@ const paymentStatusText = (status) => {
 
 const loadCoach = async () => {
   coachLoading.value = true
+  coachLoadFailed.value = false
+  coachLoadErrorMessage.value = '工作台加载失败，请稍后重试'
   try {
     const res = await getCurrentCoach()
     if (res?.code === 200 && res?.data) {
@@ -402,9 +416,11 @@ const loadCoach = async () => {
     coachInfo.value = null
     notBound.value = true
     return false
-  } catch (_) {
+  } catch (error) {
     coachInfo.value = null
-    notBound.value = true
+    notBound.value = isCoachUnboundError(error)
+    coachLoadFailed.value = !notBound.value
+    coachLoadErrorMessage.value = error?.message || '工作台加载失败，请稍后重试'
     return false
   } finally {
     coachLoading.value = false
@@ -443,6 +459,11 @@ const loadCoursePanelData = async () => {
       todayCourses: 0
     }
     courseLoadFailed.value = true
+    if (isCoachUnboundError(error)) {
+      notBound.value = true
+      courseErrorMessage.value = COACH_UNBOUND_MESSAGE
+      return
+    }
     courseErrorMessage.value = error?.message || '请稍后重试'
   }
 }
@@ -477,6 +498,11 @@ const loadBookingPanelData = async () => {
       pendingBookings: 0
     }
     bookingLoadFailed.value = true
+    if (isCoachUnboundError(error)) {
+      notBound.value = true
+      bookingErrorMessage.value = COACH_UNBOUND_MESSAGE
+      return
+    }
     bookingErrorMessage.value = error?.message || '请稍后重试'
   }
 }
@@ -503,7 +529,7 @@ const loadCourseStudents = async (courseId) => {
   } catch (error) {
     courseStudents.value = []
     studentLoadFailed.value = true
-    studentErrorMessage.value = error?.message || '请稍后重试'
+    studentErrorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     studentLoading.value = false
   }
@@ -526,7 +552,7 @@ const loadDetail = async (courseId) => {
     throw new Error(detailRes?.message || '课程详情获取失败')
   } catch (error) {
     detailLoadFailed.value = true
-    detailErrorMessage.value = error?.message || '请稍后重试'
+    detailErrorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     detailLoading.value = false
   }
@@ -585,8 +611,11 @@ const openBookingDetail = async (booking) => {
     } else {
       bookingDetailLoadFailed.value = true
     }
-  } catch (_) {
+  } catch (error) {
     bookingDetailLoadFailed.value = true
+    if (isCoachUnboundError(error)) {
+      ElMessage.error(COACH_UNBOUND_MESSAGE)
+    }
   } finally {
     bookingDetailLoading.value = false
   }
@@ -617,7 +646,7 @@ const loadMemberInfo = async () => {
   } catch (error) {
     memberInfo.value = null
     memberLoadFailed.value = true
-    memberErrorMessage.value = error?.message || '请稍后重试'
+    memberErrorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     memberLoading.value = false
   }
@@ -643,7 +672,7 @@ const loadMemberHistory = async () => {
     memberHistoryList.value = []
     memberHistoryTotal.value = 0
     memberHistoryLoadFailed.value = true
-    memberHistoryErrorMessage.value = error?.message || '请稍后重试'
+    memberHistoryErrorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     memberHistoryLoading.value = false
   }
@@ -684,6 +713,13 @@ const goQuickAction = (action) => {
     path: action.path,
     query: action.query
   })
+}
+
+const reloadCoachDashboard = async () => {
+  const hasCoach = await loadCoach()
+  if (hasCoach) {
+    await loadDashboardData()
+  }
 }
 
 onMounted(async () => {

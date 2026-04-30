@@ -156,3 +156,18 @@ export const formatDateTime = (value) => {
   const s = String(date.getSeconds()).padStart(2, '0')
   return `${y}-${m}-${d} ${h}:${mi}:${s}`
 }
+
+export const COACH_UNBOUND_MESSAGE = '未绑定教练档案，请联系管理员在教练管理中关联账号'
+export const COACH_PROFILE_UPDATED_EVENT = 'coach-profile-updated'
+
+export const isCoachUnboundError = (error) => {
+  const message = typeof error === 'string'
+    ? error
+    : (error?.message || error?.response?.data?.message || '')
+  return String(message).includes(COACH_UNBOUND_MESSAGE)
+}
+
+export const emitCoachProfileUpdated = (payload) => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(COACH_PROFILE_UPDATED_EVENT, { detail: payload || null }))
+}

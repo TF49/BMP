@@ -201,6 +201,7 @@ import { getMemberConsumeList, getMemberInfo } from '@/api/member'
 import CourseDetailDrawer from './components/CourseDetailDrawer.vue'
 import MemberHistoryDrawer from './components/MemberHistoryDrawer.vue'
 import {
+  COACH_UNBOUND_MESSAGE,
   COURSE_STATUS_TEXT_MAP,
   COURSE_STATUS_TYPE_MAP,
   WEEK_LABELS,
@@ -215,6 +216,7 @@ import {
   formatTimeRange,
   getWeekStart,
   getWeekdayLabel,
+  isCoachUnboundError,
   isTodayCourseOngoing,
   isUpcomingCourse
 } from './coachViewUtils'
@@ -375,7 +377,7 @@ const loadSchedule = async () => {
     list.value = []
     total.value = 0
     loadFailed.value = true
-    errorMessage.value = error?.message || '请稍后重试'
+    errorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     loading.value = false
   }
@@ -403,7 +405,7 @@ const loadCourseStudents = async (courseId) => {
   } catch (error) {
     courseStudents.value = []
     studentLoadFailed.value = true
-    studentErrorMessage.value = error?.message || '请稍后重试'
+    studentErrorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     studentLoading.value = false
   }
@@ -426,7 +428,7 @@ const loadDetail = async (courseId) => {
     throw new Error(detailRes?.message || '课程详情获取失败')
   } catch (error) {
     detailLoadFailed.value = true
-    detailErrorMessage.value = error?.message || '请稍后重试'
+    detailErrorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     detailLoading.value = false
   }
@@ -488,7 +490,7 @@ const loadMemberInfo = async () => {
   } catch (error) {
     memberInfo.value = null
     memberLoadFailed.value = true
-    memberErrorMessage.value = error?.message || '请稍后重试'
+    memberErrorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     memberLoading.value = false
   }
@@ -514,7 +516,7 @@ const loadMemberHistory = async () => {
     memberHistoryList.value = []
     memberHistoryTotal.value = 0
     memberHistoryLoadFailed.value = true
-    memberHistoryErrorMessage.value = error?.message || '请稍后重试'
+    memberHistoryErrorMessage.value = isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '请稍后重试')
   } finally {
     memberHistoryLoading.value = false
   }

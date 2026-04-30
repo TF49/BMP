@@ -5,6 +5,7 @@ import com.badminton.bmp.framework.web.BaseController;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberService;
+import com.badminton.bmp.modules.coach.service.CoachService;
 import com.badminton.bmp.modules.system.entity.User;
 import com.badminton.bmp.common.util.SecurityUtils;
 import jakarta.validation.Valid;
@@ -30,6 +31,9 @@ public class MemberController extends BaseController {
 
     @Autowired
     private MemberMapper memberMapper;
+
+    @Autowired
+    private CoachService coachService;
 
     @Operation(summary = "会员列表", description = "支持姓名/手机/类型/状态筛选与分页")
     @GetMapping("/list")
@@ -60,7 +64,7 @@ public class MemberController extends BaseController {
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> info(@PathVariable("id") Long id) {
-        Member member = memberService.findById(id);
+        Member member = memberService.findById(id, resolveCoachVenueIdForRequest());
         if (member == null || (member.getDelFlag() != null && member.getDelFlag() == 1)) {
             return error("会员不存在");
         }
@@ -310,5 +314,17 @@ public class MemberController extends BaseController {
         } catch (Exception e) {
             return error("获取消费记录失败：" + e.getMessage());
         }
+    }
+
+    private Long resolveCoachVenueIdForRequest() {
+        if (!SecurityUtils.getCurrentUserRoles().stream().anyMatch(r -> "COACH".equalsIgnoreCase(r))) {
+            return null;
+        }
+        Long coachId = coachService.getCurrentCoachIdOrNull();
+        if (coachId == null) {
+            return null;
+        }
+        com.badminton.bmp.modules.coach.entity.Coach coach = coachService.findByUserId(SecurityUtils.getCurrentUser().getId());
+        return coach != null ? coach.getVenueId() : null;
     }
 }

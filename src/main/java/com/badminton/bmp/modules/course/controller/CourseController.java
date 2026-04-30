@@ -26,6 +26,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/course")
 public class CourseController extends BaseController {
+    private static final String COACH_UNBOUND_MESSAGE = "未绑定教练档案，请联系管理员在教练管理中关联账号";
+
     @Autowired
     private CourseService courseService;
     @Autowired
@@ -52,13 +54,7 @@ public class CourseController extends BaseController {
         try {
             Long coachId = coachService.getCurrentCoachIdOrNull();
             if (coachId == null) {
-                Map<String, Object> empty = new HashMap<>();
-                empty.put("data", java.util.Collections.emptyList());
-                empty.put("total", 0);
-                empty.put("page", page);
-                empty.put("size", size);
-                empty.put("pages", 0);
-                return success(empty);
+                return error(COACH_UNBOUND_MESSAGE);
             }
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 10;

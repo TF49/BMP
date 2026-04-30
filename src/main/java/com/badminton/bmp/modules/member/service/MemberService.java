@@ -14,6 +14,11 @@ public interface MemberService {
     Member findById(Long id);
 
     /**
+     * 根据会员ID查询（允许显式指定可见场馆，用于教练端）
+     */
+    Member findById(Long id, Long venueId);
+
+    /**
      * 根据用户ID查询会员
      */
     Member findByUserId(Long userId);

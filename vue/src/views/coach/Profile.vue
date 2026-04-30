@@ -5,6 +5,9 @@
         您尚未绑定教练档案，请联系管理员在「教练管理」中为您的账号关联教练档案。
       </el-alert>
     </div>
+    <div v-else-if="loadFailed" class="not-bound-tip">
+      <el-alert type="error" show-icon :closable="false" :title="loadErrorMessage" />
+    </div>
 
     <template v-else>
       <div class="page-hero">
@@ -126,13 +129,20 @@ import { UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getCurrentCoach, updateCurrentCoach } from '@/api/coach'
 import { uploadAvatar } from '@/api/login'
-import { toAbsoluteAssetUrl } from './coachViewUtils'
+import {
+  COACH_UNBOUND_MESSAGE,
+  emitCoachProfileUpdated,
+  isCoachUnboundError,
+  toAbsoluteAssetUrl
+} from './coachViewUtils'
 
 const PHONE_PATTERN = /^1\d{10}$/
 
 const coachInfo = ref(null)
 const notBound = ref(false)
 const loading = ref(false)
+const loadFailed = ref(false)
+const loadErrorMessage = ref('档案加载失败，请稍后重试')
 const editing = ref(false)
 const submitting = ref(false)
 const avatarUploading = ref(false)
@@ -207,6 +217,8 @@ const fillForm = (data) => {
 
 const loadCoach = async () => {
   loading.value = true
+  loadFailed.value = false
+  loadErrorMessage.value = '档案加载失败，请稍后重试'
   try {
     const res = await getCurrentCoach()
     if (res?.code === 200 && res?.data) {
@@ -214,10 +226,14 @@ const loadCoach = async () => {
       notBound.value = false
       fillForm(res.data)
     } else {
+      coachInfo.value = null
       notBound.value = true
     }
-  } catch (_) {
-    notBound.value = true
+  } catch (error) {
+    coachInfo.value = null
+    notBound.value = isCoachUnboundError(error)
+    loadFailed.value = !notBound.value
+    loadErrorMessage.value = error?.message || '档案加载失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -271,11 +287,12 @@ const submit = async () => {
       ElMessage.success('保存成功')
       editing.value = false
       await loadCoach()
+      emitCoachProfileUpdated(coachInfo.value)
     } else {
       ElMessage.error(res?.message || '保存失败')
     }
   } catch (error) {
-    ElMessage.error(error?.message || '保存失败')
+    ElMessage.error(isCoachUnboundError(error) ? COACH_UNBOUND_MESSAGE : (error?.message || '保存失败'))
   } finally {
     submitting.value = false
   }

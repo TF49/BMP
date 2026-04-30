@@ -23,6 +23,16 @@ public interface MemberConsumeRecordMapper {
     @Select("SELECT COUNT(*) FROM biz_member_consume_record WHERE member_id = #{memberId}")
     int countByMemberId(@Param("memberId") Long memberId);
 
+    @Select("SELECT COUNT(*) FROM biz_member_consume_record WHERE member_id = #{memberId} AND venue_id = #{venueId}")
+    int countByMemberIdAndVenueId(@Param("memberId") Long memberId, @Param("venueId") Long venueId);
+
+    @Select("SELECT * FROM biz_member_consume_record WHERE member_id = #{memberId} AND venue_id = #{venueId} " +
+            "ORDER BY create_time DESC LIMIT #{offset}, #{limit}")
+    List<MemberConsumeRecord> findByMemberIdAndVenueId(@Param("memberId") Long memberId,
+                                                       @Param("venueId") Long venueId,
+                                                       @Param("offset") int offset,
+                                                       @Param("limit") int limit);
+
     @Select("<script>" +
             "SELECT * FROM biz_member_consume_record " +
             "WHERE 1=1 " +

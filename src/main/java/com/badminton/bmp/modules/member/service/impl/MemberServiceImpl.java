@@ -5,6 +5,8 @@ import com.badminton.bmp.modules.member.entity.MemberConsumeRecord;
 import com.badminton.bmp.modules.member.mapper.MemberConsumeRecordMapper;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberService;
+import com.badminton.bmp.modules.coach.mapper.CoachMapper;
+import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import com.badminton.bmp.modules.system.entity.User;
@@ -32,6 +34,12 @@ public class MemberServiceImpl implements MemberService {
     @Autowired
     private MemberConsumeRecordMapper memberConsumeRecordMapper;
 
+    @Autowired
+    private CourseBookingMapper courseBookingMapper;
+
+    @Autowired
+    private CoachMapper coachMapper;
+
     private void ensurePresidentAnalyticsAccess() {
         if (!SecurityUtils.isPresident()) {
             throw new org.springframework.security.access.AccessDeniedException("权限不足，仅会长可访问会员统计数据");
@@ -40,20 +48,27 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public Member findById(Long id) {
+        return findById(id, null);
+    }
+
+    @Override
+    public Member findById(Long id, Long venueId) {
         Member member = memberMapper.findById(id);
         if (member == null) {
             return null;
         }
-        
-        // 数据范围过滤：根据角色检查访问权限
+
         if (SecurityUtils.isPresident()) {
-            // PRESIDENT: 可以访问所有数据
             return member;
         } else if (SecurityUtils.isVenueManager()) {
-            // VENUE_MANAGER: 可以访问所有会员（按产品定义）
             return member;
+        } else if (SecurityUtils.getCurrentUserRoles().stream().anyMatch(r -> "COACH".equalsIgnoreCase(r))) {
+            Long coachVenueId = venueId != null ? venueId : resolveCurrentCoachVenueId();
+            if (coachVenueId != null && isMemberVisibleForVenue(member.getId(), coachVenueId)) {
+                return member;
+            }
+            throw new org.springframework.security.access.AccessDeniedException("权限不足，拒绝访问");
         } else {
-            // USER: 只能访问自己的会员记录
             User current = SecurityUtils.getCurrentUser();
             if (current != null && current.getId().equals(member.getUserId())) {
                 return member;
@@ -377,25 +392,54 @@ public class MemberServiceImpl implements MemberService {
         int p = Math.max(page, 1);
         int s = (size <= 0 || size > 100) ? 10 : size;
         int offset = (p - 1) * s;
-        
-        // 数据范围过滤：USER只能查看自己的消费记录
+
         if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
-            User current = SecurityUtils.getCurrentUser();
-            if (current != null) {
-                Member m = memberMapper.findByUserId(current.getId());
-                if (m == null || !m.getId().equals(memberId)) {
-                    throw new BusinessException("权限不足，只能查看自己的消费记录");
+            if (SecurityUtils.getCurrentUserRoles().stream().anyMatch(r -> "COACH".equalsIgnoreCase(r))) {
+                Long coachVenueId = resolveCurrentCoachVenueId();
+                if (coachVenueId == null || !isMemberVisibleForVenue(memberId, coachVenueId)) {
+                    throw new BusinessException("权限不足，只能查看本场馆学员的消费记录");
                 }
+                List<MemberConsumeRecord> list = memberConsumeRecordMapper.findByMemberIdAndVenueId(memberId, coachVenueId, offset, s);
+                int total = memberConsumeRecordMapper.countByMemberIdAndVenueId(memberId, coachVenueId);
+                return buildConsumeRecordResult(list, total);
             } else {
-                throw new BusinessException("权限不足");
+                User current = SecurityUtils.getCurrentUser();
+                if (current != null) {
+                    Member m = memberMapper.findByUserId(current.getId());
+                    if (m == null || !m.getId().equals(memberId)) {
+                        throw new BusinessException("权限不足，只能查看自己的消费记录");
+                    }
+                } else {
+                    throw new BusinessException("权限不足");
+                }
             }
         }
 
         List<MemberConsumeRecord> list = memberConsumeRecordMapper.findByMemberId(memberId, offset, s);
         int total = memberConsumeRecordMapper.countByMemberId(memberId);
-        
-        // 为每条记录添加 incomeExpenseType 字段（前端需要）
-        // 根据 amount 正负判断：正数=1（收入），负数=0（支出）
+        return buildConsumeRecordResult(list, total);
+    }
+
+    private Long resolveCurrentCoachVenueId() {
+        User current = SecurityUtils.getCurrentUser();
+        if (current == null || current.getId() == null) {
+            return null;
+        }
+        com.badminton.bmp.modules.coach.entity.Coach coach = coachMapper.findByUserId(current.getId());
+        return coach != null ? coach.getVenueId() : null;
+    }
+
+    private boolean isMemberVisibleForVenue(Long memberId, Long venueId) {
+        if (memberId == null || venueId == null) {
+            return false;
+        }
+        if (courseBookingMapper.countByMemberIdAndVenueId(memberId, venueId) > 0) {
+            return true;
+        }
+        return memberConsumeRecordMapper.countByMemberIdAndVenueId(memberId, venueId) > 0;
+    }
+
+    private Map<String, Object> buildConsumeRecordResult(List<MemberConsumeRecord> list, int total) {
         List<Map<String, Object>> recordsWithType = new ArrayList<>();
         for (MemberConsumeRecord record : list) {
             Map<String, Object> recordMap = new HashMap<>();
@@ -411,13 +455,11 @@ public class MemberServiceImpl implements MemberService {
             recordMap.put("afterBalance", record.getAfterBalance());
             recordMap.put("remark", record.getRemark());
             recordMap.put("createTime", record.getCreateTime());
-            // 添加派生字段：根据amount正负判断收支类型
-            // 正数表示会员支出（0），负数表示会员收入/退款（1）
-            recordMap.put("incomeExpenseType", 
-                record.getAmount() != null && record.getAmount().compareTo(BigDecimal.ZERO) > 0 ? 0 : 1);
+            recordMap.put("incomeExpenseType",
+                    record.getAmount() != null && record.getAmount().compareTo(BigDecimal.ZERO) > 0 ? 0 : 1);
             recordsWithType.add(recordMap);
         }
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("data", recordsWithType);
         result.put("total", total);
