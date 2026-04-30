@@ -7,6 +7,7 @@ interface RequestOptions {
   data?: any
   header?: Record<string, string>
   needAuth?: boolean
+  suppressErrorToast?: boolean
 }
 
 function reportDebug(_payload: Record<string, unknown>) {}
@@ -93,10 +94,12 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
         if (statusCode === 403) {
           console.error('API 请求被拒绝 (403)，当前账号无权访问该资源')
           const errorMessage = (data as any)?.message || (data as any)?.msg || '权限不足'
-          uni.showToast({
-            title: errorMessage,
-            icon: 'none'
-          })
+          if (!options.suppressErrorToast) {
+            uni.showToast({
+              title: errorMessage,
+              icon: 'none'
+            })
+          }
           reject(new Error(errorMessage))
           return
         }
@@ -108,10 +111,12 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
           } else if (result.code === 401 || result.code === '401') {
             // Token过期
             userStore.logout()
-            uni.showToast({
-              title: '登录已过期，请重新登录',
-              icon: 'none'
-            })
+            if (!options.suppressErrorToast) {
+              uni.showToast({
+                title: '登录已过期，请重新登录',
+                icon: 'none'
+              })
+            }
             setTimeout(() => {
               const pages = getCurrentPages()
               const currentPage = pages[pages.length - 1]
@@ -125,19 +130,23 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
           } else {
             // 业务错误
             const errorMessage = result.message || result.msg || '请求失败'
-            uni.showToast({
-              title: errorMessage,
-              icon: 'none'
-            })
+            if (!options.suppressErrorToast) {
+              uni.showToast({
+                title: errorMessage,
+                icon: 'none'
+              })
+            }
             reject(new Error(errorMessage))
           }
         } else if (statusCode === 401) {
           // HTTP 401
           userStore.logout()
-          uni.showToast({
-            title: '登录已过期，请重新登录',
-            icon: 'none'
-          })
+          if (!options.suppressErrorToast) {
+            uni.showToast({
+              title: '登录已过期，请重新登录',
+              icon: 'none'
+            })
+          }
           setTimeout(() => {
             const pages = getCurrentPages()
             const currentPage = pages[pages.length - 1]
@@ -162,10 +171,12 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
           } else if (statusCode === 404) {
             errorMessage = '请求的资源不存在'
           }
-          uni.showToast({
-            title: errorMessage,
-            icon: 'none'
-          })
+          if (!options.suppressErrorToast) {
+            uni.showToast({
+              title: errorMessage,
+              icon: 'none'
+            })
+          }
           reject(new Error(errorMessage))
         }
       },
@@ -198,7 +209,7 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
         }
 
         // 对于认证接口，不显示全局 toast，让页面自己处理
-        if (!isAuth) {
+        if (!isAuth && !options.suppressErrorToast) {
           uni.showToast({
             title: errorMessage,
             icon: 'none',

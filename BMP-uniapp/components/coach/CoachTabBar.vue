@@ -15,16 +15,16 @@
 </template>
 
 <script setup lang="ts">
-type CoachTabKey = 'home' | 'schedule' | 'courses' | 'profile'
+type CoachTabKey = 'home' | 'schedule' | 'courses' | 'bookings' | 'profile'
 
 const props = defineProps<{
   current: CoachTabKey
 }>()
 
-const items: Array<{ key: CoachTabKey; label: string; icon: string; url: string }> = [
+const items: Array<{ key: Exclude<CoachTabKey, 'schedule'>; label: string; icon: string; url: string }> = [
   { key: 'home', label: '首页', icon: 'home-filled', url: '/pages/coach/index' },
-  { key: 'schedule', label: '日程', icon: 'calendar', url: '/pages/coach/schedule' },
   { key: 'courses', label: '课程', icon: 'compose', url: '/pages/coach/courses' },
+  { key: 'bookings', label: '预约', icon: 'list', url: '/pages/coach/bookings' },
   { key: 'profile', label: '我的', icon: 'person', url: '/pages/coach/profile' }
 ]
 
@@ -33,7 +33,7 @@ function handleNavigate(key: CoachTabKey) {
   const target = items.find((item) => item.key === key)
   if (!target) return
 
-  uni.navigateTo({
+  uni.reLaunch({
     url: target.url
   })
 }

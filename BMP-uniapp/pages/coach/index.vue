@@ -4,114 +4,131 @@
       <view class="page-shell">
         <CoachTopBar
           :status-bar-height="statusBarHeight"
-          :avatar="coach.avatar"
+          :avatar="coachAvatar"
           brand="Kinetic Logic"
-          action-icon="calendar"
-          @action="handleCalendar"
+          action-icon="person"
+          @action="handleQuickAction('profile')"
         />
 
-        <view class="hero-section">
-          <text class="coach-name">{{ coach.name }}</text>
-          <view class="hero-meta">
-            <view class="rating-pill">
-              <uni-icons type="star-filled" size="14" color="#561d00" />
-              <text>{{ coach.rating }}</text>
-            </view>
-            <view class="venue-line">
-              <uni-icons type="location" size="15" color="#5f5e5e" />
-              <text>{{ coach.venueName }}</text>
-            </view>
+        <view v-if="loading" class="state-card">
+          <view class="spinner" />
+          <text class="state-title">正在加载教练工作台</text>
+          <text class="state-desc">正在同步课程、预约和档案信息...</text>
+        </view>
+
+        <view v-else-if="loadFailed" class="state-card">
+          <text class="state-title">工作台加载失败</text>
+          <text class="state-desc">{{ errorMessage }}</text>
+          <view class="state-action" @tap="loadDashboard">
+            <text>重新加载</text>
           </view>
         </view>
 
-        <view class="metrics-grid">
-          <view class="metric-card">
-            <text class="metric-label">今日课程</text>
-            <view class="metric-main metric-split">
-              <text class="metric-highlight">{{ metrics.todayCourses }}</text>
-              <text class="metric-unit">节次</text>
-            </view>
-          </view>
-
-          <view class="metric-card">
-            <text class="metric-label">本周收入</text>
-            <view class="metric-main">
-              <text class="metric-value">{{ metrics.weekIncome }}</text>
-            </view>
-          </view>
-
-          <view class="metric-card">
-            <text class="metric-label">已签到学员</text>
-            <view class="metric-main metric-attendance">
-              <view class="attendance-row">
-                <text class="metric-value">{{ metrics.checkedIn }}</text>
-                <text class="attendance-total">/ {{ metrics.totalStudents }}</text>
+        <template v-else>
+          <view class="hero-section">
+            <text class="coach-name">{{ coachName }}</text>
+            <view class="hero-meta">
+              <view class="rating-pill">
+                <uni-icons type="star-filled" size="14" color="#561d00" />
+                <text>{{ coachRating }}</text>
               </view>
-              <view class="progress-track">
-                <view class="progress-fill" :style="{ width: attendancePercent + '%' }" />
+              <view class="venue-line">
+                <uni-icons type="location" size="15" color="#5f5e5e" />
+                <text>{{ coachVenue }}</text>
               </view>
             </view>
           </view>
-        </view>
 
-        <view class="actions-row">
-          <view class="action-card action-card-primary" @tap="handleQuickAction('add-course')">
-            <text class="action-title vertical-text">添加课程</text>
-            <view class="action-icon">
-              <uni-icons type="plusempty" size="24" color="#ffffff" />
-            </view>
-          </view>
-
-          <view class="action-card" @tap="handleQuickAction('history')">
-            <text class="action-title vertical-text">课程历史</text>
-            <view class="action-icon action-icon-dark">
-              <uni-icons type="reload" size="22" color="#1a1c1c" />
-            </view>
-          </view>
-
-          <view class="action-card" @tap="handleQuickAction('students')">
-            <text class="action-title vertical-text">学员名单</text>
-            <view class="action-icon action-icon-dark">
-              <uni-icons type="staff" size="22" color="#1a1c1c" />
-            </view>
-          </view>
-        </view>
-
-        <view class="agenda-head">
-          <text class="agenda-title">今日日程</text>
-          <text class="agenda-date">{{ agendaDate }}</text>
-        </view>
-
-        <view class="timeline-list">
-          <view
-            v-for="item in scheduleList"
-            :key="item.id"
-            class="timeline-card"
-            :class="[item.variant, { active: item.status === 'ongoing' }]"
-          >
-            <view v-if="item.status === 'ongoing'" class="left-indicator left-indicator-primary" />
-            <view v-else-if="item.variant === 'intense'" class="left-indicator left-indicator-tertiary" />
-
-            <view class="time-block">
-              <text class="time-start">{{ item.startTime }}</text>
-              <text class="time-end">{{ item.endTime }}</text>
+          <view class="metrics-grid">
+            <view class="metric-card">
+              <text class="metric-label">今日课程</text>
+              <view class="metric-main metric-split">
+                <text class="metric-highlight">{{ metrics.todayCourses }}</text>
+                <text class="metric-unit">节次</text>
+              </view>
             </view>
 
-            <view class="course-block">
-              <text class="timeline-course-name">{{ item.courseName }}</text>
-              <view class="course-meta-row">
-                <view class="course-meta-item">
-                  <uni-icons type="calendar" size="15" color="#5f5e5e" />
-                  <text>{{ item.courtName }}</text>
+            <view class="metric-card">
+              <text class="metric-label">待处理预约</text>
+              <view class="metric-main">
+                <text class="metric-value">{{ metrics.pendingBookings }}</text>
+              </view>
+            </view>
+
+            <view class="metric-card">
+              <text class="metric-label">累计学员</text>
+              <view class="metric-main metric-attendance">
+                <view class="attendance-row">
+                  <text class="metric-value">{{ metrics.totalStudents }}</text>
+                  <text class="attendance-total">人</text>
                 </view>
-                <view class="course-meta-item">
-                  <uni-icons type="person" size="15" color="#5f5e5e" />
-                  <text>{{ item.studentText }}</text>
+                <view class="progress-track">
+                  <view class="progress-fill" :style="{ width: studentProgress + '%' }" />
                 </view>
               </view>
             </view>
           </view>
-        </view>
+
+          <view class="actions-row">
+            <view class="action-card action-card-primary" @tap="handleQuickAction('courses')">
+              <text class="action-title vertical-text">我的课程</text>
+              <view class="action-icon">
+                <uni-icons type="compose" size="24" color="#ffffff" />
+              </view>
+            </view>
+
+            <view class="action-card" @tap="handleQuickAction('bookings')">
+              <text class="action-title vertical-text">预约明细</text>
+              <view class="action-icon action-icon-dark">
+                <uni-icons type="list" size="22" color="#1a1c1c" />
+              </view>
+            </view>
+
+            <view class="action-card" @tap="handleQuickAction('profile')">
+              <text class="action-title vertical-text">我的档案</text>
+              <view class="action-icon action-icon-dark">
+                <uni-icons type="person" size="22" color="#1a1c1c" />
+              </view>
+            </view>
+          </view>
+
+          <view class="agenda-head">
+            <text class="agenda-title">今日日程</text>
+            <text class="agenda-date">{{ agendaDate }}</text>
+          </view>
+
+          <view v-if="scheduleList.length" class="timeline-list">
+            <view
+              v-for="item in scheduleList"
+              :key="item.id"
+              class="timeline-card"
+            >
+              <view class="time-block">
+                <text class="time-start">{{ item.startTime }}</text>
+                <text class="time-end">{{ item.endTime }}</text>
+              </view>
+
+              <view class="course-block">
+                <text class="timeline-course-name">{{ item.courseName }}</text>
+                <view class="course-meta-row">
+                  <view class="course-meta-item">
+                    <uni-icons type="location" size="15" color="#5f5e5e" />
+                    <text>{{ item.courtName }}</text>
+                  </view>
+                  <view class="course-meta-item">
+                    <uni-icons type="person" size="15" color="#5f5e5e" />
+                    <text>{{ item.studentText }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view v-else class="empty-card">
+            <text class="empty-title">今天还没有排课</text>
+            <text class="empty-desc">空下来也不错，可以整理一下后面的课程安排。</text>
+          </view>
+        </template>
 
         <view class="bottom-space" />
       </view>
@@ -123,112 +140,120 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import CoachTabBar from '@/components/coach/CoachTabBar.vue'
 import CoachTopBar from '@/components/coach/CoachTopBar.vue'
+import { getBookingsForCoach, getCurrentCoach, getMyCourses, type CoachCourseItem, type CoachProfile } from '@/api/coachSelf'
+import { COACH_UNBOUND_PATH, isCoachUnboundError, resolveCoachAvatar } from '@/utils/coachAccess'
+import { safeReLaunch } from '@/utils/safeRoute'
+import {
+  buildCoachBookingsUrl,
+  compareCoachCourseTime,
+  formatDateKey,
+  formatStudentText,
+  normalizeTime
+} from '@/utils/coachView'
+
+type ScheduleCard = {
+  id: number
+  startTime: string
+  endTime: string
+  courseName: string
+  courtName: string
+  studentText: string
+}
 
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
-
-const coach = ref({
-  name: '张伟教练',
-  rating: '4.9',
-  venueName: '奥体中心羽毛球馆',
-  avatar: '/static/placeholders/avatar.svg'
-})
-
+const loading = ref(true)
+const loadFailed = ref(false)
+const errorMessage = ref('请稍后重试')
+const coach = ref<CoachProfile | null>(null)
 const metrics = ref({
-  todayCourses: 8,
-  weekIncome: '¥12.8k',
-  checkedIn: 42,
-  totalStudents: 48
+  todayCourses: 0,
+  pendingBookings: 0,
+  totalStudents: 0
+})
+const scheduleList = ref<ScheduleCard[]>([])
+
+const coachName = computed(() => coach.value?.coachName || '教练')
+const coachVenue = computed(() => coach.value?.venueName || '暂未绑定场馆')
+const coachRating = computed(() => {
+  const rating = Number(coach.value?.rating ?? 0)
+  return rating > 0 ? rating.toFixed(1) : '暂无评分'
+})
+const coachAvatar = computed(() => resolveCoachAvatar(coach.value?.avatar))
+const studentProgress = computed(() => Math.min(100, Number(metrics.value.totalStudents || 0)))
+const agendaDate = computed(() => {
+  const now = new Date()
+  const week = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][now.getDay()]
+  return `${now.getMonth() + 1}月${now.getDate()}日 · ${week}`
 })
 
-const scheduleList = ref([
-  {
-    id: 1,
-    startTime: '09:00',
-    endTime: '10:30',
-    courseName: '青少年进阶班',
-    courtName: '3号场地',
-    studentText: '6名学员',
-    status: 'ongoing',
-    variant: 'default'
-  },
-  {
-    id: 2,
-    startTime: '14:00',
-    endTime: '15:30',
-    courseName: '私人1对1私教课',
-    courtName: '5号场地',
-    studentText: '王小明',
-    status: 'pending',
-    variant: 'default'
-  },
-  {
-    id: 3,
-    startTime: '16:30',
-    endTime: '18:00',
-    courseName: '成人兴趣基础班',
-    courtName: '2号场地',
-    studentText: '8名学员',
-    status: 'pending',
-    variant: 'default'
-  },
-  {
-    id: 4,
-    startTime: '19:30',
-    endTime: '21:00',
-    courseName: '竞技队集训',
-    courtName: '1-2号场地',
-    studentText: '12名学员',
-    status: 'pending',
-    variant: 'intense'
-  }
-])
+async function loadDashboard() {
+  loading.value = true
+  loadFailed.value = false
+  errorMessage.value = '请稍后重试'
 
-const attendancePercent = computed(() => {
-  const checkedIn = Number(metrics.value.checkedIn || 0)
-  const totalStudents = Number(metrics.value.totalStudents || 0)
-  if (!totalStudents) return 0
-  return Math.min(100, Math.round((checkedIn / totalStudents) * 100))
+  const today = formatDateKey(new Date())
+  try {
+    const [coachInfo, todayCourses, pendingBookings] = await Promise.all([
+      getCurrentCoach(),
+      getMyCourses({
+        page: 1,
+        size: 50,
+        startTime: `${today} 00:00:00`,
+        endTime: `${today} 23:59:59`
+      }),
+      getBookingsForCoach({
+        page: 1,
+        size: 1,
+        status: 2
+      })
+    ])
+
+    coach.value = coachInfo
+    metrics.value = {
+      todayCourses: Number(todayCourses.total || 0),
+      pendingBookings: Number(pendingBookings.total || 0),
+      totalStudents: Number(coachInfo.totalStudents || 0)
+    }
+    scheduleList.value = [...(todayCourses.data || [])]
+      .sort(compareCoachCourseTime)
+      .slice(0, 6)
+      .map((item) => ({
+        id: item.id,
+        startTime: normalizeTime(item.startTime),
+        endTime: normalizeTime(item.endTime),
+        courseName: item.courseName || '未命名课程',
+        courtName: item.courtName || item.venueName || '待安排场地',
+        studentText: formatStudentText(item)
+      }))
+  } catch (error) {
+    console.error('加载教练工作台失败:', error)
+    if (isCoachUnboundError(error)) {
+      safeReLaunch(COACH_UNBOUND_PATH, COACH_UNBOUND_PATH)
+      return
+    }
+    loadFailed.value = true
+    errorMessage.value = error instanceof Error ? error.message : '请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleQuickAction(type: 'courses' | 'bookings' | 'profile') {
+  const urlMap: Record<typeof type, string> = {
+    courses: '/pages/coach/courses',
+    bookings: buildCoachBookingsUrl(undefined, undefined, 2),
+    profile: '/pages/coach/profile'
+  }
+  safeReLaunch(urlMap[type], '/pages/coach/index')
+}
+
+onShow(() => {
+  loadDashboard()
 })
-
-const agendaDate = computed(() => '10月24日 · 星期四')
-
-function handleCalendar() {
-  uni.showToast({
-    title: '日历入口待接入',
-    icon: 'none'
-  })
-}
-
-function handleQuickAction(type: 'add-course' | 'history' | 'students') {
-  if (type === 'students') {
-    uni.navigateTo({
-      url: '/pages/coach/students'
-    })
-    return
-  }
-
-  if (type === 'history') {
-    uni.navigateTo({
-      url: '/pages/coach/history'
-    })
-    return
-  }
-
-  const messageMap = {
-    'add-course': '添加课程入口待接入',
-    history: '课程历史入口待接入',
-    students: '学员名单入口待接入'
-  }
-
-  uni.showToast({
-    title: messageMap[type],
-    icon: 'none'
-  })
-}
-
 </script>
 
 <style lang="scss" scoped>
@@ -255,7 +280,6 @@ function handleQuickAction(type: 'add-course' | 'history' | 'students') {
   font-size: 68rpx;
   line-height: 1.05;
   font-weight: 900;
-  letter-spacing: -2rpx;
 }
 
 .hero-meta {
@@ -294,12 +318,17 @@ function handleQuickAction(type: 'add-course' | 'history' | 'students') {
   gap: 22rpx;
 }
 
-.metric-card {
-  min-height: 196rpx;
+.metric-card,
+.state-card,
+.empty-card {
   border-radius: 28rpx;
   background: #ffffff;
-  padding: 28rpx 26rpx;
   box-shadow: 0 8rpx 26rpx rgba(26, 28, 28, 0.04);
+}
+
+.metric-card {
+  min-height: 196rpx;
+  padding: 28rpx 26rpx;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -339,7 +368,6 @@ function handleQuickAction(type: 'add-course' | 'history' | 'students') {
   line-height: 1;
   font-weight: 900;
   color: #1a1c1c;
-  letter-spacing: -2rpx;
 }
 
 .metric-attendance {
@@ -451,7 +479,6 @@ function handleQuickAction(type: 'add-course' | 'history' | 'students') {
 }
 
 .timeline-card {
-  position: relative;
   min-height: 146rpx;
   border-radius: 26rpx;
   background: #ffffff;
@@ -460,35 +487,6 @@ function handleQuickAction(type: 'add-course' | 'history' | 'students') {
   align-items: center;
   gap: 24rpx;
   box-shadow: 0 8rpx 24rpx rgba(26, 28, 28, 0.04);
-
-  &.intense {
-    background: #f3f3f3;
-  }
-
-  &.default {
-    border: 2rpx solid rgba(227, 191, 177, 0.18);
-  }
-
-  &.active {
-    border: none;
-  }
-}
-
-.left-indicator {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 6rpx;
-  border-radius: 999rpx;
-}
-
-.left-indicator-primary {
-  background: #a33e00;
-}
-
-.left-indicator-tertiary {
-  background: #009cfc;
 }
 
 .time-block {
@@ -541,8 +539,62 @@ function handleQuickAction(type: 'add-course' | 'history' | 'students') {
   color: #5f5e5e;
 }
 
+.state-card,
+.empty-card {
+  margin-top: 40rpx;
+  padding: 80rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.state-title,
+.empty-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.state-desc,
+.empty-desc {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #5f5e5e;
+}
+
+.state-action {
+  min-width: 220rpx;
+  height: 78rpx;
+  margin-top: 28rpx;
+  padding: 0 26rpx;
+  border-radius: 999rpx;
+  background: #ff6600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.spinner {
+  width: 52rpx;
+  height: 52rpx;
+  border: 5rpx solid #ededed;
+  border-top-color: #ff6600;
+  border-radius: 999rpx;
+  animation: spin 0.8s linear infinite;
+}
+
 .bottom-space {
   height: 170rpx;
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

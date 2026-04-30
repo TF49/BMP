@@ -30,6 +30,11 @@
 </template>
 
 <script setup lang="ts">
+import { useUserStore } from '@/store/modules/user'
+import { safeReLaunch } from '@/utils/safeRoute'
+
+const userStore = useUserStore()
+
 function handleContactAdmin() {
   uni.showModal({
     title: '联系管理员',
@@ -41,9 +46,8 @@ function handleContactAdmin() {
 }
 
 function handleSwitchAccount() {
-  uni.reLaunch({
-    url: '/pages/login/login'
-  })
+  userStore.logout()
+  safeReLaunch('/pages/login/login', '/pages/login/login')
 }
 </script>
 

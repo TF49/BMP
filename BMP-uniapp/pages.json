@@ -672,6 +672,13 @@
       }
     },
     {
+      "path": "pages/coach/entry",
+      "style": {
+        "navigationBarTitleText": "教练端启动中",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/coach/index",
       "style": {
         "navigationBarTitleText": "教练工作台",

@@ -59,12 +59,16 @@ export const API_PATHS = {
   // 课程相关
   COURSE: {
     LIST: '/course/list',
+    MY: '/course/my',
     DETAIL: '/course/info',
     STATUS: '/course/status',
     BOOKING: {
       LIST: '/course/booking/list',
       ADD: '/course/booking/add',
-      DETAIL: '/course/booking/info'
+      DETAIL: '/course/booking/info',
+      COACH_LIST: '/course/booking/for-coach',
+      COACH_DETAIL: '/course/booking/for-coach',
+      COACH_STATUS: '/course/booking/for-coach/status'
     },
     COACHES: '/course/coaches',
     COURTS: '/course/courts'
@@ -73,6 +77,7 @@ export const API_PATHS = {
   COACH: {
     LIST: '/coach/list',
     DETAIL: '/coach/info',
+    ME: '/coach/me',
     ADD: '/coach/add',
     UPDATE: '/coach/update',
     DELETE: '/coach'

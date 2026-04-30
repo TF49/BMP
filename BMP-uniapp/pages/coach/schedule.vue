@@ -1,10 +1,17 @@
 <template>
   <view class="coach-schedule-page">
-    <scroll-view class="page-scroll" scroll-y :show-scrollbar="false">
+    <scroll-view
+      class="page-scroll"
+      scroll-y
+      :show-scrollbar="false"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+    >
       <view class="page-shell">
         <CoachTopBar
           :status-bar-height="statusBarHeight"
-          :avatar="coach.avatar"
+          :avatar="coachAvatar"
           brand="Kinetic Logic"
           action-icon="calendar"
           @action="handleCalendar"
@@ -13,7 +20,7 @@
         <view class="hero-head">
           <view>
             <text class="page-title">教练日程</text>
-            <text class="page-subtitle">MARCH 2024</text>
+            <text class="page-subtitle">{{ currentMonthLabel }}</text>
           </view>
 
           <view class="view-toggle">
@@ -30,279 +37,219 @@
           <view class="date-strip">
             <view
               v-for="item in dateStrip"
-              :key="item.day"
+              :key="item.iso"
               class="date-card"
-              :class="{ active: item.active }"
-              @tap="selectDate(item.day)"
+              :class="{ active: item.iso === selectedDate }"
+              @tap="selectDate(item.iso)"
             >
               <text class="date-dow">{{ item.dow }}</text>
               <text class="date-day">{{ item.day }}</text>
-              <view v-if="item.active" class="date-dot" />
+              <view v-if="item.iso === selectedDate" class="date-dot" />
             </view>
           </view>
         </scroll-view>
 
-        <view class="timeline-section">
+        <view v-if="loading" class="state-card">
+          <view class="spinner" />
+          <text class="state-title">正在加载课表</text>
+        </view>
+
+        <view v-else-if="loadFailed" class="state-card">
+          <text class="state-title">课表加载失败</text>
+          <text class="state-desc">{{ errorMessage }}</text>
+          <view class="state-action" @tap="loadSchedule">
+            <text>重新加载</text>
+          </view>
+        </view>
+
+        <view v-else-if="sessions.length" class="timeline-section">
           <view
-            v-for="hour in timelineHours"
-            :key="hour"
-            class="time-row"
+            v-for="item in sessions"
+            :key="item.id"
+            class="timeline-card"
+            @tap="openSession(item)"
           >
-            <text class="time-label">{{ hour }}</text>
-            <view class="time-line" />
-          </view>
+            <view class="time-block">
+              <text class="time-start">{{ item.startTime }}</text>
+              <text class="time-end">{{ item.endTime }}</text>
+            </view>
 
-          <view class="current-time-indicator" :style="{ top: currentTimeTop + 'rpx' }">
-            <text class="current-time-text">11:30</text>
-            <view class="current-time-dot" />
-            <view class="current-time-line" />
-          </view>
-
-          <view
-            v-for="session in sessions"
-            :key="session.id"
-            class="session-card"
-            :class="session.variant"
-            :style="{ top: session.top + 'rpx', height: session.height + 'rpx' }"
-            @tap="openSession(session)"
-          >
-            <view class="session-left-indicator" :class="session.indicatorClass" />
-
-            <template v-if="session.variant === 'light'">
-              <view class="session-content">
-                <view class="session-top">
-                  <view>
-                    <text class="session-title">{{ session.title }}</text>
-                    <view class="session-meta-line">
-                      <uni-icons :type="session.metaIcon" size="14" color="#5f5e5e" />
-                      <text class="session-meta-text">{{ session.location }}</text>
-                    </view>
-                  </view>
+            <view class="course-block">
+              <text class="timeline-course-name">{{ item.courseName }}</text>
+              <view class="course-meta-row">
+                <view class="course-meta-item">
+                  <uni-icons type="location" size="15" color="#5f5e5e" />
+                  <text>{{ item.courtName }}</text>
                 </view>
-
-                <view class="session-bottom">
-                  <view class="student-stack">
-                    <image
-                      v-for="(avatar, index) in session.avatars"
-                      :key="`${session.id}-${index}`"
-                      class="student-avatar"
-                      :class="{ overlap: index > 0 }"
-                      :src="avatar"
-                      mode="aspectFill"
-                    />
-                    <view class="student-more">+6</view>
-                  </view>
-                  <view class="status-pill status-pill-blue">
-                    <text>{{ session.status }}</text>
-                  </view>
+                <view class="course-meta-item">
+                  <uni-icons type="person" size="15" color="#5f5e5e" />
+                  <text>{{ item.studentText }}</text>
                 </view>
               </view>
-            </template>
+            </view>
 
-            <template v-else-if="session.variant === 'primary'">
-              <view class="session-content session-content-primary">
-                <view class="session-primary-head">
-                  <view>
-                    <text class="session-title session-title-white">{{ session.title }}</text>
-                    <view class="session-meta-line">
-                      <uni-icons type="calendar" size="14" color="#ffffff" />
-                      <text class="session-meta-text session-meta-text-white">{{ session.location }}</text>
-                    </view>
-                  </view>
-                  <uni-icons type="star-filled" size="18" color="#ffffff" />
-                </view>
-
-                <view class="session-primary-bottom">
-                  <view class="student-profile">
-                    <image class="student-profile-avatar" :src="session.studentAvatar" mode="aspectFill" />
-                    <view class="student-copy">
-                      <text class="student-copy-label">学生</text>
-                      <text class="student-copy-name">{{ session.studentName }}</text>
-                    </view>
-                  </view>
-
-                  <view class="duration-block">
-                    <text class="duration-label">时长</text>
-                    <text class="duration-value">{{ session.duration }}</text>
-                  </view>
-                </view>
-              </view>
-            </template>
-
-            <template v-else>
-              <view class="session-content session-content-muted">
-                <view>
-                  <text class="session-title session-title-muted">{{ session.title }}</text>
-                  <view class="session-meta-line">
-                    <uni-icons type="gear" size="14" color="#8e7164" />
-                    <text class="session-meta-text session-meta-text-muted">{{ session.location }}</text>
-                  </view>
-                </view>
-
-                <view class="session-muted-footer">
-                  <text class="session-ended-text">{{ session.status }}</text>
-                </view>
-              </view>
-            </template>
+            <view class="status-pill" :class="item.statusClass">
+              <text>{{ item.statusText }}</text>
+            </view>
           </view>
+        </view>
+
+        <view v-else class="state-card">
+          <text class="state-title">当天暂无课程</text>
+          <text class="state-desc">这一天的课表是空的，可以安心喘口气。</text>
         </view>
 
         <view class="bottom-space" />
       </view>
     </scroll-view>
 
-    <view class="fab" @tap="handleAdd">
-      <uni-icons type="plusempty" size="24" color="#ffffff" />
-    </view>
-
     <CoachTabBar current="schedule" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import CoachTabBar from '@/components/coach/CoachTabBar.vue'
 import CoachTopBar from '@/components/coach/CoachTopBar.vue'
+import { getCurrentCoach, getMyCourses, type CoachCourseItem } from '@/api/coachSelf'
+import { COACH_UNBOUND_PATH, isCoachUnboundError, resolveCoachAvatar } from '@/utils/coachAccess'
+import { safeReLaunch } from '@/utils/safeRoute'
+import {
+  compareCoachCourseTime,
+  formatCoachCourseStatus,
+  formatCoachCourseStatusClass,
+  formatCoachCourseTime,
+  formatDateKey,
+  formatStudentText
+} from '@/utils/coachView'
 
-type DateItem = {
+type DateStripItem = {
+  iso: string
   dow: string
-  day: number
-  active: boolean
+  day: string
 }
 
 type SessionItem = {
   id: number
-  variant: 'light' | 'primary' | 'muted'
-  top: number
-  height: number
-  title: string
-  location: string
-  status: string
-  indicatorClass: string
-  metaIcon: 'calendar' | 'location' | 'gear'
-  avatars: string[]
-  studentAvatar?: string
-  studentName?: string
-  duration?: string
+  courseId: number
+  courseName: string
+  startTime: string
+  endTime: string
+  courtName: string
+  studentText: string
+  statusText: string
+  statusClass: string
 }
 
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
+const loading = ref(true)
+const refreshing = ref(false)
+const loadFailed = ref(false)
+const errorMessage = ref('请稍后重试')
+const coachAvatar = ref('/static/placeholders/avatar.svg')
+const selectedDate = ref(formatDateKey(new Date()))
+const sessions = ref<SessionItem[]>([])
 
-const coach = ref({
-  avatar: '/static/placeholders/avatar.svg'
+const currentMonthLabel = computed(() => {
+  const current = new Date(selectedDate.value.replace(/-/g, '/'))
+  return `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`
 })
 
-const dateStrip = ref<DateItem[]>([
-  { dow: 'MON', day: 11, active: false },
-  { dow: 'TUE', day: 12, active: false },
-  { dow: 'WED', day: 13, active: true },
-  { dow: 'THU', day: 14, active: false },
-  { dow: 'FRI', day: 15, active: false },
-  { dow: 'SAT', day: 16, active: false },
-  { dow: 'SUN', day: 17, active: false }
-])
-
-const timelineHours = ref([
-  '08:00',
-  '09:00',
-  '10:00',
-  '11:00',
-  '12:00',
-  '13:00',
-  '14:00',
-  '15:00',
-  '16:00',
-  '17:00',
-  '18:00',
-  '19:00',
-  '20:00',
-  '21:00',
-  '22:00'
-])
-
-const currentTimeTop = ref(742)
-
-const sessions = ref<SessionItem[]>([
-  {
-    id: 1,
-    variant: 'light',
-    top: 300,
-    height: 168,
-    title: '青少年基础训练',
-    location: 'COURT 04',
-    status: '进行中',
-    indicatorClass: 'indicator-tertiary',
-    metaIcon: 'calendar',
-    avatars: [
-      '/static/placeholders/avatar.svg',
-      '/static/placeholders/avatar.svg'
-    ]
-  },
-  {
-    id: 2,
-    variant: 'primary',
-    top: 962,
-    height: 240,
-    title: '中级步法专项',
-    location: 'COURT 01 (VVIP)',
-    status: '',
-    indicatorClass: 'indicator-primary',
-    metaIcon: 'calendar',
-    avatars: [],
-    studentAvatar: '/static/placeholders/avatar.svg',
-    studentName: '陈志平',
-    duration: '90 MINS'
-  },
-  {
-    id: 3,
-    variant: 'muted',
-    top: 1462,
-    height: 164,
-    title: '体能强化班',
-    location: 'GYM ZONE B',
-    status: '已结束 (17:00 - 18:00)',
-    indicatorClass: 'indicator-secondary',
-    metaIcon: 'gear',
-    avatars: []
+const dateStrip = computed<DateStripItem[]>(() => {
+  const current = new Date(selectedDate.value.replace(/-/g, '/'))
+  const result: DateStripItem[] = []
+  for (let offset = -3; offset <= 3; offset += 1) {
+    const next = new Date(current)
+    next.setDate(current.getDate() + offset)
+    const iso = formatDateKey(next)
+    result.push({
+      iso,
+      dow: ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][next.getDay()],
+      day: String(next.getDate()).padStart(2, '0')
+    })
   }
-])
+  return result
+})
 
-function selectDate(day: number) {
-  dateStrip.value = dateStrip.value.map((item) => ({
-    ...item,
-    active: item.day === day
-  }))
+async function loadSchedule() {
+  loading.value = true
+  loadFailed.value = false
+  errorMessage.value = '请稍后重试'
+  try {
+    const [coach, result] = await Promise.all([
+      getCurrentCoach(),
+      getMyCourses({
+        page: 1,
+        size: 100,
+        startTime: `${selectedDate.value} 00:00:00`,
+        endTime: `${selectedDate.value} 23:59:59`
+      })
+    ])
+
+    coachAvatar.value = resolveCoachAvatar(coach.avatar)
+    sessions.value = [...(result.data || [])]
+      .sort(compareCoachCourseTime)
+      .map((item: CoachCourseItem) => ({
+        id: item.id,
+        courseId: item.id,
+        courseName: item.courseName || '未命名课程',
+        startTime: formatCoachCourseTime(item).split(' - ')[0],
+        endTime: formatCoachCourseTime(item).split(' - ')[1],
+        courtName: item.courtName || item.venueName || '待安排场地',
+        studentText: formatStudentText(item),
+        statusText: formatCoachCourseStatus(item.status),
+        statusClass: formatCoachCourseStatusClass(item.status)
+      }))
+  } catch (error) {
+    console.error('加载教练课表失败:', error)
+    if (isCoachUnboundError(error)) {
+      safeReLaunch(COACH_UNBOUND_PATH, COACH_UNBOUND_PATH)
+      return
+    }
+    loadFailed.value = true
+    errorMessage.value = error instanceof Error ? error.message : '请稍后重试'
+  } finally {
+    loading.value = false
+    refreshing.value = false
+  }
+}
+
+function selectDate(iso: string) {
+  if (selectedDate.value === iso) return
+  selectedDate.value = iso
+  loadSchedule()
 }
 
 function handleCalendar() {
   uni.showToast({
-    title: '日历入口待接入',
+    title: '当前按日查看课表',
     icon: 'none'
   })
 }
 
 function handleWeekView() {
   uni.showToast({
-    title: '周视图待接入',
+    title: '周视图将在后续版本开放',
     icon: 'none'
   })
 }
 
-function openSession(session: SessionItem) {
-  uni.showToast({
-    title: `查看：${session.title}`,
-    icon: 'none'
+function openSession(item: SessionItem) {
+  uni.navigateTo({
+    url: `/pages/coach/bookings?courseId=${item.courseId}&courseName=${encodeURIComponent(item.courseName)}`
   })
 }
 
-function handleAdd() {
-  uni.showToast({
-    title: '新增日程待接入',
-    icon: 'none'
-  })
+function handleRefresh() {
+  refreshing.value = true
+  loadSchedule()
 }
 
+onShow(() => {
+  loadSchedule()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -333,7 +280,6 @@ function handleAdd() {
   font-size: 62rpx;
   line-height: 1.08;
   font-weight: 900;
-  letter-spacing: -2rpx;
 }
 
 .page-subtitle {
@@ -423,315 +369,154 @@ function handleAdd() {
   background: #ffffff;
 }
 
-.timeline-section {
-  position: relative;
-  margin-top: 28rpx;
-  padding-bottom: 40rpx;
+.timeline-section,
+.state-card {
+  margin-top: 24rpx;
 }
 
-.time-row {
-  height: 160rpx;
-  display: flex;
-  align-items: flex-start;
-}
-
-.time-label {
-  width: 96rpx;
-  flex-shrink: 0;
-  font-size: 24px;
-  line-height: 1;
-  font-weight: 500;
-  color: #474746;
-}
-
-.time-line {
-  flex: 1;
-  margin-top: 18rpx;
-  height: 2rpx;
-  background: #e8e8e8;
-}
-
-.current-time-indicator {
-  position: absolute;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  z-index: 10;
-}
-
-.current-time-text {
-  width: 96rpx;
-  flex-shrink: 0;
-  font-size: 22rpx;
-  font-weight: 700;
-  color: #a33e00;
-}
-
-.current-time-dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 999rpx;
-  background: #a33e00;
-}
-
-.current-time-line {
-  flex: 1;
-  height: 2rpx;
-  background: rgba(163, 62, 0, 0.4);
-}
-
-.session-card {
-  position: absolute;
-  left: 136rpx;
-  right: 0;
+.timeline-card,
+.state-card {
   border-radius: 28rpx;
-  overflow: hidden;
-  box-shadow: 0 10rpx 24rpx rgba(26, 28, 28, 0.06);
+  background: #ffffff;
+  box-shadow: 0 10rpx 28rpx rgba(26, 28, 28, 0.05);
 }
 
-.session-left-indicator {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 8rpx;
-}
-
-.indicator-tertiary {
-  background: #009cfc;
-}
-
-.indicator-primary {
-  background: #ff6600;
-}
-
-.indicator-secondary {
-  background: #8e7164;
-}
-
-.session-content {
-  height: 100%;
-  padding: 22rpx 26rpx;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.light {
-  background: #f4fafe;
-}
-
-.primary {
-  background: #ff6600;
-  color: #ffffff;
-}
-
-.muted {
-  background: #eeeeee;
-  opacity: 0.68;
-}
-
-.session-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.session-title {
-  display: block;
-  font-size: 16px;
-  line-height: 1.3;
-  font-weight: 900;
-  color: #1a1c1c;
-}
-
-.session-title-white {
-  color: #ffffff;
-  font-size: 17px;
-}
-
-.session-title-muted {
-  color: #474746;
-}
-
-.session-meta-line {
-  margin-top: 8rpx;
+.timeline-card {
+  padding: 26rpx 24rpx;
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 20rpx;
 }
 
-.session-meta-text {
-  font-size: 18rpx;
-  font-weight: 800;
-  letter-spacing: 2rpx;
-  text-transform: uppercase;
+.timeline-card + .timeline-card {
+  margin-top: 16rpx;
+}
+
+.time-block {
+  width: 120rpx;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.time-start {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.time-end {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
   color: #5f5e5e;
 }
 
-.session-meta-text-white {
-  color: rgba(255, 255, 255, 0.92);
+.course-block {
+  flex: 1;
+  min-width: 0;
 }
 
-.session-meta-text-muted {
-  color: #8e7164;
+.timeline-course-name {
+  display: block;
+  font-size: 30rpx;
+  line-height: 1.3;
+  font-weight: 900;
 }
 
-.session-bottom {
+.course-meta-row {
+  margin-top: 12rpx;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16rpx;
 }
 
-.student-stack {
+.course-meta-item {
   display: flex;
   align-items: center;
-}
-
-.student-avatar {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 999rpx;
-  border: 2rpx solid #ffffff;
-  background: #ffffff;
-}
-
-.student-avatar.overlap {
-  margin-left: -10rpx;
-}
-
-.student-more {
-  min-width: 40rpx;
-  height: 40rpx;
-  margin-left: -10rpx;
-  border-radius: 999rpx;
-  border: 2rpx solid #ffffff;
-  background: #e2e2e2;
-  color: #1a1c1c;
-  font-size: 16rpx;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 6rpx;
+  font-size: 22rpx;
+  color: #5f5e5e;
 }
 
 .status-pill {
-  height: 44rpx;
-  padding: 0 16rpx;
+  min-width: 110rpx;
+  height: 48rpx;
+  padding: 0 18rpx;
   border-radius: 999rpx;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18rpx;
-  font-weight: 900;
+  font-size: 20rpx;
+  font-weight: 800;
 }
 
-.status-pill-blue {
-  background: #d0e4ff;
-  color: #001d35;
+.status-pill.warning {
+  background: #fff1e8;
+  color: #a33e00;
 }
 
-.session-content-primary {
-  padding-top: 24rpx;
-  padding-bottom: 24rpx;
+.status-pill.success {
+  background: #e6f6ea;
+  color: #1f7a37;
 }
 
-.session-primary-head {
+.status-pill.neutral {
+  background: #ededed;
+  color: #5f5e5e;
+}
+
+.state-card {
+  padding: 80rpx 32rpx;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 18rpx;
-}
-
-.session-primary-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16rpx;
-}
-
-.student-profile {
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12rpx;
+  text-align: center;
 }
 
-.student-profile-avatar {
-  width: 48rpx;
-  height: 48rpx;
+.spinner {
+  width: 52rpx;
+  height: 52rpx;
+  border: 5rpx solid #ededed;
+  border-top-color: #ff6600;
   border-radius: 999rpx;
-  border: 2rpx solid rgba(255, 255, 255, 0.32);
+  animation: spin 0.8s linear infinite;
 }
 
-.student-copy-label {
-  display: block;
-  font-size: 16rpx;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.74);
-}
-
-.student-copy-name {
-  display: block;
-  margin-top: 4rpx;
-  font-size: 26rpx;
+.state-title {
+  margin-top: 22rpx;
+  font-size: 34rpx;
   font-weight: 900;
+}
+
+.state-desc {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #5f5e5e;
+}
+
+.state-action {
+  min-width: 220rpx;
+  height: 78rpx;
+  margin-top: 28rpx;
+  padding: 0 26rpx;
+  border-radius: 999rpx;
+  background: #ff6600;
   color: #ffffff;
-}
-
-.duration-block {
-  text-align: right;
-}
-
-.duration-label {
-  display: block;
-  font-size: 16rpx;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.74);
-}
-
-.duration-value {
-  display: block;
-  margin-top: 4rpx;
-  font-size: 30rpx;
-  font-weight: 900;
-  color: #ffffff;
-}
-
-.session-content-muted {
-  padding-top: 24rpx;
-  padding-bottom: 24rpx;
-}
-
-.session-muted-footer {
   display: flex;
   align-items: center;
-}
-
-.session-ended-text {
-  font-size: 18rpx;
-  font-weight: 700;
-  color: #8e7164;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 800;
 }
 
 .bottom-space {
-  height: 220rpx;
+  height: 180rpx;
 }
 
-.fab {
-  position: fixed;
-  right: 24rpx;
-  bottom: 180rpx;
-  z-index: 40;
-  width: 92rpx;
-  height: 92rpx;
-  border-radius: 999rpx;
-  background: #ff6600;
-  box-shadow: 0 14rpx 30rpx rgba(255, 102, 0, 0.28);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
-
 </style>
