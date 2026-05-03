@@ -1,10 +1,10 @@
 package com.badminton.bmp.common;
 
+import com.badminton.bmp.config.JwtProperties;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -27,28 +27,13 @@ public class JwtUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    /**
-     * JWT密钥，从配置文件注入
-     * 生产环境应通过环境变量JWT_SECRET设置
-     */
-    @Value("${jwt.secret}")
-    private String secretKey;
-
-    /**
-     * Token有效期（毫秒），从配置文件注入
-     * 默认2小时
-     */
-    @Value("${jwt.expiration:7200000}")
-    private long expirationTime;
-
-    /**
-     * RefreshToken有效期（毫秒），从配置文件注入
-     * 默认7天
-     */
-    @Value("${jwt.refresh-expiration:604800000}")
-    private long refreshExpirationTime;
+    private final JwtProperties jwtProperties;
 
     private SecretKey signingKey;
+
+    public JwtUtils(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+    }
 
     /**
      * 初始化签名密钥
@@ -56,11 +41,16 @@ public class JwtUtils {
      */
     @PostConstruct
     public void init() {
+        String secretKey = jwtProperties.getSecret();
         if (secretKey == null || secretKey.length() < 32) {
             logger.warn("JWT密钥长度不足32字节，可能存在安全风险，请检查jwt.secret配置");
         }
         this.signingKey = Keys.hmacShaKeyFor(secretKey.getBytes());
-        logger.info("JWT工具类初始化完成，AccessToken有效期: {}ms，RefreshToken有效期: {}ms", expirationTime, refreshExpirationTime);
+        logger.info(
+                "JWT工具类初始化完成，AccessToken有效期: {}ms，RefreshToken有效期: {}ms",
+                jwtProperties.getExpiration(),
+                jwtProperties.getRefreshExpiration()
+        );
     }
 
     private SecretKey getSigningKey() {
@@ -99,7 +89,7 @@ public class JwtUtils {
                 .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration()))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -212,7 +202,7 @@ public class JwtUtils {
                 .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + refreshExpirationTime))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshExpiration()))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -253,7 +243,7 @@ public class JwtUtils {
      * @return 有效期秒数
      */
     public long getExpirationTimeInSeconds() {
-        return expirationTime / 1000;
+        return jwtProperties.getExpiration() / 1000;
     }
 
     /**
