@@ -90,15 +90,42 @@
                     </view>
                   </picker>
                 </view>
-                <view class="field-item">
-                  <text class="field-label">价格</text>
-                  <input
-                    v-model.trim="form.pricePerHour"
-                    class="field-input"
-                    type="digit"
-                    placeholder="请输入价格"
-                  />
-                </view>
+                  <view class="field-item">
+                    <text class="field-label">兼容基础价格</text>
+                    <input
+                      v-model.trim="form.pricePerHour"
+                      class="field-input"
+                      type="digit"
+                      placeholder="请输入价格"
+                    />
+                  </view>
+                  <view class="field-item">
+                    <text class="field-label">包场每小时价格</text>
+                    <input
+                      v-model.trim="form.packagePricePerHour"
+                      class="field-input"
+                      type="digit"
+                      placeholder="请输入包场每小时价格"
+                    />
+                  </view>
+                  <view class="field-item">
+                    <text class="field-label">拼场每小时价格</text>
+                    <input
+                      v-model.trim="form.sharedPricePerHour"
+                      class="field-input"
+                      type="digit"
+                      placeholder="请输入拼场每小时价格"
+                    />
+                  </view>
+                  <view class="field-item">
+                    <text class="field-label">拼场按次价格</text>
+                    <input
+                      v-model.trim="form.sharedPricePerTime"
+                      class="field-input"
+                      type="digit"
+                      placeholder="请输入拼场按次价格"
+                    />
+                  </view>
                 <view class="field-item">
                   <text class="field-label">状态</text>
                   <picker mode="selector" :range="statusLabels" :value="statusIndex" @change="onStatusChange">
@@ -119,6 +146,14 @@
               <view class="summary-item">
                 <text class="summary-label">计费方式</text>
                 <text class="summary-value">{{ billingTypeLabel }}</text>
+              </view>
+              <view class="summary-item">
+                <text class="summary-label">包场每小时</text>
+                <text class="summary-value">¥{{ formatAmount(Number(form.packagePricePerHour || 0)) }}</text>
+              </view>
+              <view class="summary-item">
+                <text class="summary-label">拼场每小时 / 按次</text>
+                <text class="summary-value">¥{{ formatAmount(Number(form.sharedPricePerHour || 0)) }} / ¥{{ formatAmount(Number(form.sharedPricePerTime || 0)) }}</text>
               </view>
               <view class="summary-item">
                 <text class="summary-label">状态</text>
@@ -180,7 +215,10 @@ const form = reactive({
   courtCode: '',
   courtName: '',
   venueId: 0,
-  pricePerHour: ''
+  pricePerHour: '',
+  packagePricePerHour: '',
+  sharedPricePerHour: '',
+  sharedPricePerTime: ''
 })
 
 const pageTitle = computed(() => (isEdit.value ? '编辑场地' : '新增场地'))
@@ -217,12 +255,18 @@ function fillForm(detail: {
   billingType?: string
   pricePerHour?: number
   pricePerTime?: number
+  packagePricePerHour?: number
+  sharedPricePerHour?: number
+  sharedPricePerTime?: number
   status?: number
 }) {
   form.courtCode = detail.courtCode || ''
   form.courtName = detail.courtName || ''
   form.venueId = Number(detail.venueId || 0)
   form.pricePerHour = String(detail.pricePerHour ?? detail.pricePerTime ?? '')
+  form.packagePricePerHour = String(detail.packagePricePerHour ?? detail.pricePerHour ?? '')
+  form.sharedPricePerHour = String(detail.sharedPricePerHour ?? detail.pricePerHour ?? '')
+  form.sharedPricePerTime = String(detail.sharedPricePerTime ?? detail.pricePerTime ?? '')
   billingTypeIndex.value = detail.billingType === 'TIME' ? 1 : 0
   const nextStatusIndex = statusValues.findIndex((item) => item === Number(detail.status))
   statusIndex.value = nextStatusIndex >= 0 ? nextStatusIndex : 1
@@ -254,7 +298,13 @@ function validateForm() {
   if (!form.courtName) return '请输入场地名称'
   if (!form.venueId) return '请选择所属场馆'
   const price = Number(form.pricePerHour)
-  if (!Number.isFinite(price) || price < 0) return '请输入有效价格'
+  const packagePrice = Number(form.packagePricePerHour)
+  const sharedHourPrice = Number(form.sharedPricePerHour)
+  const sharedTimePrice = Number(form.sharedPricePerTime)
+  if (!Number.isFinite(price) || price < 0) return '请输入有效兼容基础价格'
+  if (!Number.isFinite(packagePrice) || packagePrice < 0) return '请输入有效包场每小时价格'
+  if (!Number.isFinite(sharedHourPrice) || sharedHourPrice < 0) return '请输入有效拼场每小时价格'
+  if (!Number.isFinite(sharedTimePrice) || sharedTimePrice < 0) return '请输入有效拼场按次价格'
   return ''
 }
 
@@ -276,6 +326,9 @@ async function submitForm() {
       venueId: form.venueId,
       billingType: billingTypeValues[billingTypeIndex.value],
       pricePerHour: Number(form.pricePerHour),
+      packagePricePerHour: Number(form.packagePricePerHour),
+      sharedPricePerHour: Number(form.sharedPricePerHour),
+      sharedPricePerTime: Number(form.sharedPricePerTime),
       status: statusValues[statusIndex.value]
     }
 

@@ -9,6 +9,9 @@ export interface CourtItem {
   billingType?: string
   pricePerHour?: number
   pricePerTime?: number
+  packagePricePerHour?: number
+  sharedPricePerHour?: number
+  sharedPricePerTime?: number
   status: number
   venueName?: string
   createTime?: string
@@ -22,6 +25,9 @@ export interface CourtPayload {
   venueId: number
   billingType: 'HOUR' | 'TIME'
   pricePerHour: number
+  packagePricePerHour?: number
+  sharedPricePerHour?: number
+  sharedPricePerTime?: number
   status?: number
 }
 

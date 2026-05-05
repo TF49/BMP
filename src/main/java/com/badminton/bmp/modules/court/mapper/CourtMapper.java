@@ -77,9 +77,11 @@ public interface CourtMapper {
      * @return 影响的行数
      */
     @Insert("INSERT INTO sys_court (court_code, venue_id, court_name, billing_type, " +
-            "price_per_hour, status, create_time, update_time, del_flag) " +
+            "price_per_hour, package_price_per_hour, shared_price_per_hour, shared_price_per_time, " +
+            "status, create_time, update_time, del_flag) " +
             "VALUES (#{courtCode}, #{venueId}, #{courtName}, #{billingType}, " +
-            "#{pricePerHour}, #{status}, #{createTime}, #{updateTime}, 0)")
+            "#{pricePerHour}, #{packagePricePerHour}, #{sharedPricePerHour}, #{sharedPricePerTime}, " +
+            "#{status}, #{createTime}, #{updateTime}, 0)")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Court court);
 
@@ -90,7 +92,9 @@ public interface CourtMapper {
      */
     @Update("UPDATE sys_court SET court_code = #{courtCode}, venue_id = #{venueId}, " +
             "court_name = #{courtName}, billing_type = #{billingType}, " +
-            "price_per_hour = #{pricePerHour}, status = #{status}, " +
+            "price_per_hour = #{pricePerHour}, package_price_per_hour = #{packagePricePerHour}, " +
+            "shared_price_per_hour = #{sharedPricePerHour}, shared_price_per_time = #{sharedPricePerTime}, " +
+            "status = #{status}, " +
             "update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0")
     int update(Court court);
 
@@ -167,13 +171,14 @@ public interface CourtMapper {
             "m.member_name, " +
             "m.member_type, " +
             "m.member_level " +
-            "FROM biz_booking b " +
+            "FROM biz_booking_court bc " +
+            "LEFT JOIN biz_booking b ON bc.booking_id = b.id " +
             "LEFT JOIN sys_member m ON b.member_id = m.id " +
-            "WHERE b.court_id = #{courtId} " +
-            "AND b.booking_date = #{bookingDate} " +
+            "WHERE bc.court_id = #{courtId} " +
+            "AND bc.booking_date = #{bookingDate} " +
             "AND b.status IN (1, 2, 3) " +
             "AND b.del_flag = 0 " +
-            "ORDER BY b.start_time ASC")
+            "ORDER BY bc.start_time ASC")
     List<Map<String, Object>> findTodayBookingUsers(@Param("courtId") Long courtId,
                                                      @Param("bookingDate") LocalDate bookingDate);
 
@@ -184,16 +189,17 @@ public interface CourtMapper {
      * @return 场地ID与预约数量的映射
      */
     @Select("<script>" +
-            "SELECT court_id, COUNT(*) AS booking_count " +
-            "FROM biz_booking " +
-            "WHERE court_id IN " +
+            "SELECT bc.court_id, COUNT(DISTINCT bc.booking_id) AS booking_count " +
+            "FROM biz_booking_court bc " +
+            "LEFT JOIN biz_booking b ON bc.booking_id = b.id " +
+            "WHERE bc.court_id IN " +
             "<foreach item='id' collection='courtIds' open='(' separator=',' close=')'>" +
             "#{id}" +
             "</foreach> " +
-            "AND booking_date = #{bookingDate} " +
-            "AND status IN (1, 2, 3) " +
-            "AND del_flag = 0 " +
-            "GROUP BY court_id" +
+            "AND bc.booking_date = #{bookingDate} " +
+            "AND b.status IN (1, 2, 3) " +
+            "AND b.del_flag = 0 " +
+            "GROUP BY bc.court_id" +
             "</script>")
     List<Map<String, Object>> countTodayBookingsByCourtIds(@Param("courtIds") List<Long> courtIds,
                                                            @Param("bookingDate") LocalDate bookingDate);

@@ -26,7 +26,7 @@
           <view class="hero-card">
             <text class="hero-kicker">BOOKING ORDER</text>
             <text class="hero-title">{{ booking.venueName || fallbackSummary.venueName || '场地预约' }}</text>
-            <text class="hero-sub">{{ booking.courtName || fallbackSummary.courtName || '待确认场地' }}</text>
+            <text class="hero-sub">{{ displayCourtSummary }}</text>
             <view class="hero-grid">
               <view class="hero-cell">
                 <text class="cell-label">日期</text>
@@ -48,6 +48,10 @@
             <view class="row">
               <text class="label">预约单号</text>
               <text class="value">{{ booking.bookingNo || `#${booking.id}` }}</text>
+            </view>
+            <view class="row">
+              <text class="label">预约模式</text>
+              <text class="value">{{ bookingModeText }}</text>
             </view>
             <view class="row">
               <text class="label">支付状态</text>
@@ -89,6 +93,14 @@
               <text class="section-title">费用信息</text>
             </view>
 
+            <view class="row">
+              <text class="label">场地信息</text>
+              <text class="value">{{ displayCourtNames }}</text>
+            </view>
+            <view class="row">
+              <text class="label">计费方式</text>
+              <text class="value">{{ displayPricingSummary }}</text>
+            </view>
             <view class="row">
               <text class="label">订单金额</text>
               <text class="value">¥{{ amountText }}</text>
@@ -132,6 +144,10 @@ import { useUserStore } from '@/store/modules/user'
 type FallbackSummary = {
   venueName?: string
   courtName?: string
+  courtNames?: string[]
+  courtCount?: number
+  bookingMode?: string
+  pricingModeSummary?: string
   date?: string
   slot?: string
   bookingId?: number
@@ -170,6 +186,30 @@ const paymentOptions = computed<PaymentOption[]>(() => {
       desc: isPresidentFlow.value ? '直接按会员余额完成收款' : '立即扣减会员余额并完成确认'
     }
   ]
+})
+
+const bookingModeText = computed(() => ((booking.value as any)?.bookingMode === 'PACKAGE' ? '包场' : '拼场'))
+const displayCourtNames = computed(() => {
+  const names = (booking.value as any)?.courtNames
+  if (Array.isArray(names) && names.length) return names.join('、')
+  if (Array.isArray(fallbackSummary.value.courtNames) && fallbackSummary.value.courtNames.length) {
+    return fallbackSummary.value.courtNames.join('、')
+  }
+  return (booking.value as any)?.primaryCourtName || booking.value?.courtName || fallbackSummary.value.courtName || '--'
+})
+const displayCourtSummary = computed(() => {
+  const primary = (booking.value as any)?.primaryCourtName || booking.value?.courtName || fallbackSummary.value.courtName || '待确认场地'
+  const count = Number((booking.value as any)?.courtCount || fallbackSummary.value.courtCount || 0)
+  return count > 1 ? `${primary} 等 ${count} 块场地` : primary
+})
+const displayPricingSummary = computed(() => {
+  const raw = (booking.value as any)?.pricingModeSummary || fallbackSummary.value.pricingModeSummary || ''
+  const map: Record<string, string> = {
+    PACKAGE_HOUR: '包场按小时',
+    SHARED_HOUR: '拼场按小时',
+    SHARED_TIME: '拼场按次'
+  }
+  return map[raw] || raw || (((booking.value as any)?.bookingMode === 'PACKAGE') ? '包场按小时计费' : '拼场计费')
 })
 
 const displayDate = computed(() => booking.value?.bookingDate || fallbackSummary.value.date || '--')

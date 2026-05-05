@@ -32,6 +32,12 @@ public class Court {
     @DecimalMax("9999.99")
     private BigDecimal pricePerHour;
 
+    private BigDecimal packagePricePerHour;
+
+    private BigDecimal sharedPricePerHour;
+
+    private BigDecimal sharedPricePerTime;
+
     @Min(0) @Max(3)
     private Integer status;
 

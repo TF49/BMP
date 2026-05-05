@@ -166,6 +166,9 @@
               <el-option v-for="item in typeOptions" :key="item" :label="getEquipmentTypeLabel(item)" :value="item" />
             </el-select>
           </el-form-item>
+          <el-form-item label="采购价格（元）" prop="price" class="modern-form-item">
+            <el-input-number v-model="form.price" :min="0" :precision="2" :step="10" style="width: 100%" />
+          </el-form-item>
           <el-form-item label="租借单价（元/小时）" prop="rentalPrice" class="modern-form-item">
             <el-input-number v-model="form.rentalPrice" :min="0" :precision="2" :step="5" style="width: 100%" />
           </el-form-item>
@@ -237,6 +240,7 @@ const form = reactive({
   equipmentName: '',
   equipmentType: '',
   venueId: null,
+  price: 0,
   rentalPrice: 0,
   rentalDeposit: 0,
   totalQuantity: 0,
@@ -248,6 +252,7 @@ const formRules = {
   equipmentName: [{ required: true, message: '请输入器材名称', trigger: 'blur' }],
   equipmentType: [{ required: true, message: '请选择类型', trigger: 'change' }],
   venueId: [{ required: true, message: '请选择所属场馆', trigger: 'change' }],
+  price: [{ required: true, message: '请输入采购价格', trigger: 'blur' }],
   rentalPrice: [{ required: false, message: '请输入租借单价', trigger: 'blur' }],
   rentalDeposit: [{ required: false, message: '请输入押金', trigger: 'blur' }],
   totalQuantity: [{ required: true, message: '请输入总数量', trigger: 'blur' }],
@@ -416,6 +421,7 @@ const handleEdit = async (row) => {
         equipmentName: data.equipmentName,
         equipmentType: data.equipmentType,
         venueId: data.venueId,
+        price: data.price ?? 0,
         rentalPrice: data.rentalPrice ?? 0,
         rentalDeposit: data.rentalDeposit ?? 0,
         totalQuantity: data.totalQuantity,
@@ -456,16 +462,28 @@ const handleSubmit = async () => {
     if (!valid) return
     submitLoading.value = true
     try {
+      const normalizedPrice = Number(form.price ?? 0)
+      const normalizedRentalPrice = Number(form.rentalPrice ?? 0)
+      const normalizedRentalDeposit = Number(form.rentalDeposit ?? 0)
+      const normalizedTotalQuantity = Number(form.totalQuantity ?? 0)
+      const normalizedAvailableQuantity = Number(form.availableQuantity ?? 0)
+
+      if (Number.isNaN(normalizedPrice) || normalizedPrice < 0) {
+        ElMessage.error('采购价格不能为空，且必须为非负数')
+        return
+      }
+
       const payload = {
         id: form.id,
         equipmentCode: form.equipmentCode,
         equipmentName: form.equipmentName,
         equipmentType: form.equipmentType,
         venueId: form.venueId,
-        rentalPrice: form.rentalPrice,
-        rentalDeposit: form.rentalDeposit,
-        totalQuantity: form.totalQuantity,
-        availableQuantity: form.availableQuantity,
+        price: normalizedPrice,
+        rentalPrice: Number.isNaN(normalizedRentalPrice) ? 0 : normalizedRentalPrice,
+        rentalDeposit: Number.isNaN(normalizedRentalDeposit) ? 0 : normalizedRentalDeposit,
+        totalQuantity: Number.isNaN(normalizedTotalQuantity) ? 0 : normalizedTotalQuantity,
+        availableQuantity: Number.isNaN(normalizedAvailableQuantity) ? 0 : normalizedAvailableQuantity,
         status: form.status
       }
       const res = isEdit.value ? await updateEquipment(payload) : await addEquipment(payload)
@@ -515,6 +533,7 @@ const resetForm = () => {
     equipmentName: '',
     equipmentType: '',
     venueId: null,
+    price: 0,
     rentalPrice: 0,
     rentalDeposit: 0,
     totalQuantity: 0,

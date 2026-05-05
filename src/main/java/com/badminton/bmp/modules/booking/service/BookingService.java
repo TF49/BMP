@@ -76,6 +76,14 @@ public interface BookingService {
                                   LocalTime endTime);
 
     /**
+     * 统计指定场地在某日期、时间段内的拼场预约数量（不含包场）
+     */
+    int countSharedBookingsForTimeRange(Long courtId,
+                                        LocalDate bookingDate,
+                                        LocalTime startTime,
+                                        LocalTime endTime);
+
+    /**
      * 生成预约单号（格式：BK+日期+序号，如BK20250118001）
      */
     String generateBookingNo();

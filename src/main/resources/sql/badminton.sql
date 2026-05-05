@@ -1,17 +1,13 @@
 /*
- Navicat Premium Dump SQL
+ 新库初始化版
 
- Source Server         : localhost_3306
- Source Server Type    : MySQL
- Source Server Version : 80028 (8.0.28)
- Source Host           : localhost:3306
- Source Schema         : badminton
+ 用途：
+ 1. 全新数据库初始化
+ 2. 一次性建表 + 初始化基础/示例数据
 
- Target Server Type    : MySQL
- Target Server Version : 80028 (8.0.28)
- File Encoding         : 65001
-
- Date: 22/02/2026 16:06:23
+ 注意：
+ 1. 请勿直接用于老库升级
+ 2. 本文件最终会建成最新结构：支持 SHARED / PACKAGE 双模式、biz_booking_court 明细表、sys_court 新价格字段
 */
 
 SET NAMES utf8mb4;
@@ -96,6 +92,76 @@ INSERT INTO `biz_booking` VALUES (33, 'BK20260209001', 45, 28, '2026-02-10', '18
 INSERT INTO `biz_booking` VALUES (36, 'BK20260209002', 45, 28, '2026-02-13', '18:30:00', '21:30:00', NULL, NULL, 3, 15.00, NULL, NULL, 4, '', '2026-02-09 23:57:07', '2026-02-14 12:50:45', NULL, NULL, 0.00, 0.00, 0);
 INSERT INTO `biz_booking` VALUES (37, 'BK20260214001', 45, 28, '2026-02-14', '13:00:00', '13:03:00', NULL, NULL, 1, 15.00, 'BALANCE', 2, 0, '', '2026-02-14 13:01:55', '2026-02-14 13:04:19', NULL, NULL, 0.00, 0.00, 0);
 INSERT INTO `biz_booking` VALUES (38, 'BK20260214002', 45, 28, '2026-02-14', '13:06:00', '13:07:00', NULL, NULL, 1, 15.00, 'BALANCE', 2, 0, '', '2026-02-14 13:06:21', '2026-02-14 13:07:55', NULL, NULL, 0.00, 0.00, 0);
+
+ALTER TABLE `biz_booking`
+  ADD COLUMN `booking_mode` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'SHARED' COMMENT '预约模式（PACKAGE-包场，SHARED-拼场）' AFTER `court_id`;
+
+UPDATE `biz_booking` SET `booking_mode` = 'SHARED' WHERE `booking_mode` IS NULL;
+
+DROP TABLE IF EXISTS `biz_booking_court`;
+CREATE TABLE `biz_booking_court`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '预约场地明细ID',
+  `booking_id` bigint NOT NULL COMMENT '预约主单ID',
+  `court_id` bigint NOT NULL COMMENT '场地ID',
+  `booking_date` date NOT NULL COMMENT '预约日期',
+  `start_time` time NOT NULL COMMENT '开始时间',
+  `end_time` time NOT NULL COMMENT '结束时间',
+  `pricing_mode` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '计费模式（PACKAGE_HOUR/SHARED_HOUR/SHARED_TIME）',
+  `unit_price` decimal(10, 2) NOT NULL COMMENT '单价',
+  `duration` int NULL DEFAULT NULL COMMENT '时长（小时，向上取整）',
+  `line_amount` decimal(10, 2) NOT NULL COMMENT '明细金额',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_booking_id`(`booking_id` ASC) USING BTREE,
+  INDEX `idx_booking_date`(`booking_date` ASC) USING BTREE,
+  INDEX `idx_court_date_time`(`court_id` ASC, `booking_date` ASC, `start_time` ASC, `end_time` ASC) USING BTREE,
+  CONSTRAINT `biz_booking_court_ibfk_1` FOREIGN KEY (`booking_id`) REFERENCES `biz_booking` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `biz_booking_court_ibfk_2` FOREIGN KEY (`court_id`) REFERENCES `sys_court` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '场地预约场地明细表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- 初始化预约明细数据（根据前面的预约主单示例数据生成 1 条对应明细）
+-- 说明：当前初始化脚本保留主单示例数据，再统一生成对应的 biz_booking_court 明细数据
+-- ----------------------------
+INSERT INTO `biz_booking_court` (`booking_id`, `court_id`, `booking_date`, `start_time`, `end_time`, `pricing_mode`, `unit_price`, `duration`, `line_amount`, `create_time`)
+SELECT `id`,
+       b.`court_id`,
+       b.`booking_date`,
+       b.`start_time`,
+       b.`end_time`,
+       CASE
+         WHEN c.`billing_type` = 'TIME' THEN 'SHARED_TIME'
+         ELSE 'SHARED_HOUR'
+       END,
+       CASE
+         WHEN c.`billing_type` = 'TIME' THEN b.`order_amount`
+         WHEN b.`duration` IS NULL OR b.`duration` = 0 THEN b.`order_amount`
+         ELSE ROUND(b.`order_amount` / b.`duration`, 2)
+       END AS `unit_price`,
+       b.`duration`,
+       b.`order_amount`,
+       b.`create_time`
+FROM `biz_booking` b
+LEFT JOIN `sys_court` c ON b.`court_id` = c.`id`;
+
+-- ----------------------------
+-- 示例数据：1 条多场地 PACKAGE 包场主单 + 2 条场地明细
+-- ----------------------------
+INSERT INTO `biz_booking` (`id`, `booking_no`, `member_id`, `court_id`, `booking_mode`, `booking_date`, `start_time`, `end_time`, `actual_start_time`, `actual_end_time`, `duration`, `order_amount`, `payment_method`, `payment_status`, `status`, `remark`, `create_time`, `update_time`, `cancel_time`, `cancel_policy_id`, `cancel_fee`, `refund_amount`, `del_flag`)
+VALUES (39, 'BK20260505001', 1, 1, 'PACKAGE', '2026-05-20', '19:00:00', '21:00:00', NULL, NULL, 2, 320.00, 'BALANCE', 0, 1, '示例多场地包场订单', '2026-05-05 10:00:00', '2026-05-05 10:00:00', NULL, NULL, 0.00, 0.00, 0);
+
+INSERT INTO `biz_booking_court` (`booking_id`, `court_id`, `booking_date`, `start_time`, `end_time`, `pricing_mode`, `unit_price`, `duration`, `line_amount`, `create_time`) VALUES
+(39, 1, '2026-05-20', '19:00:00', '21:00:00', 'PACKAGE_HOUR', 80.00, 2, 160.00, '2026-05-05 10:00:00'),
+(39, 2, '2026-05-20', '19:00:00', '21:00:00', 'PACKAGE_HOUR', 80.00, 2, 160.00, '2026-05-05 10:00:00');
+
+-- ----------------------------
+-- 示例数据：1 条 SHARED 拼场主单 + 1 条场地明细
+-- ----------------------------
+INSERT INTO `biz_booking` (`id`, `booking_no`, `member_id`, `court_id`, `booking_mode`, `booking_date`, `start_time`, `end_time`, `actual_start_time`, `actual_end_time`, `duration`, `order_amount`, `payment_method`, `payment_status`, `status`, `remark`, `create_time`, `update_time`, `cancel_time`, `cancel_policy_id`, `cancel_fee`, `refund_amount`, `del_flag`)
+VALUES (40, 'BK20260505002', 2, 3, 'SHARED', '2026-05-20', '19:00:00', '21:00:00', NULL, NULL, 2, 80.00, 'BALANCE', 0, 1, '示例拼场订单', '2026-05-05 10:05:00', '2026-05-05 10:05:00', NULL, NULL, 0.00, 0.00, 0);
+
+INSERT INTO `biz_booking_court` (`booking_id`, `court_id`, `booking_date`, `start_time`, `end_time`, `pricing_mode`, `unit_price`, `duration`, `line_amount`, `create_time`) VALUES
+(40, 3, '2026-05-20', '19:00:00', '21:00:00', 'SHARED_HOUR', 40.00, 2, 80.00, '2026-05-05 10:05:00');
 
 -- ----------------------------
 -- Table structure for biz_cancel_policy
@@ -1031,6 +1097,22 @@ INSERT INTO `sys_court` VALUES (33, '2', 6, '2号场地', 'TIME', 15.00, 1, '202
 INSERT INTO `sys_court` VALUES (34, '3', 6, '3号场地', 'TIME', 15.00, 1, '2026-02-06 17:07:10', '2026-02-09 23:09:31', 0);
 INSERT INTO `sys_court` VALUES (35, '4', 6, '4号场地', 'TIME', 15.00, 1, '2026-02-06 17:09:47', '2026-02-06 17:09:47', 0);
 INSERT INTO `sys_court` VALUES (36, '5', 6, '5号场地', 'TIME', 15.00, 1, '2026-02-06 17:09:57', '2026-02-06 17:09:57', 0);
+
+ALTER TABLE `sys_court`
+  ADD COLUMN `package_price_per_hour` decimal(10, 2) NULL DEFAULT NULL COMMENT '包场按小时单价' AFTER `price_per_hour`,
+  ADD COLUMN `shared_price_per_hour` decimal(10, 2) NULL DEFAULT NULL COMMENT '拼场按小时单价' AFTER `package_price_per_hour`,
+  ADD COLUMN `shared_price_per_time` decimal(10, 2) NULL DEFAULT NULL COMMENT '拼场按次单价' AFTER `shared_price_per_hour`;
+
+UPDATE `sys_court`
+SET `package_price_per_hour` = `price_per_hour`,
+    `shared_price_per_hour` = ROUND(`price_per_hour` * 0.50, 2),
+    `shared_price_per_time` = CASE
+      WHEN `billing_type` = 'TIME' THEN `price_per_hour`
+      ELSE ROUND(`price_per_hour` * 0.60, 2)
+    END
+WHERE `package_price_per_hour` IS NULL
+   OR `shared_price_per_hour` IS NULL
+   OR `shared_price_per_time` IS NULL;
 
 -- ----------------------------
 -- Table structure for sys_equipment

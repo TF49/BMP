@@ -3,12 +3,15 @@ import { API_PATHS } from '../config/api'
 
 export interface BookingParams {
   memberId?: number
-  courtId: number
+  courtId?: number
+  courtIds?: number[]
+  bookingMode?: 'SHARED' | 'PACKAGE'
+  pricingMode?: 'PACKAGE_HOUR' | 'SHARED_HOUR' | 'SHARED_TIME'
   bookingDate: string
   startTime: string
   endTime: string
-  orderAmount: number
-  paymentMethod: string
+  orderAmount?: number
+  paymentMethod?: string
   remark?: string
 }
 
@@ -28,15 +31,26 @@ export interface BookingOccupancyResult {
   users: BookingOccupancyUser[]
 }
 
+export interface SharedBookingCountResult {
+  count: number
+}
+
 export interface BookingItem {
   id: number
   bookingNo: string
   memberId: number
   memberName: string
-  courtId: number
-  courtName: string
+  courtId?: number
+  courtName?: string
+  courtIds?: number[]
+  courtNames?: string[]
+  courtCount?: number
+  primaryCourtName?: string
   venueId: number
   venueName: string
+  bookingMode?: 'SHARED' | 'PACKAGE'
+  pricingMode?: 'PACKAGE_HOUR' | 'SHARED_HOUR' | 'SHARED_TIME'
+  pricingModeSummary?: string
   bookingDate: string
   startTime: string
   endTime: string
@@ -57,6 +71,9 @@ export interface CourtItem {
   billingType: string
   pricePerHour?: number
   pricePerTime?: number
+  packagePricePerHour?: number
+  sharedPricePerHour?: number
+  sharedPricePerTime?: number
   status: number
 }
 
@@ -176,6 +193,19 @@ export function getBookingRangeOccupancy(params: {
 }) {
   return request<BookingOccupancyResult>({
     url: '/booking/occupancy/range',
+    method: 'GET',
+    data: params
+  })
+}
+
+export function getBookingCount(params: {
+  courtId: number
+  bookingDate: string
+  startTime: string
+  endTime: string
+}) {
+  return request<SharedBookingCountResult>({
+    url: '/booking/count',
     method: 'GET',
     data: params
   })

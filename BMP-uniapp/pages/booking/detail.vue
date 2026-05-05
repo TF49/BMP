@@ -22,7 +22,7 @@
           <text class="hero-kicker">KINETIC LOGIC</text>
           <text class="hero-title">{{ booking.venueName || '预约信息加载中' }}</text>
           <text class="hero-sub">
-            {{ booking.bookingNo || 'BOOKING NO.' }} · {{ booking.courtName || 'Court Area' }}
+            {{ booking.bookingNo || 'BOOKING NO.' }} · {{ courtSummary }}
           </text>
 
           <view class="hero-grid">
@@ -58,8 +58,8 @@
               <text class="overview-value">{{ booking.venueName || '--' }}</text>
             </view>
             <view class="overview-card">
-              <text class="overview-label">场地</text>
-              <text class="overview-value">{{ booking.courtName || '--' }}</text>
+              <text class="overview-label">预约模式</text>
+              <text class="overview-value">{{ bookingModeText }}</text>
             </view>
             <view class="overview-card">
               <text class="overview-label">订单金额</text>
@@ -88,6 +88,14 @@
             <view class="detail-row">
               <text class="detail-label">预约日期</text>
               <text class="detail-value">{{ booking.bookingDate || '--' }}</text>
+            </view>
+            <view class="detail-row">
+              <text class="detail-label">场地信息</text>
+              <text class="detail-value">{{ courtNamesText }}</text>
+            </view>
+            <view class="detail-row">
+              <text class="detail-label">计费方式</text>
+              <text class="detail-value">{{ pricingSummary }}</text>
             </view>
             <view class="detail-row">
               <text class="detail-label">时间段</text>
@@ -150,6 +158,11 @@ const booking = ref({
   bookingNo: '',
   venueName: '',
   courtName: '',
+  primaryCourtName: '',
+  courtNames: [] as string[],
+  courtCount: 0,
+  bookingMode: '',
+  pricingModeSummary: '',
   bookingDate: '',
   startTime: '',
   endTime: '',
@@ -162,6 +175,26 @@ const userStore = useUserStore()
 const bookingTimeRange = computed(() => {
   if (!booking.value.startTime || !booking.value.endTime) return '--'
   return `${booking.value.startTime} - ${booking.value.endTime}`
+})
+
+const bookingModeText = computed(() => (booking.value.bookingMode === 'PACKAGE' ? '包场' : '拼场'))
+const courtNamesText = computed(() => {
+  if (booking.value.courtNames.length) return booking.value.courtNames.join('、')
+  return booking.value.primaryCourtName || booking.value.courtName || '--'
+})
+const courtSummary = computed(() => {
+  const primary = booking.value.primaryCourtName || booking.value.courtName || 'Court Area'
+  const count = Number(booking.value.courtCount || booking.value.courtNames.length || 0)
+  return count > 1 ? `${primary} 等 ${count} 块场地` : primary
+})
+const pricingSummary = computed(() => {
+  const raw = booking.value.pricingModeSummary
+  const map: Record<string, string> = {
+    PACKAGE_HOUR: '包场按小时',
+    SHARED_HOUR: '拼场按小时',
+    SHARED_TIME: '拼场按次'
+  }
+  return map[raw] || raw || (booking.value.bookingMode === 'PACKAGE' ? '包场按小时计费' : '拼场计费')
 })
 
 const canCancel = computed(() => booking.value.status === 1 || booking.value.status === 2)
@@ -180,6 +213,11 @@ const loadBookingDetail = async () => {
       bookingNo: result.bookingNo || '',
       venueName: result.venueName || result.courtName || '',
       courtName: result.courtName || '',
+      primaryCourtName: result.primaryCourtName || result.courtName || '',
+      courtNames: Array.isArray(result.courtNames) ? result.courtNames : [],
+      courtCount: Number(result.courtCount || 0),
+      bookingMode: result.bookingMode || 'SHARED',
+      pricingModeSummary: result.pricingModeSummary || '',
       bookingDate: result.bookingDate || '',
       startTime: result.startTime || '',
       endTime: result.endTime || '',

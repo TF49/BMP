@@ -1,7 +1,7 @@
 # 羽擎（BMP）API 文档
 
-> **文档版本**：v2.0.0  
-> **最后更新**：2026-05-01  
+> **文档版本**：v2.1.0  
+> **最后更新**：2026-05-05  
 > **文档定位**：本手册用于说明 BMP 的接口约定、模块边界、主要接口清单与关键业务端点。  
 > **调试入口**：启动后端后访问 [Swagger UI](http://localhost:9090/swagger-ui.html) 进行在线查看与调试。
 
@@ -297,15 +297,34 @@ Authorization: Bearer {AccessToken}
 | `/{id}` | `DELETE` | 删除预约 |
 | `/status` | `PUT` | 更新预约状态 |
 | `/payment` | `POST` | 处理支付 |
+| `/member/payment` | `POST` | 普通用户支付本人预约 |
 | `/refund` | `POST` | 处理退款 |
 | `/statistics` | `GET` | 预约统计 |
 | `/courts` | `GET` | 场地下拉列表 |
 | `/members` | `GET` | 会员下拉列表 |
+| `/occupancy/range` | `GET` | 查询某场地某时段占用明细 |
+| `/count` | `GET` | 查询某场地某时段拼场人数 |
 
 关键说明：
 
 - 预约单号格式：`BK + 日期 + 序号`
-- 新增预约时自动做时间冲突检测
+- 当前预约模式：
+  - `bookingMode=SHARED`
+  - `bookingMode=PACKAGE`
+- 当前预约计费方式：
+  - `pricingMode=PACKAGE_HOUR`
+  - `pricingMode=SHARED_HOUR`
+  - `pricingMode=SHARED_TIME`
+- 新增/更新预约时支持：
+  - `courtId`：兼容旧单场地请求
+  - `courtIds`：新多场地请求字段
+  - `bookingMode`
+  - `pricingMode`
+- 当前冲突规则：
+  - `SHARED` 与 `SHARED` 可叠加
+  - `PACKAGE` 与任意模式在同场地同时间段互斥
+  - `PACKAGE` 只能选择空闲场地，且不能包下整个场馆全部场地
+  - `PACKAGE` 需至少提前 2 小时提交
 
 ### 6.2 器材租借
 
@@ -518,6 +537,16 @@ Authorization: Bearer {AccessToken}
 | 场地状态 | `0` 维护中 / `1` 空闲 / `2` 预约中 / `3` 使用中 |
 | 会员状态 | `0` 冻结 / `1` 正常 / `2` 到期 |
 
+### 8.5 预约模式与计费方式
+
+| 类型 | 值 | 说明 |
+|------|---|------|
+| 预约模式 | `SHARED` | 拼场 |
+| 预约模式 | `PACKAGE` | 包场 |
+| 计费方式 | `PACKAGE_HOUR` | 包场按小时 |
+| 计费方式 | `SHARED_HOUR` | 拼场按小时 |
+| 计费方式 | `SHARED_TIME` | 拼场按次 |
+
 ## 9. 维护说明
 
 - 新增接口时，优先补 Swagger 注解与在线文档
@@ -528,6 +557,7 @@ Authorization: Bearer {AccessToken}
 
 | 日期 | 版本 | 变更内容 |
 |------|------|----------|
+| 2026-05-05 | v2.1.0 | 同步预约模块重构：补充拼场/包场、三种计费方式、占用查询与拼场人数接口说明 |
 | 2026-05-01 | v2.0.0 | 重构为手册型 API 文档，统一接口约定、模块索引与关键业务流说明，去除旧版散列示例与错位编号 |
 
 ---

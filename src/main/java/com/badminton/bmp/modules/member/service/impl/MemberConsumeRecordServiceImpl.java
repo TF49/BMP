@@ -2,6 +2,9 @@ package com.badminton.bmp.modules.member.service.impl;
 
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.entity.MemberConsumeRecord;
+import com.badminton.bmp.modules.booking.entity.Booking;
+import com.badminton.bmp.modules.booking.entity.BookingCourt;
+import com.badminton.bmp.modules.booking.mapper.BookingCourtMapper;
 import com.badminton.bmp.modules.member.mapper.MemberConsumeRecordMapper;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
@@ -11,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 会员消费记录服务实现类
@@ -26,6 +30,9 @@ public class MemberConsumeRecordServiceImpl implements MemberConsumeRecordServic
     
     @Autowired
     private com.badminton.bmp.modules.booking.mapper.BookingMapper bookingMapper;
+
+    @Autowired
+    private BookingCourtMapper bookingCourtMapper;
     
     @Autowired
     private com.badminton.bmp.modules.court.mapper.CourtMapper courtMapper;
@@ -108,10 +115,13 @@ public class MemberConsumeRecordServiceImpl implements MemberConsumeRecordServic
         try {
             Long venueId = null;
             if ("BOOKING".equalsIgnoreCase(businessType) && businessId != null) {
-                com.badminton.bmp.modules.booking.entity.Booking booking = bookingMapper.findById(businessId);
-                if (booking != null && booking.getCourtId() != null) {
-                    com.badminton.bmp.modules.court.entity.Court court = courtMapper.findById(booking.getCourtId());
-                    if (court != null) venueId = court.getVenueId();
+                List<BookingCourt> details = bookingCourtMapper.findByBookingId(businessId);
+                if (details != null && !details.isEmpty()) {
+                    venueId = details.get(0).getVenueId();
+                    if (venueId == null) {
+                        com.badminton.bmp.modules.court.entity.Court court = courtMapper.findById(details.get(0).getCourtId());
+                        if (court != null) venueId = court.getVenueId();
+                    }
                 }
             } else if ("COURSE".equalsIgnoreCase(businessType) && businessId != null) {
                 com.badminton.bmp.modules.course.entity.Course course = courseMapper.findById(businessId);
@@ -156,9 +166,10 @@ public class MemberConsumeRecordServiceImpl implements MemberConsumeRecordServic
         try {
             switch (businessType.toUpperCase()) {
                 case "BOOKING":
-                    com.badminton.bmp.modules.booking.entity.Booking booking = bookingMapper.findById(businessId);
+                    Booking booking = bookingMapper.findById(businessId);
                     if (booking != null) {
-                        return "场地预约 - " + (booking.getBookingNo() != null ? booking.getBookingNo() : "订单号: " + businessId);
+                        String prefix = Booking.MODE_PACKAGE.equalsIgnoreCase(booking.getBookingMode()) ? "包场预约 - " : "拼场预约 - ";
+                        return prefix + (booking.getBookingNo() != null ? booking.getBookingNo() : "订单号: " + businessId);
                     }
                     break;
                 case "COURSE":

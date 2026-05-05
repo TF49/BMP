@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.badminton.bmp.common.util.SecurityUtils;
 import com.badminton.bmp.modules.booking.entity.Booking;
+import com.badminton.bmp.modules.booking.entity.BookingCourt;
+import com.badminton.bmp.modules.booking.mapper.BookingCourtMapper;
 import com.badminton.bmp.modules.booking.mapper.BookingMapper;
 
 import java.sql.Time;
@@ -40,6 +42,9 @@ public class CourtServiceImpl implements CourtService {
 
     @Autowired
     private BookingMapper bookingMapper;
+
+    @Autowired
+    private BookingCourtMapper bookingCourtMapper;
 
     @Autowired
     private CourseMapper courseMapper;
@@ -211,6 +216,15 @@ public class CourtServiceImpl implements CourtService {
         if (court.getPricePerHour() == null) {
             court.setPricePerHour(existingCourt.getPricePerHour());
         }
+        if (court.getPackagePricePerHour() == null) {
+            court.setPackagePricePerHour(existingCourt.getPackagePricePerHour());
+        }
+        if (court.getSharedPricePerHour() == null) {
+            court.setSharedPricePerHour(existingCourt.getSharedPricePerHour());
+        }
+        if (court.getSharedPricePerTime() == null) {
+            court.setSharedPricePerTime(existingCourt.getSharedPricePerTime());
+        }
         if (court.getStatus() == null) {
             court.setStatus(existingCourt.getStatus());
         }
@@ -244,7 +258,7 @@ public class CourtServiceImpl implements CourtService {
 
         // 检查是否有未完成的预约
         List<Integer> activeStatuses = Arrays.asList(1, 2, 3); // 待支付、已支付、进行中
-        int activeBookingCount = bookingMapper.countByCourtIdAndStatusIn(id, activeStatuses);
+        int activeBookingCount = bookingCourtMapper.countByCourtIdAndStatusIn(id, activeStatuses);
         if (activeBookingCount > 0) {
             throw new RuntimeException(
                 String.format("该场地存在%d条未完成的预约记录，无法删除。请先处理这些预约记录后再试。", activeBookingCount)
@@ -625,12 +639,12 @@ public class CourtServiceImpl implements CourtService {
         if (court.getStatus() != null && court.getStatus() == 0) {
             return;
         }
-        List<Booking> activeBookings = bookingMapper.findActiveBookingsByCourtId(courtId);
+        List<BookingCourt> activeBookings = bookingCourtMapper.findActiveBookingDetailsByCourtId(courtId);
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
         // 是否有“进行中”且当前时刻在预约时段内的预约
-        for (Booking b : activeBookings) {
-            if (b.getStatus() != null && b.getStatus() == 3
+        for (BookingCourt b : activeBookings) {
+            if (b.getBookingStatus() != null && b.getBookingStatus() == 3
                     && today.equals(b.getBookingDate())
                     && b.getStartTime() != null && b.getEndTime() != null
                     && !now.isBefore(b.getStartTime()) && now.isBefore(b.getEndTime())) {

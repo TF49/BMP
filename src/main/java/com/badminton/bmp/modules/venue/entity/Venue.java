@@ -1,9 +1,9 @@
 package com.badminton.bmp.modules.venue.entity;
 
 import com.badminton.bmp.common.validation.BusinessHoursValid;
-import com.badminton.bmp.common.validation.PhoneValid;
 import com.badminton.bmp.common.validation.StatusValid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -36,7 +36,10 @@ public class Venue {
     /**
      * 联系电话
      */
-    @PhoneValid
+    @Pattern(
+            regexp = "(^1[3-9]\\d{9}$)|(^0\\d{2,3}-?\\d{7,8}$)",
+            message = "联系电话格式不正确，应为手机号或固定电话"
+    )
     private String contactPhone;
 
     /**

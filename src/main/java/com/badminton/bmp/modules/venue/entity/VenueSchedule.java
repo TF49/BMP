@@ -1,7 +1,6 @@
 package com.badminton.bmp.modules.venue.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -11,21 +10,17 @@ import java.time.LocalTime;
 public class VenueSchedule {
     private Long id;
 
-    @NotNull
-    @Positive
+    /**
+     * 由路径参数中的 venueId 注入，前端保存营业时间时无需在请求体中重复传递。
+     */
     private Long venueId;
 
-    @NotBlank
-    @Pattern(regexp = "WORKDAY|WEEKEND|HOLIDAY")
     private String scheduleType;
 
-    @NotNull
     private LocalTime startTime;
 
-    @NotNull
     private LocalTime endTime;
 
-    @Min(0) @Max(1)
     private Integer isActive;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

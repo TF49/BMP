@@ -116,7 +116,18 @@
         >
           <el-table-column prop="bookingNo" label="预约单号" min-width="140" />
           <el-table-column prop="venueName" label="场馆" min-width="120" />
-          <el-table-column prop="courtName" label="场地" min-width="120" />
+          <el-table-column label="预约模式" min-width="100">
+            <template #default="scope">
+              <el-tag :type="scope.row.bookingMode === 'PACKAGE' ? 'danger' : 'primary'" size="small">
+                {{ getBookingModeText(scope.row.bookingMode) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="场地" min-width="180" show-overflow-tooltip>
+            <template #default="scope">
+              {{ getCourtSummary(scope.row) }}
+            </template>
+          </el-table-column>
           <el-table-column prop="memberName" label="会员" min-width="120" />
           <el-table-column label="时间" min-width="180">
             <template #default="scope">
@@ -127,6 +138,11 @@
             <template #default="scope">
               <!-- 后端字段为 orderAmount，这里统一用它来展示金额 -->
               <span class="price-text">¥{{ formatCurrency(scope.row.orderAmount) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="计费方式" min-width="120">
+            <template #default="scope">
+              {{ getPricingModeText(scope.row.pricingMode, scope.row.pricingModeSummary) }}
             </template>
           </el-table-column>
           <el-table-column prop="paymentMethod" label="支付方式" min-width="110">
@@ -206,9 +222,35 @@
               <el-option v-for="item in venueOptions" :key="item.id" :label="item.venueName" :value="item.id" />
             </el-select>
           </el-form-item>
-          <el-form-item label="场地" prop="courtId" class="modern-form-item">
-            <el-select v-model="form.courtId" placeholder="请选择场地" style="width: 100%" @change="checkFormOccupancy">
-              <el-option v-for="item in formCourtOptions" :key="item.id" :label="item.courtName || item.courtCode" :value="item.id" />
+          <el-form-item label="预约模式" prop="bookingMode" class="modern-form-item">
+            <el-radio-group v-model="form.bookingMode" @change="handleBookingModeChange">
+              <el-radio-button label="SHARED">拼场</el-radio-button>
+              <el-radio-button label="PACKAGE">包场</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item v-if="form.bookingMode === 'SHARED'" label="拼场计费方式" prop="pricingMode" class="modern-form-item">
+            <el-radio-group v-model="form.pricingMode">
+              <el-radio-button label="SHARED_HOUR">按小时</el-radio-button>
+              <el-radio-button label="SHARED_TIME">按次</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="场地" prop="courtIds" class="modern-form-item">
+            <el-select
+              v-model="form.courtIds"
+              :multiple="form.bookingMode === 'PACKAGE'"
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="请选择场地"
+              style="width: 100%"
+              @change="checkFormOccupancy"
+            >
+              <el-option
+                v-for="item in formCourtOptions"
+                :key="item.id"
+                :label="getFormCourtLabel(item)"
+                :value="item.id"
+                :disabled="isCourtBlocked(item)"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="会员" prop="memberId" class="modern-form-item">
@@ -245,10 +287,10 @@
           <div v-if="showFormConflictAlert" class="booking-conflict-alert">
             <div class="booking-conflict-alert__head">
               <el-icon><WarningFilled /></el-icon>
-              <span>该时段已被占用</span>
+              <span>{{ form.bookingMode === 'PACKAGE' ? '包场场地存在冲突' : '该时段不可拼场' }}</span>
             </div>
             <div class="booking-conflict-alert__body">
-              当前有 {{ formOccupancy.count }} 条重叠预约，请调整时间后再提交。
+              {{ formConflictMessage }}
             </div>
             <div v-if="formOccupancy.users.length" class="booking-conflict-alert__list">
               <div
@@ -271,7 +313,7 @@
             </template>
           </el-form-item>
           <el-form-item label="金额" prop="amount" class="modern-form-item">
-            <el-input-number v-model="form.amount" :min="0" :step="10" :precision="2" style="width: 100%" />
+            <el-input-number v-model="form.amount" :min="0" :step="10" :precision="2" style="width: 100%" disabled />
           </el-form-item>
           <el-form-item label="支付方式" class="modern-form-item">
             <!-- 创建时为空；已支付的预约在这里只做查看，支付/修改仍通过“支付/退款”弹窗处理 -->
@@ -418,7 +460,10 @@ const form = reactive({
   id: null,
   venueId: null,
   courtId: null,
+  courtIds: [],
   memberId: null,
+  bookingMode: 'SHARED',
+  pricingMode: 'SHARED_HOUR',
   status: null,
   amount: 0,
    paymentMethod: null,
@@ -427,8 +472,9 @@ const form = reactive({
 })
 const formRules = {
   venueId: [{ required: true, message: '请选择场馆', trigger: 'change' }],
-  courtId: [{ required: true, message: '请选择场地', trigger: 'change' }],
+  courtIds: [{ required: true, message: '请选择场地', trigger: 'change' }],
   memberId: [{ required: true, message: '请选择会员', trigger: 'change' }],
+  bookingMode: [{ required: true, message: '请选择预约模式', trigger: 'change' }],
   timeRange: [{ required: true, message: '请选择预约时间', trigger: 'change' }],
   amount: [{ required: true, message: '请输入金额', trigger: 'blur' }]
 }
@@ -444,7 +490,14 @@ const formOccupancy = reactive({
   users: []
 })
 let formOccupancyRequestId = 0
-const showFormConflictAlert = computed(() => formOccupancy.count > 0)
+const showFormConflictAlert = computed(() => !!formConflictMessage.value)
+const formConflictMessage = computed(() => {
+  if (!formOccupancy.count) return ''
+  if (form.bookingMode === 'PACKAGE') {
+    return '所选场地中存在已被拼场或包场占用的时段，不能创建包场。'
+  }
+  return '该场地该时段已存在包场，不能继续拼场。'
+})
 
 // 支付/退款
 const payDialogVisible = ref(false)
@@ -476,6 +529,26 @@ const tableHeaderStyle = {
 const getStatusText = (status) => {
   const map = { 0: '已取消', 1: '待支付', 2: '已支付', 3: '进行中', 4: '已完成' }
   return map[status] || '未知'
+}
+
+const getBookingModeText = (mode) => {
+  return mode === 'PACKAGE' ? '包场' : '拼场'
+}
+
+const getPricingModeText = (mode, summary) => {
+  const normalize = summary || mode
+  const map = {
+    PACKAGE_HOUR: '包场按小时',
+    SHARED_HOUR: '拼场按小时',
+    SHARED_TIME: '拼场按次'
+  }
+  return map[normalize] || '-'
+}
+
+const getCourtSummary = (row) => {
+  const primary = row.primaryCourtName || row.courtName || '-'
+  const count = Number(row.courtCount || (Array.isArray(row.courtNames) ? row.courtNames.length : 0) || 0)
+  return count > 1 ? `${primary} 等 ${count} 块场地` : primary
 }
 
 // 状态标签颜色
@@ -625,6 +698,8 @@ const resetFormOccupancy = () => {
 
 const handleFormVenueChange = async () => {
   resetFormOccupancy()
+  form.courtId = null
+  form.courtIds = []
   await loadCourtsForForm(true)
 }
 
@@ -636,29 +711,90 @@ const extractFormRangePayload = () => {
   return { bookingDate, startTime, endTime }
 }
 
+const computeFormAmount = () => {
+  const { startTime, endTime } = extractFormRangePayload()
+  const selectedCourts = formCourtOptions.value.filter(item => form.courtIds.includes(item.id))
+  if (!selectedCourts.length || !startTime || !endTime) {
+    form.amount = 0
+    return
+  }
+  const [sh, sm] = startTime.split(':').map(Number)
+  const [eh, em] = endTime.split(':').map(Number)
+  const minutes = (eh * 60 + em) - (sh * 60 + sm)
+  const duration = minutes > 0 ? Math.ceil(minutes / 60) : 0
+  form.amount = selectedCourts.reduce((sum, item) => {
+    const packagePrice = Number(item.packagePricePerHour || item.pricePerHour || 0)
+    const sharedHourPrice = Number(item.sharedPricePerHour || item.pricePerHour || 0)
+    const sharedTimePrice = Number(item.sharedPricePerTime || item.pricePerTime || 0)
+    if (form.bookingMode === 'PACKAGE') return sum + packagePrice * duration
+    if (form.pricingMode === 'SHARED_TIME') return sum + sharedTimePrice
+    return sum + sharedHourPrice * duration
+  }, 0)
+}
+
+const handleBookingModeChange = () => {
+  if (form.bookingMode === 'SHARED') {
+    form.courtIds = form.courtIds.length ? [form.courtIds[0]] : []
+    form.pricingMode = form.pricingMode === 'SHARED_TIME' ? 'SHARED_TIME' : 'SHARED_HOUR'
+  } else {
+    form.pricingMode = 'PACKAGE_HOUR'
+  }
+  computeFormAmount()
+  checkFormOccupancy()
+}
+
+const getFormCourtLabel = (item) => {
+  const name = item.courtName || item.courtCode
+  const priceText = form.bookingMode === 'PACKAGE'
+    ? `包场 ¥${formatCurrency(item.packagePricePerHour || item.pricePerHour)}/小时`
+    : form.pricingMode === 'SHARED_TIME'
+      ? `拼场 ¥${formatCurrency(item.sharedPricePerTime || item.pricePerTime)}/次`
+      : `拼场 ¥${formatCurrency(item.sharedPricePerHour || item.pricePerHour)}/小时`
+  return `${name} · ${priceText}`
+}
+
+const isCourtBlocked = (item) => {
+  return Number(item.status) === 0
+}
+
 const checkFormOccupancy = async () => {
   resetFormOccupancy()
   const { bookingDate, startTime, endTime } = extractFormRangePayload()
-  if (!form.courtId || !bookingDate || !startTime || !endTime) return
+  computeFormAmount()
+  if (!form.courtIds.length || !bookingDate || !startTime || !endTime) return
   if (endTime <= startTime) return
 
   const requestId = ++formOccupancyRequestId
   formOccupancyLoading.value = true
   try {
-    const res = await getBookingRangeOccupancy({
-      courtId: form.courtId,
-      bookingDate,
-      startTime,
-      endTime
-    })
+    const results = await Promise.all(
+      form.courtIds.map(async (courtId) => {
+        const res = await getBookingRangeOccupancy({ courtId, bookingDate, startTime, endTime })
+        return { courtId, res }
+      })
+    )
     if (requestId !== formOccupancyRequestId) return
-    if (res.code === 200) {
-      const users = Array.isArray(res.data?.users) ? res.data.users : []
-      const currentId = isEdit.value ? form.id : null
-      const filteredUsers = currentId ? users.filter(item => item.bookingId !== currentId) : users
-      formOccupancy.count = filteredUsers.length
-      formOccupancy.users = filteredUsers
-    }
+    const allUsers = []
+    let count = 0
+    const currentId = isEdit.value ? form.id : null
+    results.forEach(({ res }) => {
+      if (res.code === 200) {
+        const users = Array.isArray(res.data?.users) ? res.data.users : []
+        const filteredUsers = currentId ? users.filter(item => item.bookingId !== currentId) : users
+        const filteredCount = Number(res.data?.count ?? filteredUsers.length)
+        if (form.bookingMode === 'PACKAGE') {
+          count += filteredCount
+        } else {
+          const sharedCount = filteredUsers.length
+          if (filteredCount > sharedCount) {
+            count += filteredCount - sharedCount
+          }
+        }
+        allUsers.push(...filteredUsers)
+      }
+    })
+    formOccupancy.count = count
+    formOccupancy.users = allUsers
   } catch (e) {
     console.error('检查预约占用失败:', e)
   } finally {
@@ -736,7 +872,10 @@ const handleEdit = async (row) => {
       Object.assign(form, {
         id: data.id,
         courtId: data.courtId,
+        courtIds: Array.isArray(data.courtIds) && data.courtIds.length ? data.courtIds : (data.courtId ? [data.courtId] : []),
         memberId: data.memberId,
+        bookingMode: data.bookingMode || 'SHARED',
+        pricingMode: data.pricingMode || 'SHARED_HOUR',
         status: data.status,
         paymentMethod: data.paymentMethod || null,
         // 详情接口返回的金额字段为 orderAmount，这里映射到表单字段方便展示
@@ -763,6 +902,7 @@ const handleEdit = async (row) => {
         memberKeyword.value = data.memberName
       }
       await loadCourtsForForm(false)
+      computeFormAmount()
       await checkFormOccupancy()
     }
   } catch (e) {
@@ -809,8 +949,11 @@ const handleSubmit = async () => {
 
       const payload = {
         id: form.id,
-        courtId: form.courtId,
+        courtId: form.courtIds[0],
+        courtIds: form.courtIds,
         memberId: form.memberId,
+        bookingMode: form.bookingMode,
+        pricingMode: form.bookingMode === 'PACKAGE' ? 'PACKAGE_HOUR' : form.pricingMode,
         status: form.status,
         bookingDate,
         startTime,
@@ -845,7 +988,10 @@ const resetForm = () => {
     id: null,
     venueId: isVenueManager.value && currentVenueId.value ? currentVenueId.value : null,
     courtId: null,
+    courtIds: [],
     memberId: null,
+    bookingMode: 'SHARED',
+    pricingMode: 'SHARED_HOUR',
     status: null,
     amount: 0,
     paymentMethod: null,

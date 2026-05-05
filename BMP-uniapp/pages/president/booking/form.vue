@@ -83,13 +83,58 @@
             </scroll-view>
 
             <view class="field">
+              <text class="label">预约模式</text>
+              <view class="mode-switch">
+                <view class="mode-item" :class="{ active: bookingMode === 'SHARED' }" @click="setBookingMode('SHARED')">
+                  <text class="mode-title">拼场</text>
+                  <text class="mode-copy">单场地，可继续叠加拼场订单</text>
+                </view>
+                <view class="mode-item" :class="{ active: bookingMode === 'PACKAGE' }" @click="setBookingMode('PACKAGE')">
+                  <text class="mode-title">包场</text>
+                  <text class="mode-copy">多选部分场地，仅允许空闲场地</text>
+                </view>
+              </view>
+            </view>
+
+            <view v-if="bookingMode === 'SHARED'" class="field">
+              <text class="label">拼场计费方式</text>
+              <view class="pricing-switch">
+                <view class="pricing-item" :class="{ active: pricingMode === 'SHARED_HOUR' }" @click="setPricingMode('SHARED_HOUR')">
+                  拼场按小时
+                </view>
+                <view class="pricing-item" :class="{ active: pricingMode === 'SHARED_TIME' }" @click="setPricingMode('SHARED_TIME')">
+                  拼场按次
+                </view>
+              </view>
+            </view>
+
+            <view class="field">
               <text class="label">预约场地</text>
-              <picker mode="selector" :range="courtLabels" :value="courtIndex" @change="onCourtChange">
+              <picker v-if="bookingMode === 'SHARED'" mode="selector" :range="courtLabels" :value="courtIndex" @change="onCourtChange">
                 <view class="input picker-row">
                   <text>{{ courtLabels[courtIndex] || '请选择场地' }}</text>
                   <uni-icons type="arrowdown" size="14" color="#a1a1aa" />
                 </view>
               </picker>
+              <view v-else class="multi-court-list">
+                <view
+                  v-for="item in courts"
+                  :key="item.id"
+                  class="multi-court-item"
+                  :class="{ active: form.courtIds.includes(item.id), disabled: isCourtDisabled(item) }"
+                  @click="togglePackageCourt(item)"
+                >
+                  <view>
+                    <text class="option-title">{{ item.courtName || `场地#${item.id}` }}</text>
+                    <text class="option-subtitle">{{ getCourtHintText(item) }}</text>
+                  </view>
+                  <uni-icons
+                    :type="form.courtIds.includes(item.id) ? 'checkbox-filled' : 'circle'"
+                    size="20"
+                    :color="form.courtIds.includes(item.id) ? '#ff6600' : '#c4c4c8'"
+                  />
+                </view>
+              </view>
             </view>
 
             <view class="grid2">
@@ -122,9 +167,9 @@
           <view v-if="showConflictCard" class="conflict-card">
             <view class="conflict-head">
               <uni-icons type="clear" size="16" color="#b42318" />
-              <text class="conflict-title">该时段不可预约</text>
+              <text class="conflict-title">{{ bookingMode === 'PACKAGE' ? '包场场地存在冲突' : '该时段不可拼场' }}</text>
             </view>
-            <text class="conflict-text">当前有 {{ occupancyCount }} 条重叠预约，请调整时间后再创建。</text>
+            <text class="conflict-text">{{ conflictText }}</text>
             <view v-if="occupancyUsers.length" class="conflict-list">
               <view v-for="item in occupancyUsers" :key="`${item.bookingId}-${item.startTime}-${item.endTime}`" class="conflict-item">
                 <text class="conflict-user">{{ item.memberName || '已预约会员' }}</text>
@@ -133,8 +178,28 @@
             </view>
           </view>
 
+          <view v-if="packageLeadTimeError" class="conflict-card">
+            <view class="conflict-head">
+              <uni-icons type="info" size="16" color="#b42318" />
+              <text class="conflict-title">包场提交时间不足</text>
+            </view>
+            <text class="conflict-text">{{ packageLeadTimeError }}</text>
+          </view>
+
           <view class="summary-card">
             <text class="summary-kicker">SUMMARY</text>
+            <view class="summary-row">
+              <text>预约模式</text>
+              <text>{{ bookingModeText }}</text>
+            </view>
+            <view class="summary-row">
+              <text>场地信息</text>
+              <text>{{ selectedCourtSummary }}</text>
+            </view>
+            <view class="summary-row">
+              <text>计费方式</text>
+              <text>{{ pricingModeText }}</text>
+            </view>
             <view class="summary-row">
               <text>预约日期</text>
               <text>{{ selectedDate || '-' }}</text>
@@ -178,7 +243,7 @@ import { resolveImageUrl } from '@/utils/resolveImageUrl'
 import { getVenueInfo, type VenueItem } from '@/api/president/venue'
 import { getCourtList, type CourtItem } from '@/api/court'
 import { getMemberList, type MemberListItem } from '@/api/president/member'
-import { createBooking, getBookingRangeOccupancy, type BookingOccupancyUser } from '@/api/president/booking'
+import { createBooking, getBookingCount, getBookingRangeOccupancy, type BookingOccupancyUser } from '@/api/president/booking'
 import { formatAmount } from '@/utils/format'
 
 type DateOption = {
@@ -206,6 +271,8 @@ const selectedDate = computed(() => dates.value[selectedDateIndex.value]?.date |
 
 const courts = ref<CourtItem[]>([])
 const courtIndex = ref(0)
+const bookingMode = ref<'SHARED' | 'PACKAGE'>('SHARED')
+const pricingMode = ref<'PACKAGE_HOUR' | 'SHARED_HOUR' | 'SHARED_TIME'>('SHARED_HOUR')
 
 const memberKeyword = ref('')
 const memberLoading = ref(false)
@@ -214,6 +281,7 @@ const memberOptions = ref<MemberListItem[]>([])
 const form = reactive({
   memberId: 0,
   courtId: 0,
+  courtIds: [] as number[],
   startTime: '18:00',
   endTime: '19:00',
   remark: ''
@@ -225,7 +293,22 @@ const occupancyLoading = ref(false)
 let occupancyToken = 0
 
 const courtLabels = computed(() => ['请选择场地', ...courts.value.map((item) => item.courtName || `场地#${item.id}`)])
-const selectedCourt = computed(() => courts.value.find((item) => item.id === form.courtId) || null)
+const selectedCourts = computed(() => courts.value.filter((item) => form.courtIds.includes(item.id)))
+const selectedCourt = computed(() => selectedCourts.value[0] || null)
+const selectedCourtSummary = computed(() => {
+  if (!selectedCourts.value.length) return '待选择'
+  if (selectedCourts.value.length === 1) return selectedCourts.value[0].courtName || `场地#${selectedCourts.value[0].id}`
+  return `${selectedCourts.value[0].courtName || `场地#${selectedCourts.value[0].id}`} 等 ${selectedCourts.value.length} 块场地`
+})
+const bookingModeText = computed(() => (bookingMode.value === 'PACKAGE' ? '包场' : '拼场'))
+const pricingModeText = computed(() => {
+  const map: Record<string, string> = {
+    PACKAGE_HOUR: '包场按小时',
+    SHARED_HOUR: '拼场按小时',
+    SHARED_TIME: '拼场按次'
+  }
+  return map[bookingMode.value === 'PACKAGE' ? 'PACKAGE_HOUR' : pricingMode.value] || '按订单规则计费'
+})
 const isEndAfterStart = computed(() => toMinutes(form.endTime) > toMinutes(form.startTime))
 const durationHours = computed(() => {
   if (!isEndAfterStart.value) return 0
@@ -233,18 +316,38 @@ const durationHours = computed(() => {
 })
 const durationLabel = computed(() => {
   if (!isEndAfterStart.value) return '无效时间段'
-  return `${durationHours.value} 小时`
+  return pricingMode.value === 'SHARED_TIME' && bookingMode.value === 'SHARED' ? '按次计费' : `${durationHours.value} 小时`
 })
 const totalPrice = computed(() => {
-  const court = selectedCourt.value
-  if (!court || !isEndAfterStart.value) return '0.00'
-  const unitPrice = Number(court.pricePerHour || court.pricePerTime || 0)
-  const amount = court.billingType === 'TIME' ? unitPrice : unitPrice * durationHours.value
+  if (!selectedCourts.value.length || !isEndAfterStart.value) return '0.00'
+  const amount = selectedCourts.value.reduce((sum, court) => {
+    const packagePrice = Number(court.packagePricePerHour || court.pricePerHour || 0)
+    const sharedHourPrice = Number(court.sharedPricePerHour || court.pricePerHour || 0)
+    const sharedTimePrice = Number(court.sharedPricePerTime || court.pricePerTime || court.pricePerHour || 0)
+    if (bookingMode.value === 'PACKAGE') return sum + packagePrice * durationHours.value
+    if (pricingMode.value === 'SHARED_TIME') return sum + sharedTimePrice
+    return sum + sharedHourPrice * durationHours.value
+  }, 0)
   return formatAmount(amount)
 })
-const showConflictCard = computed(() => Boolean(form.courtId && selectedDate.value && occupancyCount.value > 0))
+const showConflictCard = computed(() => Boolean(form.courtIds.length && selectedDate.value && occupancyCount.value > 0))
+const packageLeadTimeError = computed(() => {
+  if (bookingMode.value !== 'PACKAGE' || !selectedDate.value || !form.startTime) return ''
+  const bookingStart = new Date(`${selectedDate.value}T${form.startTime}:00`)
+  return bookingStart.getTime() - Date.now() < 2 * 60 * 60 * 1000 ? '包场需至少提前 2 小时提交申请。' : ''
+})
+const conflictText = computed(() => {
+  if (bookingMode.value === 'PACKAGE') {
+    return `所选场地中有 ${occupancyCount.value} 块在当前时段已有预约，不能创建包场。`
+  }
+  return '当前时段该场地已被包场，请调整时间或更换场地。'
+})
 const submitDisabled = computed(() => {
-  return !form.memberId || !form.courtId || !selectedDate.value || !isEndAfterStart.value || occupancyCount.value > 0 || occupancyLoading.value
+  if (!form.memberId || !form.courtIds.length || !selectedDate.value || !isEndAfterStart.value || occupancyLoading.value) return true
+  if (bookingMode.value === 'PACKAGE') {
+    return !!packageLeadTimeError.value || form.courtIds.length >= courts.value.length || occupancyCount.value > 0
+  }
+  return occupancyCount.value > 0
 })
 
 onLoad((query?: Record<string, string | undefined>) => {
@@ -257,7 +360,7 @@ onLoad((query?: Record<string, string | undefined>) => {
 })
 
 watch(
-  () => [form.courtId, selectedDate.value, form.startTime, form.endTime],
+  () => [form.courtId, JSON.stringify(form.courtIds), selectedDate.value, form.startTime, form.endTime, bookingMode.value, pricingMode.value],
   () => {
     void checkOccupancy()
   }
@@ -303,6 +406,7 @@ async function loadCourts() {
       const firstAvailable = courts.value.find((item) => item.status === 1)
       if (firstAvailable) {
         form.courtId = firstAvailable.id
+        form.courtIds = [firstAvailable.id]
         courtIndex.value = courts.value.findIndex((item) => item.id === firstAvailable.id) + 1
       }
     }
@@ -339,13 +443,60 @@ function handleDateChange(index: number) {
   selectedDateIndex.value = index
 }
 
+function setBookingMode(mode: 'SHARED' | 'PACKAGE') {
+  bookingMode.value = mode
+  pricingMode.value = mode === 'PACKAGE' ? 'PACKAGE_HOUR' : 'SHARED_HOUR'
+  if (mode === 'SHARED') {
+    const firstId = form.courtIds[0] || form.courtId || 0
+    form.courtIds = firstId ? [firstId] : []
+    form.courtId = firstId
+    courtIndex.value = firstId ? courts.value.findIndex((item) => item.id === firstId) + 1 : 0
+  } else if (form.courtId) {
+    form.courtIds = [form.courtId]
+  }
+}
+
+function setPricingMode(mode: 'SHARED_HOUR' | 'SHARED_TIME') {
+  pricingMode.value = mode
+}
+
 function onCourtChange(event: { detail: { value: string } }) {
   courtIndex.value = Number(event.detail.value)
   if (courtIndex.value <= 0) {
     form.courtId = 0
+    form.courtIds = []
     return
   }
   form.courtId = Number(courts.value[courtIndex.value - 1]?.id || 0)
+  form.courtIds = form.courtId ? [form.courtId] : []
+}
+
+function isCourtDisabled(item: CourtItem) {
+  return Number(item.status) !== 1
+}
+
+function getCourtHintText(item: CourtItem) {
+  if (Number(item.status) !== 1) return '维护中，当前不可选'
+  const packagePrice = Number(item.packagePricePerHour || item.pricePerHour || 0)
+  const sharedHourPrice = Number(item.sharedPricePerHour || item.pricePerHour || 0)
+  const sharedTimePrice = Number(item.sharedPricePerTime || item.pricePerTime || item.pricePerHour || 0)
+  if (bookingMode.value === 'PACKAGE') return `包场 ¥${formatAmount(packagePrice)}/小时`
+  return pricingMode.value === 'SHARED_TIME' ? `拼场 ¥${formatAmount(sharedTimePrice)}/次` : `拼场 ¥${formatAmount(sharedHourPrice)}/小时`
+}
+
+function togglePackageCourt(item: CourtItem) {
+  if (bookingMode.value !== 'PACKAGE' || isCourtDisabled(item)) return
+  if (form.courtIds.includes(item.id)) {
+    form.courtIds = form.courtIds.filter((id) => id !== item.id)
+    form.courtId = form.courtIds[0] || 0
+    return
+  }
+  if (form.courtIds.length >= Math.max(0, courts.value.length - 1)) {
+    uni.showToast({ title: '包场不能包下整个场馆全部场地', icon: 'none' })
+    return
+  }
+  form.courtIds = [...form.courtIds, item.id]
+  form.courtId = form.courtIds[0] || item.id
 }
 
 function onStartTimeChange(event: { detail: { value: string } }) {
@@ -369,7 +520,8 @@ async function checkOccupancy() {
   occupancyUsers.value = []
   occupancyCount.value = 0
 
-  if (!form.courtId || !selectedDate.value || !form.startTime || !form.endTime || !isEndAfterStart.value) {
+  const courtIds = bookingMode.value === 'PACKAGE' ? form.courtIds : form.courtId ? [form.courtId] : []
+  if (!courtIds.length || !selectedDate.value || !form.startTime || !form.endTime || !isEndAfterStart.value) {
     return
   }
 
@@ -378,15 +530,41 @@ async function checkOccupancy() {
   occupancyToken = currentToken
 
   try {
-    const res = await getBookingRangeOccupancy({
-      courtId: form.courtId,
-      bookingDate: selectedDate.value,
-      startTime: toApiTime(form.startTime),
-      endTime: toApiTime(form.endTime)
-    })
-    if (currentToken !== occupancyToken) return
-    occupancyCount.value = Number(res.count || 0)
-    occupancyUsers.value = Array.isArray(res.users) ? res.users : []
+    if (bookingMode.value === 'PACKAGE') {
+      const results = await Promise.all(
+        courtIds.map((courtId) =>
+          getBookingRangeOccupancy({
+            courtId,
+            bookingDate: selectedDate.value,
+            startTime: toApiTime(form.startTime),
+            endTime: toApiTime(form.endTime)
+          })
+        )
+      )
+      if (currentToken !== occupancyToken) return
+      occupancyCount.value = results.filter((res) => Number(res.count || 0) > 0).length
+      occupancyUsers.value = results.flatMap((res) => (Array.isArray(res.users) ? res.users : []))
+    } else {
+      const [countRes, rangeRes] = await Promise.all([
+        getBookingCount({
+          courtId: form.courtId,
+          bookingDate: selectedDate.value,
+          startTime: toApiTime(form.startTime),
+          endTime: toApiTime(form.endTime)
+        }),
+        getBookingRangeOccupancy({
+          courtId: form.courtId,
+          bookingDate: selectedDate.value,
+          startTime: toApiTime(form.startTime),
+          endTime: toApiTime(form.endTime)
+        })
+      ])
+      if (currentToken !== occupancyToken) return
+      const sharedUsers = Array.isArray(rangeRes.users) ? rangeRes.users : []
+      const totalCount = Number(countRes.count || 0)
+      occupancyCount.value = Math.max(0, Number(rangeRes.count || 0) - sharedUsers.length) > 0 ? 1 : 0
+      occupancyUsers.value = totalCount > 0 ? sharedUsers : []
+    }
   } catch (error) {
     console.error('Failed to check occupancy:', error)
   } finally {
@@ -405,16 +583,24 @@ async function handleSubmit() {
     uni.showToast({ title: '请选择会员', icon: 'none' })
     return
   }
-  if (!form.courtId) {
-    uni.showToast({ title: '请选择场地', icon: 'none' })
+  if (!form.courtIds.length) {
+    uni.showToast({ title: bookingMode.value === 'PACKAGE' ? '请至少选择一块场地' : '请选择场地', icon: 'none' })
     return
   }
   if (!isEndAfterStart.value) {
     uni.showToast({ title: '结束时间必须晚于开始时间', icon: 'none' })
     return
   }
+  if (bookingMode.value === 'PACKAGE' && packageLeadTimeError.value) {
+    uni.showToast({ title: packageLeadTimeError.value, icon: 'none' })
+    return
+  }
+  if (bookingMode.value === 'PACKAGE' && form.courtIds.length >= courts.value.length) {
+    uni.showToast({ title: '包场不能包下整个场馆全部场地', icon: 'none' })
+    return
+  }
   if (occupancyCount.value > 0) {
-    uni.showToast({ title: '该时段已被占用，请调整时间', icon: 'none' })
+    uni.showToast({ title: bookingMode.value === 'PACKAGE' ? '所选场地存在冲突，请调整后再创建' : '该时段已有包场，不能继续拼场', icon: 'none' })
     return
   }
 
@@ -423,6 +609,9 @@ async function handleSubmit() {
     const res = await createBooking({
       memberId: form.memberId,
       courtId: form.courtId,
+      courtIds: form.courtIds,
+      bookingMode: bookingMode.value,
+      pricingMode: bookingMode.value === 'PACKAGE' ? 'PACKAGE_HOUR' : pricingMode.value,
       bookingDate: selectedDate.value,
       startTime: toApiTime(form.startTime),
       endTime: toApiTime(form.endTime),
@@ -435,6 +624,10 @@ async function handleSubmit() {
     const bookingSummary = {
       venueName: venue.value.venueName || '未知场馆',
       courtName: selectedCourt.value?.courtName || '未知场地',
+      courtNames: selectedCourts.value.map((item) => item.courtName || `场地#${item.id}`),
+      courtCount: selectedCourts.value.length,
+      bookingMode: bookingMode.value,
+      pricingModeSummary: pricingModeText.value,
       date: selectedDate.value,
       slot: `${form.startTime} - ${form.endTime}`,
       duration: durationHours.value,
@@ -681,6 +874,64 @@ async function handleSubmit() {
   margin-top: 18rpx;
 }
 
+.mode-switch,
+.pricing-switch {
+  display: grid;
+  gap: 14rpx;
+}
+
+.mode-switch {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mode-item,
+.pricing-item {
+  border-radius: 22rpx;
+  border: 2rpx solid transparent;
+  background: #f6f7f8;
+}
+
+.mode-item {
+  padding: 18rpx;
+}
+
+.mode-item.active,
+.pricing-item.active {
+  background: #fff3eb;
+  border-color: #ff6600;
+}
+
+.mode-title {
+  display: block;
+  color: #1a1c1c;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.mode-copy {
+  display: block;
+  margin-top: 8rpx;
+  color: #7a7a7a;
+  font-size: 20rpx;
+  line-height: 1.55;
+}
+
+.pricing-switch {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pricing-item {
+  min-height: 84rpx;
+  padding: 0 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #1a1c1c;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
 .label {
   display: block;
   margin-bottom: 10rpx;
@@ -713,6 +964,32 @@ async function handleSubmit() {
 .textarea {
   min-height: 160rpx;
   padding: 20rpx;
+}
+
+.multi-court-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.multi-court-item {
+  padding: 18rpx 20rpx;
+  border-radius: 22rpx;
+  background: #f6f7f8;
+  border: 2rpx solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+
+  &.active {
+    background: #fff3eb;
+    border-color: #ff6600;
+  }
+
+  &.disabled {
+    opacity: 0.52;
+  }
 }
 
 .conflict-card {

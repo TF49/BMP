@@ -52,7 +52,7 @@
         >
           <text class="hero-badge">下一场预约</text>
           <text class="hero-title">{{ nextMatch.venueName }}</text>
-          <text class="hero-sub">{{ nextMatch.bookingNo }} · {{ nextMatch.courtName }}</text>
+          <text class="hero-sub">{{ nextMatch.bookingNo }} · {{ getCourtSummary(nextMatch) }}</text>
           <view class="hero-grid">
             <view class="hero-cell">
               <text class="cell-k">预约日期</text>
@@ -93,7 +93,8 @@
             <text class="amount" :class="{ strike: item.status === 0 }">¥{{ formatAmount(item.amount) }}</text>
           </view>
           <text class="venue" :class="{ muted: item.status === 0 }">{{ item.venueName }}</text>
-          <view class="line"><uni-icons type="location" size="14" color="#666" /><text>{{ item.courtName }}</text></view>
+          <view class="line"><uni-icons type="location" size="14" color="#666" /><text>{{ getCourtSummary(item) }}</text></view>
+          <view class="line"><uni-icons type="flag" size="14" color="#666" /><text>{{ getBookingModeText(item.bookingMode) }} · {{ getPricingSummary(item) }}</text></view>
           <view class="line"><uni-icons type="calendar" size="14" color="#666" /><text>{{ item.date }}</text></view>
           <view class="line"><uni-icons type="refreshtime" size="14" color="#666" /><text>{{ item.startTime }} - {{ item.endTime }}</text></view>
 
@@ -129,6 +130,11 @@ type BookingCard = {
   courtId: number
   venueName: string
   courtName: string
+  courtNames: string[]
+  courtCount: number
+  primaryCourtName: string
+  bookingMode: string
+  pricingModeSummary: string
   date: string
   startTime: string
   endTime: string
@@ -213,6 +219,11 @@ const loadBookingList = async () => {
       courtId: Number(booking.courtId || 0),
       venueName: booking.venueName || booking.courtName || '预约场馆',
       courtName: booking.courtName || '未分配场地',
+      courtNames: Array.isArray(booking.courtNames) ? booking.courtNames : [],
+      courtCount: Number(booking.courtCount || 0),
+      primaryCourtName: booking.primaryCourtName || booking.courtName || '未分配场地',
+      bookingMode: booking.bookingMode || 'SHARED',
+      pricingModeSummary: booking.pricingModeSummary || '',
       date: booking.bookingDate,
       startTime: booking.startTime,
       endTime: booking.endTime,
@@ -271,6 +282,24 @@ const formatDateShort = (dateStr: string) => {
 
 const formatAmount = (amount: number) => {
   return Number(amount || 0).toFixed(2)
+}
+
+const getBookingModeText = (mode: string) => (mode === 'PACKAGE' ? '包场' : '拼场')
+
+const getPricingSummary = (item: BookingCard) => {
+  const raw = item.pricingModeSummary
+  const map: Record<string, string> = {
+    PACKAGE_HOUR: '包场按小时',
+    SHARED_HOUR: '拼场按小时',
+    SHARED_TIME: '拼场按次'
+  }
+  return map[raw] || raw || '按订单规则计费'
+}
+
+const getCourtSummary = (item: BookingCard) => {
+  const primary = item.primaryCourtName || item.courtName || '未分配场地'
+  const count = Number(item.courtCount || item.courtNames.length || 0)
+  return count > 1 ? `${primary} 等 ${count} 块场地` : primary
 }
 
 const handleBookingClick = (item: BookingCard) => {

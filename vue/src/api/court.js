@@ -43,8 +43,11 @@ export function getCourtInfo(id) {
  * @param {string} data.courtCode - 场地编号（必填）
  * @param {number} data.venueId - 所属场馆ID（必填）
  * @param {string} data.courtName - 场地名称
- * @param {string} data.billingType - 计费方式（HOUR-按小时，TIME-按次）
- * @param {number} data.pricePerHour - 价格（必填）
+ * @param {string} data.billingType - 兼容字段（HOUR-按小时，TIME-按次）
+ * @param {number} data.pricePerHour - 兼容基础价格
+ * @param {number} data.packagePricePerHour - 包场每小时价格
+ * @param {number} data.sharedPricePerHour - 拼场每小时价格
+ * @param {number} data.sharedPricePerTime - 拼场按次价格
  * @param {number} data.status - 状态（0-维护中，1-空闲，2-预约中，3-使用中）
  */
 export function addCourt(data) {

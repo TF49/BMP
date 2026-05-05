@@ -187,3 +187,14 @@ export function refundBooking(params) {
     params
   })
 }
+
+export const BOOKING_MODE_OPTIONS = {
+  SHARED: 'SHARED',
+  PACKAGE: 'PACKAGE'
+}
+
+export const PRICING_MODE_OPTIONS = {
+  PACKAGE_HOUR: 'PACKAGE_HOUR',
+  SHARED_HOUR: 'SHARED_HOUR',
+  SHARED_TIME: 'SHARED_TIME'
+}

@@ -15,6 +15,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.util.stream.Collectors;
 
@@ -69,6 +70,19 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining("; "));
         return Result.badRequest("参数绑定失败: " + errorMessage);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public Result<Object> handleHandlerMethodValidationException(HandlerMethodValidationException e) {
+        log.error("方法参数验证失败", e);
+        String errorMessage = e.getAllValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream())
+                .map(error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : error.toString())
+                .collect(Collectors.joining("; "));
+        if (errorMessage == null || errorMessage.trim().isEmpty()) {
+            errorMessage = "请求参数校验失败";
+        }
+        return Result.badRequest("参数验证失败: " + errorMessage);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

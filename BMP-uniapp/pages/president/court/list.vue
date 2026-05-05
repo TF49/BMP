@@ -161,17 +161,14 @@ const availableCount = computed(() => courts.value.filter(item => item.statusCla
 
 function mapCourt(item: CourtItem): CourtCard {
   const statusMeta = getCourtStatusMeta(item.status)
-  const price = item.pricePerHour || item.pricePerTime || 0
-  const billingType = item.billingType === 'TIME' ? '按次' : '按小时'
-  
   return {
     id: Number(item.id || 0),
     name: item.courtName || item.courtCode || `场地#${item.id}`,
     venue: item.venueName || '未关联场馆',
     statusName: statusMeta.label,
     statusClass: statusMeta.className,
-    metricLabel: '计费标准',
-    metricValue: `¥${formatAmount(price)}/${billingType}`
+    metricLabel: '价格配置',
+    metricValue: `包场¥${formatAmount(item.packagePricePerHour || item.pricePerHour || 0)}/h  拼场¥${formatAmount(item.sharedPricePerHour || item.pricePerHour || 0)}/h  按次¥${formatAmount(item.sharedPricePerTime || item.pricePerTime || 0)}/次`
   }
 }
 

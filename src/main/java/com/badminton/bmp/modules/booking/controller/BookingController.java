@@ -23,8 +23,8 @@ import com.badminton.bmp.modules.court.dto.CourtBookingUserDTO;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,6 +155,9 @@ public class BookingController extends BaseController {
             Booking booking = new Booking();
             booking.setMemberId(request.getMemberId());
             booking.setCourtId(request.getCourtId());
+            booking.setCourtIds(request.getCourtIds());
+            booking.setBookingMode(request.getBookingMode());
+            booking.setPricingMode(request.getPricingMode());
             booking.setBookingDate(request.getBookingDate());
             booking.setStartTime(request.getStartTime());
             booking.setEndTime(request.getEndTime());
@@ -188,7 +191,7 @@ public class BookingController extends BaseController {
     @Operation(summary = "更新预约")
     @PutMapping("/update")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> updateBooking(@Valid @RequestBody Booking booking) {
+    public Result<Object> updateBooking(@RequestBody Booking booking) {
         try {
 
             if (booking.getId() == null) {
@@ -648,8 +651,10 @@ public class BookingController extends BaseController {
     @Data
     private static class BookingCreateRequest {
         private Long memberId;
-        @NotNull(message = "场地ID不能为空")
         private Long courtId;
+        private List<Long> courtIds;
+        private String bookingMode;
+        private String pricingMode;
         @NotNull(message = "预约日期不能为空")
         private LocalDate bookingDate;
         @NotNull(message = "开始时间不能为空")
@@ -757,7 +762,7 @@ public class BookingController extends BaseController {
                 return error("结束时间必须晚于开始时间");
             }
 
-            int count = bookingService.countBookingsForTimeRange(courtId, date, start, end);
+            int count = bookingService.countSharedBookingsForTimeRange(courtId, date, start, end);
             Map<String, Object> data = new HashMap<>();
             data.put("count", count);
             return success(data);

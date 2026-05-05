@@ -68,6 +68,18 @@
             <el-button :icon="ArrowLeft" @click="step = 1" text>返回选择场馆</el-button>
             <h3 class="step-title">{{ selectedVenue?.venueName }} - 选择场地</h3>
           </div>
+          <div class="court-date-bar booking-mode-bar">
+            <span class="court-date-label">预约模式</span>
+            <el-radio-group v-model="bookingMode" @change="handleBookingModeChange">
+              <el-radio-button label="SHARED">拼场</el-radio-button>
+              <el-radio-button label="PACKAGE">包场</el-radio-button>
+            </el-radio-group>
+            <el-radio-group v-if="bookingMode === 'SHARED'" v-model="pricingMode">
+              <el-radio-button label="SHARED_HOUR">按小时</el-radio-button>
+              <el-radio-button label="SHARED_TIME">按次</el-radio-button>
+            </el-radio-group>
+            <span v-else class="court-date-hint">包场只能选择部分空闲场地，且需提前 2 小时提交</span>
+          </div>
           <div class="court-date-bar">
             <span class="court-date-label">查看日期</span>
             <el-date-picker
@@ -88,8 +100,8 @@
               :key="court.id"
               class="court-card"
               :class="{ 
-                selected: selectedCourt?.id === court.id,
-                unavailable: court.status === 0
+                selected: selectedCourtIds.includes(court.id),
+                unavailable: isCourtUnavailable(court)
               }"
               @click="selectCourt(court)"
             >
@@ -106,11 +118,11 @@
                 <div class="court-price">
                   <span class="price-label">价格</span>
                   <span class="price-value">
-                    ¥{{ formatCurrency(court.pricePerHour) }}/{{ getBillingUnit(court.billingType) }}
+                    {{ getCourtPriceText(court) }}
                   </span>
                 </div>
                 <div class="court-type">
-                  <span>{{ court.billingType === 'HOUR' ? '按小时计费' : '按次计费' }}</span>
+                  <span>{{ getCourtHintText(court) }}</span>
                 </div>
               </div>
             </div>
@@ -148,21 +160,21 @@
                   <el-icon :size="22"><Location /></el-icon>
                 </div>
                 <span class="info-label">场地</span>
-                <span class="info-value">{{ selectedCourt?.courtName || selectedCourt?.courtCode }}</span>
+                <span class="info-value">{{ selectedCourtSummary }}</span>
               </div>
               <div class="info-item">
                 <div class="info-icon-wrap info-icon-price">
                   <el-icon :size="22"><Coin /></el-icon>
                 </div>
-                <span class="info-label">价格</span>
+                <span class="info-label">计费</span>
                 <span class="info-value price">
-                  ¥{{ formatCurrency(selectedCourt?.pricePerHour) }}/{{ getBillingUnit(selectedCourt?.billingType) }}
+                  {{ bookingModeText }} / {{ pricingModeText }}
                 </span>
               </div>
             </div>
 
             <!-- 当前使用情况 -->
-            <div class="current-occupancy-card">
+            <div class="current-occupancy-card" v-if="bookingMode === 'SHARED'">
               <div class="current-occupancy-header">
                 <el-icon class="occupancy-icon" :size="18"><InfoFilled /></el-icon>
                 <span class="current-occupancy-title">当前使用情况</span>
@@ -231,10 +243,10 @@
                 <el-form-item label="预计费用" class="time-form-item-cost">
                   <div class="estimated-cost-block">
                     <span class="cost-value">¥{{ estimatedCost }}</span>
-                    <span class="cost-desc">根据时长自动计算</span>
+                    <span class="cost-desc">{{ bookingMode === 'PACKAGE' ? '按包场场地小时价汇总' : '根据拼场计费规则自动计算' }}</span>
                   </div>
                 </el-form-item>
-                <el-form-item label="时段预约情况" class="time-form-item-occupancy">
+                <el-form-item v-if="bookingMode === 'SHARED'" label="时段预约情况" class="time-form-item-occupancy">
                   <div class="booking-occupancy">
                   <span v-if="rangeOccupancy.count === null">
                     请选择完整的日期和时间，以查看当前已有多少人预约该场地。
@@ -262,6 +274,9 @@
                   </div>
                 </div>
               </el-form-item>
+                <el-form-item v-if="bookingMode === 'PACKAGE' && packageLeadTimeError" label="包场提示" class="time-form-item-occupancy">
+                  <div class="booking-occupancy">{{ packageLeadTimeError }}</div>
+                </el-form-item>
                 <el-form-item label="补充说明" class="time-form-item-occupancy">
                   <el-input
                     v-model="timeForm.remark"
@@ -273,6 +288,12 @@
                   />
                 </el-form-item>
               </el-form>
+              <div class="step-actions">
+                <el-button @click="step = 2" size="large">返回</el-button>
+                <el-button type="primary" @click="goToConfirmStep" size="large">
+                  下一步
+                </el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -296,8 +317,16 @@
                   <span class="confirm-value">{{ selectedVenue?.venueName }}</span>
                 </div>
                 <div class="confirm-item">
+                  <span class="confirm-label">预约模式</span>
+                  <span class="confirm-value">{{ bookingModeText }}</span>
+                </div>
+                <div class="confirm-item">
                   <span class="confirm-label">场地</span>
-                  <span class="confirm-value">{{ selectedCourt?.courtName || selectedCourt?.courtCode }}</span>
+                  <span class="confirm-value">{{ selectedCourtSummary }}</span>
+                </div>
+                <div class="confirm-item">
+                  <span class="confirm-label">计费方式</span>
+                  <span class="confirm-value">{{ pricingModeText }}</span>
                 </div>
                 <div class="confirm-item">
                   <span class="confirm-label">预约时间</span>
@@ -314,7 +343,7 @@
               </div>
             </div>
             <div class="confirm-actions">
-              <el-button @click="step = 3">返回修改</el-button>
+              <el-button @click="step = 3" size="large">返回修改</el-button>
               <el-button type="primary" :loading="submitting" @click="submitBooking" size="large">
                 确认预订
               </el-button>
@@ -351,7 +380,8 @@
                   </el-tag>
                 </div>
                 <div class="booking-details">
-                  <p class="booking-venue">{{ booking.venueName }} · {{ booking.courtName }}</p>
+                  <p class="booking-venue">{{ booking.venueName }} · {{ getBookingCourtSummary(booking) }}</p>
+                  <p class="booking-time">{{ getBookingModeText(booking.bookingMode) }} · {{ getPricingModeText(booking.pricingMode, booking.pricingModeSummary) }}</p>
                   <p class="booking-time">{{ formatTimeRange(booking.startTime, booking.endTime) }}</p>
                   <!-- 后端金额字段为 orderAmount，这里使用它来展示实际订单金额 -->
                   <p class="booking-amount">¥{{ formatCurrency(booking.orderAmount) }}</p>
@@ -426,6 +456,9 @@ const venues = ref([])
 const courts = ref([])
 const selectedVenue = ref(null)
 const selectedCourt = ref(null)
+const selectedCourtIds = ref([])
+const bookingMode = ref('SHARED')
+const pricingMode = ref('SHARED_HOUR')
 const myBookings = ref([])
 const filterStatus = ref(null)
 const currentMember = ref(null)
@@ -462,23 +495,27 @@ const rangeOccupancy = ref({
 
 const submitting = ref(false)
 
-// 计费单位文本
-const getBillingUnit = (billingType) => {
-  return billingType === 'TIME' ? '次' : '小时'
-}
+const selectedCourts = computed(() => courts.value.filter(court => selectedCourtIds.value.includes(court.id)))
+const selectedCourtSummary = computed(() => {
+  if (!selectedCourts.value.length) return '-'
+  if (selectedCourts.value.length === 1) {
+    return selectedCourts.value[0].courtName || selectedCourts.value[0].courtCode
+  }
+  const first = selectedCourts.value[0]
+  return `${first.courtName || first.courtCode} 等 ${selectedCourts.value.length} 块场地`
+})
+const bookingModeText = computed(() => (bookingMode.value === 'PACKAGE' ? '包场' : '拼场'))
+const pricingModeText = computed(() => getPricingModeText(bookingMode.value === 'PACKAGE' ? 'PACKAGE_HOUR' : pricingMode.value))
+const packageLeadTimeError = computed(() => {
+  if (bookingMode.value !== 'PACKAGE' || !timeForm.value.date || !timeForm.value.startTime) return ''
+  const bookingStart = new Date(`${timeForm.value.date}T${timeForm.value.startTime}:00`)
+  return bookingStart.getTime() - Date.now() < 2 * 60 * 60 * 1000 ? '包场需至少提前 2 小时提交申请。' : ''
+})
 
 // 计算预计费用（与后端 BookingServiceImpl.calculateOrderAmount 逻辑保持一致）
 const estimatedCost = computed(() => {
-  if (!selectedCourt.value) {
+  if (!selectedCourts.value.length) {
     return '0.00'
-  }
-
-  const rawPrice = Number(selectedCourt.value.pricePerHour || 0)
-  const price = Number.isFinite(rawPrice) ? rawPrice : 0
-
-  if (selectedCourt.value.billingType === 'TIME') {
-    // 按次计费：每次固定价格，与时长无关
-    return price.toFixed(2)
   }
 
   // 按小时计费：根据时长计算
@@ -492,7 +529,14 @@ const estimatedCost = computed(() => {
   const endHour = parseInt(end[0]) + parseInt(end[1]) / 60
   const hours = Math.max(0, endHour - startHour)
 
-  const cost = hours * price
+  const cost = selectedCourts.value.reduce((sum, court) => {
+    const packagePrice = Number(court.packagePricePerHour || court.pricePerHour || 0)
+    const sharedHourPrice = Number(court.sharedPricePerHour || court.pricePerHour || 0)
+    const sharedTimePrice = Number(court.sharedPricePerTime || court.pricePerTime || court.pricePerHour || 0)
+    if (bookingMode.value === 'PACKAGE') return sum + hours * packagePrice
+    if (pricingMode.value === 'SHARED_TIME') return sum + sharedTimePrice
+    return sum + hours * sharedHourPrice
+  }, 0)
   return cost.toFixed(2)
 })
 
@@ -524,6 +568,25 @@ const formatBookingTime = () => {
   return `${timeForm.value.date} ${timeForm.value.startTime} - ${timeForm.value.endTime}`
 }
 
+const getBookingModeText = (mode) => {
+  return mode === 'PACKAGE' ? '包场' : '拼场'
+}
+
+const getPricingModeText = (mode, summary) => {
+  const map = {
+    PACKAGE_HOUR: '包场按小时',
+    SHARED_HOUR: '拼场按小时',
+    SHARED_TIME: '拼场按次'
+  }
+  return map[summary || mode] || '按订单规则计费'
+}
+
+const getBookingCourtSummary = (booking) => {
+  const primary = booking.primaryCourtName || booking.courtName || '-'
+  const count = Number(booking.courtCount || (Array.isArray(booking.courtNames) ? booking.courtNames.length : 0) || 0)
+  return count > 1 ? `${primary} 等 ${count} 块场地` : primary
+}
+
 const getStatusText = (status) => {
   const map = { 0: '已取消', 1: '待支付', 2: '已支付', 3: '进行中', 4: '已完成' }
   return map[status] || '未知'
@@ -550,10 +613,36 @@ const getCourtDisplayStatus = (court) => {
     return { text: '维护中', type: 'info' }
   }
   const count = todayBookingCounts.value[court?.id] ?? 0
+  if (bookingMode.value === 'PACKAGE' && count > 0) {
+    return { text: '不可包场', type: 'danger' }
+  }
   if (count > 0) {
     return { text: '预约中', type: 'warning' }
   }
   return { text: '空闲', type: 'success' }
+}
+
+const isCourtUnavailable = (court) => {
+  if (court?.status === 0) return true
+  return bookingMode.value === 'PACKAGE' && (todayBookingCounts.value[court?.id] ?? 0) > 0
+}
+
+const getCourtPriceText = (court) => {
+  if (bookingMode.value === 'PACKAGE') {
+    return `¥${formatCurrency(court.packagePricePerHour || court.pricePerHour)}/小时`
+  }
+  if (pricingMode.value === 'SHARED_TIME') {
+    return `¥${formatCurrency(court.sharedPricePerTime || court.pricePerTime || court.pricePerHour)}/次`
+  }
+  return `¥${formatCurrency(court.sharedPricePerHour || court.pricePerHour)}/小时`
+}
+
+const getCourtHintText = (court) => {
+  if (court?.status === 0) return '维护中，暂不可预约'
+  if (bookingMode.value === 'PACKAGE') {
+    return (todayBookingCounts.value[court?.id] ?? 0) > 0 ? '该日期已有预约，不能加入包场' : '空闲，可加入包场'
+  }
+  return pricingMode.value === 'SHARED_TIME' ? '拼场按次计费' : '拼场按小时计费'
 }
 
 // 加载场馆列表
@@ -574,6 +663,14 @@ const selectVenue = (venue) => {
   selectedVenue.value = venue
   step.value = 2
   loadCourts(venue.id)
+}
+
+const handleBookingModeChange = () => {
+  selectedCourt.value = null
+  selectedCourtIds.value = []
+  currentOccupancy.value = { count: null, users: [] }
+  rangeOccupancy.value = { count: null, users: [] }
+  pricingMode.value = bookingMode.value === 'PACKAGE' ? 'PACKAGE_HOUR' : 'SHARED_HOUR'
 }
 
 // 加载场地列表
@@ -613,17 +710,36 @@ const loadTodayBookingCounts = async () => {
 
 // 选择场地（仅维护中不可选；预约中仍可选，可与他人共享时段）
 const selectCourt = (court) => {
-  if (court.status === 0) {
-    ElMessage.warning('该场地维护中，暂不可选')
+  if (isCourtUnavailable(court)) {
+    ElMessage.warning(bookingMode.value === 'PACKAGE' ? '该场地当前不可加入包场' : '该场地维护中，暂不可选')
     return
   }
-  selectedCourt.value = court
+  if (bookingMode.value === 'SHARED') {
+    selectedCourt.value = court
+    selectedCourtIds.value = [court.id]
+  } else {
+    const exists = selectedCourtIds.value.includes(court.id)
+    if (exists) {
+      selectedCourtIds.value = selectedCourtIds.value.filter(id => id !== court.id)
+    } else {
+      if (selectedCourtIds.value.length >= Math.max(0, courts.value.length - 1)) {
+        ElMessage.warning('包场不能包下整个场馆的全部场地')
+        return
+      }
+      selectedCourtIds.value = [...selectedCourtIds.value, court.id]
+    }
+    selectedCourt.value = selectedCourts.value[0] || null
+  }
   step.value = 3
   // 预约日期默认使用「选择场地」步骤所选日期，与管理员端日期设计一致
   timeForm.value.date = bookingDateForCourts.value || getLocalTodayDateStr()
   timeForm.value.remark = ''
   rangeOccupancy.value = { count: null, users: [] }
-  fetchCurrentOccupancy()
+  if (bookingMode.value === 'SHARED') {
+    fetchCurrentOccupancy()
+  } else {
+    currentOccupancy.value = { count: null, users: [] }
+  }
 }
 
 // 获取当前时刻的占用情况
@@ -652,12 +768,11 @@ const fetchCurrentOccupancy = async () => {
 
 // 获取所选时段已有多少人预约及名单
 const fetchRangeOccupancy = async () => {
-  if (
-    !selectedCourt.value ||
-    !timeForm.value.date ||
-    !timeForm.value.startTime ||
-    !timeForm.value.endTime
-  ) {
+  if (!timeForm.value.date || !timeForm.value.startTime || !timeForm.value.endTime) {
+    rangeOccupancy.value = { count: null, users: [] }
+    return
+  }
+  if (bookingMode.value !== 'SHARED' || !selectedCourt.value) {
     rangeOccupancy.value = { count: null, users: [] }
     return
   }
@@ -688,6 +803,43 @@ const fetchRangeOccupancy = async () => {
   }
 }
 
+const validateBookingForm = () => {
+  if (!timeForm.value.date || !timeForm.value.startTime || !timeForm.value.endTime) {
+    ElMessage.warning('请选择完整的预约时间')
+    return false
+  }
+
+  if (timeForm.value.startTime >= timeForm.value.endTime) {
+    ElMessage.warning('结束时间必须晚于开始时间')
+    return false
+  }
+
+  if (!selectedCourtIds.value.length) {
+    ElMessage.warning('请至少选择一块场地')
+    return false
+  }
+
+  if (bookingMode.value === 'PACKAGE') {
+    if (packageLeadTimeError.value) {
+      ElMessage.warning(packageLeadTimeError.value)
+      return false
+    }
+    if (selectedCourtIds.value.length >= courts.value.length) {
+      ElMessage.warning('包场不能包下整个场馆的全部场地')
+      return false
+    }
+  }
+
+  return true
+}
+
+const goToConfirmStep = () => {
+  if (!validateBookingForm()) {
+    return
+  }
+  step.value = 4
+}
+
 // 监听时间变化，校验并刷新当前预约人数
 watch(
   [() => timeForm.value.date, () => timeForm.value.startTime, () => timeForm.value.endTime],
@@ -708,33 +860,33 @@ watch(
 
 // 提交预订
 const submitBooking = async () => {
-  if (!timeForm.value.date || !timeForm.value.startTime || !timeForm.value.endTime) {
-    ElMessage.warning('请选择完整的预约时间')
-    return
-  }
-  
-  if (timeForm.value.startTime >= timeForm.value.endTime) {
-    ElMessage.warning('结束时间必须晚于开始时间')
+  if (!validateBookingForm()) {
     return
   }
 
   submitting.value = true
   try {
-    const res = await addBooking({
-      courtId: selectedCourt.value.id,
-      bookingDate: timeForm.value.date,
-      startTime: `${timeForm.value.startTime}:00`,
-      endTime: `${timeForm.value.endTime}:00`,
-      remark: timeForm.value.remark
-    })
+      const res = await addBooking({
+        courtId: selectedCourtIds.value[0],
+        courtIds: selectedCourtIds.value,
+        bookingMode: bookingMode.value,
+        pricingMode: bookingMode.value === 'PACKAGE' ? 'PACKAGE_HOUR' : pricingMode.value,
+        bookingDate: timeForm.value.date,
+        startTime: `${timeForm.value.startTime}:00`,
+        endTime: `${timeForm.value.endTime}:00`,
+        remark: timeForm.value.remark
+      })
     
     if (res.code === 200) {
       ElMessage.success('预订成功！')
       // 重置表单
       step.value = 1
-      selectedVenue.value = null
-      selectedCourt.value = null
-      timeForm.value = { date: '', startTime: '', endTime: '', remark: '' }
+        selectedVenue.value = null
+        selectedCourt.value = null
+        selectedCourtIds.value = []
+        bookingMode.value = 'SHARED'
+        pricingMode.value = 'SHARED_HOUR'
+        timeForm.value = { date: '', startTime: '', endTime: '', remark: '' }
       // 切换到我的预约标签页
       activeTab.value = 'my-bookings'
       loadMyBookings()
@@ -755,6 +907,9 @@ const loadMyBookings = async () => {
     const params = { page: 1, size: 20 }
     if (filterStatus.value) {
       params.status = parseInt(filterStatus.value)
+    }
+    if (currentMember.value?.id) {
+      params.memberId = currentMember.value.id
     }
     const res = await getBookingList(params)
     if (res.code === 200) {
@@ -823,12 +978,15 @@ const handleViewDetail = (booking) => {
 watch(activeTab, (newTab) => {
   if (newTab === 'my-bookings') {
     loadMyBookings()
-  } else {
-    // 重置预订流程
-    step.value = 1
-    selectedVenue.value = null
-    selectedCourt.value = null
-    bookingDateForCourts.value = getLocalTodayDateStr()
+    } else {
+      // 重置预订流程
+      step.value = 1
+      selectedVenue.value = null
+      selectedCourt.value = null
+      selectedCourtIds.value = []
+      bookingMode.value = 'SHARED'
+      pricingMode.value = 'SHARED_HOUR'
+      bookingDateForCourts.value = getLocalTodayDateStr()
     todayBookingCounts.value = {}
     timeForm.value = { date: '', startTime: '', endTime: '', remark: '' }
     currentOccupancy.value = { count: null, users: [] }
@@ -1822,11 +1980,18 @@ html.theme-dark-mode .page-subtitle {
 
 .confirm-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+  justify-content: center;
+  gap: 16px;
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid var(--color-border, #E2E8F0);
+}
+
+.step-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
 }
 
 /* 我的预约 */

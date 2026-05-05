@@ -637,15 +637,31 @@ public class VenueController extends BaseController {
     @Operation(summary = "保存场馆营业时间配置")
     @PostMapping("/{venueId}/schedules")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
-    public Result<Object> saveVenueSchedules(@PathVariable("venueId") Long venueId, @Valid @RequestBody List<VenueSchedule> schedules) {
+    public Result<Object> saveVenueSchedules(@PathVariable("venueId") Long venueId, @RequestBody List<VenueSchedule> schedules) {
         try {
             // 权限验证：超管可配置所有场馆；场馆管理员仅能配置自己所属场馆
             if (!canManageVenue(venueId)) {
                 return error("权限不足，仅管理员可执行此操作");
             }
 
+            if (schedules == null) {
+                return error("营业时间配置不能为空");
+            }
+
             // 验证时间逻辑（开始时间必须小于结束时间）
             for (VenueSchedule schedule : schedules) {
+                if (schedule == null) {
+                    return error("营业时间配置项不能为空");
+                }
+                if (schedule.getScheduleType() == null || schedule.getScheduleType().isBlank()) {
+                    return error("营业时间类型不能为空");
+                }
+                if (!List.of("WORKDAY", "WEEKEND", "HOLIDAY").contains(schedule.getScheduleType())) {
+                    return error("营业时间类型无效：" + schedule.getScheduleType());
+                }
+                if (schedule.getStartTime() == null || schedule.getEndTime() == null) {
+                    return error("营业时间的开始时间和结束时间不能为空");
+                }
                 if (!venueScheduleService.validateBusinessHours(
                         schedule.getStartTime().toString(), schedule.getEndTime().toString())) {
                     return error("营业时间无效：" + schedule.getScheduleType() + " 的开始时间必须小于结束时间");

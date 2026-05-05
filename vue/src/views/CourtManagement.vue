@@ -137,17 +137,20 @@
               <el-tag type="primary" size="small">{{ scope.row.venueName || '-' }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="billingType" label="计费方式" min-width="100" align="center">
+          <el-table-column prop="billingType" label="兼容计费" min-width="100" align="center">
             <template #default="scope">
               <el-tag :type="scope.row.billingType === 'HOUR' ? 'success' : 'warning'" size="small">
                 {{ getBillingTypeText(scope.row.billingType) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="pricePerHour" label="价格" min-width="100" align="center">
+          <el-table-column label="价格配置" min-width="220" align="center">
             <template #default="scope">
-              <span class="price-text">¥{{ scope.row.pricePerHour }}</span>
-              <span class="price-unit">/{{ scope.row.billingType === 'HOUR' ? '小时' : '次' }}</span>
+              <div class="price-config-text">
+                <div>包场：¥{{ formatCurrency(scope.row.packagePricePerHour || scope.row.pricePerHour) }}/小时</div>
+                <div>拼场：¥{{ formatCurrency(scope.row.sharedPricePerHour || scope.row.pricePerHour) }}/小时</div>
+                <div>按次：¥{{ formatCurrency(scope.row.sharedPricePerTime || scope.row.pricePerTime || scope.row.pricePerHour) }}/次</div>
+              </div>
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" min-width="100" align="center">
@@ -271,11 +274,18 @@
             </el-radio-group>
           </el-form-item>
 
-          <el-form-item label="价格" prop="pricePerHour" class="form-item-enhanced modern-form-item">
-            <el-input-number v-model="courtForm.pricePerHour" :min="0.01" :precision="2" :step="10"
-              placeholder="请输入价格" class="price-input" />
-            <span class="price-suffix">元 / {{ courtForm.billingType === 'HOUR' ? '小时' : '次' }}</span>
-            <span class="field-hint modern-field-hint">设置场地的基础价格，会员可享受折扣优惠</span>
+          <el-form-item label="包场每小时价格" prop="packagePricePerHour" class="form-item-enhanced modern-form-item">
+            <el-input-number v-model="courtForm.packagePricePerHour" :min="0.01" :precision="2" :step="10"
+              placeholder="请输入包场每小时价格" class="price-input" />
+          </el-form-item>
+          <el-form-item label="拼场每小时价格" prop="sharedPricePerHour" class="form-item-enhanced modern-form-item">
+            <el-input-number v-model="courtForm.sharedPricePerHour" :min="0.01" :precision="2" :step="10"
+              placeholder="请输入拼场每小时价格" class="price-input" />
+          </el-form-item>
+          <el-form-item label="拼场按次价格" prop="sharedPricePerTime" class="form-item-enhanced modern-form-item">
+            <el-input-number v-model="courtForm.sharedPricePerTime" :min="0.01" :precision="2" :step="10"
+              placeholder="请输入拼场按次价格" class="price-input" />
+            <span class="field-hint modern-field-hint">兼容价格字段仍保留，预约时优先使用上面三种价格配置</span>
           </el-form-item>
         </div>
 
@@ -506,6 +516,9 @@ const courtForm = reactive({
   courtName: '',
   billingType: 'HOUR',
   pricePerHour: 50,
+  packagePricePerHour: 50,
+  sharedPricePerHour: 50,
+  sharedPricePerTime: 50,
   status: 1
 })
 
@@ -524,10 +537,18 @@ const courtFormRules = {
   billingType: [
     { required: true, message: '请选择计费方式', trigger: 'change' }
   ],
-  pricePerHour: [
-    { required: true, message: '请输入价格', trigger: 'blur' },
-    { type: 'number', min: 0.01, message: '价格必须大于0', trigger: 'blur' }
-  ],
+    packagePricePerHour: [
+      { required: true, message: '请输入包场每小时价格', trigger: 'blur' },
+      { type: 'number', min: 0.01, message: '价格必须大于0', trigger: 'blur' }
+    ],
+    sharedPricePerHour: [
+      { required: true, message: '请输入拼场每小时价格', trigger: 'blur' },
+      { type: 'number', min: 0.01, message: '价格必须大于0', trigger: 'blur' }
+    ],
+    sharedPricePerTime: [
+      { required: true, message: '请输入拼场按次价格', trigger: 'blur' },
+      { type: 'number', min: 0.01, message: '价格必须大于0', trigger: 'blur' }
+    ],
   status: [
     { required: true, message: '请选择状态', trigger: 'change' }
   ]
@@ -795,8 +816,11 @@ const handleEdit = (row) => {
     courtCode: row.courtCode || '',
     courtName: row.courtName || '',
     billingType: row.billingType || 'HOUR',
-    pricePerHour: row.pricePerHour || 50,
-    status: row.status !== undefined ? row.status : 1
+      pricePerHour: row.pricePerHour || 50,
+      packagePricePerHour: row.packagePricePerHour || row.pricePerHour || 50,
+      sharedPricePerHour: row.sharedPricePerHour || row.pricePerHour || 50,
+      sharedPricePerTime: row.sharedPricePerTime || row.pricePerTime || row.pricePerHour || 50,
+      status: row.status !== undefined ? row.status : 1
   })
   dialogVisible.value = true
 }
@@ -841,7 +865,10 @@ const handleSubmit = async () => {
     if (valid) {
       submitLoading.value = true
       try {
-        const formData = { ...courtForm }
+        const formData = {
+          ...courtForm,
+          pricePerHour: courtForm.sharedPricePerHour
+        }
 
         const response = isEdit.value
           ? await updateCourt(formData)
@@ -878,6 +905,9 @@ const resetForm = () => {
     courtName: '',
     billingType: 'HOUR',
     pricePerHour: 50,
+    packagePricePerHour: 50,
+    sharedPricePerHour: 50,
+    sharedPricePerTime: 50,
     status: 1
   })
   if (courtFormRef.value) {
@@ -914,6 +944,10 @@ const formatDateTime = (dateTime) => {
   const minutes = String(date.getMinutes()).padStart(2, '0')
   const seconds = String(date.getSeconds()).padStart(2, '0')
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const formatCurrency = (value) => {
+  return Number(value || 0).toFixed(2)
 }
 
 // 计算表格高度

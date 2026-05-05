@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 /**
  * 场地预约实体类
@@ -16,6 +17,12 @@ import java.time.LocalTime;
  */
 @Data
 public class Booking {
+    public static final String MODE_SHARED = "SHARED";
+    public static final String MODE_PACKAGE = "PACKAGE";
+    public static final String PRICING_PACKAGE_HOUR = "PACKAGE_HOUR";
+    public static final String PRICING_SHARED_HOUR = "SHARED_HOUR";
+    public static final String PRICING_SHARED_TIME = "SHARED_TIME";
+
     /**
      * 预约ID（主键，自增）
      */
@@ -34,11 +41,15 @@ public class Booking {
     private Long memberId;
 
     /**
-     * 场地ID（外键关联sys_court）
+     * 兼容字段：首个场地ID（旧逻辑/旧接口兼容）
      */
-    @NotNull(message = "场地ID不能为空")
-    @Positive(message = "场地ID必须为正数")
     private Long courtId;
+
+    /**
+     * 预约模式（PACKAGE-包场，SHARED-拼场）
+     */
+    @Pattern(regexp = "^(PACKAGE|SHARED)$", message = "预约模式必须为PACKAGE或SHARED")
+    private String bookingMode;
 
     /**
      * 预约日期（DATE）
@@ -75,6 +86,12 @@ public class Booking {
      * 预约时长（小时）
      */
     private Integer duration;
+
+    /**
+     * 定价模式
+     */
+    @Pattern(regexp = "^(PACKAGE_HOUR|SHARED_HOUR|SHARED_TIME)$", message = "定价模式不正确")
+    private String pricingMode;
 
     /**
      * 订单金额
@@ -135,6 +152,31 @@ public class Booking {
      * 场地名称（联表查询时填充）
      */
     private String courtName;
+
+    /**
+     * 包场/拼场下的全部场地ID
+     */
+    private List<Long> courtIds;
+
+    /**
+     * 全部场地名称
+     */
+    private List<String> courtNames;
+
+    /**
+     * 场地数量
+     */
+    private Integer courtCount;
+
+    /**
+     * 兼容旧前端的主场地名称
+     */
+    private String primaryCourtName;
+
+    /**
+     * 定价模式摘要
+     */
+    private String pricingModeSummary;
 
     /**
      * 场馆名称（联表查询时填充）
