@@ -224,14 +224,24 @@
           </el-form-item>
           <el-form-item label="预约模式" prop="bookingMode" class="modern-form-item">
             <el-radio-group v-model="form.bookingMode" @change="handleBookingModeChange">
-              <el-radio-button label="SHARED">拼场</el-radio-button>
-              <el-radio-button label="PACKAGE">包场</el-radio-button>
+              <el-radio-button
+                v-for="mode in availableFormBookingModes"
+                :key="mode"
+                :label="mode"
+              >
+                {{ mode === 'PACKAGE' ? '包场' : '拼场' }}
+              </el-radio-button>
             </el-radio-group>
           </el-form-item>
           <el-form-item v-if="form.bookingMode === 'SHARED'" label="拼场计费方式" prop="pricingMode" class="modern-form-item">
             <el-radio-group v-model="form.pricingMode">
-              <el-radio-button label="SHARED_HOUR">按小时</el-radio-button>
-              <el-radio-button label="SHARED_TIME">按次</el-radio-button>
+              <el-radio-button
+                v-for="mode in availableFormSharedPricingModes"
+                :key="mode"
+                :label="mode"
+              >
+                {{ mode === 'SHARED_TIME' ? '按次' : '按小时' }}
+              </el-radio-button>
             </el-radio-group>
           </el-form-item>
           <el-form-item label="场地" prop="courtIds" class="modern-form-item">
@@ -479,6 +489,13 @@ const formRules = {
   amount: [{ required: true, message: '请输入金额', trigger: 'blur' }]
 }
 const submitLoading = ref(false)
+const editBaseline = reactive({
+  venueId: null,
+  bookingMode: null,
+  pricingMode: null,
+  courtIds: [],
+  timeRange: []
+})
 
 // 会员搜索
 const memberKeyword = ref('')
@@ -497,6 +514,49 @@ const formConflictMessage = computed(() => {
     return '所选场地中存在已被拼场或包场占用的时段，不能创建包场。'
   }
   return '该场地该时段已存在包场，不能继续拼场。'
+})
+const availableFormBookingModes = computed(() => {
+  const modes = []
+  if (formCourtOptions.value.some(item => item.enableSharedHour || item.enableSharedTime)) {
+    modes.push('SHARED')
+  }
+  if (formCourtOptions.value.some(item => item.enablePackageHour)) {
+    modes.push('PACKAGE')
+  }
+  if (isEdit.value && form.bookingMode && !modes.includes(form.bookingMode)) {
+    modes.push(form.bookingMode)
+  }
+  return modes
+})
+const getAvailableFormSharedPricingModes = (court) => {
+  if (!court) {
+    const modes = []
+    if (formCourtOptions.value.some(item => item.enableSharedHour)) modes.push('SHARED_HOUR')
+    if (formCourtOptions.value.some(item => item.enableSharedTime)) modes.push('SHARED_TIME')
+    return modes
+  }
+  const modes = []
+  if (court.enableSharedHour) modes.push('SHARED_HOUR')
+  if (court.enableSharedTime) modes.push('SHARED_TIME')
+  return modes
+}
+const availableFormSharedPricingModes = computed(() => {
+  const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+  const modes = getAvailableFormSharedPricingModes(selected)
+  if (isEdit.value && form.bookingMode === 'SHARED' && form.pricingMode && !modes.includes(form.pricingMode)) {
+    modes.push(form.pricingMode)
+  }
+  return modes
+})
+
+const sortIds = (ids) => [...(ids || [])].map(Number).filter(Boolean).sort((a, b) => a - b)
+const isEditStructuralChange = computed(() => {
+  if (!isEdit.value) return false
+  return form.venueId !== editBaseline.venueId
+    || form.bookingMode !== editBaseline.bookingMode
+    || form.pricingMode !== editBaseline.pricingMode
+    || JSON.stringify(sortIds(form.courtIds)) !== JSON.stringify(sortIds(editBaseline.courtIds))
+    || JSON.stringify(form.timeRange || []) !== JSON.stringify(editBaseline.timeRange || [])
 })
 
 // 支付/退款
@@ -684,9 +744,41 @@ const loadCourtsForForm = async (resetCourt = true) => {
     const res = await getBookingCourts(form.venueId)
     if (res.code === 200) {
       formCourtOptions.value = res.data || []
+      syncFormModeAndPricing()
     }
   } catch (e) {
     console.error('加载表单场地失败:', e)
+  }
+}
+
+const syncFormModeAndPricing = () => {
+  const availableModes = availableFormBookingModes.value
+  if (!availableModes.length) {
+    form.bookingMode = 'SHARED'
+    form.pricingMode = 'SHARED_HOUR'
+    form.courtIds = []
+    form.courtId = null
+    return
+  }
+  if (isEdit.value && !isEditStructuralChange.value) {
+    return
+  }
+  if (!availableModes.includes(form.bookingMode)) {
+    form.bookingMode = availableModes[0]
+  }
+  if (form.bookingMode === 'PACKAGE') {
+    form.pricingMode = 'PACKAGE_HOUR'
+    form.courtIds = form.courtIds.filter(id => {
+      const court = formCourtOptions.value.find(item => item.id === id)
+      return court && court.enablePackageHour && Number(court.status) !== 0
+    })
+    form.courtId = form.courtIds[0] || null
+    return
+  }
+  const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+  const sharedModes = getAvailableFormSharedPricingModes(selected)
+  if (sharedModes.length && !sharedModes.includes(form.pricingMode)) {
+    form.pricingMode = sharedModes[0]
   }
 }
 
@@ -735,7 +827,9 @@ const computeFormAmount = () => {
 const handleBookingModeChange = () => {
   if (form.bookingMode === 'SHARED') {
     form.courtIds = form.courtIds.length ? [form.courtIds[0]] : []
-    form.pricingMode = form.pricingMode === 'SHARED_TIME' ? 'SHARED_TIME' : 'SHARED_HOUR'
+    const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+    const sharedModes = getAvailableFormSharedPricingModes(selected)
+    form.pricingMode = sharedModes.includes(form.pricingMode) ? form.pricingMode : (sharedModes[0] || 'SHARED_HOUR')
   } else {
     form.pricingMode = 'PACKAGE_HOUR'
   }
@@ -745,20 +839,34 @@ const handleBookingModeChange = () => {
 
 const getFormCourtLabel = (item) => {
   const name = item.courtName || item.courtCode
+  const marketing = []
+  if (item.enablePackageHour) marketing.push('包场')
+  if (item.enableSharedHour) marketing.push('拼场小时')
+  if (item.enableSharedTime) marketing.push('拼场按次')
   const priceText = form.bookingMode === 'PACKAGE'
     ? `包场 ¥${formatCurrency(item.packagePricePerHour || item.pricePerHour)}/小时`
     : form.pricingMode === 'SHARED_TIME'
       ? `拼场 ¥${formatCurrency(item.sharedPricePerTime || item.pricePerTime)}/次`
       : `拼场 ¥${formatCurrency(item.sharedPricePerHour || item.pricePerHour)}/小时`
-  return `${name} · ${priceText}`
+  return `${name} · ${priceText}${marketing.length ? ` · ${marketing.join('/')}` : ''}`
 }
 
 const isCourtBlocked = (item) => {
-  return Number(item.status) === 0
+  if (isEdit.value && form.courtIds.includes(item.id) && !isEditStructuralChange.value) return false
+  if (Number(item.status) === 0) return true
+  if (form.bookingMode === 'PACKAGE') return item.enablePackageHour !== true
+  return !getAvailableFormSharedPricingModes(item).includes(form.pricingMode)
 }
 
 const checkFormOccupancy = async () => {
   resetFormOccupancy()
+  if (form.bookingMode === 'SHARED') {
+    const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+    const sharedModes = getAvailableFormSharedPricingModes(selected)
+    if (sharedModes.length && !sharedModes.includes(form.pricingMode)) {
+      form.pricingMode = sharedModes[0]
+    }
+  }
   const { bookingDate, startTime, endTime } = extractFormRangePayload()
   computeFormAmount()
   if (!form.courtIds.length || !bookingDate || !startTime || !endTime) return
@@ -889,6 +997,18 @@ const handleEdit = async (row) => {
           : [],
         remark: data.remark || ''
       })
+      Object.assign(editBaseline, {
+        venueId: data.venueId ?? row.venueId ?? null,
+        bookingMode: data.bookingMode || 'SHARED',
+        pricingMode: data.pricingMode || 'SHARED_HOUR',
+        courtIds: Array.isArray(data.courtIds) && data.courtIds.length ? [...data.courtIds] : (data.courtId ? [data.courtId] : []),
+        timeRange: data.bookingDate && data.startTime && data.endTime
+          ? [
+              `${data.bookingDate} ${data.startTime}`,
+              `${data.bookingDate} ${data.endTime}`
+            ]
+          : []
+      })
       // 确保下拉中有当前会员选项，避免只显示数字ID
       if (data.memberId && data.memberName) {
         memberOptions.value = [
@@ -946,6 +1066,26 @@ const handleSubmit = async () => {
         submitLoading.value = false
         return
       }
+      if (!availableFormBookingModes.value.includes(form.bookingMode) && !(isEdit.value && !isEditStructuralChange.value)) {
+        ElMessage.warning('当前场馆未开放所选预约模式')
+        submitLoading.value = false
+        return
+      }
+      if (form.bookingMode === 'PACKAGE' && !(isEdit.value && !isEditStructuralChange.value)) {
+        const invalidCourt = formCourtOptions.value.find(item => form.courtIds.includes(item.id) && item.enablePackageHour !== true)
+        if (invalidCourt) {
+          ElMessage.warning(`场地 ${invalidCourt.courtName || invalidCourt.courtCode} 未开放包场按小时`)
+          submitLoading.value = false
+          return
+        }
+      } else if (form.bookingMode === 'SHARED' && !(isEdit.value && !isEditStructuralChange.value)) {
+        const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+        if (selected && !getAvailableFormSharedPricingModes(selected).includes(form.pricingMode)) {
+          ElMessage.warning(`场地 ${selected.courtName || selected.courtCode} 未开放当前拼场计费方式`)
+          submitLoading.value = false
+          return
+        }
+      }
 
       const payload = {
         id: form.id,
@@ -1001,6 +1141,13 @@ const resetForm = () => {
   formCourtOptions.value = []
   memberOptions.value = []
   memberKeyword.value = ''
+  Object.assign(editBaseline, {
+    venueId: null,
+    bookingMode: null,
+    pricingMode: null,
+    courtIds: [],
+    timeRange: []
+  })
   resetFormOccupancy()
   if (formRef.value) formRef.value.resetFields()
 }

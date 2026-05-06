@@ -101,30 +101,48 @@
                   </view>
                   <view class="field-item">
                     <text class="field-label">包场每小时价格</text>
-                    <input
-                      v-model.trim="form.packagePricePerHour"
-                      class="field-input"
-                      type="digit"
-                      placeholder="请输入包场每小时价格"
-                    />
+                    <view class="marketing-row">
+                      <input
+                        v-model.trim="form.packagePricePerHour"
+                        class="field-input marketing-input"
+                        type="digit"
+                        placeholder="请输入包场每小时价格"
+                      />
+                      <view class="marketing-switch">
+                        <text>开放包场按小时</text>
+                        <switch :checked="form.enablePackageHour" color="#ff6600" @change="onMarketingToggle('enablePackageHour', $event)" />
+                      </view>
+                    </view>
                   </view>
                   <view class="field-item">
                     <text class="field-label">拼场每小时价格</text>
-                    <input
-                      v-model.trim="form.sharedPricePerHour"
-                      class="field-input"
-                      type="digit"
-                      placeholder="请输入拼场每小时价格"
-                    />
+                    <view class="marketing-row">
+                      <input
+                        v-model.trim="form.sharedPricePerHour"
+                        class="field-input marketing-input"
+                        type="digit"
+                        placeholder="请输入拼场每小时价格"
+                      />
+                      <view class="marketing-switch">
+                        <text>开放拼场按小时</text>
+                        <switch :checked="form.enableSharedHour" color="#ff6600" @change="onMarketingToggle('enableSharedHour', $event)" />
+                      </view>
+                    </view>
                   </view>
                   <view class="field-item">
                     <text class="field-label">拼场按次价格</text>
-                    <input
-                      v-model.trim="form.sharedPricePerTime"
-                      class="field-input"
-                      type="digit"
-                      placeholder="请输入拼场按次价格"
-                    />
+                    <view class="marketing-row">
+                      <input
+                        v-model.trim="form.sharedPricePerTime"
+                        class="field-input marketing-input"
+                        type="digit"
+                        placeholder="请输入拼场按次价格"
+                      />
+                      <view class="marketing-switch">
+                        <text>开放拼场按次</text>
+                        <switch :checked="form.enableSharedTime" color="#ff6600" @change="onMarketingToggle('enableSharedTime', $event)" />
+                      </view>
+                    </view>
                   </view>
                 <view class="field-item">
                   <text class="field-label">状态</text>
@@ -154,6 +172,10 @@
               <view class="summary-item">
                 <text class="summary-label">拼场每小时 / 按次</text>
                 <text class="summary-value">¥{{ formatAmount(Number(form.sharedPricePerHour || 0)) }} / ¥{{ formatAmount(Number(form.sharedPricePerTime || 0)) }}</text>
+              </view>
+              <view class="summary-item">
+                <text class="summary-label">已开放营销方式</text>
+                <text class="summary-value">{{ marketingSummary }}</text>
               </view>
               <view class="summary-item">
                 <text class="summary-label">状态</text>
@@ -218,7 +240,10 @@ const form = reactive({
   pricePerHour: '',
   packagePricePerHour: '',
   sharedPricePerHour: '',
-  sharedPricePerTime: ''
+  sharedPricePerTime: '',
+  enablePackageHour: true,
+  enableSharedHour: true,
+  enableSharedTime: true
 })
 
 const pageTitle = computed(() => (isEdit.value ? '编辑场地' : '新增场地'))
@@ -229,6 +254,13 @@ const currentVenueLabel = computed(() =>
 const billingTypeLabel = computed(() => billingTypeOptions[billingTypeIndex.value])
 const pricePreview = computed(() => formatAmount(Number(form.pricePerHour || 0)))
 const statusMeta = computed(() => getCourtStatusMeta(statusValues[statusIndex.value]))
+const marketingSummary = computed(() => {
+  const items: string[] = []
+  if (form.enablePackageHour) items.push('包场按小时')
+  if (form.enableSharedHour) items.push('拼场按小时')
+  if (form.enableSharedTime) items.push('拼场按次')
+  return items.length ? items.join(' / ') : '未开放'
+})
 
 function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.COURT_LIST)
@@ -248,6 +280,10 @@ function onStatusChange(e: { detail?: { value?: string } }) {
   statusIndex.value = Number(e.detail?.value ?? 1)
 }
 
+function onMarketingToggle(field: 'enablePackageHour' | 'enableSharedHour' | 'enableSharedTime', event: any) {
+  form[field] = !!event.detail?.value
+}
+
 function fillForm(detail: {
   courtCode?: string
   courtName?: string
@@ -258,6 +294,9 @@ function fillForm(detail: {
   packagePricePerHour?: number
   sharedPricePerHour?: number
   sharedPricePerTime?: number
+  enablePackageHour?: boolean
+  enableSharedHour?: boolean
+  enableSharedTime?: boolean
   status?: number
 }) {
   form.courtCode = detail.courtCode || ''
@@ -267,6 +306,9 @@ function fillForm(detail: {
   form.packagePricePerHour = String(detail.packagePricePerHour ?? detail.pricePerHour ?? '')
   form.sharedPricePerHour = String(detail.sharedPricePerHour ?? detail.pricePerHour ?? '')
   form.sharedPricePerTime = String(detail.sharedPricePerTime ?? detail.pricePerTime ?? '')
+  form.enablePackageHour = detail.enablePackageHour !== false
+  form.enableSharedHour = detail.enableSharedHour !== false
+  form.enableSharedTime = detail.enableSharedTime !== false
   billingTypeIndex.value = detail.billingType === 'TIME' ? 1 : 0
   const nextStatusIndex = statusValues.findIndex((item) => item === Number(detail.status))
   statusIndex.value = nextStatusIndex >= 0 ? nextStatusIndex : 1
@@ -302,9 +344,10 @@ function validateForm() {
   const sharedHourPrice = Number(form.sharedPricePerHour)
   const sharedTimePrice = Number(form.sharedPricePerTime)
   if (!Number.isFinite(price) || price < 0) return '请输入有效兼容基础价格'
-  if (!Number.isFinite(packagePrice) || packagePrice < 0) return '请输入有效包场每小时价格'
-  if (!Number.isFinite(sharedHourPrice) || sharedHourPrice < 0) return '请输入有效拼场每小时价格'
-  if (!Number.isFinite(sharedTimePrice) || sharedTimePrice < 0) return '请输入有效拼场按次价格'
+  if (!form.enablePackageHour && !form.enableSharedHour && !form.enableSharedTime) return '至少需要开放一种营销方式'
+  if (form.enablePackageHour && (!Number.isFinite(packagePrice) || packagePrice <= 0)) return '开放包场按小时后，包场每小时价格必须大于0'
+  if (form.enableSharedHour && (!Number.isFinite(sharedHourPrice) || sharedHourPrice <= 0)) return '开放拼场按小时后，拼场每小时价格必须大于0'
+  if (form.enableSharedTime && (!Number.isFinite(sharedTimePrice) || sharedTimePrice <= 0)) return '开放拼场按次后，拼场按次价格必须大于0'
   return ''
 }
 
@@ -329,6 +372,9 @@ async function submitForm() {
       packagePricePerHour: Number(form.packagePricePerHour),
       sharedPricePerHour: Number(form.sharedPricePerHour),
       sharedPricePerTime: Number(form.sharedPricePerTime),
+      enablePackageHour: form.enablePackageHour,
+      enableSharedHour: form.enableSharedHour,
+      enableSharedTime: form.enableSharedTime,
       status: statusValues[statusIndex.value]
     }
 
@@ -538,6 +584,25 @@ onLoad((options) => {
   min-height: 72rpx;
   font-size: 28rpx;
   color: #1a1c1c;
+}
+
+.marketing-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.marketing-input {
+  width: 100%;
+}
+
+.marketing-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  font-size: 24rpx;
+  color: #71717a;
 }
 
 .picker-field {

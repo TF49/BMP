@@ -1048,6 +1048,12 @@ CREATE TABLE `sys_court`  (
   `court_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '场地名称',
   `billing_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'HOUR' COMMENT '计费方式（HOUR-按小时，TIME-按次）',
   `price_per_hour` decimal(10, 2) NOT NULL COMMENT '每小时价格或每次价格',
+  `package_price_per_hour` decimal(10, 2) NULL DEFAULT NULL COMMENT '包场按小时单价',
+  `shared_price_per_hour` decimal(10, 2) NULL DEFAULT NULL COMMENT '拼场按小时单价',
+  `shared_price_per_time` decimal(10, 2) NULL DEFAULT NULL COMMENT '拼场按次单价',
+  `enable_package_hour` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否开放包场按小时',
+  `enable_shared_hour` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否开放拼场按小时',
+  `enable_shared_time` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否开放拼场按次',
   `status` tinyint(1) NULL DEFAULT 1 COMMENT '状态（0-维护中，1-空闲，2-预约中，3-使用中）',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
@@ -1065,54 +1071,38 @@ CREATE TABLE `sys_court`  (
 -- ----------------------------
 -- Records of sys_court
 -- ----------------------------
-INSERT INTO `sys_court` VALUES (1, 'A01', 1, 'A区1号场地', 'HOUR', 80.00, 1, '2024-01-15 10:00:00', '2026-02-14 12:59:47', 0);
-INSERT INTO `sys_court` VALUES (2, 'A02', 1, 'A区2号场地', 'HOUR', 80.00, 2, '2024-01-15 10:00:00', '2026-02-14 12:59:47', 0);
-INSERT INTO `sys_court` VALUES (3, 'A03', 1, 'A区3号场地', 'HOUR', 80.00, 1, '2024-01-15 10:00:00', '2026-02-11 22:34:32', 0);
-INSERT INTO `sys_court` VALUES (4, 'B01', 1, 'B区1号场地', 'HOUR', 100.00, 1, '2024-01-15 10:00:00', '2026-02-09 23:52:22', 0);
-INSERT INTO `sys_court` VALUES (5, 'B02', 1, 'B区2号场地', 'HOUR', 100.00, 1, '2024-01-15 10:00:00', '2026-02-09 22:50:01', 0);
-INSERT INTO `sys_court` VALUES (6, 'C01', 2, 'C区1号场地', 'HOUR', 90.00, 1, '2024-02-20 09:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (7, 'C02', 2, 'C区2号场地', 'HOUR', 90.00, 1, '2024-02-20 09:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (8, 'C03', 2, 'C区3号场地', 'HOUR', 90.00, 1, '2024-02-20 09:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (9, 'VIP01', 2, 'VIP1号场地', 'HOUR', 150.00, 1, '2024-02-20 09:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (10, 'D01', 3, 'D区1号场地', 'HOUR', 85.00, 1, '2024-03-10 08:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (11, 'D02', 3, 'D区2号场地', 'HOUR', 85.00, 1, '2024-03-10 08:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (12, 'D03', 3, 'D区3号场地', 'HOUR', 85.00, 1, '2024-03-10 08:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (13, 'E01', 3, 'E区1号场地', 'HOUR', 95.00, 1, '2024-03-10 08:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (14, 'E02', 3, 'E区2号场地', 'HOUR', 95.00, 1, '2024-03-10 08:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (15, 'F01', 4, 'F区1号场地', 'HOUR', 88.00, 1, '2024-04-15 10:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (16, 'F02', 4, 'F区2号场地', 'HOUR', 88.00, 1, '2024-04-15 10:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (17, 'F03', 4, 'F区3号场地', 'HOUR', 88.00, 1, '2024-04-15 10:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (18, 'VIP02', 4, 'VIP2号场地', 'HOUR', 160.00, 1, '2024-04-15 10:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (19, 'G01', 5, 'G区1号场地', 'HOUR', 75.00, 1, '2024-05-20 09:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (20, 'G02', 5, 'G区2号场地', 'HOUR', 75.00, 1, '2024-05-20 09:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (21, 'G03', 5, 'G区3号场地', 'HOUR', 75.00, 1, '2024-05-20 09:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (22, 'A04', 1, 'A区4号场地', 'HOUR', 80.00, 1, '2024-05-20 09:00:00', '2026-02-09 23:52:19', 0);
-INSERT INTO `sys_court` VALUES (23, 'C04', 2, 'C区4号场地', 'HOUR', 90.00, 0, '2024-05-20 09:00:00', NULL, 0);
-INSERT INTO `sys_court` VALUES (24, 'B03', 1, 'B区3号场地', 'HOUR', 100.00, 1, '2024-05-20 09:00:00', '2026-02-09 23:52:24', 0);
-INSERT INTO `sys_court` VALUES (25, 'D04', 3, 'D区4号场地', 'HOUR', 85.00, 1, '2024-05-20 09:00:00', '2026-02-09 23:48:40', 0);
-INSERT INTO `sys_court` VALUES (26, 'E03', 3, 'E区3号场地', 'HOUR', 95.00, 1, '2024-05-20 09:00:00', '2026-02-09 23:48:43', 0);
-INSERT INTO `sys_court` VALUES (27, 'F04', 4, 'F区4号场地', 'HOUR', 88.00, 1, '2024-05-20 09:00:00', '2026-02-09 23:48:32', 0);
-INSERT INTO `sys_court` VALUES (28, '1', 6, '1号场地', 'TIME', 15.00, 1, '2026-02-06 17:02:05', '2026-02-14 13:07:54', 0);
-INSERT INTO `sys_court` VALUES (33, '2', 6, '2号场地', 'TIME', 15.00, 1, '2026-02-06 17:06:58', '2026-02-09 23:11:08', 0);
-INSERT INTO `sys_court` VALUES (34, '3', 6, '3号场地', 'TIME', 15.00, 1, '2026-02-06 17:07:10', '2026-02-09 23:09:31', 0);
-INSERT INTO `sys_court` VALUES (35, '4', 6, '4号场地', 'TIME', 15.00, 1, '2026-02-06 17:09:47', '2026-02-06 17:09:47', 0);
-INSERT INTO `sys_court` VALUES (36, '5', 6, '5号场地', 'TIME', 15.00, 1, '2026-02-06 17:09:57', '2026-02-06 17:09:57', 0);
-
-ALTER TABLE `sys_court`
-  ADD COLUMN `package_price_per_hour` decimal(10, 2) NULL DEFAULT NULL COMMENT '包场按小时单价' AFTER `price_per_hour`,
-  ADD COLUMN `shared_price_per_hour` decimal(10, 2) NULL DEFAULT NULL COMMENT '拼场按小时单价' AFTER `package_price_per_hour`,
-  ADD COLUMN `shared_price_per_time` decimal(10, 2) NULL DEFAULT NULL COMMENT '拼场按次单价' AFTER `shared_price_per_hour`;
-
-UPDATE `sys_court`
-SET `package_price_per_hour` = `price_per_hour`,
-    `shared_price_per_hour` = ROUND(`price_per_hour` * 0.50, 2),
-    `shared_price_per_time` = CASE
-      WHEN `billing_type` = 'TIME' THEN `price_per_hour`
-      ELSE ROUND(`price_per_hour` * 0.60, 2)
-    END
-WHERE `package_price_per_hour` IS NULL
-   OR `shared_price_per_hour` IS NULL
-   OR `shared_price_per_time` IS NULL;
+INSERT INTO `sys_court` VALUES (1, 'A01', 1, 'A区1号场地', 'HOUR', 80.00, 80.00, 40.00, 48.00, 1, 1, 1, 1, '2024-01-15 10:00:00', '2026-02-14 12:59:47', 0);
+INSERT INTO `sys_court` VALUES (2, 'A02', 1, 'A区2号场地', 'HOUR', 80.00, 80.00, 40.00, 48.00, 1, 1, 1, 2, '2024-01-15 10:00:00', '2026-02-14 12:59:47', 0);
+INSERT INTO `sys_court` VALUES (3, 'A03', 1, 'A区3号场地', 'HOUR', 80.00, 80.00, 40.00, 48.00, 1, 1, 1, 1, '2024-01-15 10:00:00', '2026-02-11 22:34:32', 0);
+INSERT INTO `sys_court` VALUES (4, 'B01', 1, 'B区1号场地', 'HOUR', 100.00, 100.00, 50.00, 60.00, 1, 1, 1, 1, '2024-01-15 10:00:00', '2026-02-09 23:52:22', 0);
+INSERT INTO `sys_court` VALUES (5, 'B02', 1, 'B区2号场地', 'HOUR', 100.00, 100.00, 50.00, 60.00, 1, 1, 1, 1, '2024-01-15 10:00:00', '2026-02-09 22:50:01', 0);
+INSERT INTO `sys_court` VALUES (6, 'C01', 2, 'C区1号场地', 'HOUR', 90.00, 90.00, 45.00, 54.00, 1, 1, 1, 1, '2024-02-20 09:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (7, 'C02', 2, 'C区2号场地', 'HOUR', 90.00, 90.00, 45.00, 54.00, 1, 1, 1, 1, '2024-02-20 09:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (8, 'C03', 2, 'C区3号场地', 'HOUR', 90.00, 90.00, 45.00, 54.00, 1, 1, 1, 1, '2024-02-20 09:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (9, 'VIP01', 2, 'VIP1号场地', 'HOUR', 150.00, 150.00, 75.00, 90.00, 1, 1, 1, 1, '2024-02-20 09:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (10, 'D01', 3, 'D区1号场地', 'HOUR', 85.00, 85.00, 42.50, 51.00, 1, 1, 1, 1, '2024-03-10 08:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (11, 'D02', 3, 'D区2号场地', 'HOUR', 85.00, 85.00, 42.50, 51.00, 1, 1, 1, 1, '2024-03-10 08:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (12, 'D03', 3, 'D区3号场地', 'HOUR', 85.00, 85.00, 42.50, 51.00, 1, 1, 1, 1, '2024-03-10 08:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (13, 'E01', 3, 'E区1号场地', 'HOUR', 95.00, 95.00, 47.50, 57.00, 1, 1, 1, 1, '2024-03-10 08:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (14, 'E02', 3, 'E区2号场地', 'HOUR', 95.00, 95.00, 47.50, 57.00, 1, 1, 1, 1, '2024-03-10 08:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (15, 'F01', 4, 'F区1号场地', 'HOUR', 88.00, 88.00, 44.00, 52.80, 1, 1, 1, 1, '2024-04-15 10:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (16, 'F02', 4, 'F区2号场地', 'HOUR', 88.00, 88.00, 44.00, 52.80, 1, 1, 1, 1, '2024-04-15 10:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (17, 'F03', 4, 'F区3号场地', 'HOUR', 88.00, 88.00, 44.00, 52.80, 1, 1, 1, 1, '2024-04-15 10:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (18, 'VIP02', 4, 'VIP2号场地', 'HOUR', 160.00, 160.00, 80.00, 96.00, 1, 1, 1, 1, '2024-04-15 10:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (19, 'G01', 5, 'G区1号场地', 'HOUR', 75.00, 75.00, 37.50, 45.00, 1, 1, 1, 1, '2024-05-20 09:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (20, 'G02', 5, 'G区2号场地', 'HOUR', 75.00, 75.00, 37.50, 45.00, 1, 1, 1, 1, '2024-05-20 09:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (21, 'G03', 5, 'G区3号场地', 'HOUR', 75.00, 75.00, 37.50, 45.00, 1, 1, 1, 1, '2024-05-20 09:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (22, 'A04', 1, 'A区4号场地', 'HOUR', 80.00, 80.00, 40.00, 48.00, 1, 1, 1, 1, '2024-05-20 09:00:00', '2026-02-09 23:52:19', 0);
+INSERT INTO `sys_court` VALUES (23, 'C04', 2, 'C区4号场地', 'HOUR', 90.00, 90.00, 45.00, 54.00, 1, 1, 1, 0, '2024-05-20 09:00:00', NULL, 0);
+INSERT INTO `sys_court` VALUES (24, 'B03', 1, 'B区3号场地', 'HOUR', 100.00, 100.00, 50.00, 60.00, 1, 1, 1, 1, '2024-05-20 09:00:00', '2026-02-09 23:52:24', 0);
+INSERT INTO `sys_court` VALUES (25, 'D04', 3, 'D区4号场地', 'HOUR', 85.00, 85.00, 42.50, 51.00, 1, 1, 1, 1, '2024-05-20 09:00:00', '2026-02-09 23:48:40', 0);
+INSERT INTO `sys_court` VALUES (26, 'E03', 3, 'E区3号场地', 'HOUR', 95.00, 95.00, 47.50, 57.00, 1, 1, 1, 1, '2024-05-20 09:00:00', '2026-02-09 23:48:43', 0);
+INSERT INTO `sys_court` VALUES (27, 'F04', 4, 'F区4号场地', 'HOUR', 88.00, 88.00, 44.00, 52.80, 1, 1, 1, 1, '2024-05-20 09:00:00', '2026-02-09 23:48:32', 0);
+INSERT INTO `sys_court` VALUES (28, '1', 6, '1号场地', 'TIME', 15.00, 15.00, 7.50, 15.00, 1, 1, 1, 1, '2026-02-06 17:02:05', '2026-02-14 13:07:54', 0);
+INSERT INTO `sys_court` VALUES (33, '2', 6, '2号场地', 'TIME', 15.00, 15.00, 7.50, 15.00, 1, 1, 1, 1, '2026-02-06 17:06:58', '2026-02-09 23:11:08', 0);
+INSERT INTO `sys_court` VALUES (34, '3', 6, '3号场地', 'TIME', 15.00, 15.00, 7.50, 15.00, 1, 1, 1, 1, '2026-02-06 17:07:10', '2026-02-09 23:09:31', 0);
+INSERT INTO `sys_court` VALUES (35, '4', 6, '4号场地', 'TIME', 15.00, 15.00, 7.50, 15.00, 1, 1, 1, 1, '2026-02-06 17:09:47', '2026-02-06 17:09:47', 0);
+INSERT INTO `sys_court` VALUES (36, '5', 6, '5号场地', 'TIME', 15.00, 15.00, 7.50, 15.00, 1, 1, 1, 1, '2026-02-06 17:09:57', '2026-02-06 17:09:57', 0);
 
 -- ----------------------------
 -- Table structure for sys_equipment

@@ -71,12 +71,22 @@
           <div class="court-date-bar booking-mode-bar">
             <span class="court-date-label">预约模式</span>
             <el-radio-group v-model="bookingMode" @change="handleBookingModeChange">
-              <el-radio-button label="SHARED">拼场</el-radio-button>
-              <el-radio-button label="PACKAGE">包场</el-radio-button>
+              <el-radio-button
+                v-for="mode in availableVenueBookingModes"
+                :key="mode"
+                :label="mode"
+              >
+                {{ mode === 'PACKAGE' ? '包场' : '拼场' }}
+              </el-radio-button>
             </el-radio-group>
             <el-radio-group v-if="bookingMode === 'SHARED'" v-model="pricingMode">
-              <el-radio-button label="SHARED_HOUR">按小时</el-radio-button>
-              <el-radio-button label="SHARED_TIME">按次</el-radio-button>
+              <el-radio-button
+                v-for="mode in availableSharedPricingModes"
+                :key="mode"
+                :label="mode"
+              >
+                {{ mode === 'SHARED_TIME' ? '按次' : '按小时' }}
+              </el-radio-button>
             </el-radio-group>
             <span v-else class="court-date-hint">包场只能选择部分空闲场地，且需提前 2 小时提交</span>
           </div>
@@ -496,6 +506,31 @@ const rangeOccupancy = ref({
 const submitting = ref(false)
 
 const selectedCourts = computed(() => courts.value.filter(court => selectedCourtIds.value.includes(court.id)))
+const availableVenueBookingModes = computed(() => {
+  const modes = []
+  if (courts.value.some(court => court.enableSharedHour || court.enableSharedTime)) {
+    modes.push('SHARED')
+  }
+  if (courts.value.some(court => court.enablePackageHour)) {
+    modes.push('PACKAGE')
+  }
+  return modes
+})
+const getAvailableSharedPricingModes = (court) => {
+  if (!court) {
+    const modes = []
+    if (courts.value.some(item => item.enableSharedHour)) modes.push('SHARED_HOUR')
+    if (courts.value.some(item => item.enableSharedTime)) modes.push('SHARED_TIME')
+    return modes
+  }
+  const modes = []
+  if (court.enableSharedHour) modes.push('SHARED_HOUR')
+  if (court.enableSharedTime) modes.push('SHARED_TIME')
+  return modes
+}
+const availableSharedPricingModes = computed(() => {
+  return getAvailableSharedPricingModes(selectedCourt.value)
+})
 const selectedCourtSummary = computed(() => {
   if (!selectedCourts.value.length) return '-'
   if (selectedCourts.value.length === 1) {
@@ -613,8 +648,14 @@ const getCourtDisplayStatus = (court) => {
     return { text: '维护中', type: 'info' }
   }
   const count = todayBookingCounts.value[court?.id] ?? 0
+  if (bookingMode.value === 'PACKAGE' && !court?.enablePackageHour) {
+    return { text: '未开放包场', type: 'info' }
+  }
+  if (bookingMode.value === 'SHARED' && !getAvailableSharedPricingModes(court).includes(pricingMode.value)) {
+    return { text: '未开放该拼场方式', type: 'info' }
+  }
   if (bookingMode.value === 'PACKAGE' && count > 0) {
-    return { text: '不可包场', type: 'danger' }
+    return { text: '当日有预约', type: 'warning' }
   }
   if (count > 0) {
     return { text: '预约中', type: 'warning' }
@@ -624,7 +665,9 @@ const getCourtDisplayStatus = (court) => {
 
 const isCourtUnavailable = (court) => {
   if (court?.status === 0) return true
-  return bookingMode.value === 'PACKAGE' && (todayBookingCounts.value[court?.id] ?? 0) > 0
+  if (bookingMode.value === 'PACKAGE' && !court?.enablePackageHour) return true
+  if (bookingMode.value === 'SHARED' && !getAvailableSharedPricingModes(court).includes(pricingMode.value)) return true
+  return false
 }
 
 const getCourtPriceText = (court) => {
@@ -639,10 +682,74 @@ const getCourtPriceText = (court) => {
 
 const getCourtHintText = (court) => {
   if (court?.status === 0) return '维护中，暂不可预约'
+  if (bookingMode.value === 'PACKAGE' && !court?.enablePackageHour) return '该场地未开放包场'
+  if (bookingMode.value === 'SHARED' && !getAvailableSharedPricingModes(court).includes(pricingMode.value)) {
+    return getCourtMarketingSummary(court)
+  }
   if (bookingMode.value === 'PACKAGE') {
-    return (todayBookingCounts.value[court?.id] ?? 0) > 0 ? '该日期已有预约，不能加入包场' : '空闲，可加入包场'
+    return (todayBookingCounts.value[court?.id] ?? 0) > 0 ? '该日期已有其他预约，能否包场取决于所选时段' : '空闲，可加入包场'
   }
   return pricingMode.value === 'SHARED_TIME' ? '拼场按次计费' : '拼场按小时计费'
+}
+
+const getCourtMarketingSummary = (court) => {
+  const items = []
+  if (court?.enablePackageHour) items.push('包场按小时')
+  if (court?.enableSharedHour) items.push('拼场按小时')
+  if (court?.enableSharedTime) items.push('拼场按次')
+  return items.length ? `已开放：${items.join(' / ')}` : '当前未开放预约'
+}
+
+const sameIdArray = (left = [], right = []) => {
+  if (left.length !== right.length) return false
+  return left.every((item, index) => item === right[index])
+}
+
+const syncModeAndPricing = () => {
+  const venueModes = availableVenueBookingModes.value
+  if (!venueModes.length) {
+    if (bookingMode.value !== 'SHARED') bookingMode.value = 'SHARED'
+    if (pricingMode.value !== 'SHARED_HOUR') pricingMode.value = 'SHARED_HOUR'
+    if (selectedCourtIds.value.length) selectedCourtIds.value = []
+    if (selectedCourt.value !== null) selectedCourt.value = null
+    return
+  }
+  if (!venueModes.includes(bookingMode.value)) {
+    bookingMode.value = venueModes[0]
+  }
+  if (bookingMode.value === 'PACKAGE') {
+    if (pricingMode.value !== 'PACKAGE_HOUR') pricingMode.value = 'PACKAGE_HOUR'
+    const nextIds = selectedCourtIds.value.filter(id => {
+      const court = courts.value.find(item => item.id === id)
+      return court && court.enablePackageHour && court.status !== 0
+    })
+    if (!sameIdArray(nextIds, selectedCourtIds.value)) {
+      selectedCourtIds.value = nextIds
+    }
+    const nextCourt = courts.value.find(court => nextIds.includes(court.id)) || null
+    if ((selectedCourt.value?.id || null) !== (nextCourt?.id || null)) {
+      selectedCourt.value = nextCourt
+    }
+    return
+  }
+  const selected = selectedCourt.value || selectedCourts.value[0] || courts.value.find(court => !isCourtUnavailable(court))
+  const modes = getAvailableSharedPricingModes(selected)
+  if (modes.length && !modes.includes(pricingMode.value)) {
+    pricingMode.value = modes[0]
+  }
+  if (!selected && courts.value.length) {
+    const fallback = courts.value.find(court => getAvailableSharedPricingModes(court).length && court.status !== 0)
+    if (fallback) {
+      if ((selectedCourt.value?.id || null) !== fallback.id) {
+        selectedCourt.value = fallback
+      }
+      if (!sameIdArray(selectedCourtIds.value, [fallback.id])) {
+        selectedCourtIds.value = [fallback.id]
+      }
+      const fallbackModes = getAvailableSharedPricingModes(fallback)
+      if (fallbackModes.length) pricingMode.value = fallbackModes[0]
+    }
+  }
 }
 
 // 加载场馆列表
@@ -670,7 +777,7 @@ const handleBookingModeChange = () => {
   selectedCourtIds.value = []
   currentOccupancy.value = { count: null, users: [] }
   rangeOccupancy.value = { count: null, users: [] }
-  pricingMode.value = bookingMode.value === 'PACKAGE' ? 'PACKAGE_HOUR' : 'SHARED_HOUR'
+  pricingMode.value = bookingMode.value === 'PACKAGE' ? 'PACKAGE_HOUR' : (availableSharedPricingModes.value[0] || 'SHARED_HOUR')
 }
 
 // 加载场地列表
@@ -679,6 +786,7 @@ const loadCourts = async (venueId) => {
     const res = await getCourtList({ venueId, page: 1, size: 100 })
     if (res.code === 200) {
       courts.value = res.data?.data || res.data?.records || res.data || []
+      syncModeAndPricing()
       await loadTodayBookingCounts()
     }
   } catch (e) {
@@ -711,12 +819,16 @@ const loadTodayBookingCounts = async () => {
 // 选择场地（仅维护中不可选；预约中仍可选，可与他人共享时段）
 const selectCourt = (court) => {
   if (isCourtUnavailable(court)) {
-    ElMessage.warning(bookingMode.value === 'PACKAGE' ? '该场地当前不可加入包场' : '该场地维护中，暂不可选')
+    ElMessage.warning(getCourtHintText(court))
     return
   }
   if (bookingMode.value === 'SHARED') {
     selectedCourt.value = court
     selectedCourtIds.value = [court.id]
+    const modes = getAvailableSharedPricingModes(court)
+    if (modes.length && !modes.includes(pricingMode.value)) {
+      pricingMode.value = modes[0]
+    }
   } else {
     const exists = selectedCourtIds.value.includes(court.id)
     if (exists) {
@@ -819,6 +931,22 @@ const validateBookingForm = () => {
     return false
   }
 
+  if (!availableVenueBookingModes.value.includes(bookingMode.value)) {
+    ElMessage.warning('当前场馆未开放所选预约模式')
+    return false
+  }
+
+  if (bookingMode.value === 'SHARED') {
+    if (!selectedCourt.value) {
+      ElMessage.warning('请选择场地')
+      return false
+    }
+    if (!getAvailableSharedPricingModes(selectedCourt.value).includes(pricingMode.value)) {
+      ElMessage.warning('该场地未开放当前拼场计费方式')
+      return false
+    }
+  }
+
   if (bookingMode.value === 'PACKAGE') {
     if (packageLeadTimeError.value) {
       ElMessage.warning(packageLeadTimeError.value)
@@ -826,6 +954,11 @@ const validateBookingForm = () => {
     }
     if (selectedCourtIds.value.length >= courts.value.length) {
       ElMessage.warning('包场不能包下整个场馆的全部场地')
+      return false
+    }
+    const invalidCourt = selectedCourts.value.find(court => !court.enablePackageHour)
+    if (invalidCourt) {
+      ElMessage.warning(`场地 ${invalidCourt.courtName || invalidCourt.courtCode} 未开放包场`)
       return false
     }
   }
@@ -855,6 +988,16 @@ watch(
     } else {
       rangeOccupancy.value = { count: null, users: [] }
     }
+  }
+)
+
+watch(
+  [
+    () => courts.value.map(court => `${court.id}:${court.status}:${court.enablePackageHour}:${court.enableSharedHour}:${court.enableSharedTime}`).join('|'),
+    () => selectedCourtIds.value.join(',')
+  ],
+  () => {
+    syncModeAndPricing()
   }
 )
 

@@ -156,6 +156,9 @@ public class CourtServiceImpl implements CourtService {
             court.setBillingType("HOUR");
         }
 
+        applyDefaultMarketingFlags(court);
+        validateMarketingConfig(court);
+
         return courtMapper.insert(court);
     }
 
@@ -225,9 +228,21 @@ public class CourtServiceImpl implements CourtService {
         if (court.getSharedPricePerTime() == null) {
             court.setSharedPricePerTime(existingCourt.getSharedPricePerTime());
         }
+        if (court.getEnablePackageHour() == null) {
+            court.setEnablePackageHour(existingCourt.getEnablePackageHour());
+        }
+        if (court.getEnableSharedHour() == null) {
+            court.setEnableSharedHour(existingCourt.getEnableSharedHour());
+        }
+        if (court.getEnableSharedTime() == null) {
+            court.setEnableSharedTime(existingCourt.getEnableSharedTime());
+        }
         if (court.getStatus() == null) {
             court.setStatus(existingCourt.getStatus());
         }
+
+        applyDefaultMarketingFlags(court);
+        validateMarketingConfig(court);
 
         // 设置更新时间
         court.setUpdateTime(LocalDateTime.now());
@@ -623,6 +638,37 @@ public class CourtServiceImpl implements CourtService {
             case 3: return "进行中";
             case 4: return "已完成";
             default: return "未知";
+        }
+    }
+
+    private void applyDefaultMarketingFlags(Court court) {
+        if (court.getEnablePackageHour() == null) {
+            court.setEnablePackageHour(Boolean.TRUE);
+        }
+        if (court.getEnableSharedHour() == null) {
+            court.setEnableSharedHour(Boolean.TRUE);
+        }
+        if (court.getEnableSharedTime() == null) {
+            court.setEnableSharedTime(Boolean.TRUE);
+        }
+    }
+
+    private void validateMarketingConfig(Court court) {
+        boolean enablePackageHour = Boolean.TRUE.equals(court.getEnablePackageHour());
+        boolean enableSharedHour = Boolean.TRUE.equals(court.getEnableSharedHour());
+        boolean enableSharedTime = Boolean.TRUE.equals(court.getEnableSharedTime());
+
+        if (!enablePackageHour && !enableSharedHour && !enableSharedTime) {
+            throw new RuntimeException("至少需要开放一种营销方式");
+        }
+        if (enablePackageHour && (court.getPackagePricePerHour() == null || court.getPackagePricePerHour().doubleValue() <= 0)) {
+            throw new RuntimeException("开放包场按小时后，包场每小时价格必须大于0");
+        }
+        if (enableSharedHour && (court.getSharedPricePerHour() == null || court.getSharedPricePerHour().doubleValue() <= 0)) {
+            throw new RuntimeException("开放拼场按小时后，拼场每小时价格必须大于0");
+        }
+        if (enableSharedTime && (court.getSharedPricePerTime() == null || court.getSharedPricePerTime().doubleValue() <= 0)) {
+            throw new RuntimeException("开放拼场按次后，拼场按次价格必须大于0");
         }
     }
 

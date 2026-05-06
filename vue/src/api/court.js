@@ -48,6 +48,9 @@ export function getCourtInfo(id) {
  * @param {number} data.packagePricePerHour - 包场每小时价格
  * @param {number} data.sharedPricePerHour - 拼场每小时价格
  * @param {number} data.sharedPricePerTime - 拼场按次价格
+ * @param {boolean} data.enablePackageHour - 是否开放包场按小时
+ * @param {boolean} data.enableSharedHour - 是否开放拼场按小时
+ * @param {boolean} data.enableSharedTime - 是否开放拼场按次
  * @param {number} data.status - 状态（0-维护中，1-空闲，2-预约中，3-使用中）
  */
 export function addCourt(data) {

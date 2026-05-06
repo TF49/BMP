@@ -78,9 +78,11 @@ public interface CourtMapper {
      */
     @Insert("INSERT INTO sys_court (court_code, venue_id, court_name, billing_type, " +
             "price_per_hour, package_price_per_hour, shared_price_per_hour, shared_price_per_time, " +
+            "enable_package_hour, enable_shared_hour, enable_shared_time, " +
             "status, create_time, update_time, del_flag) " +
             "VALUES (#{courtCode}, #{venueId}, #{courtName}, #{billingType}, " +
             "#{pricePerHour}, #{packagePricePerHour}, #{sharedPricePerHour}, #{sharedPricePerTime}, " +
+            "#{enablePackageHour}, #{enableSharedHour}, #{enableSharedTime}, " +
             "#{status}, #{createTime}, #{updateTime}, 0)")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Court court);
@@ -94,6 +96,7 @@ public interface CourtMapper {
             "court_name = #{courtName}, billing_type = #{billingType}, " +
             "price_per_hour = #{pricePerHour}, package_price_per_hour = #{packagePricePerHour}, " +
             "shared_price_per_hour = #{sharedPricePerHour}, shared_price_per_time = #{sharedPricePerTime}, " +
+            "enable_package_hour = #{enablePackageHour}, enable_shared_hour = #{enableSharedHour}, enable_shared_time = #{enableSharedTime}, " +
             "status = #{status}, " +
             "update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0")
     int update(Court court);

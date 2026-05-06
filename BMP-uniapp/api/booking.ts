@@ -74,6 +74,9 @@ export interface CourtItem {
   packagePricePerHour?: number
   sharedPricePerHour?: number
   sharedPricePerTime?: number
+  enablePackageHour?: boolean
+  enableSharedHour?: boolean
+  enableSharedTime?: boolean
   status: number
 }
 

@@ -147,9 +147,13 @@
           <el-table-column label="价格配置" min-width="220" align="center">
             <template #default="scope">
               <div class="price-config-text">
-                <div>包场：¥{{ formatCurrency(scope.row.packagePricePerHour || scope.row.pricePerHour) }}/小时</div>
-                <div>拼场：¥{{ formatCurrency(scope.row.sharedPricePerHour || scope.row.pricePerHour) }}/小时</div>
-                <div>按次：¥{{ formatCurrency(scope.row.sharedPricePerTime || scope.row.pricePerTime || scope.row.pricePerHour) }}/次</div>
+                <div v-if="scope.row.enablePackageHour">包场：¥{{ formatCurrency(scope.row.packagePricePerHour || scope.row.pricePerHour) }}/小时</div>
+                <div v-if="scope.row.enableSharedHour">拼场：¥{{ formatCurrency(scope.row.sharedPricePerHour || scope.row.pricePerHour) }}/小时</div>
+                <div v-if="scope.row.enableSharedTime">按次：¥{{ formatCurrency(scope.row.sharedPricePerTime || scope.row.pricePerTime || scope.row.pricePerHour) }}/次</div>
+                <div v-if="!hasAnyMarketingEnabled(scope.row)">未开放预约</div>
+              </div>
+              <div class="marketing-summary-text">
+                {{ getMarketingSummary(scope.row) }}
               </div>
             </template>
           </el-table-column>
@@ -275,16 +279,34 @@
           </el-form-item>
 
           <el-form-item label="包场每小时价格" prop="packagePricePerHour" class="form-item-enhanced modern-form-item">
-            <el-input-number v-model="courtForm.packagePricePerHour" :min="0.01" :precision="2" :step="10"
-              placeholder="请输入包场每小时价格" class="price-input" />
+            <div class="price-config-row">
+              <el-input-number v-model="courtForm.packagePricePerHour" :min="0.01" :precision="2" :step="10"
+                placeholder="请输入包场每小时价格" class="price-input" />
+              <div class="price-config-switch">
+                <span>开放包场按小时</span>
+                <el-switch v-model="courtForm.enablePackageHour" />
+              </div>
+            </div>
           </el-form-item>
           <el-form-item label="拼场每小时价格" prop="sharedPricePerHour" class="form-item-enhanced modern-form-item">
-            <el-input-number v-model="courtForm.sharedPricePerHour" :min="0.01" :precision="2" :step="10"
-              placeholder="请输入拼场每小时价格" class="price-input" />
+            <div class="price-config-row">
+              <el-input-number v-model="courtForm.sharedPricePerHour" :min="0.01" :precision="2" :step="10"
+                placeholder="请输入拼场每小时价格" class="price-input" />
+              <div class="price-config-switch">
+                <span>开放拼场按小时</span>
+                <el-switch v-model="courtForm.enableSharedHour" />
+              </div>
+            </div>
           </el-form-item>
           <el-form-item label="拼场按次价格" prop="sharedPricePerTime" class="form-item-enhanced modern-form-item">
-            <el-input-number v-model="courtForm.sharedPricePerTime" :min="0.01" :precision="2" :step="10"
-              placeholder="请输入拼场按次价格" class="price-input" />
+            <div class="price-config-row">
+              <el-input-number v-model="courtForm.sharedPricePerTime" :min="0.01" :precision="2" :step="10"
+                placeholder="请输入拼场按次价格" class="price-input" />
+              <div class="price-config-switch">
+                <span>开放拼场按次</span>
+                <el-switch v-model="courtForm.enableSharedTime" />
+              </div>
+            </div>
             <span class="field-hint modern-field-hint">兼容价格字段仍保留，预约时优先使用上面三种价格配置</span>
           </el-form-item>
         </div>
@@ -519,8 +541,31 @@ const courtForm = reactive({
   packagePricePerHour: 50,
   sharedPricePerHour: 50,
   sharedPricePerTime: 50,
+  enablePackageHour: true,
+  enableSharedHour: true,
+  enableSharedTime: true,
   status: 1
 })
+
+const validateMarketingConfig = (_rule, _value, callback) => {
+  if (!courtForm.enablePackageHour && !courtForm.enableSharedHour && !courtForm.enableSharedTime) {
+    callback(new Error('至少需要开放一种营销方式'))
+    return
+  }
+  if (courtForm.enablePackageHour && (!Number(courtForm.packagePricePerHour) || Number(courtForm.packagePricePerHour) <= 0)) {
+    callback(new Error('开放包场按小时后，包场每小时价格必须大于0'))
+    return
+  }
+  if (courtForm.enableSharedHour && (!Number(courtForm.sharedPricePerHour) || Number(courtForm.sharedPricePerHour) <= 0)) {
+    callback(new Error('开放拼场按小时后，拼场每小时价格必须大于0'))
+    return
+  }
+  if (courtForm.enableSharedTime && (!Number(courtForm.sharedPricePerTime) || Number(courtForm.sharedPricePerTime) <= 0)) {
+    callback(new Error('开放拼场按次后，拼场按次价格必须大于0'))
+    return
+  }
+  callback()
+}
 
 // 表单验证规则
 const courtFormRules = {
@@ -537,18 +582,24 @@ const courtFormRules = {
   billingType: [
     { required: true, message: '请选择计费方式', trigger: 'change' }
   ],
-    packagePricePerHour: [
-      { required: true, message: '请输入包场每小时价格', trigger: 'blur' },
-      { type: 'number', min: 0.01, message: '价格必须大于0', trigger: 'blur' }
-    ],
-    sharedPricePerHour: [
-      { required: true, message: '请输入拼场每小时价格', trigger: 'blur' },
-      { type: 'number', min: 0.01, message: '价格必须大于0', trigger: 'blur' }
-    ],
-    sharedPricePerTime: [
-      { required: true, message: '请输入拼场按次价格', trigger: 'blur' },
-      { type: 'number', min: 0.01, message: '价格必须大于0', trigger: 'blur' }
-    ],
+  packagePricePerHour: [
+    { validator: validateMarketingConfig, trigger: 'blur' }
+  ],
+  sharedPricePerHour: [
+    { validator: validateMarketingConfig, trigger: 'blur' }
+  ],
+  sharedPricePerTime: [
+    { validator: validateMarketingConfig, trigger: 'blur' }
+  ],
+  enablePackageHour: [
+    { validator: validateMarketingConfig, trigger: 'change' }
+  ],
+  enableSharedHour: [
+    { validator: validateMarketingConfig, trigger: 'change' }
+  ],
+  enableSharedTime: [
+    { validator: validateMarketingConfig, trigger: 'change' }
+  ],
   status: [
     { required: true, message: '请选择状态', trigger: 'change' }
   ]
@@ -570,6 +621,18 @@ const getBillingTypeText = (type) => {
     'TIME': '按次'
   }
   return typeMap[type] || '未知'
+}
+
+const hasAnyMarketingEnabled = (row) => {
+  return !!(row?.enablePackageHour || row?.enableSharedHour || row?.enableSharedTime)
+}
+
+const getMarketingSummary = (row) => {
+  const items = []
+  if (row?.enablePackageHour) items.push('包场按小时')
+  if (row?.enableSharedHour) items.push('拼场按小时')
+  if (row?.enableSharedTime) items.push('拼场按次')
+  return items.length ? `已开放：${items.join(' / ')}` : '已开放：无'
 }
 
 // 获取状态文本
@@ -816,11 +879,14 @@ const handleEdit = (row) => {
     courtCode: row.courtCode || '',
     courtName: row.courtName || '',
     billingType: row.billingType || 'HOUR',
-      pricePerHour: row.pricePerHour || 50,
-      packagePricePerHour: row.packagePricePerHour || row.pricePerHour || 50,
-      sharedPricePerHour: row.sharedPricePerHour || row.pricePerHour || 50,
-      sharedPricePerTime: row.sharedPricePerTime || row.pricePerTime || row.pricePerHour || 50,
-      status: row.status !== undefined ? row.status : 1
+    pricePerHour: row.pricePerHour || 50,
+    packagePricePerHour: row.packagePricePerHour || row.pricePerHour || 50,
+    sharedPricePerHour: row.sharedPricePerHour || row.pricePerHour || 50,
+    sharedPricePerTime: row.sharedPricePerTime || row.pricePerTime || row.pricePerHour || 50,
+    enablePackageHour: row.enablePackageHour !== false,
+    enableSharedHour: row.enableSharedHour !== false,
+    enableSharedTime: row.enableSharedTime !== false,
+    status: row.status !== undefined ? row.status : 1
   })
   dialogVisible.value = true
 }
@@ -908,6 +974,9 @@ const resetForm = () => {
     packagePricePerHour: 50,
     sharedPricePerHour: 50,
     sharedPricePerTime: 50,
+    enablePackageHour: true,
+    enableSharedHour: true,
+    enableSharedTime: true,
     status: 1
   })
   if (courtFormRef.value) {
@@ -1591,6 +1660,27 @@ onUnmounted(() => {
 /* 价格输入样式 */
 .price-input {
   width: 200px;
+}
+
+.price-config-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.price-config-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 13px;
+}
+
+.marketing-summary-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary, #64748b);
 }
 
 .price-suffix {

@@ -38,6 +38,12 @@ public class Court {
 
     private BigDecimal sharedPricePerTime;
 
+    private Boolean enablePackageHour;
+
+    private Boolean enableSharedHour;
+
+    private Boolean enableSharedTime;
+
     @Min(0) @Max(3)
     private Integer status;
 

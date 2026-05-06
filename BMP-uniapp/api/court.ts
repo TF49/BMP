@@ -12,6 +12,9 @@ export interface CourtItem {
   packagePricePerHour?: number
   sharedPricePerHour?: number
   sharedPricePerTime?: number
+  enablePackageHour?: boolean
+  enableSharedHour?: boolean
+  enableSharedTime?: boolean
   status: number
   venueName?: string
   createTime?: string
@@ -28,6 +31,9 @@ export interface CourtPayload {
   packagePricePerHour?: number
   sharedPricePerHour?: number
   sharedPricePerTime?: number
+  enablePackageHour?: boolean
+  enableSharedHour?: boolean
+  enableSharedTime?: boolean
   status?: number
 }
 

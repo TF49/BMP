@@ -85,13 +85,15 @@
             <view class="field">
               <text class="label">预约模式</text>
               <view class="mode-switch">
-                <view class="mode-item" :class="{ active: bookingMode === 'SHARED' }" @click="setBookingMode('SHARED')">
-                  <text class="mode-title">拼场</text>
-                  <text class="mode-copy">单场地，可继续叠加拼场订单</text>
-                </view>
-                <view class="mode-item" :class="{ active: bookingMode === 'PACKAGE' }" @click="setBookingMode('PACKAGE')">
-                  <text class="mode-title">包场</text>
-                  <text class="mode-copy">多选部分场地，仅允许空闲场地</text>
+                <view
+                  v-for="mode in availableVenueBookingModes"
+                  :key="mode"
+                  class="mode-item"
+                  :class="{ active: bookingMode === mode }"
+                  @click="setBookingMode(mode)"
+                >
+                  <text class="mode-title">{{ mode === 'PACKAGE' ? '包场' : '拼场' }}</text>
+                  <text class="mode-copy">{{ mode === 'PACKAGE' ? '多选部分场地，仅允许空闲场地' : '单场地，可继续叠加拼场订单' }}</text>
                 </view>
               </view>
             </view>
@@ -99,11 +101,14 @@
             <view v-if="bookingMode === 'SHARED'" class="field">
               <text class="label">拼场计费方式</text>
               <view class="pricing-switch">
-                <view class="pricing-item" :class="{ active: pricingMode === 'SHARED_HOUR' }" @click="setPricingMode('SHARED_HOUR')">
-                  拼场按小时
-                </view>
-                <view class="pricing-item" :class="{ active: pricingMode === 'SHARED_TIME' }" @click="setPricingMode('SHARED_TIME')">
-                  拼场按次
+                <view
+                  v-for="mode in availableSharedPricingModes"
+                  :key="mode"
+                  class="pricing-item"
+                  :class="{ active: pricingMode === mode }"
+                  @click="setPricingMode(mode)"
+                >
+                  {{ mode === 'SHARED_TIME' ? '拼场按次' : '拼场按小时' }}
                 </view>
               </view>
             </view>
@@ -293,6 +298,25 @@ const occupancyLoading = ref(false)
 let occupancyToken = 0
 
 const courtLabels = computed(() => ['请选择场地', ...courts.value.map((item) => item.courtName || `场地#${item.id}`)])
+const availableVenueBookingModes = computed(() => {
+  const modes: Array<'SHARED' | 'PACKAGE'> = []
+  if (courts.value.some(item => item.enableSharedHour || item.enableSharedTime)) modes.push('SHARED')
+  if (courts.value.some(item => item.enablePackageHour)) modes.push('PACKAGE')
+  return modes
+})
+const getAvailableSharedPricingModes = (court?: CourtItem | null) => {
+  if (!court) {
+    const modes: Array<'SHARED_HOUR' | 'SHARED_TIME'> = []
+    if (courts.value.some(item => item.enableSharedHour)) modes.push('SHARED_HOUR')
+    if (courts.value.some(item => item.enableSharedTime)) modes.push('SHARED_TIME')
+    return modes
+  }
+  const modes: Array<'SHARED_HOUR' | 'SHARED_TIME'> = []
+  if (court.enableSharedHour) modes.push('SHARED_HOUR')
+  if (court.enableSharedTime) modes.push('SHARED_TIME')
+  return modes
+}
+const availableSharedPricingModes = computed(() => getAvailableSharedPricingModes(selectedCourt.value))
 const selectedCourts = computed(() => courts.value.filter((item) => form.courtIds.includes(item.id)))
 const selectedCourt = computed(() => selectedCourts.value[0] || null)
 const selectedCourtSummary = computed(() => {
@@ -366,6 +390,10 @@ watch(
   }
 )
 
+watch(courts, () => {
+  syncModeAndPricing()
+})
+
 async function initialize() {
   await Promise.all([loadVenue(), loadCourts(), searchMembers()])
 }
@@ -402,8 +430,9 @@ async function loadCourts() {
   try {
     const res = await getCourtList({ venueId: venueId.value, page: 1, size: 100 })
     courts.value = Array.isArray(res?.data) ? res.data : []
+    syncModeAndPricing()
     if (courts.value.length > 0) {
-      const firstAvailable = courts.value.find((item) => item.status === 1)
+      const firstAvailable = courts.value.find((item) => !isCourtDisabled(item))
       if (firstAvailable) {
         form.courtId = firstAvailable.id
         form.courtIds = [firstAvailable.id]
@@ -445,7 +474,7 @@ function handleDateChange(index: number) {
 
 function setBookingMode(mode: 'SHARED' | 'PACKAGE') {
   bookingMode.value = mode
-  pricingMode.value = mode === 'PACKAGE' ? 'PACKAGE_HOUR' : 'SHARED_HOUR'
+  pricingMode.value = mode === 'PACKAGE' ? 'PACKAGE_HOUR' : (availableSharedPricingModes.value[0] || 'SHARED_HOUR')
   if (mode === 'SHARED') {
     const firstId = form.courtIds[0] || form.courtId || 0
     form.courtIds = firstId ? [firstId] : []
@@ -460,6 +489,34 @@ function setPricingMode(mode: 'SHARED_HOUR' | 'SHARED_TIME') {
   pricingMode.value = mode
 }
 
+function syncModeAndPricing() {
+  const modes = availableVenueBookingModes.value
+  if (!modes.length) {
+    bookingMode.value = 'SHARED'
+    pricingMode.value = 'SHARED_HOUR'
+    form.courtId = 0
+    form.courtIds = []
+    return
+  }
+  if (!modes.includes(bookingMode.value)) {
+    bookingMode.value = modes[0]
+  }
+  if (bookingMode.value === 'PACKAGE') {
+    pricingMode.value = 'PACKAGE_HOUR'
+    form.courtIds = form.courtIds.filter(id => {
+      const court = courts.value.find(item => item.id === id)
+      return court && court.enablePackageHour && Number(court.status) === 1
+    })
+    form.courtId = form.courtIds[0] || 0
+    return
+  }
+  const selected = selectedCourt.value || selectedCourts.value[0]
+  const sharedModes = getAvailableSharedPricingModes(selected)
+  if (sharedModes.length && !sharedModes.includes(pricingMode.value as 'SHARED_HOUR' | 'SHARED_TIME')) {
+    pricingMode.value = sharedModes[0]
+  }
+}
+
 function onCourtChange(event: { detail: { value: string } }) {
   courtIndex.value = Number(event.detail.value)
   if (courtIndex.value <= 0) {
@@ -469,19 +526,38 @@ function onCourtChange(event: { detail: { value: string } }) {
   }
   form.courtId = Number(courts.value[courtIndex.value - 1]?.id || 0)
   form.courtIds = form.courtId ? [form.courtId] : []
+  const targetCourt = courts.value[courtIndex.value - 1]
+  const modes = getAvailableSharedPricingModes(targetCourt)
+  if (modes.length && !modes.includes(pricingMode.value as 'SHARED_HOUR' | 'SHARED_TIME')) {
+    pricingMode.value = modes[0]
+  }
 }
 
 function isCourtDisabled(item: CourtItem) {
-  return Number(item.status) !== 1
+  if (Number(item.status) !== 1) return true
+  if (bookingMode.value === 'PACKAGE') return item.enablePackageHour !== true
+  return !getAvailableSharedPricingModes(item).includes(pricingMode.value as 'SHARED_HOUR' | 'SHARED_TIME')
 }
 
 function getCourtHintText(item: CourtItem) {
   if (Number(item.status) !== 1) return '维护中，当前不可选'
+  if (bookingMode.value === 'PACKAGE' && item.enablePackageHour !== true) return '该场地未开放包场'
+  if (bookingMode.value === 'SHARED' && !getAvailableSharedPricingModes(item).includes(pricingMode.value as 'SHARED_HOUR' | 'SHARED_TIME')) {
+    return getCourtMarketingSummary(item)
+  }
   const packagePrice = Number(item.packagePricePerHour || item.pricePerHour || 0)
   const sharedHourPrice = Number(item.sharedPricePerHour || item.pricePerHour || 0)
   const sharedTimePrice = Number(item.sharedPricePerTime || item.pricePerTime || item.pricePerHour || 0)
   if (bookingMode.value === 'PACKAGE') return `包场 ¥${formatAmount(packagePrice)}/小时`
   return pricingMode.value === 'SHARED_TIME' ? `拼场 ¥${formatAmount(sharedTimePrice)}/次` : `拼场 ¥${formatAmount(sharedHourPrice)}/小时`
+}
+
+function getCourtMarketingSummary(item: CourtItem) {
+  const modes: string[] = []
+  if (item.enablePackageHour) modes.push('包场')
+  if (item.enableSharedHour) modes.push('拼场小时')
+  if (item.enableSharedTime) modes.push('拼场按次')
+  return modes.length ? `已开放：${modes.join(' / ')}` : '当前未开放预约'
 }
 
 function togglePackageCourt(item: CourtItem) {
@@ -595,8 +671,20 @@ async function handleSubmit() {
     uni.showToast({ title: packageLeadTimeError.value, icon: 'none' })
     return
   }
+  if (!availableVenueBookingModes.value.includes(bookingMode.value)) {
+    uni.showToast({ title: '当前场馆未开放所选预约模式', icon: 'none' })
+    return
+  }
   if (bookingMode.value === 'PACKAGE' && form.courtIds.length >= courts.value.length) {
     uni.showToast({ title: '包场不能包下整个场馆全部场地', icon: 'none' })
+    return
+  }
+  if (bookingMode.value === 'PACKAGE' && selectedCourts.value.some(item => item.enablePackageHour !== true)) {
+    uni.showToast({ title: '所选场地包含未开放包场的场地', icon: 'none' })
+    return
+  }
+  if (bookingMode.value === 'SHARED' && selectedCourt.value && !getAvailableSharedPricingModes(selectedCourt.value).includes(pricingMode.value as 'SHARED_HOUR' | 'SHARED_TIME')) {
+    uni.showToast({ title: '该场地未开放当前拼场计费方式', icon: 'none' })
     return
   }
   if (occupancyCount.value > 0) {

@@ -746,6 +746,7 @@ public class BookingServiceImpl implements BookingService {
     private void validateModeAndConflicts(Booking booking, List<Court> courts, Long excludeBookingId) {
         if (Booking.MODE_SHARED.equals(booking.getBookingMode())) {
             Court court = courts.get(0);
+            ensurePricingModeEnabled(court, booking.getPricingMode());
             List<BookingCourt> packageConflicts = bookingCourtMapper.findPackageConflicts(
                     court.getId(), booking.getBookingDate(), booking.getStartTime(), booking.getEndTime(), excludeBookingId);
             if (!packageConflicts.isEmpty()) {
@@ -753,6 +754,7 @@ public class BookingServiceImpl implements BookingService {
             }
         } else if (Booking.MODE_PACKAGE.equals(booking.getBookingMode())) {
             for (Court court : courts) {
+                ensurePricingModeEnabled(court, Booking.PRICING_PACKAGE_HOUR);
                 List<BookingCourt> conflicts = bookingCourtMapper.findActiveConflicts(
                         court.getId(), booking.getBookingDate(), booking.getStartTime(), booking.getEndTime(), excludeBookingId);
                 if (!conflicts.isEmpty()) {
@@ -761,6 +763,18 @@ public class BookingServiceImpl implements BookingService {
             }
         } else {
             throw new BusinessException("未知预约模式");
+        }
+    }
+
+    private void ensurePricingModeEnabled(Court court, String pricingMode) {
+        if (Booking.PRICING_PACKAGE_HOUR.equals(pricingMode) && !Boolean.TRUE.equals(court.getEnablePackageHour())) {
+            throw new BusinessException("场地[" + court.getCourtName() + "]未开放包场按小时预约");
+        }
+        if (Booking.PRICING_SHARED_HOUR.equals(pricingMode) && !Boolean.TRUE.equals(court.getEnableSharedHour())) {
+            throw new BusinessException("场地[" + court.getCourtName() + "]未开放拼场按小时预约");
+        }
+        if (Booking.PRICING_SHARED_TIME.equals(pricingMode) && !Boolean.TRUE.equals(court.getEnableSharedTime())) {
+            throw new BusinessException("场地[" + court.getCourtName() + "]未开放拼场按次预约");
         }
     }
 

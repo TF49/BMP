@@ -816,6 +816,15 @@ public class BookingController extends BaseController {
                         item.put("courtName", court.getCourtName());
                         item.put("courtCode", court.getCourtCode());
                         item.put("venueId", court.getVenueId());
+                        item.put("billingType", court.getBillingType());
+                        item.put("pricePerHour", court.getPricePerHour());
+                        item.put("pricePerTime", court.getSharedPricePerTime());
+                        item.put("packagePricePerHour", court.getPackagePricePerHour());
+                        item.put("sharedPricePerHour", court.getSharedPricePerHour());
+                        item.put("sharedPricePerTime", court.getSharedPricePerTime());
+                        item.put("enablePackageHour", court.getEnablePackageHour());
+                        item.put("enableSharedHour", court.getEnableSharedHour());
+                        item.put("enableSharedTime", court.getEnableSharedTime());
                         item.put("status", court.getStatus());
                         return item;
                     })
