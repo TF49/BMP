@@ -119,8 +119,8 @@ import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import CoachTabBar from '@/components/coach/CoachTabBar.vue'
 import CoachTopBar from '@/components/coach/CoachTopBar.vue'
-import { getBookingsForCoach, updateBookingStatusForCoach, type CoachBookingItem } from '@/api/coachSelf'
-import { COACH_UNBOUND_PATH, isCoachUnboundError } from '@/utils/coachAccess'
+import { getBookingsForCoach, getCurrentCoach, updateBookingStatusForCoach, type CoachBookingItem } from '@/api/coachSelf'
+import { COACH_UNBOUND_PATH, isCoachUnboundError, resolveCoachAvatar } from '@/utils/coachAccess'
 import { safeReLaunch } from '@/utils/safeRoute'
 import {
   canCancelBooking,
@@ -134,7 +134,7 @@ import {
 
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = ref(systemInfo.statusBarHeight || 20)
-const avatar = '/static/placeholders/avatar.svg'
+const avatar = ref('/static/placeholders/avatar.svg')
 const loading = ref(true)
 const refreshing = ref(false)
 const loadFailed = ref(false)
@@ -178,11 +178,15 @@ async function loadStudents() {
   loadFailed.value = false
   errorMessage.value = '请稍后重试'
   try {
-    const result = await getBookingsForCoach({
-      page: 1,
-      size: 100,
-      courseId: courseId.value
-    })
+    const [coach, result] = await Promise.all([
+      getCurrentCoach(),
+      getBookingsForCoach({
+        page: 1,
+        size: 100,
+        courseId: courseId.value
+      })
+    ])
+    avatar.value = resolveCoachAvatar(coach.avatar)
     students.value = result.data || []
     total.value = Number(result.total || 0)
   } catch (error) {

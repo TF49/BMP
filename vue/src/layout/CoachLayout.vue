@@ -6,25 +6,7 @@
         <div class="header-left">
           <div class="logo-section" @click="$router.push('/coach/dashboard')">
             <div class="logo-icon">
-              <svg viewBox="0 0 100 100" class="badminton-logo">
-                <defs>
-                  <linearGradient id="coachFeatherGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#e0e0e0;stop-opacity:1" />
-                  </linearGradient>
-                  <linearGradient id="coachCorkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:0.6" />
-                    <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:0.3" />
-                  </linearGradient>
-                </defs>
-                <ellipse cx="50" cy="28" rx="20" ry="10" fill="url(#coachFeatherGrad)" />
-                <ellipse cx="50" cy="28" rx="16" ry="7" fill="url(#coachCorkGrad)" />
-                <path d="M32 28 Q50 70 50 100" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" fill="none" stroke-linecap="round" />
-                <path d="M36 28 Q50 60 50 88" stroke="rgba(255,255,255,0.7)" stroke-width="2" fill="none" stroke-linecap="round" />
-                <path d="M40 28 Q50 50 50 76" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round" />
-                <path d="M44 28 Q50 42 50 64" stroke="rgba(255,255,255,0.3)" stroke-width="1" fill="none" stroke-linecap="round" />
-                <circle cx="50" cy="100" r="3" fill="#ffffff" />
-              </svg>
+              <img :src="brandLogo" alt="羽擎 Logo" class="badminton-logo" />
             </div>
             <span class="logo-text">羽擎</span>
             <span class="logo-badge">教练</span>
@@ -89,6 +71,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { UserFilled, ArrowDown, User, SwitchButton, Odometer, Document, Calendar, List, WarningFilled } from '@element-plus/icons-vue'
+import brandLogo from '@/assets/brand-logo.png'
 import ThemeSelector from '@/components/ThemeSelector.vue'
 import { getCurrentCoach } from '@/api/coach'
 import { getToken, removeToken, removeRefreshToken } from '@/utils/auth'

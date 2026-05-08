@@ -30,6 +30,7 @@
       <!-- 左侧：动画角色区域（桌面端显示） -->
       <div class="login-left-chars">
         <div class="chars-brand">
+          <img :src="brandLogo" alt="羽擎 Logo" class="chars-brand-logo" />
           <h1 class="chars-brand-text">羽擎</h1>
           <p class="chars-brand-tagline">让运动更智能</p>
         </div>
@@ -75,6 +76,7 @@
       <div class="login-right-form">
         <div class="login-form-wrapper">
           <div class="login-mobile-brand">
+            <img :src="brandLogo" alt="羽擎 Logo" class="login-mobile-brand-logo" />
             <span class="login-mobile-brand-text">羽擎</span>
             <span class="login-mobile-brand-slogan">让运动更智能</span>
           </div>
@@ -429,131 +431,147 @@
     <!-- 忘记密码弹窗（与登录/注册同款 uiverse 风格） -->
     <el-dialog
       v-model="forgotPasswordVisible"
-      width="420px"
+      width="460px"
       :close-on-click-modal="false"
       class="forgot-password-dialog"
       @closed="resetForgotForm"
     >
       <template #header>
         <div class="forgot-dialog-header">
-          <div class="welcome-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18,8h-1V6c0-2.76-2.24-5-5-5S7,3.24,7,6v2H6c-1.1,0-2,0.9-2,2v10c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V10C20,8.9,19.1,8,18,8z M9,6c0-1.66,1.34-3,3-3s3,1.34,3,3v2H9V6z M18,20H6V10h12V20z M12,17c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S10.9,17,12,17z"/>
-            </svg>
+          <div class="forgot-dialog-badge">账户安全</div>
+          <div class="forgot-dialog-hero">
+            <div class="welcome-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18,8h-1V6c0-2.76-2.24-5-5-5S7,3.24,7,6v2H6c-1.1,0-2,0.9-2,2v10c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V10C20,8.9,19.1,8,18,8z M9,6c0-1.66,1.34-3,3-3s3,1.34,3,3v2H9V6z M18,20H6V10h12V20z M12,17c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S10.9,17,12,17z"/>
+              </svg>
+            </div>
+            <div class="forgot-dialog-copy">
+              <h2>找回密码</h2>
+              <p>核验账号身份后，即可为账户设置新的登录密码。</p>
+            </div>
           </div>
-          <h2>找回密码</h2>
-          <p>请验证身份后设置新密码</p>
+          <div class="forgot-dialog-steps" aria-hidden="true">
+            <span class="is-active">1. 身份验证</span>
+            <span>2. 设置新密码</span>
+            <span>3. 返回登录</span>
+          </div>
         </div>
       </template>
       <div class="forgot-password-inner">
-        <el-form ref="forgotFormRef" :model="forgotPasswordForm" :rules="forgotPasswordRules" label-width="0" size="medium" class="login-form">
-          <el-form-item prop="username" class="form-item-custom">
-            <div class="uiverse-input-container">
-              <div class="uiverse-input-wrapper" :class="{ 'uiverse-focused': forgotFocused.username, 'uiverse-has-value': forgotPasswordForm.username }">
-                <div class="uiverse-input-icon">
-                  <svg class="uiverse-uiverse-input-icon-svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                  </svg>
+        <div class="forgot-password-panel">
+          <div class="forgot-password-tip">
+            <span class="forgot-password-tip-dot"></span>
+            请填写注册时使用的用户名与身份证号，密码长度不少于 6 位。
+          </div>
+          <el-form ref="forgotFormRef" :model="forgotPasswordForm" :rules="forgotPasswordRules" label-width="0" size="medium" class="login-form">
+            <el-form-item prop="username" class="form-item-custom">
+              <div class="uiverse-input-container">
+                <div class="uiverse-input-wrapper" :class="{ 'uiverse-focused': forgotFocused.username, 'uiverse-has-value': forgotPasswordForm.username }">
+                  <div class="uiverse-input-icon">
+                    <svg class="uiverse-uiverse-input-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                  </div>
+                  <input
+                    v-model="forgotPasswordForm.username"
+                    type="text"
+                    autocomplete="off"
+                    placeholder=" "
+                    class="uiverse-input"
+                    maxlength="50"
+                    @focus="forgotFocused.username = true"
+                    @blur="forgotFocused.username = false"
+                  />
+                  <label class="floating-label">用户名</label>
+                  <div class="input-progress"></div>
                 </div>
-                <input
-                  v-model="forgotPasswordForm.username"
-                  type="text"
-                  autocomplete="off"
-                  placeholder=" "
-                  class="uiverse-input"
-                  maxlength="50"
-                  @focus="forgotFocused.username = true"
-                  @blur="forgotFocused.username = false"
-                />
-                <label class="floating-label">用户名</label>
-                <div class="input-progress"></div>
               </div>
-            </div>
-          </el-form-item>
-          <el-form-item prop="idCard" class="form-item-custom">
-            <div class="uiverse-input-container">
-              <div class="uiverse-input-wrapper" :class="{ 'uiverse-focused': forgotFocused.idCard, 'uiverse-has-value': forgotPasswordForm.idCard }">
-                <div class="uiverse-input-icon">
-                  <svg class="uiverse-uiverse-input-icon-svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2h5v-2h-5v2zm0-4h5v-2h-5v2zm-3-4h8V7H9v2z"/>
-                  </svg>
+            </el-form-item>
+            <el-form-item prop="idCard" class="form-item-custom">
+              <div class="uiverse-input-container">
+                <div class="uiverse-input-wrapper" :class="{ 'uiverse-focused': forgotFocused.idCard, 'uiverse-has-value': forgotPasswordForm.idCard }">
+                  <div class="uiverse-input-icon">
+                    <svg class="uiverse-uiverse-input-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2h5v-2h-5v2zm0-4h5v-2h-5v2zm-3-4h8V7H9v2z"/>
+                    </svg>
+                  </div>
+                  <input
+                    v-model="forgotPasswordForm.idCard"
+                    type="text"
+                    autocomplete="off"
+                    placeholder=" "
+                    class="uiverse-input"
+                    maxlength="18"
+                    @focus="forgotFocused.idCard = true"
+                    @blur="forgotFocused.idCard = false"
+                  />
+                  <label class="floating-label">身份证号</label>
+                  <div class="input-progress"></div>
                 </div>
-                <input
-                  v-model="forgotPasswordForm.idCard"
-                  type="text"
-                  autocomplete="off"
-                  placeholder=" "
-                  class="uiverse-input"
-                  maxlength="18"
-                  @focus="forgotFocused.idCard = true"
-                  @blur="forgotFocused.idCard = false"
-                />
-                <label class="floating-label">身份证号</label>
-                <div class="input-progress"></div>
               </div>
-            </div>
-          </el-form-item>
-          <el-form-item prop="newPassword" class="form-item-custom">
-            <div class="uiverse-input-container">
-              <div class="uiverse-input-wrapper" :class="{ 'uiverse-focused': forgotFocused.newPassword, 'uiverse-has-value': forgotPasswordForm.newPassword }">
-                <div class="uiverse-input-icon">
-                  <svg class="uiverse-uiverse-input-icon-svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18,8h-1V6c0-2.76-2.24-5-5-5S7,3.24,7,6v2H6c-1.1,0-2,0.9-2,2v10c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V10C20,8.9,19.1,8,18,8z M9,6c0-1.66,1.34-3,3-3s3,1.34,3,3v2H9V6z M18,20H6V10h12V20z M12,17c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S10.9,17,12,17z"/>
-                  </svg>
+            </el-form-item>
+            <el-form-item prop="newPassword" class="form-item-custom">
+              <div class="uiverse-input-container">
+                <div class="uiverse-input-wrapper" :class="{ 'uiverse-focused': forgotFocused.newPassword, 'uiverse-has-value': forgotPasswordForm.newPassword }">
+                  <div class="uiverse-input-icon">
+                    <svg class="uiverse-uiverse-input-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18,8h-1V6c0-2.76-2.24-5-5-5S7,3.24,7,6v2H6c-1.1,0-2,0.9-2,2v10c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V10C20,8.9,19.1,8,18,8z M9,6c0-1.66,1.34-3,3-3s3,1.34,3,3v2H9V6z M18,20H6V10h12V20z M12,17c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S10.9,17,12,17z"/>
+                    </svg>
+                  </div>
+                  <input
+                    v-model="forgotPasswordForm.newPassword"
+                    :type="showForgotPassword ? 'text' : 'password'"
+                    autocomplete="new-password"
+                    placeholder=" "
+                    class="uiverse-input"
+                    @focus="forgotFocused.newPassword = true"
+                    @blur="forgotFocused.newPassword = false"
+                  />
+                  <label class="floating-label">新密码（至少6位）</label>
+                  <div class="input-progress"></div>
+                  <button type="button" class="uiverse-password-toggle" @click="showForgotPassword = !showForgotPassword" aria-label="显示/隐藏密码">
+                    <svg v-if="!showForgotPassword" class="uiverse-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                    </svg>
+                    <svg v-else class="uiverse-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7z"/>
+                    </svg>
+                  </button>
                 </div>
-                <input
-                  v-model="forgotPasswordForm.newPassword"
-                  :type="showForgotPassword ? 'text' : 'password'"
-                  autocomplete="new-password"
-                  placeholder=" "
-                  class="uiverse-input"
-                  @focus="forgotFocused.newPassword = true"
-                  @blur="forgotFocused.newPassword = false"
-                />
-                <label class="floating-label">新密码（至少6位）</label>
-                <div class="input-progress"></div>
-                <button type="button" class="uiverse-password-toggle" @click="showForgotPassword = !showForgotPassword" aria-label="显示/隐藏密码">
-                  <svg v-if="!showForgotPassword" class="uiverse-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                  </svg>
-                  <svg v-else class="uiverse-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7z"/>
-                  </svg>
-                </button>
               </div>
-            </div>
-          </el-form-item>
-          <el-form-item prop="confirmPassword" class="form-item-custom">
-            <div class="uiverse-input-container">
-              <div class="uiverse-input-wrapper" :class="{ 'uiverse-focused': forgotFocused.confirmPassword, 'uiverse-has-value': forgotPasswordForm.confirmPassword }">
-                <div class="uiverse-input-icon">
-                  <svg class="uiverse-uiverse-input-icon-svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18,8h-1V6c0-2.76-2.24-5-5-5S7,3.24,7,6v2H6c-1.1,0-2,0.9-2,2v10c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V10C20,8.9,19.1,8,18,8z M9,6c0-1.66,1.34-3,3-3s3,1.34,3,3v2H9V6z M18,20H6V10h12V20z M12,17c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S10.9,17,12,17z"/>
-                  </svg>
+            </el-form-item>
+            <el-form-item prop="confirmPassword" class="form-item-custom">
+              <div class="uiverse-input-container">
+                <div class="uiverse-input-wrapper" :class="{ 'uiverse-focused': forgotFocused.confirmPassword, 'uiverse-has-value': forgotPasswordForm.confirmPassword }">
+                  <div class="uiverse-input-icon">
+                    <svg class="uiverse-uiverse-input-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18,8h-1V6c0-2.76-2.24-5-5-5S7,3.24,7,6v2H6c-1.1,0-2,0.9-2,2v10c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V10C20,8.9,19.1,8,18,8z M9,6c0-1.66,1.34-3,3-3s3,1.34,3,3v2H9V6z M18,20H6V10h12V20z M12,17c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S10.9,17,12,17z"/>
+                    </svg>
+                  </div>
+                  <input
+                    v-model="forgotPasswordForm.confirmPassword"
+                    :type="showForgotPassword ? 'text' : 'password'"
+                    autocomplete="new-password"
+                    placeholder=" "
+                    class="uiverse-input"
+                    @focus="forgotFocused.confirmPassword = true"
+                    @blur="forgotFocused.confirmPassword = false"
+                  />
+                  <label class="floating-label">确认新密码</label>
+                  <div class="input-progress"></div>
+                  <button type="button" class="uiverse-password-toggle" @click="showForgotPassword = !showForgotPassword" aria-label="显示/隐藏密码">
+                    <svg v-if="!showForgotPassword" class="uiverse-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                    </svg>
+                    <svg v-else class="uiverse-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7z"/>
+                    </svg>
+                  </button>
                 </div>
-                <input
-                  v-model="forgotPasswordForm.confirmPassword"
-                  :type="showForgotPassword ? 'text' : 'password'"
-                  autocomplete="new-password"
-                  placeholder=" "
-                  class="uiverse-input"
-                  @focus="forgotFocused.confirmPassword = true"
-                  @blur="forgotFocused.confirmPassword = false"
-                />
-                <label class="floating-label">确认新密码</label>
-                <div class="input-progress"></div>
-                <button type="button" class="uiverse-password-toggle" @click="showForgotPassword = !showForgotPassword" aria-label="显示/隐藏密码">
-                  <svg v-if="!showForgotPassword" class="uiverse-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                  </svg>
-                  <svg v-else class="uiverse-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7z"/>
-                  </svg>
-                </button>
               </div>
-            </div>
-          </el-form-item>
-        </el-form>
+            </el-form-item>
+          </el-form>
+        </div>
       </div>
       <template #footer>
         <div class="forgot-dialog-footer">
@@ -590,6 +608,7 @@ import { encrypt, decrypt } from '@/utils/jsencrypt'
 import defaultSettings from '@/settings'
 import { setToken, setUserInfo, saveLoginData } from '@/utils/auth'
 import AnimatedCharactersScene from '@/components/AnimatedCharactersScene.vue'
+import brandLogo from '@/assets/brand-logo.png'
 
 export default {
   name: 'Login',
@@ -598,6 +617,7 @@ export default {
   },
   data() {
     return {
+      brandLogo,
       title: process.env.VUE_APP_TITLE,
       systemInfo: defaultSettings.footerContent,
       codeUrl: '',
@@ -1201,6 +1221,14 @@ export default {
   text-align: center;
 }
 
+.chars-brand-logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+}
+
 .chars-brand-text {
   font-size: 28px;
   font-weight: 700;
@@ -1331,6 +1359,14 @@ export default {
   @media (min-width: 1024px) {
     display: none;
   }
+}
+
+.login-mobile-brand-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
 .login-mobile-brand-text {
@@ -2635,69 +2671,189 @@ export default {
 /* 忘记密码弹窗：与登录/注册页一致的 uiverse 风格（弹窗 teleported 到 body，需全局样式） */
 .forgot-password-dialog {
   .el-dialog {
-    border-radius: 20px;
+    width: min(460px, calc(100vw - 32px)) !important;
+    border-radius: 28px;
     overflow: hidden;
-    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background:
+      radial-gradient(circle at top left, rgba(96, 165, 250, 0.2), transparent 32%),
+      radial-gradient(circle at top right, rgba(249, 115, 22, 0.2), transparent 30%),
+      linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
   }
   .el-dialog__header {
     padding: 0;
     margin: 0;
   }
   .el-dialog__body {
-    padding: 0 28px 24px;
-    background: #fff;
+    padding: 0 28px 20px;
+    background: transparent;
   }
   .el-dialog__footer {
-    padding: 0 28px 24px 28px;
-    background: #fff;
+    padding: 0 28px 28px 28px;
+    background: transparent;
   }
   .forgot-dialog-header {
-    text-align: center;
-    padding: 28px 28px 24px;
-    background: #fff;
+    position: relative;
+    padding: 20px 28px 18px;
+    background: transparent;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(148, 163, 184, 0), rgba(148, 163, 184, 0.45), rgba(148, 163, 184, 0));
+    }
+
+    .forgot-dialog-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      color: #b45309;
+      background: rgba(255, 237, 213, 0.95);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      box-shadow: 0 10px 20px rgba(249, 115, 22, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .forgot-dialog-hero {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
 
     .welcome-icon {
-      width: 72px;
-      height: 72px;
-      margin: 0 auto 20px;
+      width: 76px;
+      height: 76px;
+      flex: 0 0 76px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: linear-gradient(135deg, var(--color-primary, #3B82F6) 0%, var(--color-primary-light, #60A5FA) 50%, var(--color-accent, #F97316) 100%);
       background-size: 200% 200%;
-      border-radius: 20px;
+      border-radius: 24px;
       color: #ffffff;
-      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      box-shadow: 0 18px 35px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 
       svg {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
       }
     }
-    h2 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0 0 8px;
+
+    .forgot-dialog-copy {
+      min-width: 0;
+
+      h2 {
+        font-size: 28px;
+        line-height: 1.15;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 8px;
+      }
+
+      p {
+        font-size: 14px;
+        line-height: 1.7;
+        color: #64748b;
+        margin: 0;
+      }
     }
-    p {
-      font-size: 14px;
-      color: #64748b;
-      margin: 0;
+
+    .forgot-dialog-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+
+      span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 0 10px;
+        text-align: center;
+        border-radius: 14px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(226, 232, 240, 0.92);
+      }
+
+      .is-active {
+        color: #0f172a;
+        background: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(255, 237, 213, 0.92));
+        border-color: rgba(96, 165, 250, 0.25);
+        box-shadow: 0 12px 24px rgba(59, 130, 246, 0.08);
+      }
     }
   }
   .forgot-password-inner {
+    padding-top: 18px;
+
+    .forgot-password-panel {
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(226, 232, 240, 0.85);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.85),
+        0 14px 30px rgba(15, 23, 42, 0.07);
+    }
+
+    .forgot-password-tip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #475569;
+      background: linear-gradient(135deg, rgba(239, 246, 255, 0.92), rgba(255, 247, 237, 0.92));
+      border: 1px solid rgba(191, 219, 254, 0.9);
+    }
+
+    .forgot-password-tip-dot {
+      width: 10px;
+      height: 10px;
+      flex: 0 0 10px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #f97316);
+      box-shadow: 0 0 0 5px rgba(96, 165, 250, 0.12);
+    }
+
+    .login-form {
+      margin-bottom: -2px;
+    }
+
     .uiverse-input-wrapper {
-      background: #f8fafc;
-      border-color: #e2e8f0;
+      min-height: 58px;
+      background: rgba(248, 250, 252, 0.92);
+      border-color: #dbe3ef;
+      border-radius: 18px;
+      box-shadow: 0 10px 22px rgba(148, 163, 184, 0.12);
     }
     .uiverse-input-wrapper:hover {
-      background: #f1f5f9;
-      border-color: #cbd5e1;
+      background: #f8fbff;
+      border-color: #bfdbfe;
+      box-shadow: 0 14px 28px rgba(96, 165, 250, 0.12);
     }
     .uiverse-input-wrapper.uiverse-focused {
       background: #fff;
       border-color: var(--color-primary, #3B82F6);
+      box-shadow:
+        0 0 0 4px rgba(59, 130, 246, 0.1),
+        0 18px 30px rgba(59, 130, 246, 0.16);
     }
     .uiverse-input {
       color: #0f172a;
@@ -2734,29 +2890,92 @@ export default {
   .forgot-dialog-footer {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 12px;
+    padding-top: 4px;
   }
   .forgot-btn-cancel {
-    padding: 12px 24px;
+    min-width: 108px;
+    height: 48px;
+    padding: 0 24px;
     font-size: 15px;
-    font-weight: 500;
-    color: #64748b;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    font-weight: 600;
+    color: #475569;
+    background: rgba(241, 245, 249, 0.9);
+    border: 1px solid #dbe3ef;
+    border-radius: 16px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
   }
   .forgot-btn-cancel:hover {
-    background: #e2e8f0;
-    border-color: #cbd5e1;
+    background: #ffffff;
+    border-color: #93c5fd;
     color: #0f172a;
+    box-shadow: 0 12px 24px rgba(96, 165, 250, 0.12);
   }
   .forgot-btn-submit {
-    flex: 0 0 auto;
-    min-width: 140px;
-    height: 48px;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 52px;
+    border-radius: 16px;
+    box-shadow: 0 18px 28px rgba(59, 130, 246, 0.22);
+  }
+
+  @media (max-width: 640px) {
+    .el-dialog {
+      border-radius: 24px;
+    }
+
+    .el-dialog__body,
+    .el-dialog__footer {
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+
+    .forgot-dialog-header {
+      padding: 18px 18px 16px;
+
+      &::after {
+        left: 18px;
+        right: 18px;
+      }
+
+      .forgot-dialog-hero {
+        align-items: flex-start;
+      }
+
+      .welcome-icon {
+        width: 64px;
+        height: 64px;
+        flex-basis: 64px;
+        border-radius: 20px;
+      }
+
+      .forgot-dialog-copy h2 {
+        font-size: 24px;
+      }
+
+      .forgot-dialog-steps {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .forgot-password-inner {
+      .forgot-password-panel {
+        padding: 14px;
+        border-radius: 20px;
+      }
+    }
+
+    .forgot-dialog-footer {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+
+    .forgot-btn-cancel,
+    .forgot-btn-submit {
+      width: 100%;
+    }
   }
 }
 </style>

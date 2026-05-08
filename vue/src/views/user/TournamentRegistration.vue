@@ -58,6 +58,10 @@
                 </div>
                 <div class="tournament-details">
                   <div class="detail-item">
+                    <span class="detail-label">项目</span>
+                    <span class="detail-value">{{ getTournamentEventLabel(tournament) }}</span>
+                  </div>
+                  <div class="detail-item">
                     <span class="detail-label">报名费</span>
                     <span class="detail-value price">¥{{ formatCurrency(tournament.registrationFee || 0) }}</span>
                   </div>
@@ -96,12 +100,20 @@
                 <span class="info-value">{{ formatTimeRange(selectedTournament?.startTime, selectedTournament?.endTime) }}</span>
               </div>
               <div class="info-item">
+                <span class="info-label">比赛项目</span>
+                <span class="info-value">{{ getTournamentEventLabel(selectedTournament) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">赛制类型</span>
+                <span class="info-value">{{ getTournamentFormatLabel(selectedTournament) }}</span>
+              </div>
+              <div class="info-item">
                 <span class="info-label">报名费用</span>
                 <span class="info-value price">¥{{ formatCurrency(selectedTournament?.registrationFee || 0) }}</span>
               </div>
             </div>
             <el-form :model="registrationForm" label-width="120px" class="info-form">
-              <el-form-item v-if="isDoublesOrMixed(selectedTournament?.tournamentType)" label="搭档">
+              <el-form-item v-if="isTournamentDoubles(selectedTournament)" label="搭档">
                 <el-select v-model="registrationForm.partnerId" placeholder="请选择搭档会员" filterable clearable style="width: 100%">
                   <el-option
                     v-for="member in partnerOptions"
@@ -152,10 +164,18 @@
                   <span class="confirm-value">{{ formatTimeRange(selectedTournament?.startTime, selectedTournament?.endTime) }}</span>
                 </div>
                 <div class="confirm-item">
+                  <span class="confirm-label">比赛项目</span>
+                  <span class="confirm-value">{{ getTournamentEventLabel(selectedTournament) }}</span>
+                </div>
+                <div class="confirm-item">
+                  <span class="confirm-label">赛制类型</span>
+                  <span class="confirm-value">{{ getTournamentFormatLabel(selectedTournament) }}</span>
+                </div>
+                <div class="confirm-item">
                   <span class="confirm-label">报名费用</span>
                   <span class="confirm-value price">¥{{ formatCurrency(selectedTournament?.registrationFee || 0) }}</span>
                 </div>
-                <div v-if="isDoublesOrMixed(selectedTournament?.tournamentType)" class="confirm-item">
+                <div v-if="isTournamentDoubles(selectedTournament)" class="confirm-item">
                   <span class="confirm-label">搭档</span>
                   <span class="confirm-value">{{ getPartnerName(registrationForm.partnerId) }}</span>
                 </div>
@@ -163,7 +183,7 @@
                   <span class="confirm-label">补充说明</span>
                   <span class="confirm-value">{{ registrationForm.remark || '无' }}</span>
                 </div>
-                <p v-if="isDoublesOrMixed(selectedTournament?.tournamentType)" class="confirm-fee-hint">双打/混双为一对总价（单人费×2），由您一次性支付，搭档不扣款。</p>
+                <p v-if="isTournamentDoubles(selectedTournament)" class="confirm-fee-hint">双打/混双为一对总价（单人费×2），由您一次性支付，搭档不扣款。</p>
               </div>
               <div class="confirm-actions">
                 <el-button @click="step = 2" size="large">返回修改</el-button>
@@ -245,6 +265,11 @@ import {
   processMemberTournamentRegistrationPayment,
   getTournamentRegistrationMembers
 } from '@/api/tournamentRegistration'
+import {
+  getTournamentEventLabel,
+  isTournamentDoubles,
+  normalizeTournamentFormatType
+} from '@/utils/tournament'
 
 const activeTab = ref('register')
 const step = ref(1) // 1-选择赛事, 2-填写信息, 3-确认报名
@@ -312,21 +337,20 @@ const getRegistrationStatusType = (status) => {
   return map[status] || 'info'
 }
 
-const isDoublesOrMixed = (type) => type === 'DOUBLE' || type === 'MIXED'
+const getTournamentFormatLabel = (tournament) => normalizeTournamentFormatType(tournament)
 
 const loadTournaments = async () => {
   try {
     const res = await getTournamentList({ page: 1, size: 100 })
     if (res.code === 200) {
       const list = res.data?.data || res.data?.records || res.data || []
-      // 兼容后端字段：tournamentStart/tournamentEnd/entryFee/tournamentType，双打/混双报名费×2
       const baseFee = (t) => {
         const n = Number(t.registrationFee ?? t.entryFee ?? 0)
         return Number.isNaN(n) || n < 0 ? 0 : n
       }
       tournamentList.value = (Array.isArray(list) ? list : []).map((t) => {
         let fee = baseFee(t)
-        if (isDoublesOrMixed(t.tournamentType)) fee = Math.round(fee * 2 * 100) / 100
+        if (isTournamentDoubles(t)) fee = Math.round(fee * 2 * 100) / 100
         return {
           ...t,
           startTime: t.startTime ?? t.tournamentStart,
@@ -369,7 +393,7 @@ const resetRegistrationForm = () => {
 }
 
 const submitRegistration = async () => {
-  if (isDoublesOrMixed(selectedTournament.value?.tournamentType) && !registrationForm.value.partnerId) {
+  if (isTournamentDoubles(selectedTournament.value) && !registrationForm.value.partnerId) {
     ElMessage.warning('双打/混双赛事请选择搭档')
     step.value = 2
     return

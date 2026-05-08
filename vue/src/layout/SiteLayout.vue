@@ -6,14 +6,7 @@
       <div class="site-nav__inner">
         <router-link class="site-brand" to="/site" aria-label="返回官网首页">
           <span class="site-brand__mark" aria-hidden="true">
-            <svg class="site-brand__svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="20" cy="10" rx="8" ry="4" fill="currentColor" opacity="0.95" />
-              <path d="M14 10q6 14 6 22" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.9" />
-              <path d="M18 10q4 10 4 18" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7" />
-              <path d="M22 10q-4 10-4 18" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7" />
-              <path d="M26 10q-6 14-6 22" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.9" />
-              <circle cx="20" cy="32" r="2.5" fill="currentColor" opacity="0.95" />
-            </svg>
+            <img :src="brandLogo" alt="羽擎 Logo" class="site-brand__svg" />
           </span>
           <span class="site-brand__text">
             <span class="site-brand__title">羽擎</span>
@@ -145,6 +138,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import brandLogo from '@/assets/brand-logo.png'
 import ThemeSelector from '@/components/ThemeSelector.vue'
 import FloatingContact from '@/components/FloatingContact.vue'
 

@@ -6,12 +6,12 @@ name = "BMP"
 script = ""
 
 [[actions]]
-name = "运行"
+name = "后端"
 icon = "run"
-command = "npm run serve"
+command = "mvn spring-boot:run"
 
 [[actions]]
-name = "serve"
+name = "前端"
 icon = "run"
 command = '''
 cd vue

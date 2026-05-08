@@ -184,7 +184,7 @@
               </el-option>
             </el-select>
           </el-form-item>
-          <el-form-item :label="form.tournamentId && isDoublesOrMixed(selectedTournamentType) ? '搭档（必填）' : '搭档（可选）'" class="modern-form-item">
+          <el-form-item :label="form.tournamentId && isTournamentDoubles(selectedTournamentType) ? '搭档（必填）' : '搭档（可选）'" class="modern-form-item">
             <el-input
               v-model="partnerKeyword"
               placeholder="输入姓名/手机号搜索"
@@ -193,7 +193,7 @@
             />
             <el-select
               v-model="form.partnerId"
-              :placeholder="form.tournamentId && isDoublesOrMixed(selectedTournamentType) ? '双打/混双请选择搭档' : '选择搭档'"
+              :placeholder="form.tournamentId && isTournamentDoubles(selectedTournamentType) ? '双打/混双请选择搭档' : '选择搭档'"
               filterable
               style="width: 100%; margin-top: 8px"
               @change="handlePartnerChange"
@@ -287,6 +287,10 @@ import {
   processTournamentRegistrationPayment,
   processTournamentRegistrationRefund
 } from '@/api/tournamentRegistration'
+import {
+  isTournamentDoubles,
+  normalizeTournamentEventType
+} from '@/utils/tournament'
 
 const searchForm = reactive({
   registrationNo: '',
@@ -316,13 +320,12 @@ const selectedVenueName = computed(() => {
 })
 
 // 双打/混双时报名费为赛事单人费×2
-const isDoublesOrMixed = (type) => type === 'DOUBLE' || type === 'MIXED'
 
 // 当前选中赛事的类型（用于双打/混双必填搭档等）
 const selectedTournamentType = computed(() => {
   if (!form.tournamentId) return null
   const t = tournamentOptions.value.find((item) => item.id === form.tournamentId)
-  return t?.tournamentType ?? null
+  return t ? normalizeTournamentEventType(t) : null
 })
 // 当前选中赛事的报名费（与赛事管理一致；双打/混双自动×2，只读）
 const selectedTournamentFee = computed(() => {
@@ -331,7 +334,7 @@ const selectedTournamentFee = computed(() => {
   if (t == null || t.entryFee == null) return 0
   let num = Number(t.entryFee)
   if (Number.isNaN(num) || num < 0) num = 0
-  if (isDoublesOrMixed(t.tournamentType)) num *= 2
+  if (isTournamentDoubles(t)) num *= 2
   return Math.round(num * 100) / 100
 })
 
@@ -433,7 +436,7 @@ const onTournamentChange = (tournamentId) => {
   if (t != null) {
     let num = Number(t.entryFee)
     if (Number.isNaN(num) || num < 0) num = 0
-    if (isDoublesOrMixed(t.tournamentType)) num *= 2
+    if (isTournamentDoubles(t)) num *= 2
     form.fee = Math.round(num * 100) / 100
   }
 }
@@ -619,7 +622,7 @@ const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (!valid) return
-    if (form.tournamentId && isDoublesOrMixed(selectedTournamentType.value) && !form.partnerId) {
+    if (form.tournamentId && isTournamentDoubles(selectedTournamentType.value) && !form.partnerId) {
       ElMessage.warning('双打/混双赛事必须选择搭档')
       return
     }

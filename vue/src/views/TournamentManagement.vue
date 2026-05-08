@@ -54,9 +54,11 @@
               </el-form-item>
               <el-form-item label="类型" class="search-item">
                 <el-select v-model="searchForm.type" placeholder="全部类型" clearable class="search-select-small">
-                  <el-option label="单打" value="SINGLE" />
-                  <el-option label="双打" value="DOUBLE" />
-                  <el-option label="混双" value="MIXED" />
+                  <el-option label="男单" value="MS" />
+                  <el-option label="女单" value="WS" />
+                  <el-option label="男双" value="MD" />
+                  <el-option label="女双" value="WD" />
+                  <el-option label="混双" value="XD" />
                 </el-select>
               </el-form-item>
               <el-form-item label="状态" class="search-item">
@@ -99,9 +101,12 @@
         >
           <el-table-column prop="tournamentName" label="赛事名称" min-width="160" />
           <el-table-column prop="venueName" label="场馆" min-width="120" />
-          <el-table-column prop="type" label="类型" min-width="100">
+          <el-table-column label="类型" min-width="120">
             <template #default="scope">
-              <el-tag size="small">{{ getTypeText(scope.row.type) }}</el-tag>
+              <div class="type-cell">
+                <el-tag size="small">{{ getTypeText(scope.row) }}</el-tag>
+                <div class="type-subtext">{{ getFormatText(scope.row) }}</div>
+              </div>
             </template>
           </el-table-column>
           <el-table-column label="费用" min-width="110">
@@ -176,11 +181,21 @@
               <el-option v-for="item in venueOptions" :key="item.id" :label="item.venueName" :value="item.id" />
             </el-select>
           </el-form-item>
-          <el-form-item label="类型" prop="type" class="modern-form-item">
-            <el-select v-model="form.type" placeholder="选择类型">
-              <el-option label="单打" value="SINGLE" />
-              <el-option label="双打" value="DOUBLE" />
-              <el-option label="混双" value="MIXED" />
+          <el-form-item label="比赛项目" prop="eventType" class="modern-form-item">
+            <el-select v-model="form.eventType" placeholder="选择比赛项目">
+              <el-option label="男单" value="MS" />
+              <el-option label="女单" value="WS" />
+              <el-option label="男双" value="MD" />
+              <el-option label="女双" value="WD" />
+              <el-option label="混双" value="XD" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="赛制类型" prop="formatType" class="modern-form-item">
+            <el-select v-model="form.formatType" placeholder="选择赛制类型">
+              <el-option label="单败淘汰制" value="单败淘汰制" />
+              <el-option label="循环赛制" value="循环赛制" />
+              <el-option label="双败淘汰制" value="双败淘汰制" />
+              <el-option label="瑞士轮制" value="瑞士轮制" />
             </el-select>
           </el-form-item>
           <el-form-item label="报名时间" prop="enrollRange" class="modern-form-item">
@@ -242,6 +257,11 @@ import {
   getTournamentStatistics,
   getTournamentVenues
 } from '@/api/tournament'
+import {
+  getTournamentEventLabel,
+  normalizeTournamentEventType,
+  normalizeTournamentFormatType
+} from '@/utils/tournament'
 
 const searchForm = reactive({
   name: '',
@@ -266,7 +286,8 @@ const form = reactive({
   id: null,
   tournamentName: '',
   venueId: null,
-  type: 'SINGLE',
+  eventType: 'MS',
+  formatType: '单败淘汰制',
   enrollRange: [],
   matchRange: [],
   fee: 0,
@@ -276,7 +297,8 @@ const form = reactive({
 const formRules = {
   tournamentName: [{ required: true, message: '请输入赛事名称', trigger: 'blur' }],
   venueId: [{ required: true, message: '请选择场馆', trigger: 'change' }],
-  type: [{ required: true, message: '请选择类型', trigger: 'change' }],
+  eventType: [{ required: true, message: '请选择比赛项目', trigger: 'change' }],
+  formatType: [{ required: true, message: '请选择赛制类型', trigger: 'change' }],
   enrollRange: [{ required: true, message: '请选择报名时间', trigger: 'change' }],
   matchRange: [{ required: true, message: '请选择比赛时间', trigger: 'change' }],
   maxParticipants: [{ required: true, message: '请输入最大人数', trigger: 'blur' }],
@@ -309,10 +331,9 @@ const getStatusType = (status) => {
   return map[status] || 'info'
 }
 
-const getTypeText = (type) => {
-  const map = { SINGLE: '单打', DOUBLE: '双打', MIXED: '混双' }
-  return map[type] || '未知'
-}
+const getTypeText = (item) => getTournamentEventLabel(item)
+
+const getFormatText = (item) => normalizeTournamentFormatType(item)
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined) return '0.00'
@@ -371,11 +392,11 @@ const loadList = async () => {
     }
     const res = await getTournamentList(params)
     if (res.code === 200) {
-      // 兼容后端字段名（tournamentType）与前端使用的 type 字段
       const list = res.data?.data || []
       tournamentList.value = list.map((item) => ({
         ...item,
-        type: item.type || item.tournamentType || null
+        eventType: normalizeTournamentEventType(item),
+        formatType: normalizeTournamentFormatType(item)
       }))
       pagination.total = res.data?.total || 0
     } else {
@@ -428,8 +449,8 @@ const handleEdit = async (row) => {
           id: data.id,
           tournamentName: data.tournamentName,
           venueId: data.venueId,
-          // 兼容后端字段名：优先使用 type，其次使用 tournamentType
-          type: data.type || data.tournamentType || 'SINGLE',
+          eventType: normalizeTournamentEventType(data),
+          formatType: normalizeTournamentFormatType(data),
           enrollRange: [data.registrationStart, data.registrationEnd],
           matchRange: [data.tournamentStart, data.tournamentEnd],
           fee: data.entryFee,
@@ -474,8 +495,9 @@ const handleSubmit = async () => {
         id: form.id,
         tournamentName: form.tournamentName,
         venueId: form.venueId,
-        type: form.type,
-        tournamentType: form.type,
+        eventType: form.eventType,
+        formatType: form.formatType,
+        tournamentType: form.formatType,
         registrationStart: form.enrollRange?.[0],
         registrationEnd: form.enrollRange?.[1],
         tournamentStart: form.matchRange?.[0],
@@ -525,7 +547,8 @@ const resetForm = () => {
     id: null,
     tournamentName: '',
     venueId: null,
-    type: 'SINGLE',
+    eventType: 'MS',
+    formatType: '单败淘汰制',
     enrollRange: [],
     matchRange: [],
     fee: 0,
@@ -767,6 +790,19 @@ onUnmounted(() => {
 .price-text {
   color: var(--color-danger, #ef4444);
   font-weight: 600;
+}
+
+.type-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.type-subtext {
+  font-size: 12px;
+  color: var(--color-text-secondary, #64748B);
+  line-height: 1.2;
 }
 
 .operation-buttons {

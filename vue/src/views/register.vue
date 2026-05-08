@@ -27,6 +27,7 @@
       <!-- 左侧：与登录页一致的人物动画区域（桌面端显示） -->
       <div class="register-left-chars">
         <div class="chars-brand">
+          <img :src="brandLogo" alt="羽擎 Logo" class="chars-brand-logo" />
           <h1 class="chars-brand-text">羽擎</h1>
           <p class="chars-brand-tagline">让运动更智能</p>
         </div>
@@ -71,6 +72,7 @@
       <div class="register-right">
         <div class="register-card">
           <div class="register-mobile-brand">
+            <img :src="brandLogo" alt="羽擎 Logo" class="register-mobile-brand-logo" />
             <span class="register-mobile-brand-text">羽擎</span>
           </div>
           <div class="register-header">
@@ -323,6 +325,7 @@
 import { getCodeImg, register } from '@/api/login'
 import defaultSettings from '@/settings'
 import AnimatedCharactersScene from '@/components/AnimatedCharactersScene.vue'
+import brandLogo from '@/assets/brand-logo.png'
 
 export default {
   name: 'Register',
@@ -383,6 +386,7 @@ export default {
     }
 
     return {
+      brandLogo,
       title: process.env.VUE_APP_TITLE,
       systemInfo: defaultSettings.footerContent,
       codeUrl: '',
@@ -718,6 +722,14 @@ export default {
   text-align: center;
 }
 
+.chars-brand-logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+}
+
 .chars-brand-text {
   font-size: 28px;
   font-weight: 700;
@@ -964,6 +976,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   margin-bottom: 24px;
   font-size: 18px;
   font-weight: 600;
@@ -972,6 +985,14 @@ export default {
   @media (min-width: 1024px) {
     display: none;
   }
+}
+
+.register-mobile-brand-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
 .register-header {

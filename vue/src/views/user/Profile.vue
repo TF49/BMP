@@ -227,6 +227,24 @@ const profileForm = reactive<CurrentUserProfile>({
 const currentMemberType = ref('')
 const currentMemberLevel = ref(0)
 
+const resetCurrentMemberState = () => {
+  currentMemberType.value = ''
+  currentMemberLevel.value = 0
+}
+
+const getEffectiveRole = () => {
+  const cachedUser = getUserInfo()
+  if (cachedUser?.role) return cachedUser.role
+  if (userProfile.value?.username && userProfile.value?.role) return userProfile.value.role
+  if (profileForm.username && profileForm.role) return profileForm.role
+  return ''
+}
+
+const shouldLoadMemberProfile = () => {
+  const role = getEffectiveRole()
+  return role === 'USER' || role === 'MEMBER'
+}
+
 // 加入时间格式化为 yyyy-MM-dd HH:mm（用于 title 等完整展示）
 const formatJoinTime = (dateTime: string | undefined): string => {
   if (!dateTime) return ''
@@ -310,6 +328,10 @@ const roleTagType = computed<'danger' | 'warning' | 'success' | ''>(() => {
 })
 
 const loadCurrentMember = async () => {
+  if (!shouldLoadMemberProfile()) {
+    resetCurrentMemberState()
+    return
+  }
   try {
     const res: any = await getCurrentMember()
     if (res?.code === 200 && res?.data) {
@@ -501,9 +523,9 @@ const handleQuickAction = (type: 'password' | 'security' | 'notification' | 'hel
   }
 }
 
-onMounted(() => {
-  loadProfile()
-  loadCurrentMember()
+onMounted(async () => {
+  await loadProfile()
+  await loadCurrentMember()
 })
 </script>
 
