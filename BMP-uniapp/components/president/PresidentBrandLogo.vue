@@ -1,7 +1,7 @@
 <template>
   <view class="brand-logo" :class="{ 'brand-logo--floating': floating }" :style="brandStyle">
     <view class="brand-logo-avatar">
-      <image class="brand-logo-avatar-image" src="/static/placeholders/avatar.svg" mode="aspectFill" />
+      <image class="brand-logo-avatar-image" :src="brandAvatar" mode="aspectFill" />
     </view>
     <text class="brand-logo-text">Kinetic Logic</text>
   </view>
@@ -10,6 +10,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { useUserStore } from '@/store/modules/user'
+import { getAvatarImage } from '@/utils/displayImage'
 
 interface Props {
   width?: string
@@ -21,11 +23,14 @@ const props = withDefaults(defineProps<Props>(), {
   floating: false
 })
 
+const userStore = useUserStore()
 const statusBarHeight = ref(0)
 
 onMounted(() => {
   statusBarHeight.value = getSafeSystemInfo().statusBarHeight || 0
 })
+
+const brandAvatar = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 
 const brandStyle = computed(() => ({
   '--brand-width': props.width,

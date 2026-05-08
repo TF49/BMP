@@ -41,7 +41,7 @@
           </view>
 
           <view class="section">
-            <text class="section-title">Core Management</text>
+            <text class="section-title">核心管理</text>
             <view class="grid-2">
               <view
                 v-for="item in coreManagementTiles"
@@ -59,7 +59,7 @@
           </view>
 
           <view class="section">
-            <text class="section-title system-tools-gap">System Tools</text>
+            <text class="section-title system-tools-gap">系统工具</text>
             <view class="list-card">
               <view class="list-row" hover-class="list-row-hover" @tap="goAuditLog">
                 <view class="list-row-left">
@@ -94,7 +94,7 @@
           </view>
 
           <view class="section">
-            <text class="section-title general-gap">General</text>
+            <text class="section-title general-gap">通用设置</text>
             <view class="list-card">
               <view class="list-row" hover-class="list-row-hover" @tap="goSettings">
                 <view class="list-row-left">
@@ -618,6 +618,7 @@ statusBarHeight.value = systemInfo.statusBarHeight || 44
 
 .logout-btn {
   width: 100%;
+  box-sizing: border-box;
   padding: 32rpx;
   border-radius: 24rpx;
   background: #e2e2e2;
@@ -625,7 +626,9 @@ statusBarHeight.value = systemInfo.statusBarHeight || 44
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 16rpx;
+  overflow: hidden;
 }
 
 .logout-btn-hover {
@@ -636,5 +639,7 @@ statusBarHeight.value = systemInfo.statusBarHeight || 44
   font-size: 32rpx;
   font-weight: 700;
   color: #1a1c1c;
+  text-align: center;
+  word-break: break-all;
 }
 </style>
