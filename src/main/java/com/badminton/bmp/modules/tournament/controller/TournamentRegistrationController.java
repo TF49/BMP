@@ -3,6 +3,7 @@ package com.badminton.bmp.modules.tournament.controller;
 import com.badminton.bmp.common.Result;
 import com.badminton.bmp.framework.web.BaseController;
 import com.badminton.bmp.modules.member.entity.Member;
+import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberService;
 import com.badminton.bmp.modules.tournament.entity.Tournament;
 import com.badminton.bmp.modules.tournament.entity.TournamentRegistration;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,6 +40,8 @@ public class TournamentRegistrationController extends BaseController {
     private TournamentService tournamentService;
     @Autowired
     private MemberService memberService;
+    @Autowired
+    private MemberMapper memberMapper;
 
     private boolean isAdmin() {
         return com.badminton.bmp.common.util.SecurityUtils.isPresident()
@@ -129,8 +133,16 @@ public class TournamentRegistrationController extends BaseController {
             registration.setMemberId(request.getMemberId());
             registration.setPartnerId(request.getPartnerId());
             registration.setEntryFee(request.getEntryFee());
+            registration.setPaymentMethod(request.getPaymentMethod());
             registration.setStatus(request.getStatus());
             registration.setRemark(request.getRemark());
+            registration.setRegistrantName(request.getRegistrantName());
+            registration.setRegistrantPhone(request.getRegistrantPhone());
+            registration.setRegistrantIdCard(request.getRegistrantIdCard());
+            registration.setEventTypeSnapshot(request.getEventTypeSnapshot());
+            registration.setEventTypeNameSnapshot(request.getEventTypeNameSnapshot());
+            registration.setPartnerNameSnapshot(request.getPartnerNameSnapshot());
+            registration.setPartnerPhoneSnapshot(request.getPartnerPhoneSnapshot());
 
             // 验证必填字段（普通用户可不传会员ID，由后端按当前用户补全）
             if (registration.getMemberId() == null && isAdmin()) {
@@ -165,8 +177,26 @@ public class TournamentRegistrationController extends BaseController {
     @Operation(summary = "更新赛事报名")
     @PutMapping("/update")
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
-    public Result<Object> updateRegistration(@Valid @RequestBody TournamentRegistration registration) {
+    public Result<Object> updateRegistration(@Valid @RequestBody TournamentRegistrationUpdateRequest request) {
         try {
+            TournamentRegistration registration = new TournamentRegistration();
+            registration.setId(request.getId());
+            registration.setTournamentId(request.getTournamentId());
+            registration.setMemberId(request.getMemberId());
+            registration.setPartnerId(request.getPartnerId());
+            registration.setEntryFee(request.getEntryFee());
+            registration.setPaymentMethod(request.getPaymentMethod());
+            registration.setPaymentStatus(request.getPaymentStatus());
+            registration.setStatus(request.getStatus());
+            registration.setMatchResult(request.getMatchResult());
+            registration.setRemark(request.getRemark());
+            registration.setRegistrantName(request.getRegistrantName());
+            registration.setRegistrantPhone(request.getRegistrantPhone());
+            registration.setRegistrantIdCard(request.getRegistrantIdCard());
+            registration.setEventTypeSnapshot(request.getEventTypeSnapshot());
+            registration.setEventTypeNameSnapshot(request.getEventTypeNameSnapshot());
+            registration.setPartnerNameSnapshot(request.getPartnerNameSnapshot());
+            registration.setPartnerPhoneSnapshot(request.getPartnerPhoneSnapshot());
 
             if (registration.getId() == null) {
                 return error("报名记录ID不能为空");
@@ -399,6 +429,8 @@ public class TournamentRegistrationController extends BaseController {
                         item.put("id", tournament.getId());
                         item.put("tournamentName", tournament.getTournamentName());
                         item.put("tournamentType", tournament.getTournamentType());
+                        item.put("eventType", tournament.getEventType());
+                        item.put("formatType", tournament.getFormatType());
                         item.put("tournamentStart", tournament.getTournamentStart());
                         item.put("status", tournament.getStatus());
                         item.put("entryFee", tournament.getEntryFee());
@@ -414,17 +446,25 @@ public class TournamentRegistrationController extends BaseController {
     }
 
     /**
-     * 获取会员下拉列表（供选择会员使用，支持姓名关键词筛选）
-     * 与课程预约模块一致：keyword 只传姓名参数，否则后端 AND 条件会导致无结果
+     * 获取会员下拉列表（供选择会员使用，支持姓名或手机号关键词筛选）
      */
     @Operation(summary = "会员下拉列表")
     @GetMapping("/members")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getMemberList(@RequestParam(value = "keyword", required = false) String keyword) {
         try {
-            String nameOrPhone = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
-            List<Member> members = memberService.findByConditions(nameOrPhone, null, null, null, null, 1, 1000);
-            List<Map<String, Object>> memberList = members.stream()
+            String keywordValue = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+            LinkedHashMap<Long, Member> memberMap = new LinkedHashMap<>();
+            if (keywordValue == null) {
+                memberMapper.findByConditions(null, null, null, null, null, 0, 1000)
+                        .forEach(member -> memberMap.put(member.getId(), member));
+            } else {
+                memberMapper.findByConditions(keywordValue, null, null, null, null, 0, 1000)
+                        .forEach(member -> memberMap.put(member.getId(), member));
+                memberMapper.findByConditions(null, keywordValue, null, null, null, 0, 1000)
+                        .forEach(member -> memberMap.put(member.getId(), member));
+            }
+            List<Map<String, Object>> memberList = memberMap.values().stream()
                     .map(member -> {
                         Map<String, Object> item = new HashMap<>();
                         item.put("id", member.getId());
@@ -446,7 +486,37 @@ public class TournamentRegistrationController extends BaseController {
         private Long tournamentId;
         private Long partnerId;
         private java.math.BigDecimal entryFee;
+        private String paymentMethod;
         private Integer status;
         private String remark;
+        private String registrantName;
+        private String registrantPhone;
+        private String registrantIdCard;
+        private String eventTypeSnapshot;
+        private String eventTypeNameSnapshot;
+        private String partnerNameSnapshot;
+        private String partnerPhoneSnapshot;
+    }
+
+    @Data
+    private static class TournamentRegistrationUpdateRequest {
+        @NotNull(message = "报名记录ID不能为空")
+        private Long id;
+        private Long tournamentId;
+        private Long memberId;
+        private Long partnerId;
+        private java.math.BigDecimal entryFee;
+        private String paymentMethod;
+        private Integer paymentStatus;
+        private Integer status;
+        private String matchResult;
+        private String remark;
+        private String registrantName;
+        private String registrantPhone;
+        private String registrantIdCard;
+        private String eventTypeSnapshot;
+        private String eventTypeNameSnapshot;
+        private String partnerNameSnapshot;
+        private String partnerPhoneSnapshot;
     }
 }

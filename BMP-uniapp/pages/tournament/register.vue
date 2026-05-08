@@ -79,55 +79,77 @@
             </view>
 
             <view class="field-wrap">
-              <text class="field-label">参赛组别</text>
-              <view class="category-grid">
-                <view
-                  v-for="item in categories"
-                  :key="item.value"
-                  class="category-item"
-                  :class="{ active: form.category === item.value }"
-                  @tap="form.category = item.value"
-                >
-                  <text>{{ item.label }}</text>
-                </view>
+              <text class="field-label">比赛项目</text>
+              <view class="readonly-field">
+                <text>{{ detail.eventLabel }}</text>
               </view>
+            </view>
+
+            <view class="field-wrap">
+              <text class="field-label">联系电话</text>
+              <input
+                v-model="form.phone"
+                class="field-input"
+                type="number"
+                placeholder="请输入联系电话"
+                maxlength="11"
+              />
             </view>
           </view>
 
-          <view class="section-card partner-card">
+          <view v-if="detail.isDoubles" class="section-card partner-card">
             <view class="partner-indicator" />
             <view class="section-head section-head-between">
               <view class="section-head-left">
                 <uni-icons type="staff-filled" size="20" color="#a33e00" />
                 <text class="section-title">搭档信息</text>
               </view>
-              <text class="optional-tag">选填</text>
+              <text class="optional-tag required-tag">必选</text>
             </view>
 
             <text class="partner-tip">
-              如果您报名的是双打项目，请在此填写搭档信息。如暂无搭档可留空，后续由系统随机分配。
+              双打/混双项目必须从系统会员中选择队友，提交后会锁定当前报名席位。
             </text>
 
             <view class="field-wrap">
-              <text class="field-label">搭档姓名</text>
+              <text class="field-label">搜索队友</text>
               <input
-                v-model="form.partnerName"
+                v-model="partnerKeyword"
                 class="field-input"
                 type="text"
-                placeholder="搭档真实姓名"
-                maxlength="20"
+                placeholder="输入会员姓名或手机号搜索"
+                maxlength="30"
+                @input="handlePartnerKeywordInput"
               />
             </view>
 
-            <view class="field-wrap">
-              <text class="field-label">联系电话</text>
-              <input
-                v-model="form.partnerPhone"
-                class="field-input"
-                type="number"
-                placeholder="搭档手机号"
-                maxlength="11"
-              />
+            <view v-if="partnerLoading" class="partner-state">正在搜索会员…</view>
+            <view v-else-if="partnerOptions.length > 0" class="partner-list">
+              <view
+                v-for="item in partnerOptions"
+                :key="item.id"
+                class="partner-item"
+                @tap="selectPartner(item)"
+              >
+                <view class="partner-item-main">
+                  <text class="partner-name">{{ item.memberName }}</text>
+                  <text class="partner-phone">{{ item.phone || '暂无手机号' }}</text>
+                </view>
+                <uni-icons type="right" size="16" color="#a33e00" />
+              </view>
+            </view>
+
+            <view v-else-if="partnerKeyword.trim()" class="partner-state">未找到符合条件的会员</view>
+
+            <view v-if="selectedPartner" class="selected-partner">
+              <view>
+                <text class="selected-label">已选择搭档</text>
+                <text class="selected-name">{{ selectedPartner.memberName }}</text>
+                <text class="selected-phone">{{ selectedPartner.phone || '暂无手机号' }}</text>
+              </view>
+              <view class="selected-clear" @tap="clearPartner">
+                <uni-icons type="closeempty" size="16" color="#a33e00" />
+              </view>
             </view>
           </view>
 
@@ -172,23 +194,29 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
-import { createTournamentRegistration, getTournamentDetail, type TournamentItem } from '@/api/tournament'
+import {
+  createTournamentRegistration,
+  getTournamentDetail,
+  searchTournamentMembers,
+  type TournamentItem,
+  type TournamentMemberOption
+} from '@/api/tournament'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { useCurrentMember } from '@/composables/useCurrentMember'
-
-type CategoryOption = {
-  label: string
-  value: string
-}
+import { getTournamentEventLabel, isTournamentDoubles, normalizeTournamentEventType } from '@/utils/tournament'
 
 type TournamentRegisterVm = {
   id: number
   name: string
   dateRange: string
   location: string
+  feeAmount: number
   feeText: string
+  eventLabel: string
+  eventType: string
+  isDoubles: boolean
 }
 
 const userStore = useUserStore()
@@ -203,19 +231,16 @@ const isSubmitting = ref(false)
 const agreementChecked = ref(false)
 const tournamentId = ref(0)
 const tournament = ref<TournamentItem | null>(null)
-
-const categories: CategoryOption[] = [
-  { label: '男子单打', value: 'MS' },
-  { label: '女子单打', value: 'WS' },
-  { label: '男子双打', value: 'MD' }
-]
+const partnerKeyword = ref('')
+const partnerLoading = ref(false)
+const partnerOptions = ref<TournamentMemberOption[]>([])
+const selectedPartner = ref<TournamentMemberOption | null>(null)
+let partnerSearchTimer: ReturnType<typeof setTimeout> | null = null
 
 const form = ref({
   name: '',
   idCard: '',
-  category: 'MD',
-  partnerName: '',
-  partnerPhone: ''
+  phone: ''
 })
 
 function toDate(raw?: string) {
@@ -241,18 +266,29 @@ function formatDateRange(start?: string, end?: string) {
   return `${startDate.getMonth() + 1}月${startDate.getDate()}日 - ${endDate.getMonth() + 1}月${endDate.getDate()}日`
 }
 
-function resolvePhone() {
-  return userStore.userInfo?.phone || ''
+function isValidPhone(phone: string) {
+  return /^1\d{10}$/.test(phone.trim())
+}
+
+function isValidIdCard(idCard: string) {
+  return /^(^\d{15}$)|(^\d{17}[\dXx]$)$/.test(idCard.trim())
 }
 
 const detail = computed<TournamentRegisterVm | null>(() => {
   if (!tournament.value) return null
+  const eventType = normalizeTournamentEventType(tournament.value)
+  const baseFee = Number(tournament.value.entryFee || 0)
+  const totalFee = isTournamentDoubles(tournament.value) ? baseFee * 2 : baseFee
   return {
     id: tournament.value.id,
     name: tournament.value.tournamentName || '赛事报名',
     dateRange: formatDateRange(tournament.value.tournamentStart || tournament.value.startDate, tournament.value.tournamentEnd),
     location: tournament.value.venueName || tournament.value.location || '场馆待补充',
-    feeText: formatMoney(Number(tournament.value.entryFee || 0))
+    feeAmount: totalFee,
+    feeText: formatMoney(totalFee),
+    eventLabel: getTournamentEventLabel(tournament.value),
+    eventType,
+    isDoubles: isTournamentDoubles(tournament.value)
   }
 })
 
@@ -260,9 +296,10 @@ const canSubmit = computed(() => {
   return Boolean(
     detail.value &&
       form.value.name.trim() &&
-      form.value.idCard.trim().length >= 15 &&
+      isValidPhone(form.value.phone) &&
+      isValidIdCard(form.value.idCard) &&
       agreementChecked.value &&
-      resolvePhone()
+      (!detail.value.isDoubles || selectedPartner.value?.id)
   )
 })
 
@@ -270,6 +307,18 @@ const getTournamentErrorMessage = (error: unknown): string => {
   const rawMsg = String((error as { message?: string; errMsg?: string })?.message || (error as { errMsg?: string })?.errMsg || '')
   const msg = rawMsg.toLowerCase()
 
+  if (rawMsg.includes('主报名人与搭档不能为同一人')) {
+    return '不能选择自己作为队友'
+  }
+  if (rawMsg.includes('双打/混双赛事必须填写搭档')) {
+    return '双打/混双项目必须选择队友'
+  }
+  if (rawMsg.includes('该搭档已在本赛事有有效报名')) {
+    return '该队友已在本赛事占位，请重新选择'
+  }
+  if (rawMsg.includes('单打赛事不允许填写搭档')) {
+    return '当前赛事为单打项目，无需选择队友'
+  }
   if (msg.includes('full') || rawMsg.includes('满员') || rawMsg.includes('名额')) {
     return '赛事名额已满，请关注后续场次'
   }
@@ -293,7 +342,10 @@ async function loadTournamentDetail() {
   errorText.value = ''
   try {
     tournament.value = await getTournamentDetail(tournamentId.value)
-    form.value.name = form.value.name || userStore.userInfo?.nickname || userStore.userInfo?.username || ''
+    const currentMember = await fetchCurrentMember()
+    form.value.name = form.value.name || currentMember.memberName || userStore.userInfo?.nickname || userStore.userInfo?.username || ''
+    form.value.phone = form.value.phone || currentMember.phone || userStore.userInfo?.phone || ''
+    form.value.idCard = form.value.idCard || currentMember.idCard || ''
   } catch (error) {
     console.error('加载赛事详情失败:', error)
     errorText.value = error instanceof Error ? error.message : '加载赛事详情失败'
@@ -314,12 +366,77 @@ function openRule(type: 'rule' | 'disclaimer') {
   })
 }
 
+async function loadPartnerOptions(keyword: string) {
+  const value = keyword.trim()
+  if (!value) {
+    partnerOptions.value = []
+    return
+  }
+  partnerLoading.value = true
+  try {
+    const currentMember = await fetchCurrentMember()
+    const list = await searchTournamentMembers(value)
+    partnerOptions.value = (list || []).filter((item: TournamentMemberOption) => Number(item.id) !== Number(currentMember.id || 0))
+  } catch (error) {
+    console.error('搜索赛事会员失败:', error)
+    partnerOptions.value = []
+  } finally {
+    partnerLoading.value = false
+  }
+}
+
+function handlePartnerKeywordInput() {
+  if (selectedPartner.value && partnerKeyword.value.trim() !== selectedPartner.value.memberName) {
+    selectedPartner.value = null
+  }
+  if (partnerSearchTimer) clearTimeout(partnerSearchTimer)
+  partnerSearchTimer = setTimeout(() => {
+    void loadPartnerOptions(partnerKeyword.value)
+  }, 250)
+}
+
+function selectPartner(item: TournamentMemberOption) {
+  selectedPartner.value = item
+  partnerKeyword.value = item.memberName
+  partnerOptions.value = []
+}
+
+function clearPartner() {
+  selectedPartner.value = null
+  partnerKeyword.value = ''
+  partnerOptions.value = []
+}
+
 async function handleSubmit() {
   if (isSubmitting.value || !detail.value) return
 
-  if (!resolvePhone()) {
+  if (!form.value.name.trim()) {
     uni.showToast({
-      title: '请先在个人资料中补充手机号',
+      title: '请输入参赛者姓名',
+      icon: 'none'
+    })
+    return
+  }
+
+  if (!isValidPhone(form.value.phone)) {
+    uni.showToast({
+      title: '请输入正确的11位手机号',
+      icon: 'none'
+    })
+    return
+  }
+
+  if (!isValidIdCard(form.value.idCard)) {
+    uni.showToast({
+      title: '请输入正确的身份证号',
+      icon: 'none'
+    })
+    return
+  }
+
+  if (!agreementChecked.value) {
+    uni.showToast({
+      title: '请先勾选参赛确认',
       icon: 'none'
     })
     return
@@ -327,7 +444,7 @@ async function handleSubmit() {
 
   if (!canSubmit.value) {
     uni.showToast({
-      title: '请完善报名信息',
+      title: detail.value.isDoubles && !selectedPartner.value?.id ? '请选择队友' : '请完善报名信息',
       icon: 'none'
     })
     return
@@ -341,12 +458,15 @@ async function handleSubmit() {
     const registration = await createTournamentRegistration({
       memberId: Number(member.id || 0),
       tournamentId: detail.value.id,
-      name: form.value.name.trim(),
-      phone: resolvePhone(),
-      skillLevel: form.value.category,
-      emergencyContact: form.value.partnerName.trim() || undefined,
-      emergencyPhone: form.value.partnerPhone.trim() || undefined,
-      orderAmount: Number(tournament.value?.entryFee || 0),
+      partnerId: selectedPartner.value?.id,
+      registrantName: form.value.name.trim(),
+      registrantPhone: form.value.phone.trim(),
+      registrantIdCard: form.value.idCard.trim(),
+      eventTypeSnapshot: detail.value.eventType,
+      eventTypeNameSnapshot: detail.value.eventLabel,
+      partnerNameSnapshot: selectedPartner.value?.memberName,
+      partnerPhoneSnapshot: selectedPartner.value?.phone,
+      entryFee: detail.value.feeAmount,
       paymentMethod: 'BALANCE'
     })
 
@@ -596,30 +716,16 @@ onPullDownRefresh(() => {
   border-bottom-color: #a33e00;
 }
 
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
-}
-
-.category-item {
+.readonly-field {
   min-height: 88rpx;
   border-radius: 18rpx;
-  background: #f3f3f3;
-  color: #1a1c1c;
+  background: #fff3e8;
+  color: #a33e00;
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 0 12rpx;
+  padding: 0 20rpx;
   font-size: 28rpx;
-  font-weight: 500;
-}
-
-.category-item.active {
-  background: #ff6600;
-  color: #561d00;
-  box-shadow: 0 8rpx 16rpx rgba(163, 62, 0, 0.15);
+  font-weight: 800;
 }
 
 .partner-card {
@@ -650,12 +756,78 @@ onPullDownRefresh(() => {
   justify-content: center;
 }
 
+.required-tag {
+  background: #fff3e8;
+  color: #a33e00;
+}
+
 .partner-tip {
   display: block;
   margin-top: 18rpx;
   font-size: 24rpx;
   line-height: 1.7;
   color: #5f5e5e;
+}
+
+.partner-state {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 16rpx;
+  background: #f8f8f8;
+  color: #71717a;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.partner-list {
+  margin-top: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.partner-item,
+.selected-partner {
+  border-radius: 18rpx;
+  background: #f8f8f8;
+  padding: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.partner-item-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.partner-name,
+.selected-name {
+  color: #1a1c1c;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.partner-phone,
+.selected-phone,
+.selected-label {
+  color: #71717a;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.selected-clear {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 9999rpx;
+  background: #fff3e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .agreement-card {

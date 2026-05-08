@@ -97,19 +97,20 @@ export const API_PATHS = {
     }
   },
   // 赛事相关
-  TOURNAMENT: {
-    LIST: '/tournament/list',
-    DETAIL: '/tournament/info',
-    ADD: '/tournament/add',
-    UPDATE: '/tournament/update',
-    DELETE: '/tournament',
-    REGISTRATION: {
-      LIST: '/tournament/registration/list',
-      ADD: '/tournament/registration/add',
-      DETAIL: '/tournament/registration/info',
-      PAYMENT: '/tournament/registration/payment',
-      MEMBER_PAYMENT: '/tournament/registration/member/payment',
-      APPROVE: '/tournament/registration/approve',
+    TOURNAMENT: {
+      LIST: '/tournament/list',
+      DETAIL: '/tournament/info',
+      ADD: '/tournament/add',
+      UPDATE: '/tournament/update',
+      DELETE: '/tournament',
+      REGISTRATION: {
+        LIST: '/tournament/registration/list',
+        ADD: '/tournament/registration/add',
+        DETAIL: '/tournament/registration/info',
+        MEMBERS: '/tournament/registration/members',
+        PAYMENT: '/tournament/registration/payment',
+        MEMBER_PAYMENT: '/tournament/registration/member/payment',
+        APPROVE: '/tournament/registration/approve',
       REJECT: '/tournament/registration/reject'
     }
   },

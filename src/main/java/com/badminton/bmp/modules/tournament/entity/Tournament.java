@@ -18,6 +18,12 @@ public class Tournament {
     @Size(max = 50)
     private String tournamentType;
 
+    @Size(max = 10)
+    private String eventType;
+
+    @Size(max = 50)
+    private String formatType;
+
     @NotNull
     @Positive
     private Long venueId;

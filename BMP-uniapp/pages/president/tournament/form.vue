@@ -28,6 +28,16 @@
         </view>
 
         <view class="field">
+          <text class="label orange">比赛项目</text>
+          <picker mode="selector" :range="eventOptions" :value="eventIndex" @change="onEventChange">
+            <view class="input picker">
+              <text>{{ eventOptions[eventIndex] }}</text>
+              <uni-icons type="arrowdown" size="14" color="#a1a1aa" />
+            </view>
+          </picker>
+        </view>
+
+        <view class="field">
           <text class="label orange">赛制类型</text>
           <picker mode="selector" :range="typeOptions" :value="typeIndex" @change="onTypeChange">
             <view class="input picker">
@@ -178,6 +188,7 @@ import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { addTournament, getTournamentDetail, updateTournament } from '@/api/president/tournament'
 import { useUserStore } from '@/store/modules/user'
 import { getVenueList, type VenueItem as PresidentVenueItem } from '@/api/president/venue'
+import { normalizeTournamentEventType, normalizeTournamentFormatType } from '@/utils/tournament'
 
 const userStore = useUserStore()
 const adminAvatar = computed(() => userStore.userInfo?.avatar || '/static/placeholders/avatar.svg')
@@ -186,6 +197,9 @@ const isEdit = ref(false)
 const id = ref<number | null>(null)
 const submitting = ref(false)
 
+const eventOptions = ['男单', '女单', '男双', '女双', '混双']
+const eventValueMap = ['MS', 'WS', 'MD', 'WD', 'XD']
+const eventIndex = ref(0)
 const typeOptions = ['单败淘汰制', '循环赛制', '双败淘汰制', '瑞士轮制']
 const typeIndex = ref(0)
 
@@ -199,6 +213,8 @@ let venueTimer: number | undefined
 const form = reactive({
   tournamentName: '',
   tournamentType: typeOptions[0],
+  eventType: eventValueMap[0],
+  formatType: typeOptions[0],
   venueId: 0,
   entryFee: '0.00',
   maxParticipants: '150',
@@ -214,7 +230,13 @@ function onBack() {
 
 function onTypeChange(e: { detail: { value: string } }) {
   typeIndex.value = Number(e.detail.value)
-  form.tournamentType = typeOptions[typeIndex.value]
+  form.formatType = typeOptions[typeIndex.value]
+  form.tournamentType = form.formatType
+}
+
+function onEventChange(e: { detail: { value: string } }) {
+  eventIndex.value = Number(e.detail.value)
+  form.eventType = eventValueMap[eventIndex.value]
 }
 
 function onVenueInput() {
@@ -272,7 +294,8 @@ function toDateTime(date: string, endOfDay = false) {
 
 function validate() {
   if (!form.tournamentName.trim()) return '请填写赛事名称'
-  if (!form.tournamentType.trim()) return '请选择赛制类型'
+  if (!form.eventType.trim()) return '请选择比赛项目'
+  if (!form.formatType.trim()) return '请选择赛制类型'
   if (!form.venueId) return '请选择场馆'
   if (!form.registrationStartDate || !form.registrationEndDate) return '请选择报名时间'
   if (!form.tournamentStartDate || !form.tournamentEndDate) return '请选择比赛日期'
@@ -296,7 +319,9 @@ async function submitCreate() {
     const payload = {
       id: id.value ?? undefined,
       tournamentName: form.tournamentName.trim(),
-      tournamentType: form.tournamentType.trim(),
+      tournamentType: form.formatType.trim(),
+      eventType: form.eventType.trim(),
+      formatType: form.formatType.trim(),
       venueId: Number(form.venueId),
       maxParticipants: Number(form.maxParticipants),
       registrationStart: toDateTime(form.registrationStartDate, false),
@@ -335,8 +360,12 @@ onLoad(async (q?: Record<string, string | undefined>) => {
     try {
       const info = await getTournamentDetail(n)
       form.tournamentName = info.tournamentName || ''
-      form.tournamentType = info.tournamentType || typeOptions[0]
-      const idx = typeOptions.findIndex((x) => x === form.tournamentType)
+      form.eventType = normalizeTournamentEventType(info)
+      eventIndex.value = eventValueMap.findIndex((x) => x === form.eventType)
+      if (eventIndex.value < 0) eventIndex.value = 0
+      form.formatType = normalizeTournamentFormatType(info)
+      form.tournamentType = form.formatType
+      const idx = typeOptions.findIndex((x) => x === form.formatType)
       typeIndex.value = idx >= 0 ? idx : 0
       form.venueId = Number(info.venueId || 0)
       venueName.value = info.venueName || ''

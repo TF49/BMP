@@ -10,6 +10,7 @@ import com.badminton.bmp.modules.tournament.entity.TournamentRegistration;
 import com.badminton.bmp.modules.tournament.mapper.TournamentMapper;
 import com.badminton.bmp.modules.tournament.mapper.TournamentRegistrationMapper;
 import com.badminton.bmp.modules.tournament.service.TournamentRegistrationService;
+import com.badminton.bmp.modules.tournament.support.TournamentTypeHelper;
 import com.badminton.bmp.websocket.WebSocketPushService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,8 @@ import com.badminton.bmp.common.util.SecurityUtils;
  */
 @Service
 public class TournamentRegistrationServiceImpl implements TournamentRegistrationService {
+    private static final java.math.BigDecimal DOUBLES_FEE_MULTIPLIER = java.math.BigDecimal.valueOf(2);
+
     @Autowired
     private TournamentRegistrationMapper tournamentRegistrationMapper;
     @Autowired
@@ -199,8 +202,9 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         }
 
         // 如果提供了搭档ID，验证搭档会员是否存在
+        Member partner = null;
         if (registration.getPartnerId() != null) {
-            Member partner = memberMapper.findById(registration.getPartnerId());
+            partner = memberMapper.findById(registration.getPartnerId());
             if (partner == null) {
                 throw new RuntimeException("搭档会员不存在");
             }
@@ -214,12 +218,19 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         if (tournament == null) {
             throw new RuntimeException("赛事不存在");
         }
-        // 双打/混双必须填写搭档
-        String type = tournament.getTournamentType();
-        if ("DOUBLE".equals(type) || "MIXED".equals(type)) {
+        String eventType = TournamentTypeHelper.normalizeEventType(
+                tournament.getEventType(),
+                tournament.getTournamentType(),
+                tournament.getTournamentName(),
+                tournament.getDescription()
+        );
+        // 双打/混双必须填写搭档，单打禁止带搭档
+        if (TournamentTypeHelper.isDoublesEvent(eventType)) {
             if (registration.getPartnerId() == null) {
                 throw new RuntimeException("双打/混双赛事必须填写搭档");
             }
+        } else if (registration.getPartnerId() != null) {
+            throw new RuntimeException("单打赛事不允许填写搭档");
         }
         // 同一赛事下同一会员只能有一条有效报名（作为主报名人或搭档）
         if (tournamentRegistrationMapper.countValidRegistrationInTournament(
@@ -247,13 +258,32 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             }
             throw new RuntimeException(msg);
         }
-        // 未传或传 0 时使用赛事报名费；双打/混双为单人报名费×2
-        if (registration.getEntryFee() == null || registration.getEntryFee().signum() <= 0) {
-            java.math.BigDecimal fee = tournament.getEntryFee() != null ? tournament.getEntryFee() : java.math.BigDecimal.ZERO;
-            if ("DOUBLE".equals(type) || "MIXED".equals(type)) {
-                fee = fee.multiply(java.math.BigDecimal.valueOf(2));
+        registration.setEntryFee(resolveEntryFee(tournament, eventType, registration.getEntryFee()));
+        if (registration.getPaymentMethod() == null || registration.getPaymentMethod().trim().isEmpty()) {
+            registration.setPaymentMethod("BALANCE");
+        }
+
+        if (registration.getRegistrantName() == null || registration.getRegistrantName().trim().isEmpty()) {
+            registration.setRegistrantName(member.getMemberName());
+        }
+        if (registration.getRegistrantPhone() == null || registration.getRegistrantPhone().trim().isEmpty()) {
+            registration.setRegistrantPhone(member.getPhone());
+        }
+        if (registration.getRegistrantIdCard() == null || registration.getRegistrantIdCard().trim().isEmpty()) {
+            registration.setRegistrantIdCard(member.getIdCard());
+        }
+        registration.setEventTypeSnapshot(eventType);
+        registration.setEventTypeNameSnapshot(TournamentTypeHelper.eventTypeLabel(eventType));
+        if (partner != null) {
+            if (registration.getPartnerNameSnapshot() == null || registration.getPartnerNameSnapshot().trim().isEmpty()) {
+                registration.setPartnerNameSnapshot(partner.getMemberName());
             }
-            registration.setEntryFee(fee);
+            if (registration.getPartnerPhoneSnapshot() == null || registration.getPartnerPhoneSnapshot().trim().isEmpty()) {
+                registration.setPartnerPhoneSnapshot(partner.getPhone());
+            }
+        } else {
+            registration.setPartnerNameSnapshot(null);
+            registration.setPartnerPhoneSnapshot(null);
         }
         
         // 验证赛事报名人数是否已满
@@ -341,11 +371,18 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         }
         Tournament tournamentForValidation = tournamentMapper.findById(tournamentId);
         if (tournamentForValidation != null) {
-            String type = tournamentForValidation.getTournamentType();
-            if ("DOUBLE".equals(type) || "MIXED".equals(type)) {
+            String eventType = TournamentTypeHelper.normalizeEventType(
+                    tournamentForValidation.getEventType(),
+                    tournamentForValidation.getTournamentType(),
+                    tournamentForValidation.getTournamentName(),
+                    tournamentForValidation.getDescription()
+            );
+            if (TournamentTypeHelper.isDoublesEvent(eventType)) {
                 if (effectivePartnerId == null) {
                     throw new RuntimeException("双打/混双赛事必须填写搭档");
                 }
+            } else if (effectivePartnerId != null) {
+                throw new RuntimeException("单打赛事不允许填写搭档");
             }
             if (tournamentRegistrationMapper.countValidRegistrationInTournament(tournamentId, effectiveMemberId, existing.getId()) > 0) {
                 throw new RuntimeException("该会员已在本赛事有有效报名，不可重复报名");
@@ -406,13 +443,64 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         if (registration.getTournamentId() == null) registration.setTournamentId(existing.getTournamentId());
         if (registration.getMemberId() == null) registration.setMemberId(existing.getMemberId());
         if (registration.getPartnerId() == null) registration.setPartnerId(existing.getPartnerId());
+        if (registration.getRegistrantName() == null) registration.setRegistrantName(existing.getRegistrantName());
+        if (registration.getRegistrantPhone() == null) registration.setRegistrantPhone(existing.getRegistrantPhone());
+        if (registration.getRegistrantIdCard() == null) registration.setRegistrantIdCard(existing.getRegistrantIdCard());
+        if (registration.getEventTypeSnapshot() == null) registration.setEventTypeSnapshot(existing.getEventTypeSnapshot());
+        if (registration.getEventTypeNameSnapshot() == null) registration.setEventTypeNameSnapshot(existing.getEventTypeNameSnapshot());
+        if (registration.getPartnerNameSnapshot() == null) registration.setPartnerNameSnapshot(existing.getPartnerNameSnapshot());
+        if (registration.getPartnerPhoneSnapshot() == null) registration.setPartnerPhoneSnapshot(existing.getPartnerPhoneSnapshot());
         if (registration.getEntryFee() == null) registration.setEntryFee(existing.getEntryFee());
         if (registration.getStatus() == null) registration.setStatus(existing.getStatus());
         if (registration.getPaymentMethod() == null) registration.setPaymentMethod(existing.getPaymentMethod());
         if (registration.getPaymentStatus() == null) registration.setPaymentStatus(existing.getPaymentStatus());
+        Member effectiveMember = memberMapper.findById(registration.getMemberId());
+        if (effectiveMember != null) {
+            if (registration.getRegistrantName() == null || registration.getRegistrantName().trim().isEmpty()) {
+                registration.setRegistrantName(effectiveMember.getMemberName());
+            }
+            if (registration.getRegistrantPhone() == null || registration.getRegistrantPhone().trim().isEmpty()) {
+                registration.setRegistrantPhone(effectiveMember.getPhone());
+            }
+            if (registration.getRegistrantIdCard() == null || registration.getRegistrantIdCard().trim().isEmpty()) {
+                registration.setRegistrantIdCard(effectiveMember.getIdCard());
+            }
+        }
+        if (tournamentForValidation != null) {
+            String effectiveEventType = TournamentTypeHelper.normalizeEventType(
+                    tournamentForValidation.getEventType(),
+                    tournamentForValidation.getTournamentType(),
+                    tournamentForValidation.getTournamentName(),
+                    tournamentForValidation.getDescription()
+            );
+            registration.setEventTypeSnapshot(effectiveEventType);
+            registration.setEventTypeNameSnapshot(TournamentTypeHelper.eventTypeLabel(effectiveEventType));
+            registration.setEntryFee(resolveEntryFee(tournamentForValidation, effectiveEventType, registration.getEntryFee()));
+        }
+        if (registration.getPartnerId() != null) {
+            Member effectivePartner = memberMapper.findById(registration.getPartnerId());
+            if (effectivePartner != null) {
+                registration.setPartnerNameSnapshot(effectivePartner.getMemberName());
+                registration.setPartnerPhoneSnapshot(effectivePartner.getPhone());
+            }
+        } else {
+            registration.setPartnerNameSnapshot(null);
+            registration.setPartnerPhoneSnapshot(null);
+        }
         // 设置更新时间
         registration.setUpdateTime(LocalDateTime.now());
         return tournamentRegistrationMapper.update(registration);
+    }
+
+    private java.math.BigDecimal resolveEntryFee(Tournament tournament, String eventType, java.math.BigDecimal requestedFee) {
+        java.math.BigDecimal baseFee = tournament.getEntryFee() != null ? tournament.getEntryFee() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal expectedFee = TournamentTypeHelper.isDoublesEvent(eventType)
+                ? baseFee.multiply(DOUBLES_FEE_MULTIPLIER)
+                : baseFee;
+        if (requestedFee == null || requestedFee.signum() <= 0) {
+            return expectedFee;
+        }
+        return TournamentTypeHelper.isDoublesEvent(eventType) ? expectedFee : requestedFee;
     }
 
     /**

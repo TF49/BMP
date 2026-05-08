@@ -5,6 +5,8 @@ export interface TournamentItem {
   id: number
   tournamentName: string
   tournamentType: string
+  eventType?: string
+  formatType?: string
   venueId: number
   venueName: string
   maxParticipants: number
@@ -34,6 +36,8 @@ export interface TournamentPayload {
   id?: number
   tournamentName: string
   tournamentType: string
+  eventType?: string
+  formatType?: string
   venueId: number
   maxParticipants: number
   registrationStart: string
@@ -52,14 +56,14 @@ export interface TournamentRegistrationParams {
   partnerId?: number
   entryFee?: number
   paymentMethod: string
-  name?: string
-  phone?: string
-  gender?: number
-  age?: number
-  skillLevel?: string
-  emergencyContact?: string
-  emergencyPhone?: string
-  orderAmount?: number
+  registrantName?: string
+  registrantPhone?: string
+  registrantIdCard?: string
+  eventTypeSnapshot?: string
+  eventTypeNameSnapshot?: string
+  partnerNameSnapshot?: string
+  partnerPhoneSnapshot?: string
+  remark?: string
 }
 
 export interface TournamentRegistrationItem {
@@ -71,6 +75,12 @@ export interface TournamentRegistrationItem {
   memberName: string
   partnerId?: number
   partnerName?: string
+  registrantName?: string
+  registrantPhone?: string
+  registrantIdCard?: string
+  eventTypeSnapshot?: string
+  eventTypeNameSnapshot?: string
+  partnerPhoneSnapshot?: string
   entryFee: number
   paymentMethod: string
   paymentStatus?: number
@@ -84,6 +94,12 @@ export interface TournamentRegistrationItem {
   tournamentStartTime?: string
   tournamentEndTime?: string
   venueName?: string
+}
+
+export interface TournamentMemberOption {
+  id: number
+  memberName: string
+  phone?: string
 }
 
 export type TournamentRegistrationPaymentMethod = 'BALANCE'
@@ -214,5 +230,12 @@ export function updateTournamentRegistrationStatus(id: number, status: number) {
   return request<null>({
     url: `/tournament/registration/status?id=${id}&status=${status}`,
     method: 'PUT'
+  })
+}
+
+export function searchTournamentMembers(keyword?: string) {
+  return request<TournamentMemberOption[]>({
+    url: `${API_PATHS.TOURNAMENT.REGISTRATION.MEMBERS}${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''}`,
+    method: 'GET'
   })
 }

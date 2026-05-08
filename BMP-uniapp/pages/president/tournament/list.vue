@@ -229,6 +229,7 @@ import { getTournamentList, type TournamentItem } from '@/api/president/tourname
 import { searchTournaments } from '@/api/search'
 import { getTournamentStatusMeta } from '@/utils/presidentStatus'
 import { parsePagedList } from '@/utils/parsePagedList'
+import { getTournamentEventLabel } from '@/utils/tournament'
 
 const currentTab = ref(0)
 const loading = ref(false)
@@ -284,7 +285,7 @@ function transformTournament(item: TournamentItem): Tournament {
     id: item.id,
     name: item.tournamentName || '未命名赛事',
     status,
-    category: item.tournamentType || '未分类',
+    category: `${getTournamentEventLabel(item)} / ${item.formatType || item.tournamentType || '未分类'}`,
     location: item.venueName || '待定',
     image: '/static/placeholders/hero.svg',
     

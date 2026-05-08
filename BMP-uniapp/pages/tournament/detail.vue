@@ -159,6 +159,7 @@ import { getTournamentDetail, type TournamentItem } from '@/api/tournament'
 import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { getTournamentEventLabel, normalizeTournamentFormatType } from '@/utils/tournament'
 
 type TimelineEvent = {
   title: string
@@ -253,27 +254,20 @@ function resolveStatusText(status?: number) {
   const map: Record<number, string> = {
     0: '已取消',
     1: '报名中',
-    2: '进行中',
-    3: '已结束'
+    2: '报名结束',
+    3: '进行中',
+    4: '已结束'
   }
-  return map[Number(status)] || '报名中'
+  return map[Number(status)] || '未知状态'
 }
 
 function resolveModeText(item: TournamentItem) {
-  const source = `${item.tournamentType || ''}${item.description || ''}`
-  if (/循环/u.test(source)) return '循环赛'
-  if (/积分/u.test(source)) return '积分赛'
-  if (/团体/u.test(source)) return '团体赛'
-  return '淘汰赛'
+  return normalizeTournamentFormatType(item)
 }
 
 function resolveLevelText(item: TournamentItem) {
   if (item.level?.trim()) return item.level.trim()
-  const type = item.tournamentType || ''
-  if (/青少年/u.test(type)) return '青少年组'
-  if (/双打/u.test(type)) return '业余双打组'
-  if (/单打/u.test(type)) return '业余单打组'
-  return '业余 A/B组'
+  return getTournamentEventLabel(item)
 }
 
 function resolvePrizeText(item: TournamentItem) {

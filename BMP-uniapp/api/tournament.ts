@@ -3,6 +3,7 @@
  */
 export type {
   TournamentItem,
+  TournamentMemberOption,
   TournamentRegistrationParams,
   TournamentRegistrationItem,
   TournamentRegistrationPaymentMethod
@@ -11,6 +12,7 @@ export {
   getTournamentList,
   getTournamentDetail,
   createTournamentRegistration,
+  searchTournamentMembers,
   getTournamentRegistrationDetail,
   getTournamentRegistrationList,
   processMemberTournamentRegistrationPayment

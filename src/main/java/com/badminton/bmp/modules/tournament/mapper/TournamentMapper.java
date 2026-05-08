@@ -19,7 +19,7 @@ public interface TournamentMapper {
             "WHERE t.del_flag = 0 " +
             "<if test='venueId != null'> AND t.venue_id = #{venueId} </if>" +
             "<if test='status != null'> AND t.status = #{status} </if>" +
-            "<if test='type != null and type != \"\"'> AND t.tournament_type = #{type} </if>" +
+            "<if test='type != null and type != \"\"'> AND (t.tournament_type = #{type} OR t.event_type = #{type} OR t.format_type = #{type}) </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND t.tournament_name LIKE CONCAT('%', #{keyword}, '%') </if>" +
             "<if test='startTime != null'> AND t.tournament_start &gt;= #{startTime} </if>" +
@@ -40,7 +40,7 @@ public interface TournamentMapper {
             "SELECT COUNT(*) FROM biz_tournament t WHERE t.del_flag = 0 " +
             "<if test='venueId != null'> AND t.venue_id = #{venueId} </if>" +
             "<if test='status != null'> AND t.status = #{status} </if>" +
-            "<if test='type != null and type != \"\"'> AND t.tournament_type = #{type} </if>" +
+            "<if test='type != null and type != \"\"'> AND (t.tournament_type = #{type} OR t.event_type = #{type} OR t.format_type = #{type}) </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND t.tournament_name LIKE CONCAT('%', #{keyword}, '%') </if>" +
             "<if test='startTime != null'> AND t.tournament_start &gt;= #{startTime} </if>" +
@@ -53,16 +53,16 @@ public interface TournamentMapper {
               @Param("startTime") LocalDateTime startTime,
               @Param("endTime") LocalDateTime endTime);
 
-    @Insert("INSERT INTO biz_tournament (tournament_name, tournament_type, venue_id, max_participants, " +
+    @Insert("INSERT INTO biz_tournament (tournament_name, tournament_type, event_type, format_type, venue_id, max_participants, " +
             "current_participants, registration_start, registration_end, tournament_start, tournament_end, " +
             "entry_fee, prize_info, description, status, create_time, update_time, del_flag) " +
-            "VALUES (#{tournamentName}, #{tournamentType}, #{venueId}, #{maxParticipants}, " +
+            "VALUES (#{tournamentName}, #{tournamentType}, #{eventType}, #{formatType}, #{venueId}, #{maxParticipants}, " +
             "#{currentParticipants}, #{registrationStart}, #{registrationEnd}, #{tournamentStart}, #{tournamentEnd}, " +
             "#{entryFee}, #{prizeInfo}, #{description}, #{status}, #{createTime}, #{updateTime}, 0)")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Tournament tournament);
 
-    @Update("UPDATE biz_tournament SET tournament_name = #{tournamentName}, tournament_type = #{tournamentType}, " +
+    @Update("UPDATE biz_tournament SET tournament_name = #{tournamentName}, tournament_type = #{tournamentType}, event_type = #{eventType}, format_type = #{formatType}, " +
             "venue_id = #{venueId}, max_participants = #{maxParticipants}, " +
             "registration_start = #{registrationStart}, registration_end = #{registrationEnd}, " +
             "tournament_start = #{tournamentStart}, tournament_end = #{tournamentEnd}, " +

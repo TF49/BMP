@@ -4,6 +4,7 @@ import com.badminton.bmp.modules.tournament.entity.Tournament;
 import com.badminton.bmp.modules.tournament.mapper.TournamentMapper;
 import com.badminton.bmp.modules.tournament.mapper.TournamentRegistrationMapper;
 import com.badminton.bmp.modules.tournament.service.TournamentService;
+import com.badminton.bmp.modules.tournament.support.TournamentTypeHelper;
 import com.badminton.bmp.modules.venue.mapper.VenueMapper;
 import com.badminton.bmp.modules.finance.mapper.FinanceMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,7 @@ public class TournamentServiceImpl implements TournamentService {
         if (tournament == null) {
             return null;
         }
+        normalizeTournament(tournament);
 
         // 数据范围过滤
         if (SecurityUtils.isPresident()) {
@@ -88,12 +90,12 @@ public class TournamentServiceImpl implements TournamentService {
         }
         int offset = (page - 1) * size;
         if (SecurityUtils.isPresident()) {
-            return tournamentMapper.findAll(venueId, status, type, keyword, startTime, endTime, offset, size);
+            return normalizeTournamentList(tournamentMapper.findAll(venueId, status, type, keyword, startTime, endTime, offset, size));
         } else if (SecurityUtils.isVenueManager()) {
             Long vId = SecurityUtils.getCurrentUserVenueId();
-            return tournamentMapper.findAll(vId, status, type, keyword, startTime, endTime, offset, size);
+            return normalizeTournamentList(tournamentMapper.findAll(vId, status, type, keyword, startTime, endTime, offset, size));
         } else {
-            return tournamentMapper.findAll(venueId, status, type, keyword, startTime, endTime, offset, size);
+            return normalizeTournamentList(tournamentMapper.findAll(venueId, status, type, keyword, startTime, endTime, offset, size));
         }
     }
 
@@ -174,9 +176,7 @@ public class TournamentServiceImpl implements TournamentService {
         if (tournament.getMaxParticipants() == null) {
             tournament.setMaxParticipants(32);
         }
-        if (tournament.getTournamentType() == null || tournament.getTournamentType().trim().isEmpty()) {
-            tournament.setTournamentType("SINGLE");
-        }
+        normalizeTournamentForWrite(tournament, null);
         
         return tournamentMapper.insert(tournament);
     }
@@ -241,6 +241,7 @@ public class TournamentServiceImpl implements TournamentService {
         }
         // 编辑时不允许覆盖“当前人数”，仅通过报名/取消/退款等操作由 updateCurrentParticipants 更新
         tournament.setCurrentParticipants(existing.getCurrentParticipants());
+        normalizeTournamentForWrite(tournament, existing);
         
         // 设置更新时间
         tournament.setUpdateTime(LocalDateTime.now());
@@ -411,5 +412,64 @@ public class TournamentServiceImpl implements TournamentService {
         LocalDateTime now = LocalDateTime.now();
         tournamentMapper.batchUpdateEnrollingToOngoing(now);
         tournamentMapper.batchUpdateOngoingToFinished(now);
+    }
+
+    private List<Tournament> normalizeTournamentList(List<Tournament> tournaments) {
+        if (tournaments == null) {
+            return new ArrayList<>();
+        }
+        tournaments.forEach(this::normalizeTournament);
+        return tournaments;
+    }
+
+    private void normalizeTournament(Tournament tournament) {
+        if (tournament == null) {
+            return;
+        }
+        tournament.setEventType(TournamentTypeHelper.normalizeEventType(
+                tournament.getEventType(),
+                tournament.getTournamentType(),
+                tournament.getTournamentName(),
+                tournament.getDescription()
+        ));
+        tournament.setFormatType(TournamentTypeHelper.normalizeFormatType(
+                tournament.getFormatType(),
+                tournament.getTournamentType()
+        ));
+    }
+
+    private void normalizeTournamentForWrite(Tournament incoming, Tournament existing) {
+        String fallbackTournamentType = incoming.getTournamentType();
+        if ((fallbackTournamentType == null || fallbackTournamentType.trim().isEmpty()) && existing != null) {
+            fallbackTournamentType = existing.getTournamentType();
+        }
+        String fallbackName = incoming.getTournamentName();
+        if ((fallbackName == null || fallbackName.trim().isEmpty()) && existing != null) {
+            fallbackName = existing.getTournamentName();
+        }
+        String fallbackDescription = incoming.getDescription();
+        if ((fallbackDescription == null || fallbackDescription.trim().isEmpty()) && existing != null) {
+            fallbackDescription = existing.getDescription();
+        }
+        String incomingEventType = incoming.getEventType();
+        if ((incomingEventType == null || incomingEventType.trim().isEmpty()) && existing != null) {
+            incomingEventType = existing.getEventType();
+        }
+        String incomingFormatType = incoming.getFormatType();
+        if ((incomingFormatType == null || incomingFormatType.trim().isEmpty()) && existing != null) {
+            incomingFormatType = existing.getFormatType();
+        }
+
+        String eventType = TournamentTypeHelper.normalizeEventType(
+                incomingEventType,
+                fallbackTournamentType,
+                fallbackName,
+                fallbackDescription
+        );
+        String formatType = TournamentTypeHelper.normalizeFormatType(incomingFormatType, fallbackTournamentType);
+
+        incoming.setEventType(eventType);
+        incoming.setFormatType(formatType);
+        incoming.setTournamentType(formatType);
     }
 }

@@ -129,7 +129,7 @@
                   </view>
                   <view class="p-main">
                     <text class="name">{{ r.memberName }}</text>
-                    <text class="meta">{{ tournament.tournamentType }} • {{ r.paymentMethod || '—' }}</text>
+                    <text class="meta">{{ r.eventTypeNameSnapshot || getTournamentEventLabel(tournament || undefined) }} • {{ r.paymentMethod || '—' }}</text>
                   </view>
                 </view>
                 <view class="p-right">
@@ -162,6 +162,7 @@ import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { getTournamentDetail, getTournamentRegistrationList, type TournamentItem, type TournamentRegistrationItem } from '@/api/president/tournament'
+import { getTournamentEventLabel, normalizeTournamentFormatType } from '@/utils/tournament'
 
 const loading = ref(true)
 const regLoading = ref(true)
@@ -198,22 +199,25 @@ const venueLine = computed(() => {
   const v = tournament.value?.venueName || '—'
   const s = fmtDate(tournament.value?.tournamentStart)
   const e = fmtDate(tournament.value?.tournamentEnd)
-  return `${v} • ${s} - ${e} • ${tournament.value?.tournamentType || '—'}`
+  return `${v} • ${s} - ${e} • ${getTournamentEventLabel(tournament.value || undefined)} / ${normalizeTournamentFormatType(tournament.value || undefined)}`
 })
 
 const statusText = computed(() => {
   const s = tournament.value?.status
   if (s === 1) return '报名中'
-  if (s === 2) return '进行中'
-  if (s === 3) return '已结束'
-  return '已取消'
+  if (s === 2) return '报名结束'
+  if (s === 3) return '进行中'
+  if (s === 4) return '已结束'
+  if (s === 0) return '已取消'
+  return '未知状态'
 })
 
 const pillClass = computed(() => {
   const s = tournament.value?.status
   if (s === 1) return 'reg'
-  if (s === 2) return 'on'
-  if (s === 3) return 'end'
+  if (s === 2) return 'hold'
+  if (s === 3) return 'on'
+  if (s === 4) return 'end'
   return 'off'
 })
 

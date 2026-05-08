@@ -21,6 +21,27 @@ public class TournamentRegistration {
 
     private Long partnerId;
 
+    @Size(max = 50)
+    private String registrantName;
+
+    @Size(max = 20)
+    private String registrantPhone;
+
+    @Size(max = 18)
+    private String registrantIdCard;
+
+    @Size(max = 10)
+    private String eventTypeSnapshot;
+
+    @Size(max = 20)
+    private String eventTypeNameSnapshot;
+
+    @Size(max = 50)
+    private String partnerNameSnapshot;
+
+    @Size(max = 20)
+    private String partnerPhoneSnapshot;
+
     @NotNull
     @DecimalMin("0.00")
     @DecimalMax("99999.99")
@@ -51,6 +72,7 @@ public class TournamentRegistration {
     private String memberName;
     private String partnerName;
     private String tournamentName;
+    private String venueName;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime tournamentStartTime;

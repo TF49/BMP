@@ -200,6 +200,7 @@ import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getTournamentList, type TournamentItem } from '@/api/tournament'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { useUserStore } from '@/store/modules/user'
+import { getTournamentEventLabel, isTournamentDoubles } from '@/utils/tournament'
 
 const userStore = useUserStore()
 const statusBarHeight = ref(44)
@@ -272,16 +273,16 @@ function formatDateRange(start?: string, end?: string) {
 }
 
 function badgeFrom(t: TournamentItem): { icon: string; label: string } {
-  const type = (t.tournamentType || '') + (t.tournamentName || '')
+  const type = `${getTournamentEventLabel(t)}${t.tournamentName || ''}`
   if (/青少年|U-?15|未来之星/i.test(type)) return { icon: 'star', label: 'YOUTH UNDER 15' }
   if (/双打|混双|混合/i.test(type)) return { icon: 'staff', label: 'DOUBLE MIXED' }
   if (/单打/i.test(type)) return { icon: 'person', label: 'SINGLE ELITE' }
-  return { icon: 'medal', label: (t.tournamentType || 'OPEN').toUpperCase().slice(0, 16) }
+  return { icon: 'medal', label: getTournamentEventLabel(t).toUpperCase().slice(0, 16) }
 }
 
 function feeUnitFrom(t: TournamentItem): string {
-  const n = (t.tournamentName || '') + (t.tournamentType || '')
-  if (/双打|混双|队|团体/i.test(n)) return '/队'
+  const n = `${t.tournamentName || ''}${getTournamentEventLabel(t)}`
+  if (isTournamentDoubles(t) || /队|团体/i.test(n)) return '/队'
   return '/人'
 }
 
@@ -299,7 +300,7 @@ function mapItem(t: TournamentItem, index: number): UiCard {
     cover: CARD_IMGS[index % CARD_IMGS.length],
     badgeIcon: b.icon,
     badgeLabel: b.label,
-    rawType: t.tournamentType || '',
+    rawType: getTournamentEventLabel(t),
     status: t.status,
     participants: t.currentParticipants || 0,
     maxParticipants: t.maxParticipants || 0

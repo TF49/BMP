@@ -8,21 +8,28 @@ import java.util.Map;
 
 @Mapper
 public interface TournamentRegistrationMapper {
-    @Select("SELECT tr.*, m1.member_name, m2.member_name as partner_name, t.tournament_name " +
+    @Select("SELECT tr.*, " +
+            "COALESCE(tr.registrant_name, m1.member_name) as member_name, " +
+            "COALESCE(tr.partner_name_snapshot, m2.member_name) as partner_name, " +
+            "t.tournament_name, t.tournament_start as tournament_start_time, t.tournament_end as tournament_end_time, " +
+            "IFNULL(v.venue_name, '') as venue_name " +
             "FROM biz_tournament_registration tr " +
             "LEFT JOIN sys_member m1 ON tr.member_id = m1.id " +
             "LEFT JOIN sys_member m2 ON tr.partner_id = m2.id " +
             "LEFT JOIN biz_tournament t ON tr.tournament_id = t.id " +
+            "LEFT JOIN sys_venue v ON t.venue_id = v.id " +
             "WHERE tr.id = #{id} AND tr.del_flag = 0")
     TournamentRegistration findById(@Param("id") Long id);
 
     @Select("<script>" +
-            "SELECT tr.*, m1.member_name, m2.member_name as partner_name, t.tournament_name, " +
-            "t.tournament_start as tournament_start_time, t.tournament_end as tournament_end_time " +
+            "SELECT tr.*, COALESCE(tr.registrant_name, m1.member_name) as member_name, " +
+            "COALESCE(tr.partner_name_snapshot, m2.member_name) as partner_name, t.tournament_name, " +
+            "t.tournament_start as tournament_start_time, t.tournament_end as tournament_end_time, IFNULL(v.venue_name, '') as venue_name " +
             "FROM biz_tournament_registration tr " +
             "LEFT JOIN sys_member m1 ON tr.member_id = m1.id " +
             "LEFT JOIN sys_member m2 ON tr.partner_id = m2.id " +
             "LEFT JOIN biz_tournament t ON tr.tournament_id = t.id " +
+            "LEFT JOIN sys_venue v ON t.venue_id = v.id " +
             "WHERE tr.del_flag = 0 " +
             "<if test='venueId != null'> AND t.venue_id = #{venueId} </if>" +
             "<if test='tournamentId != null'> AND tr.tournament_id = #{tournamentId} </if>" +
@@ -94,16 +101,21 @@ public interface TournamentRegistrationMapper {
                                            @Param("excludeId") Long excludeId);
 
     @Insert("INSERT INTO biz_tournament_registration (registration_no, tournament_id, member_id, partner_id, " +
-            "entry_fee, payment_method, payment_status, status, match_result, remark, " +
+            "registrant_name, registrant_phone, registrant_id_card, event_type_snapshot, event_type_name_snapshot, " +
+            "partner_name_snapshot, partner_phone_snapshot, entry_fee, payment_method, payment_status, status, match_result, remark, " +
             "create_time, update_time, del_flag) " +
             "VALUES (#{registrationNo}, #{tournamentId}, #{memberId}, #{partnerId}, " +
-            "#{entryFee}, #{paymentMethod}, #{paymentStatus}, #{status}, #{matchResult}, #{remark}, " +
+            "#{registrantName}, #{registrantPhone}, #{registrantIdCard}, #{eventTypeSnapshot}, #{eventTypeNameSnapshot}, " +
+            "#{partnerNameSnapshot}, #{partnerPhoneSnapshot}, #{entryFee}, #{paymentMethod}, #{paymentStatus}, #{status}, #{matchResult}, #{remark}, " +
             "#{createTime}, #{updateTime}, 0)")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(TournamentRegistration registration);
 
     @Update("UPDATE biz_tournament_registration SET tournament_id = #{tournamentId}, member_id = #{memberId}, " +
-            "partner_id = #{partnerId}, entry_fee = #{entryFee}, payment_method = #{paymentMethod}, " +
+            "partner_id = #{partnerId}, registrant_name = #{registrantName}, registrant_phone = #{registrantPhone}, registrant_id_card = #{registrantIdCard}, " +
+            "event_type_snapshot = #{eventTypeSnapshot}, event_type_name_snapshot = #{eventTypeNameSnapshot}, " +
+            "partner_name_snapshot = #{partnerNameSnapshot}, partner_phone_snapshot = #{partnerPhoneSnapshot}, " +
+            "entry_fee = #{entryFee}, payment_method = #{paymentMethod}, " +
             "payment_status = #{paymentStatus}, status = #{status}, match_result = #{matchResult}, " +
             "remark = #{remark}, update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0")
     int update(TournamentRegistration registration);

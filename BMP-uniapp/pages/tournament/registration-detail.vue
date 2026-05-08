@@ -64,11 +64,27 @@
 
             <view class="row">
               <text class="label">报名人</text>
-              <text class="value">{{ detail.memberName || `会员 #${detail.memberId || '-'}` }}</text>
+              <text class="value">{{ detail.registrantName || detail.memberName || `会员 #${detail.memberId || '-'}` }}</text>
+            </view>
+            <view v-if="detail.registrantPhone" class="row">
+              <text class="label">联系电话</text>
+              <text class="value">{{ detail.registrantPhone }}</text>
+            </view>
+            <view v-if="detail.registrantIdCard" class="row">
+              <text class="label">身份证号</text>
+              <text class="value">{{ detail.registrantIdCard }}</text>
+            </view>
+            <view v-if="detail.eventTypeNameSnapshot" class="row">
+              <text class="label">比赛项目</text>
+              <text class="value">{{ detail.eventTypeNameSnapshot }}</text>
             </view>
             <view v-if="detail.partnerName" class="row">
               <text class="label">搭档</text>
               <text class="value">{{ detail.partnerName }}</text>
+            </view>
+            <view v-if="detail.partnerPhoneSnapshot" class="row">
+              <text class="label">搭档电话</text>
+              <text class="value">{{ detail.partnerPhoneSnapshot }}</text>
             </view>
             <view class="row">
               <text class="label">场馆</text>
@@ -126,7 +142,11 @@ const detail = ref<TournamentRegistrationItem | null>(null)
 
 const amountText = computed(() => formatAmount(detail.value?.entryFee || 0))
 const memberBalanceText = computed(() => formatAmount(currentMember.value?.balance || 0))
-const paymentMethodText = computed(() => PAYMENT_METHOD_TEXT.BALANCE)
+const paymentMethodText = computed(() => {
+  const method = detail.value?.paymentMethod as keyof typeof PAYMENT_METHOD_TEXT | undefined
+  if (!method) return '未支付'
+  return PAYMENT_METHOD_TEXT[method] || method
+})
 
 const statusText = computed(() => {
   const statusMap: Record<number, string> = {
