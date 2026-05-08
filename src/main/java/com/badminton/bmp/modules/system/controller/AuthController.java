@@ -434,9 +434,6 @@ public class AuthController extends BaseController {
                 return error("密码错误，无法注销账户");
             }
 
-            // 删除用户设置
-            userSettingMapper.deleteByUserId(user.getId());
-
             // 删除用户账户
             int n = userService.deleteById(user.getId());
             if (n > 0) {

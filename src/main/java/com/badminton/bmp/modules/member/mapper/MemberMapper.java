@@ -30,6 +30,38 @@ public interface MemberMapper {
     Member findByUserId(@Param("userId") Long userId);
 
     /**
+     * 根据用户ID查找会员（包含逻辑删除记录）
+     * @param userId 用户ID
+     * @return 会员对象
+     */
+    @Select("SELECT * FROM sys_member WHERE user_id = #{userId} LIMIT 1")
+    Member findAnyByUserId(@Param("userId") Long userId);
+
+    /**
+     * 通过身份证匹配未绑定账号的会员档案
+     */
+    @Select("SELECT * FROM sys_member WHERE del_flag = 0 AND user_id IS NULL AND id_card = #{idCard} ORDER BY id")
+    List<Member> findUnboundByIdCard(@Param("idCard") String idCard);
+
+    /**
+     * 通过手机号 + 姓名匹配未绑定账号的会员档案
+     */
+    @Select("SELECT * FROM sys_member WHERE del_flag = 0 AND user_id IS NULL AND phone = #{phone} AND member_name = #{memberName} ORDER BY id")
+    List<Member> findUnboundByPhoneAndName(@Param("phone") String phone, @Param("memberName") String memberName);
+
+    /**
+     * 将已有会员档案绑定到系统账号
+     */
+    @Update("UPDATE sys_member SET user_id = #{userId}, update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0")
+    int bindUser(@Param("id") Long id, @Param("userId") Long userId, @Param("updateTime") java.time.LocalDateTime updateTime);
+
+    /**
+     * 恢复逻辑删除的会员档案
+     */
+    @Update("UPDATE sys_member SET del_flag = 0, status = CASE WHEN status IS NULL THEN 1 ELSE status END, update_time = #{updateTime} WHERE id = #{id}")
+    int restoreById(@Param("id") Long id, @Param("updateTime") java.time.LocalDateTime updateTime);
+
+    /**
      * 查找所有会员（仅用户 USER/MEMBER，不含教练/会长等）
      * @return 会员列表
      */
@@ -134,7 +166,13 @@ public interface MemberMapper {
     @Update("UPDATE sys_member SET del_flag = 1, update_time = NOW() WHERE id = #{id}")
     int deleteById(@Param("id") Long id);
 
-    /** 仅统计/列表「用户」角色：会员管理只面向 sys_user.role IN ('USER','MEMBER')，排除教练/会长/场馆管理者/管理员 */
+    /**
+     * 逻辑删除并解绑用户账号（用于从用户管理删除账号时同步下线会员档案）
+     */
+    @Update("UPDATE sys_member SET user_id = NULL, del_flag = 1, update_time = #{updateTime} WHERE id = #{id}")
+    int deleteAndUnbindById(@Param("id") Long id, @Param("updateTime") java.time.LocalDateTime updateTime);
+
+    /** 仅统计/列表用户端账号档案：会员管理只面向 sys_user.role IN ('USER','MEMBER')，排除教练/会长/场馆管理者/管理员 */
     static final String USER_ROLE_FILTER = " INNER JOIN sys_user u ON m.user_id = u.id AND u.role IN ('USER','MEMBER') ";
 
     /**
@@ -252,4 +290,12 @@ public interface MemberMapper {
             "AND m.expire_time > NOW() AND m.expire_time <= DATE_ADD(NOW(), INTERVAL #{days} DAY) " +
             "ORDER BY m.expire_time ASC")
     List<java.util.Map<String, Object>> findExpiringWithinDays(@Param("days") int days);
+
+    @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER +
+            "WHERE m.del_flag = 0 AND (" +
+            "(m.expire_time IS NOT NULL AND DATE(m.expire_time) >= #{startDate} AND DATE(m.expire_time) <= #{endDate}) " +
+            "OR (m.status = 2 AND m.expire_time IS NULL AND DATE(m.update_time) >= #{startDate} AND DATE(m.update_time) <= #{endDate})" +
+            ")")
+    int countChurnBetween(@Param("startDate") java.time.LocalDate startDate,
+                          @Param("endDate") java.time.LocalDate endDate);
 }

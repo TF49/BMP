@@ -165,6 +165,21 @@ public interface BookingCourtMapper {
     Long findVenueIdByBookingId(@Param("bookingId") Long bookingId);
 
     @Select("<script>" +
+            "SELECT COUNT(DISTINCT bc.court_id) " +
+            "FROM biz_booking_court bc " +
+            "LEFT JOIN biz_booking b ON bc.booking_id = b.id " +
+            "LEFT JOIN sys_court c ON bc.court_id = c.id " +
+            "WHERE b.del_flag = 0 AND b.status IN (2, 3) " +
+            "AND bc.booking_date = #{bookingDate} " +
+            "AND bc.start_time &lt;= #{currentTime} " +
+            "AND bc.end_time &gt; #{currentTime} " +
+            "<if test='venueId != null'> AND c.venue_id = #{venueId} </if>" +
+            "</script>")
+    int countInUseCourts(@Param("venueId") Long venueId,
+                         @Param("bookingDate") LocalDate bookingDate,
+                         @Param("currentTime") LocalTime currentTime);
+
+    @Select("<script>" +
             "SELECT bc.id AS detail_id, bc.booking_date AS date, COUNT(DISTINCT bc.booking_id) AS cnt " +
             "FROM biz_booking_court bc " +
             "LEFT JOIN biz_booking b ON bc.booking_id = b.id " +

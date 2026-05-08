@@ -31,7 +31,7 @@ public class CourseBooking {
     @Size(max = 20)
     private String paymentMethod;
 
-    @Min(0) @Max(2)
+    @Min(0) @Max(3)
     private Integer paymentStatus;
 
     @Min(0) @Max(4)

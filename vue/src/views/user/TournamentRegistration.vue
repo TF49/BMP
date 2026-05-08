@@ -239,7 +239,7 @@
                   size="small"
                   @click="handleCancel(registration)"
                 >
-                  取消报名
+                  {{ registration.status === 2 ? '取消并申请退款' : '取消报名' }}
                 </el-button>
               </div>
             </div>
@@ -285,6 +285,7 @@ const submitting = ref(false)
 const currentBalance = ref(0)
 const currentMember = ref(null)
 const partnerOptions = ref([])
+const registeredTournamentIds = ref(new Set())
 
 const registrationForm = ref({
   tournamentId: null,
@@ -308,13 +309,24 @@ const formatTimeRange = (start, end) => {
   if (!start || !end) return '-'
   const startDate = new Date(start)
   const endDate = new Date(end)
-  const dateStr = `${startDate.getMonth() + 1}月${startDate.getDate()}日`
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return '-'
+
+  const startDateStr = `${startDate.getMonth() + 1}月${startDate.getDate()}日`
+  const endDateStr = `${endDate.getMonth() + 1}月${endDate.getDate()}日`
   const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`
   const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`
-  return `${dateStr} ${startTime}-${endTime}`
+
+  if (startDate.toDateString() === endDate.toDateString()) {
+    return `${startDateStr} ${startTime}-${endTime}`
+  }
+
+  return `${startDateStr} ${startTime} - ${endDateStr} ${endTime}`
 }
 
+const isRegistrationActiveStatus = (status) => [1, 2, 3].includes(Number(status))
+
 const getTournamentStatusText = (tournament) => {
+  if (tournament.isRegisteredByCurrentUser) return '已报名'
   if (tournament.status !== 1) return '已结束'
   if (tournament.registrationStatus === 1) return '报名中'
   if (tournament.registrationStatus === 2) return '报名已满'
@@ -322,6 +334,7 @@ const getTournamentStatusText = (tournament) => {
 }
 
 const getTournamentStatusType = (tournament) => {
+  if (tournament.isRegisteredByCurrentUser) return 'success'
   if (tournament.status !== 1) return 'info'
   if (tournament.registrationStatus === 1) return 'success'
   return 'warning'
@@ -339,26 +352,43 @@ const getRegistrationStatusType = (status) => {
 
 const getTournamentFormatLabel = (tournament) => normalizeTournamentFormatType(tournament)
 
+const decorateTournament = (tournament) => {
+  const baseFee = Number(tournament.registrationFee ?? tournament.entryFee ?? 0)
+  let fee = Number.isNaN(baseFee) || baseFee < 0 ? 0 : baseFee
+  if (isTournamentDoubles(tournament)) fee = Math.round(fee * 2 * 100) / 100
+
+  return {
+    ...tournament,
+    startTime: tournament.startTime ?? tournament.tournamentStart,
+    endTime: tournament.endTime ?? tournament.tournamentEnd,
+    registrationFee: fee,
+    registrationStatus:
+      tournament.registrationStatus ??
+      (tournament.status === 1 && (tournament.currentParticipants ?? 0) < (tournament.maxParticipants ?? 0) ? 1 : 2),
+    isRegisteredByCurrentUser: registeredTournamentIds.value.has(Number(tournament.id))
+  }
+}
+
+const refreshTournamentRegistrationFlags = () => {
+  tournamentList.value = tournamentList.value.map((tournament) => ({
+    ...tournament,
+    isRegisteredByCurrentUser: registeredTournamentIds.value.has(Number(tournament.id))
+  }))
+
+  if (selectedTournament.value?.id) {
+    const matchedTournament = tournamentList.value.find((tournament) => tournament.id === selectedTournament.value.id)
+    if (matchedTournament) {
+      selectedTournament.value = matchedTournament
+    }
+  }
+}
+
 const loadTournaments = async () => {
   try {
     const res = await getTournamentList({ page: 1, size: 100 })
     if (res.code === 200) {
       const list = res.data?.data || res.data?.records || res.data || []
-      const baseFee = (t) => {
-        const n = Number(t.registrationFee ?? t.entryFee ?? 0)
-        return Number.isNaN(n) || n < 0 ? 0 : n
-      }
-      tournamentList.value = (Array.isArray(list) ? list : []).map((t) => {
-        let fee = baseFee(t)
-        if (isTournamentDoubles(t)) fee = Math.round(fee * 2 * 100) / 100
-        return {
-          ...t,
-          startTime: t.startTime ?? t.tournamentStart,
-          endTime: t.endTime ?? t.tournamentEnd,
-          registrationFee: fee,
-          registrationStatus: t.registrationStatus ?? (t.status === 1 && (t.currentParticipants ?? 0) < (t.maxParticipants ?? 0) ? 1 : 2)
-        }
-      })
+      tournamentList.value = (Array.isArray(list) ? list : []).map(decorateTournament)
     }
   } catch (e) {
     console.error('加载赛事列表失败:', e)
@@ -407,15 +437,15 @@ const submitRegistration = async () => {
       remark: registrationForm.value.remark
     })
     
-    if (res.code === 200) {
-      ElMessage.success('报名成功！')
-      resetRegistrationForm()
-      loadTournaments()
-      activeTab.value = 'my-registrations'
-      loadMyRegistrations()
-    } else {
-      ElMessage.error(res.message || '报名失败')
-    }
+      if (res.code === 200) {
+        ElMessage.success('报名成功！')
+        resetRegistrationForm()
+        await Promise.all([loadTournaments(), syncRegisteredTournamentIds()])
+        activeTab.value = 'my-registrations'
+        await loadMyRegistrations()
+      } else {
+        ElMessage.error(res.message || '报名失败')
+      }
   } catch (e) {
     console.error('提交报名失败:', e)
     ElMessage.error('报名失败，请稍后重试')
@@ -436,6 +466,24 @@ const loadMyRegistrations = async () => {
     }
   } catch (e) {
     console.error('加载报名列表失败:', e)
+  }
+}
+
+const syncRegisteredTournamentIds = async () => {
+  try {
+    const res = await getTournamentRegistrationList({ page: 1, size: 100 })
+    if (res.code === 200) {
+      const list = Array.isArray(res.data?.data) ? res.data.data : []
+      registeredTournamentIds.value = new Set(
+        list
+          .filter((registration) => isRegistrationActiveStatus(registration.status))
+          .map((registration) => Number(registration.tournamentId))
+          .filter((id) => Number.isFinite(id))
+      )
+      refreshTournamentRegistrationFlags()
+    }
+  } catch (e) {
+    console.error('同步已报名赛事状态失败:', e)
   }
 }
 
@@ -480,14 +528,14 @@ const handlePay = (registration) => {
       cancelButtonText: '稍后支付'
     }
   ).then(async () => {
-    try {
-      const res = await processMemberTournamentRegistrationPayment(registration.id, 'BALANCE')
-      if (res.code === 200) {
-        ElMessage.success('支付成功')
-        await Promise.all([loadCurrentMemberInfo(), loadMyRegistrations(), loadTournaments()])
-      } else {
-        ElMessage.error(res.message || '支付失败')
-      }
+      try {
+        const res = await processMemberTournamentRegistrationPayment(registration.id, 'BALANCE')
+        if (res.code === 200) {
+          ElMessage.success('支付成功')
+          await Promise.all([loadCurrentMemberInfo(), loadMyRegistrations(), loadTournaments(), syncRegisteredTournamentIds()])
+        } else {
+          ElMessage.error(res.message || '支付失败')
+        }
     } catch (e) {
       console.error('赛事报名支付失败:', e)
       ElMessage.error(e.response?.data?.message || e.message || '支付失败，请稍后重试')
@@ -497,14 +545,22 @@ const handlePay = (registration) => {
 
 const handleCancel = async (registration) => {
   try {
-    await ElMessageBox.confirm('确定要取消这个报名吗？', '提示', {
+    const confirmMessage = registration.status === 2
+      ? '确定要取消这个报名吗？当前报名已支付，取消后会提交退款申请，等待管理员处理。'
+      : '确定要取消这个报名吗？'
+    await ElMessageBox.confirm(confirmMessage, '提示', {
       type: 'warning'
     })
     
     const res = await updateTournamentRegistrationStatus(registration.id, 0)
     if (res.code === 200) {
-      ElMessage.success('取消成功')
-      loadMyRegistrations()
+      ElMessage.success(registration.status === 2 ? '已取消，退款申请已提交' : '取消成功')
+      await Promise.all([
+        loadCurrentMemberInfo(),
+        loadMyRegistrations(),
+        loadTournaments(),
+        syncRegisteredTournamentIds()
+      ])
     } else {
       ElMessage.error(res.message || '取消失败')
     }
@@ -523,7 +579,7 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(() => {
-  loadTournaments()
+  Promise.all([loadTournaments(), syncRegisteredTournamentIds()])
   loadCurrentMemberInfo()
   if (activeTab.value === 'my-registrations') {
     loadMyRegistrations()

@@ -16,13 +16,14 @@
       </div>
     </div>
     <div class="chart-body">
-      <div ref="chartRef" class="chart-container"></div>
+      <div v-if="showEmptyState" class="chart-empty">暂无真实收入数据</div>
+      <div v-else ref="chartRef" class="chart-container"></div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getVenueStatistics } from '@/api/venue'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
@@ -54,6 +55,16 @@ const stackedData = ref({
   course: [],
   tournament: [],
   other: []
+})
+
+const showEmptyState = computed(() => {
+  const values = [
+    ...stackedData.value.court,
+    ...stackedData.value.course,
+    ...stackedData.value.tournament,
+    ...stackedData.value.other
+  ]
+  return venues.value.length === 0 || values.every(item => parseNum(item) === 0)
 })
 
 const parseNum = (v) => {
@@ -228,7 +239,16 @@ const resizeChart = () => {
   chartInstance?.resize()
 }
 
-const updateChart = () => {
+const updateChart = async () => {
+  if (showEmptyState.value) {
+    chartInstance?.dispose()
+    chartInstance = null
+    return
+  }
+  await nextTick()
+  if (!chartInstance && chartRef.value) {
+    chartInstance = echarts.init(chartRef.value)
+  }
   if (chartInstance) {
     chartInstance.setOption(getChartOption())
   }
@@ -249,6 +269,18 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.chart-empty {
+  width: 100%;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary, #64748B);
+  border: 1px dashed var(--color-border, #E2E8F0);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
 .chart-card {
   background: var(--color-card-bg, #FFFFFF);
   border: 1px solid var(--color-border, #E2E8F0);
@@ -333,4 +365,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

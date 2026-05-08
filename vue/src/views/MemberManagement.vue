@@ -207,6 +207,30 @@
       >
         <div class="form-section modern-form-section">
           <h4 class="section-title modern-section-title">基本信息</h4>
+          <el-form-item v-if="!isEdit" label="关联用户账号" prop="userId" class="form-item-enhanced modern-form-item">
+            <el-select
+              v-model="memberForm.userId"
+              placeholder="请选择一个未绑定会员档案的用户账号"
+              filterable
+              clearable
+              :loading="candidateUsersLoading"
+              class="form-input modern-form-input"
+              @change="handleCandidateUserChange"
+            >
+              <el-option
+                v-for="user in candidateUsers"
+                :key="user.id"
+                :label="formatCandidateUserLabel(user)"
+                :value="user.id"
+              />
+            </el-select>
+            <span class="field-hint modern-field-hint">会员档案必须绑定一个现有用户账号，不能脱离用户单独创建</span>
+          </el-form-item>
+
+          <el-form-item v-else label="关联用户账号" class="form-item-enhanced modern-form-item">
+            <el-input :model-value="memberForm.userId ? `用户ID：${memberForm.userId}` : '-'" disabled class="form-input modern-form-input" />
+          </el-form-item>
+
           <el-form-item label="会员姓名" prop="memberName" class="form-item-enhanced modern-form-item">
             <el-input
               v-model="memberForm.memberName"
@@ -532,6 +556,7 @@ import {
   getMemberConsumeList
 } from '@/api/member'
 import { adminRecharge } from '@/api/recharge'
+import { getMemberCandidateUsers } from '@/api/user'
 
 // 搜索表单
 const searchForm = reactive({
@@ -581,6 +606,8 @@ const consumePagination = reactive({
   size: 5,
   total: 0
 })
+const candidateUsers = ref([])
+const candidateUsersLoading = ref(false)
 
 // 枚举
 const memberTypeOptions = [
@@ -611,6 +638,7 @@ const { userRole, isAdmin } = useAuth()
 // 表单数据
 const memberForm = reactive({
   id: null,
+  userId: null,
   memberName: '',
   phone: '',
   memberType: 'MEMBER',
@@ -655,6 +683,9 @@ const viewFormData = reactive({
 
 // 校验规则
 const memberFormRules = {
+  userId: [
+    { required: true, message: '请选择要绑定的用户账号', trigger: 'change' }
+  ],
   memberName: [
     { required: true, message: '请输入会员姓名', trigger: 'blur' },
     { max: 50, message: '会员姓名不能超过50个字符', trigger: 'blur' }
@@ -855,7 +886,9 @@ const handleAdd = () => {
   dialogTitle.value = '添加会员'
   isEdit.value = false
   resetForm()
-  dialogVisible.value = true
+  loadCandidateUsers().then(() => {
+    dialogVisible.value = true
+  })
 }
 
 const handleRecharge = (row) => {
@@ -932,6 +965,7 @@ const handleEdit = async (row) => {
       const data = res.data || {}
       Object.assign(memberForm, {
         id: data.id,
+        userId: data.userId ?? null,
         memberName: data.memberName || '',
         phone: data.phone || '',
         memberType: data.memberType || 'NORMAL',
@@ -1005,6 +1039,10 @@ const loadConsumeRecords = async (memberId) => {
 }
 
 const handleDelete = (row) => {
+  if (row.userId) {
+    ElMessage.warning('该会员已绑定用户账号，不能直接删除。请改为冻结会员或禁用对应用户账号')
+    return
+  }
   ElMessageBox.confirm(
     `确定要删除会员 "${row.memberName}" 吗？`,
     '删除确认',
@@ -1066,6 +1104,41 @@ const handleMemberTypeChange = (val) => {
   }
 }
 
+const formatCandidateUserLabel = (user) => {
+  if (!user) return ''
+  const parts = [`${user.username || '未命名账号'} (ID:${user.id})`]
+  if (user.phone) parts.push(user.phone)
+  if (user.idCard) parts.push(user.idCard)
+  return parts.join(' / ')
+}
+
+const loadCandidateUsers = async () => {
+  candidateUsersLoading.value = true
+  try {
+    const res = await getMemberCandidateUsers()
+    if (res.code === 200) {
+      candidateUsers.value = Array.isArray(res.data) ? res.data : []
+      return
+    }
+    candidateUsers.value = []
+    ElMessage.error(res.message || '获取可绑定用户账号失败')
+  } catch (e) {
+    console.error('获取可绑定用户账号失败:', e)
+    candidateUsers.value = []
+    ElMessage.error('获取可绑定用户账号失败，请稍后重试')
+  } finally {
+    candidateUsersLoading.value = false
+  }
+}
+
+const handleCandidateUserChange = (userId) => {
+  const selected = candidateUsers.value.find((item) => item.id === userId)
+  if (!selected) return
+  memberForm.memberName = selected.username || ''
+  memberForm.phone = selected.phone || ''
+  memberForm.idCard = selected.idCard || ''
+}
+
 const handleConsumeSizeChange = (size) => {
   consumePagination.size = size
   consumePagination.page = 1
@@ -1084,6 +1157,7 @@ const handleConsumePageChange = (page) => {
 const resetForm = () => {
   Object.assign(memberForm, {
     id: null,
+    userId: null,
     memberName: '',
     phone: '',
     memberType: 'MEMBER',
@@ -1093,6 +1167,7 @@ const resetForm = () => {
     expireTime: '',
     balance: 0
   })
+  candidateUsers.value = []
   if (memberFormRef.value) {
     memberFormRef.value.resetFields()
   }

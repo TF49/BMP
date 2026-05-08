@@ -317,7 +317,7 @@
                   size="small"
                   @click="handleCancelService(service)"
                 >
-                  取消申请
+                  {{ Number(service?.paymentStatus ?? 0) === 1 ? '取消并申请退款' : '取消申请' }}
                 </el-button>
               </div>
             </div>
@@ -434,14 +434,14 @@ const getServiceStatusType = (status) => {
 }
 
 const getPaymentStatusText = (status) => {
-  const map = { 0: '待支付', 1: '已支付', 2: '已退款' }
+  const map = { 0: '待支付', 1: '已支付', 2: '已退款', 3: '退款中' }
   return map[status] || '未知'
 }
 
 const canCancelService = (service) => {
   const status = Number(service?.status ?? -1)
   const paymentStatus = Number(service?.paymentStatus ?? 0)
-  return status === 1 && paymentStatus !== 1 && paymentStatus !== 2
+  return status === 1 && paymentStatus !== 2 && paymentStatus !== 3
 }
 
 const canPayService = (service) => {
@@ -612,12 +612,17 @@ const loadMyServices = async () => {
 
 const handleCancelService = async (service) => {
   try {
-    await ElMessageBox.confirm('确定要取消这个申请吗？', '提示', {
+    const requiresRefund = Number(service?.paymentStatus ?? 0) === 1
+    await ElMessageBox.confirm(
+      requiresRefund ? '确定要取消这个申请吗？已支付订单会提交退款申请，等待处理。' : '确定要取消这个申请吗？',
+      '提示',
+      {
       type: 'warning'
-    })
+      }
+    )
     const res = await cancelStringing(service.id)
     if (res.code === 200) {
-      ElMessage.success('取消成功')
+      ElMessage.success(requiresRefund ? '已取消，退款申请已提交' : '取消成功')
       loadMyServices()
     } else {
       ElMessage.error(res.message || '取消失败')

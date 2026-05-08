@@ -426,13 +426,16 @@ const handlePay = (course) => {
 
 const handleCancel = async (course) => {
   try {
-    await ElMessageBox.confirm('确定要取消这个课程预约吗？', '提示', {
+    const confirmMessage = course.status === 2
+      ? '确定要取消这个课程预约吗？当前订单已支付，取消后会提交退款申请，等待管理员处理。'
+      : '确定要取消这个课程预约吗？'
+    await ElMessageBox.confirm(confirmMessage, '提示', {
       type: 'warning'
     })
     
     const res = await updateCourseBookingStatus(course.id, 0)
     if (res.code === 200) {
-      ElMessage.success('取消成功')
+      ElMessage.success(course.status === 2 ? '已取消，退款申请已提交' : '取消成功')
       loadMyCourses()
     } else {
       ElMessage.error(res.message || '取消失败')

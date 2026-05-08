@@ -47,6 +47,12 @@ public interface UserService {
     List<User> findAll();
 
     /**
+     * 查找可用于创建会员档案的用户端账号（尚未绑定会员档案）
+     * @return 用户列表
+     */
+    List<User> findAvailableMemberUsers();
+
+    /**
      * 注册新用户
      * @param user 用户对象
      * @return 影响的行数

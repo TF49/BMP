@@ -107,9 +107,9 @@ public class Booking {
     private String paymentMethod;
 
     /**
-     * 支付状态（0-未支付，1-已支付，2-已退款）
+     * 支付状态（0-未支付，1-已支付，2-已退款，3-退款中）
      */
-    @StatusValid(allowedValues = {0, 1, 2}, message = "支付状态必须为0(未支付)、1(已支付)或2(已退款)")
+    @StatusValid(allowedValues = {0, 1, 2, 3}, message = "支付状态必须为0(未支付)、1(已支付)、2(已退款)或3(退款中)")
     private Integer paymentStatus;
 
     /**

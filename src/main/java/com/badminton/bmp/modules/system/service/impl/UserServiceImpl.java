@@ -1,5 +1,8 @@
 package com.badminton.bmp.modules.system.service.impl;
 
+import com.badminton.bmp.common.exception.BusinessException;
+import com.badminton.bmp.modules.coach.mapper.CoachMapper;
+import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.system.entity.User;
 import com.badminton.bmp.modules.system.mapper.UserMapper;
 import com.badminton.bmp.modules.system.service.UserService;
@@ -24,6 +27,12 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private MemberService memberService;
+
+    @Autowired
+    private MemberMapper memberMapper;
+
+    @Autowired
+    private CoachMapper coachMapper;
     
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
@@ -88,6 +97,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> findAll() {
         return userMapper.findAll();
+    }
+
+    @Override
+    public List<User> findAvailableMemberUsers() {
+        return userMapper.findAvailableMemberUsers();
     }
 
     @Override
@@ -218,6 +232,20 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int deleteById(Long id) {
+        User existingUser = userMapper.findById(id);
+        if (existingUser == null) {
+            return 0;
+        }
+
+        com.badminton.bmp.modules.member.entity.Member member = memberMapper.findAnyByUserId(id);
+        if (member != null) {
+            memberMapper.deleteAndUnbindById(member.getId(), LocalDateTime.now());
+        }
+
+        if (coachMapper.findByUserId(id) != null) {
+            throw new BusinessException("该用户已绑定教练档案，不能直接删除。请先在教练管理中处理教练档案，或改为禁用账号");
+        }
+
         return userMapper.deleteById(id);
     }
 

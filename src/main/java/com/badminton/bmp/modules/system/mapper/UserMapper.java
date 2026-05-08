@@ -47,6 +47,23 @@ public interface UserMapper {
     List<User> findAll();
 
     /**
+     * 查找所有用户端账号（兼容历史 MEMBER 角色）
+     * @return 用户端账号列表
+     */
+    @Select("SELECT * FROM sys_user WHERE role IN ('USER', 'MEMBER') ORDER BY id")
+    List<User> findAllUserSideAccounts();
+
+    /**
+     * 查找尚未绑定会员档案的用户端账号
+     * @return 用户列表
+     */
+    @Select("SELECT u.* FROM sys_user u " +
+            "LEFT JOIN sys_member m ON m.user_id = u.id " +
+            "WHERE u.role IN ('USER', 'MEMBER') AND u.status = 1 AND m.id IS NULL " +
+            "ORDER BY u.id")
+    List<User> findAvailableMemberUsers();
+
+    /**
      * 插入新用户
      * @param user 用户对象
      * @return 影响的行数

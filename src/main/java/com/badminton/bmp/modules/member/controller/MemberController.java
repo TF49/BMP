@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,7 +184,6 @@ public class MemberController extends BaseController {
                 int sumNew = newMembers.stream().mapToInt(Integer::intValue).sum();
                 if ("month".equalsIgnoreCase(period)) {
                     stats.put("newThisMonth", sumNew);
-                    // Dashboard 会员流失图：近12个月每月新增与流失（流失暂无数据填0）
                     java.time.LocalDate start12 = end.minusMonths(11).withDayOfMonth(1);
                     List<Map<String, Object>> rows12 = memberMapper.countRegisteredByDate(start12, end);
                     Map<java.time.LocalDate, Integer> byDate12 = new HashMap<>();
@@ -201,21 +201,24 @@ public class MemberController extends BaseController {
                         }
                     }
                     List<Map<String, Object>> monthlyChurn = new java.util.ArrayList<>();
+                    DateTimeFormatter monthFormatter = DateTimeFormatter.ofPattern("M月");
                     for (int i = 11; i >= 0; i--) {
-                        java.time.LocalDate monthEnd = end.minusMonths(i);
-                        java.time.LocalDate monthStart = monthEnd.withDayOfMonth(1);
+                        java.time.LocalDate monthStart = end.minusMonths(i).withDayOfMonth(1);
+                        java.time.LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
                         int sum = 0;
-                        for (java.time.LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
+                        java.time.LocalDate effectiveEnd = monthEnd.isAfter(end) ? end : monthEnd;
+                        for (java.time.LocalDate d = monthStart; !d.isAfter(effectiveEnd); d = d.plusDays(1)) {
                             sum += byDate12.getOrDefault(d, 0);
                         }
-                        String monthLabel = (12 - i) + "月";
+                        int churn = memberMapper.countChurnBetween(monthStart, effectiveEnd);
+                        String monthLabel = monthStart.format(monthFormatter);
                         Map<String, Object> item = new HashMap<>();
                         item.put("month", monthLabel);
                         item.put("label", monthLabel);
                         item.put("newMembers", sum);
                         item.put("new", sum);
-                        item.put("churnMembers", 0);
-                        item.put("churn", 0);
+                        item.put("churnMembers", churn);
+                        item.put("churn", churn);
                         monthlyChurn.add(item);
                     }
                     stats.put("monthlyChurn", monthlyChurn);

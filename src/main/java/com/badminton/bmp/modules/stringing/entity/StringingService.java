@@ -66,7 +66,7 @@ public class StringingService {
     @Size(max = 20)
     private String paymentMethod;
 
-    @Min(0) @Max(2)
+    @Min(0) @Max(3)
     private Integer paymentStatus;
 
     @Size(max = 500)

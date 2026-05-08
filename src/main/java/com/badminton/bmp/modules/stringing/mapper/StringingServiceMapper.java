@@ -215,6 +215,14 @@ public interface StringingServiceMapper {
             "</script>")
     int countAll(@Param("venueId") Long venueId);
 
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM biz_stringing_service " +
+            "WHERE del_flag = 0 AND payment_status = #{paymentStatus} " +
+            "<if test='venueId != null'> AND venue_id = #{venueId} </if>" +
+            "</script>")
+    int countByPaymentStatus(@Param("venueId") Long venueId,
+                             @Param("paymentStatus") Integer paymentStatus);
+
     /**
      * 查询当天所有服务单号（用于单号生成，不进行权限过滤）。
      * 包含已软删除记录，避免重复生成已存在的单号导致唯一键冲突。

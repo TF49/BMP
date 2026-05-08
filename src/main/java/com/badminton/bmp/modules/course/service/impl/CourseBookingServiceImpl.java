@@ -21,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -558,7 +560,15 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             }
         }
         
-        int result = courseBookingMapper.updateStatus(id, status);
+        int result;
+        if (status == 0 && booking.getPaymentStatus() != null && booking.getPaymentStatus() == 1) {
+            booking.setStatus(0);
+            booking.setPaymentStatus(3);
+            booking.setUpdateTime(LocalDateTime.now());
+            result = courseBookingMapper.update(booking);
+        } else {
+            result = courseBookingMapper.updateStatus(id, status);
+        }
         try {
             Long userId = null;
             Member m = memberMapper.findById(booking.getMemberId());
@@ -646,14 +656,49 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         stats.put("ongoing", ongoing);
         stats.put("finished", finished);
 
-        // Dashboard 课程满班率趋势：近8周（占位，后续可接入按周汇总的满班率）
-        java.util.List<Map<String, Object>> weeklyCapacity = new java.util.ArrayList<>();
-        for (int i = 7; i >= 0; i--) {
-            Map<String, Object> w = new java.util.HashMap<>();
-            w.put("week", "第" + (8 - i) + "周");
-            w.put("label", "第" + (8 - i) + "周");
-            w.put("rate", 0);
-            w.put("capacityRate", 0);
+        LocalDate today = LocalDate.now();
+        LocalDate currentWeekStart = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        LocalDate startWeek = currentWeekStart.minusWeeks(7);
+        LocalDate endWeek = currentWeekStart.plusDays(6);
+
+        List<Map<String, Object>> weeklyRows = courseMapper.sumWeeklyCapacityStats(venueFilter, startWeek, endWeek);
+        Map<LocalDate, Map<String, Object>> weeklyRowMap = new HashMap<>();
+        if (weeklyRows != null) {
+            for (Map<String, Object> row : weeklyRows) {
+                Object weekStartObj = row.get("weekStart");
+                if (weekStartObj == null) {
+                    weekStartObj = row.get("WEEKSTART");
+                }
+                if (weekStartObj == null) {
+                    continue;
+                }
+                LocalDate weekStartDate = weekStartObj instanceof LocalDate
+                        ? (LocalDate) weekStartObj
+                        : LocalDate.parse(weekStartObj.toString().substring(0, 10));
+                weeklyRowMap.put(weekStartDate, row);
+            }
+        }
+
+        List<Map<String, Object>> weeklyCapacity = new ArrayList<>();
+        DateTimeFormatter labelFormatter = DateTimeFormatter.ofPattern("MM/dd");
+        for (int i = 0; i < 8; i++) {
+            LocalDate weekStartDate = startWeek.plusWeeks(i);
+            LocalDate weekEndDate = weekStartDate.plusDays(6);
+            Map<String, Object> row = weeklyRowMap.get(weekStartDate);
+            int bookedStudents = row != null && row.get("bookedStudents") instanceof Number
+                    ? ((Number) row.get("bookedStudents")).intValue() : 0;
+            int totalCapacity = row != null && row.get("totalCapacity") instanceof Number
+                    ? ((Number) row.get("totalCapacity")).intValue() : 0;
+            double rate = totalCapacity > 0 ? (bookedStudents * 100.0) / totalCapacity : 0D;
+
+            Map<String, Object> w = new HashMap<>();
+            String weekLabel = labelFormatter.format(weekStartDate) + "-" + labelFormatter.format(weekEndDate);
+            w.put("week", weekLabel);
+            w.put("label", weekLabel);
+            w.put("rate", rate);
+            w.put("capacityRate", rate);
+            w.put("bookedStudents", bookedStudents);
+            w.put("totalCapacity", totalCapacity);
             weeklyCapacity.add(w);
         }
         stats.put("weeklyCapacity", weeklyCapacity);
@@ -837,7 +882,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
 
         // 验证预约状态，按状态返回明确提示
         Integer payStatus = booking.getPaymentStatus();
-        if (payStatus == null || payStatus != 1) {
+        if (payStatus == null || (payStatus != 1 && payStatus != 3)) {
             String errMsg;
             if (payStatus == null || payStatus == 0) {
                 errMsg = "该课程预约尚未支付，无法退款";

@@ -47,6 +47,26 @@ const trendData = ref({
   fullRate: []
 })
 
+const buildFallbackTrend = () => {
+  const labels = []
+  const current = new Date()
+  const day = current.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  current.setDate(current.getDate() + diff - 49)
+  current.setHours(0, 0, 0, 0)
+  for (let i = 0; i < 8; i++) {
+    const start = new Date(current)
+    start.setDate(current.getDate() + i * 7)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    labels.push(`${String(start.getMonth() + 1).padStart(2, '0')}/${String(start.getDate()).padStart(2, '0')}-${String(end.getMonth() + 1).padStart(2, '0')}/${String(end.getDate()).padStart(2, '0')}`)
+  }
+  return {
+    categories: labels,
+    fullRate: new Array(8).fill(0)
+  }
+}
+
 const parseNum = (v) => {
   if (v == null) return 0
   if (typeof v === 'number') return v
@@ -63,23 +83,14 @@ const fetchCapacityData = async () => {
         trendData.value.categories = res.data.weeklyCapacity.map(item => item.week || item.label || '')
         trendData.value.fullRate = res.data.weeklyCapacity.map(item => parseNum(item.rate || item.capacityRate))
       } else {
-        trendData.value = {
-          categories: ['第1周', '第2周', '第3周', '第4周', '第5周', '第6周', '第7周', '第8周', '第9周', '第10周', '第11周', '第12周'],
-          fullRate: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        }
+        trendData.value = buildFallbackTrend()
       }
     } else {
-      trendData.value = {
-        categories: ['第1周', '第2周', '第3周', '第4周', '第5周', '第6周', '第7周', '第8周', '第9周', '第10周', '第11周', '第12周'],
-        fullRate: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      }
+      trendData.value = buildFallbackTrend()
     }
   } catch (e) {
     console.error('获取课程满班率趋势失败:', e)
-    trendData.value = {
-      categories: ['第1周', '第2周', '第3周', '第4周', '第5周', '第6周', '第7周', '第8周', '第9周', '第10周', '第11周', '第12周'],
-      fullRate: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    }
+    trendData.value = buildFallbackTrend()
   } finally {
     loading.value = false
   }
@@ -104,8 +115,8 @@ const getChartOption = () => {
         return `
           <div style="margin-bottom:6px;font-weight:600;color:${colors.textPrimary};">${data.name}</div>
           <div style="font-size:12px;color:${colors.textSecondary};display:flex;justify-content:space-between;gap:12px;">
-            <span>平均满班率</span>
-            <span style="font-weight:600;color:${colors.success};">${(data.value * 100).toFixed(1)}%</span>
+            <span>满班率</span>
+            <span style="font-weight:600;color:${colors.success};">${parseNum(data.value).toFixed(1)}%</span>
           </div>
         `
       }
@@ -130,8 +141,8 @@ const getChartOption = () => {
     },
     yAxis: {
       type: 'value',
-      min: 0.4,
-      max: 1,
+      min: 0,
+      max: 100,
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: {
@@ -143,7 +154,7 @@ const getChartOption = () => {
       axisLabel: {
         color: colors.textSecondary,
         fontSize: 11,
-        formatter: val => `${Math.round(val * 100)}%`
+        formatter: val => `${Math.round(val)}%`
       }
     },
     series: [
@@ -294,4 +305,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

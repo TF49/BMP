@@ -76,11 +76,19 @@ const fetchChurnData = async () => {
   }
 }
 
-const defaultMonths = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+const defaultMonths = computed(() => {
+  const months = []
+  const current = new Date()
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(current.getFullYear(), current.getMonth() - i, 1)
+    months.push(`${date.getMonth() + 1}月`)
+  }
+  return months
+})
 
 const getChartOption = () => {
   const colors = themeColors.value
-  const list = churnData.value.length > 0 ? churnData.value : defaultMonths.map(m => ({ month: m, newMembers: 0, churnMembers: 0 }))
+  const list = churnData.value.length > 0 ? churnData.value : defaultMonths.value.map(m => ({ month: m, newMembers: 0, churnMembers: 0 }))
   return {
     tooltip: {
       trigger: 'axis',
@@ -296,4 +304,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

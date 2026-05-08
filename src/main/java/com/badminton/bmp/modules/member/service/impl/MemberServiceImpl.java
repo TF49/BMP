@@ -10,6 +10,7 @@ import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import com.badminton.bmp.modules.system.entity.User;
+import com.badminton.bmp.modules.system.mapper.UserMapper;
 import com.badminton.bmp.common.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,9 @@ public class MemberServiceImpl implements MemberService {
 
     @Autowired
     private CoachMapper coachMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     private void ensurePresidentAnalyticsAccess() {
         if (!SecurityUtils.isPresident()) {
@@ -79,7 +83,18 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public Member findByUserId(Long userId) {
-        return memberMapper.findByUserId(userId);
+        if (userId == null) {
+            return null;
+        }
+        Member existing = memberMapper.findByUserId(userId);
+        if (existing != null) {
+            return existing;
+        }
+        User user = userMapper.findById(userId);
+        if (!isUserSideAccount(user)) {
+            return null;
+        }
+        return ensureMemberArchiveForUser(user);
     }
 
     /**
@@ -91,9 +106,13 @@ public class MemberServiceImpl implements MemberService {
         if (user == null || user.getId() == null) {
             throw new IllegalArgumentException("用户信息不完整，无法创建会员");
         }
-        // 已存在则直接返回
-        Member existing = memberMapper.findByUserId(user.getId());
+        // 已存在则直接返回；若存在逻辑删除档案则恢复
+        Member existing = memberMapper.findAnyByUserId(user.getId());
         if (existing != null) {
+            if (existing.getDelFlag() != null && existing.getDelFlag() == 1) {
+                memberMapper.restoreById(existing.getId(), LocalDateTime.now());
+                return memberMapper.findById(existing.getId());
+            }
             return existing;
         }
 
@@ -117,8 +136,85 @@ public class MemberServiceImpl implements MemberService {
         return member;
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    protected void reconcileUserSideMemberArchives() {
+        java.util.List<User> users = userMapper.findAllUserSideAccounts();
+        if (users == null || users.isEmpty()) {
+            return;
+        }
+        for (User user : users) {
+            if (!isUserSideAccount(user)) {
+                continue;
+            }
+            ensureMemberArchiveForUser(user);
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    protected Member ensureMemberArchiveForUser(User user) {
+        if (!isUserSideAccount(user)) {
+            return null;
+        }
+        Member existing = memberMapper.findAnyByUserId(user.getId());
+        if (existing != null) {
+            if (existing.getDelFlag() != null && existing.getDelFlag() == 1) {
+                memberMapper.restoreById(existing.getId(), LocalDateTime.now());
+                return memberMapper.findById(existing.getId());
+            }
+            return existing;
+        }
+
+        Member rebound = tryBindExistingArchive(user);
+        if (rebound != null) {
+            return rebound;
+        }
+
+        return createDefaultMemberForUser(user);
+    }
+
+    private Member tryBindExistingArchive(User user) {
+        if (user == null || user.getId() == null) {
+            return null;
+        }
+
+        Member candidate = null;
+        if (hasText(user.getIdCard())) {
+            java.util.List<Member> byIdCard = memberMapper.findUnboundByIdCard(user.getIdCard().trim());
+            if (byIdCard != null && byIdCard.size() == 1) {
+                candidate = byIdCard.get(0);
+            }
+        }
+
+        if (candidate == null && hasText(user.getPhone()) && hasText(user.getUsername())) {
+            java.util.List<Member> byPhoneAndName = memberMapper.findUnboundByPhoneAndName(user.getPhone().trim(), user.getUsername().trim());
+            if (byPhoneAndName != null && byPhoneAndName.size() == 1) {
+                candidate = byPhoneAndName.get(0);
+            }
+        }
+
+        if (candidate == null) {
+            return null;
+        }
+
+        memberMapper.bindUser(candidate.getId(), user.getId(), LocalDateTime.now());
+        return memberMapper.findByUserId(user.getId());
+    }
+
+    private boolean isUserSideAccount(User user) {
+        if (user == null || user.getRole() == null) {
+            return false;
+        }
+        String role = user.getRole().trim();
+        return "USER".equalsIgnoreCase(role) || "MEMBER".equalsIgnoreCase(role);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
     @Override
     public List<Member> findByConditions(String memberName, String phone, Long memberId, String memberType, Integer status, int page, int size) {
+        reconcileUserSideMemberArchives();
         int p = Math.max(page, 1);
         int s = (size <= 0 || size > 100) ? 10 : size;
         int offset = (p - 1) * s;
@@ -147,6 +243,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public int countByConditions(String memberName, String phone, Long memberId, String memberType, Integer status) {
+        reconcileUserSideMemberArchives();
         // 数据范围过滤：根据角色调整查询参数
         if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
             // USER: 只能统计自己的会员记录
@@ -179,6 +276,17 @@ public class MemberServiceImpl implements MemberService {
         if (member == null) {
             throw new IllegalArgumentException("会员信息不能为空");
         }
+        if (member.getUserId() == null) {
+            throw new BusinessException("新增会员必须绑定一个用户账号");
+        }
+        User boundUser = userMapper.findById(member.getUserId());
+        if (!isUserSideAccount(boundUser)) {
+            throw new BusinessException("只能绑定用户端账号（USER/MEMBER）");
+        }
+        Member existingByUser = memberMapper.findAnyByUserId(member.getUserId());
+        if (existingByUser != null) {
+            throw new BusinessException("该用户账号已存在会员档案，不能重复创建");
+        }
         if (member.getMemberType() == null || member.getMemberType().trim().isEmpty()) {
             member.setMemberType("NORMAL");
         }
@@ -189,6 +297,15 @@ public class MemberServiceImpl implements MemberService {
         }
         if (member.getStatus() == null) {
             member.setStatus(1);
+        }
+        if (!hasText(member.getMemberName())) {
+            member.setMemberName(boundUser.getUsername());
+        }
+        if (!hasText(member.getPhone())) {
+            member.setPhone(boundUser.getPhone());
+        }
+        if (!hasText(member.getIdCard())) {
+            member.setIdCard(boundUser.getIdCard());
         }
         if (member.getRegisterTime() == null) {
             member.setRegisterTime(LocalDateTime.now());
@@ -211,6 +328,19 @@ public class MemberServiceImpl implements MemberService {
     public int update(Member member) {
         if (member == null || member.getId() == null) {
             throw new IllegalArgumentException("会员ID不能为空");
+        }
+
+        Member existing = memberMapper.findById(member.getId());
+        if (existing == null || (existing.getDelFlag() != null && existing.getDelFlag() == 1)) {
+            throw new BusinessException("会员不存在");
+        }
+        if (existing.getUserId() == null) {
+            throw new BusinessException("当前会员档案缺少绑定用户账号，请先修复数据");
+        }
+        if (member.getUserId() == null) {
+            member.setUserId(existing.getUserId());
+        } else if (!existing.getUserId().equals(member.getUserId())) {
+            throw new BusinessException("会员关联用户账号不允许修改");
         }
 
         // Service兜底：USER 只能更新自己的会员记录
@@ -246,11 +376,19 @@ public class MemberServiceImpl implements MemberService {
         if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
             throw new BusinessException("权限不足，仅管理员可执行此操作");
         }
+        Member existing = memberMapper.findById(id);
+        if (existing == null) {
+            throw new BusinessException("会员不存在");
+        }
+        if (existing.getUserId() != null) {
+            throw new BusinessException("该会员已绑定用户账号，不能直接删除。请改为冻结会员或禁用对应用户账号");
+        }
         return memberMapper.deleteById(id);
     }
 
     @Override
     public Map<String, Object> getStatistics() {
+        reconcileUserSideMemberArchives();
         ensurePresidentAnalyticsAccess();
         Map<String, Object> map = new HashMap<>();
         int total = memberMapper.countAll();
@@ -283,6 +421,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<Map<String, Object>> getDistribution() {
+        reconcileUserSideMemberArchives();
         ensurePresidentAnalyticsAccess();
         List<Map<String, Object>> result = new ArrayList<>();
 
@@ -340,6 +479,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<Map<String, Object>> getFunnel() {
+        reconcileUserSideMemberArchives();
         ensurePresidentAnalyticsAccess();
         List<Map<String, Object>> result = new ArrayList<>();
         int total = memberMapper.countAll();
@@ -468,6 +608,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<Map<String, Object>> getExpiringMembers(int days) {
+        reconcileUserSideMemberArchives();
         ensurePresidentAnalyticsAccess();
         int d = days <= 0 ? 30 : Math.min(days, 365);
         List<Map<String, Object>> rows = memberMapper.findExpiringWithinDays(d);
@@ -508,6 +649,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public List<Map<String, Object>> getSource() {
+        reconcileUserSideMemberArchives();
         ensurePresidentAnalyticsAccess();
         List<Map<String, Object>> typeLevel = memberMapper.countByTypeAndLevel();
         Map<String, Integer> byType = new HashMap<>();

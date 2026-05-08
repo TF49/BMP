@@ -155,6 +155,34 @@ public interface BookingMapper {
     List<Map<String, Object>> countByStatus();
 
     /**
+     * 按权限范围统计预约数量
+     */
+    @Select("<script>" +
+            "SELECT CAST(b.status AS SIGNED) AS status, COUNT(*) as count " +
+            "FROM biz_booking b " +
+            "WHERE b.del_flag = 0 " +
+            "<if test='memberId != null'> AND b.member_id = #{memberId} </if>" +
+            "<if test='venueId != null'> AND EXISTS (" +
+            "SELECT 1 FROM biz_booking_court bc LEFT JOIN sys_court c ON bc.court_id = c.id " +
+            "WHERE bc.booking_id = b.id AND c.venue_id = #{venueId}) </if>" +
+            "GROUP BY b.status" +
+            "</script>")
+    List<Map<String, Object>> countByStatusScoped(@Param("venueId") Long venueId,
+                                                  @Param("memberId") Long memberId);
+
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM biz_booking b " +
+            "WHERE b.del_flag = 0 AND b.payment_status = #{paymentStatus} " +
+            "<if test='memberId != null'> AND b.member_id = #{memberId} </if>" +
+            "<if test='venueId != null'> AND EXISTS (" +
+            "SELECT 1 FROM biz_booking_court bc LEFT JOIN sys_court c ON bc.court_id = c.id " +
+            "WHERE bc.booking_id = b.id AND c.venue_id = #{venueId}) </if>" +
+            "</script>")
+    int countByPaymentStatusScoped(@Param("venueId") Long venueId,
+                                   @Param("memberId") Long memberId,
+                                   @Param("paymentStatus") Integer paymentStatus);
+
+    /**
      * 统计总预约数
      */
     @Select("SELECT COUNT(*) FROM biz_booking WHERE del_flag = 0")
@@ -207,6 +235,20 @@ public interface BookingMapper {
                            @Param("bookingDate") LocalDate bookingDate);
 
     /**
+     * 按权限范围统计指定日期的预订量（排除已取消）
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM biz_booking b WHERE b.del_flag = 0 AND b.status != 0 AND b.booking_date = #{bookingDate} " +
+            "<if test='memberId != null'> AND b.member_id = #{memberId} </if>" +
+            "<if test='venueId != null'> AND EXISTS (" +
+            "SELECT 1 FROM biz_booking_court bc LEFT JOIN sys_court c ON bc.court_id = c.id " +
+            "WHERE bc.booking_id = b.id AND c.venue_id = #{venueId}) </if>" +
+            "</script>")
+    int countByBookingDateScoped(@Param("venueId") Long venueId,
+                                 @Param("memberId") Long memberId,
+                                 @Param("bookingDate") LocalDate bookingDate);
+
+    /**
      * 统计指定日期各小时段的预订量（用于高峰时段）
      */
     @Select("<script>" +
@@ -220,6 +262,23 @@ public interface BookingMapper {
             "</script>")
     List<Map<String, Object>> countStartHourForDate(@Param("venueId") Long venueId,
                                                     @Param("bookingDate") LocalDate bookingDate);
+
+    /**
+     * 按权限范围统计指定日期各小时段的预订量（用于高峰时段）
+     */
+    @Select("<script>" +
+            "SELECT HOUR(b.start_time) AS hour, COUNT(*) AS cnt " +
+            "FROM biz_booking b WHERE b.del_flag = 0 AND b.status != 0 AND b.booking_date = #{bookingDate} " +
+            "<if test='memberId != null'> AND b.member_id = #{memberId} </if>" +
+            "<if test='venueId != null'> AND EXISTS (" +
+            "SELECT 1 FROM biz_booking_court bc LEFT JOIN sys_court c ON bc.court_id = c.id " +
+            "WHERE bc.booking_id = b.id AND c.venue_id = #{venueId}) </if>" +
+            "GROUP BY HOUR(b.start_time) " +
+            "ORDER BY cnt DESC" +
+            "</script>")
+    List<Map<String, Object>> countStartHourForDateScoped(@Param("venueId") Long venueId,
+                                                          @Param("memberId") Long memberId,
+                                                          @Param("bookingDate") LocalDate bookingDate);
 
     /**
      * 按场馆 + 日期统计预订量（用于 Dashboard 各场馆预订趋势）

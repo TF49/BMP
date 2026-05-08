@@ -140,6 +140,16 @@ public interface CourseBookingMapper {
             "WHERE cb.del_flag = 0 AND ct.venue_id = #{venueId} GROUP BY cb.status")
     List<Map<String, Object>> countByStatusFiltered(@Param("venueId") Long venueId);
 
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM biz_course_booking cb " +
+            "INNER JOIN biz_course c ON cb.course_id = c.id " +
+            "INNER JOIN sys_court ct ON c.court_id = ct.id " +
+            "WHERE cb.del_flag = 0 AND cb.payment_status = #{paymentStatus} " +
+            "<if test='venueId != null'> AND ct.venue_id = #{venueId} </if>" +
+            "</script>")
+    int countByPaymentStatusFiltered(@Param("venueId") Long venueId,
+                                     @Param("paymentStatus") Integer paymentStatus);
+
     /** 按教练过滤：当前教练所教课程的预约列表（教练端用） */
     @Select("<script>" +
             "SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +

@@ -192,6 +192,15 @@ public interface EquipmentRentalMapper {
     @Select("SELECT COUNT(*) FROM biz_equipment_rental WHERE del_flag = 0")
     int countAll();
 
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM biz_equipment_rental er " +
+            "LEFT JOIN sys_equipment e ON er.equipment_id = e.id " +
+            "WHERE er.del_flag = 0 AND er.payment_status = #{paymentStatus} " +
+            "<if test='venueId != null'> AND e.venue_id = #{venueId} </if>" +
+            "</script>")
+    int countByPaymentStatus(@Param("venueId") Long venueId,
+                             @Param("paymentStatus") Integer paymentStatus);
+
     /**
      * 定时任务：查询「租借中」且已过应还时间的租借ID（用于自动改为逾期）
      * 条件：status=1 且 expected_return_date 不为空且 expected_return_date < 当前日期

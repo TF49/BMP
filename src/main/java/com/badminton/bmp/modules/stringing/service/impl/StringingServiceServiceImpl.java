@@ -407,10 +407,25 @@ public class StringingServiceServiceImpl implements StringingServiceService {
         Integer paymentStatus = existing.getPaymentStatus();
         if (paymentStatus != null) {
             if (paymentStatus == 1) {
-                throw new BusinessException("该穿线服务已支付，请联系管理员处理");
+                existing.setStatus(0);
+                existing.setPaymentStatus(3);
+                existing.setUpdateTime(LocalDateTime.now());
+                int result = stringingServiceMapper.update(existing);
+                if (result > 0) {
+                    try {
+                        webSocketPushService.pushOrderStatusToUser(currentUser.getId(), "stringingService", serviceId, 0, "已取消", "穿线服务");
+                        webSocketPushService.pushDashboardRefresh();
+                    } catch (Exception e) {
+                        org.slf4j.LoggerFactory.getLogger(StringingServiceServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+                    }
+                }
+                return result;
             }
             if (paymentStatus == 2) {
                 throw new BusinessException("该穿线服务已退款，无需再次取消");
+            }
+            if (paymentStatus == 3) {
+                throw new BusinessException("该穿线服务退款申请已提交，请等待管理员处理");
             }
         }
 
@@ -644,7 +659,7 @@ public class StringingServiceServiceImpl implements StringingServiceService {
 
         // 按支付状态返回明确提示
         Integer payStatus = service.getPaymentStatus();
-        if (payStatus == null || payStatus != 1) {
+        if (payStatus == null || (payStatus != 1 && payStatus != 3)) {
             String msg;
             if (payStatus == null || payStatus == 0) {
                 msg = "该穿线服务尚未支付，无法退款";

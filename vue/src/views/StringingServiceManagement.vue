@@ -177,13 +177,13 @@
                   支付
                 </el-button>
                 <el-button
-                  v-else-if="isAdmin && scope.row.paymentStatus === 1"
+                  v-else-if="isAdmin && (scope.row.paymentStatus === 1 || scope.row.paymentStatus === 3)"
                   type="info"
                   size="small"
                   plain
                   @click="handleRefund(scope.row)"
                 >
-                  退款
+                  {{ scope.row.paymentStatus === 3 ? '处理退款' : '退款' }}
                 </el-button>
                 <el-button
                   v-if="scope.row.status === 1 && isAdmin"
@@ -618,12 +618,12 @@ const getPaymentMethodText = (method) => {
 }
 
 const getPaymentStatusText = (status) => {
-  const map = { 0: '未支付', 1: '已支付', 2: '已退款' }
+  const map = { 0: '未支付', 1: '已支付', 2: '已退款', 3: '退款中' }
   return map[status] || '未知'
 }
 
 const getPaymentStatusType = (status) => {
-  const map = { 0: 'warning', 1: 'success', 2: 'info' }
+  const map = { 0: 'warning', 1: 'success', 2: 'info', 3: 'danger' }
   return map[status] || 'info'
 }
 

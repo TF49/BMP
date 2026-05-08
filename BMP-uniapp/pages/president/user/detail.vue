@@ -61,6 +61,7 @@ const venueNameMap = ref<Record<number, string>>({})
 const roleLabels: Record<string, string> = {
   PRESIDENT: '协会会长',
   VENUE_MANAGER: '场馆管理者',
+  COACH: '教练',
   USER: '普通用户'
 }
 function roleLabel(role: string) {

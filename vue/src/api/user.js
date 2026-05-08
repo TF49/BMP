@@ -77,6 +77,16 @@ export function findUserByRole(role) {
 }
 
 /**
+ * 获取可绑定会员的用户账号列表
+ */
+export function getMemberCandidateUsers() {
+  return request({
+    url: '/api/user/member-candidates',
+    method: 'get'
+  })
+}
+
+/**
  * 注销账号
  * @param {Object} data - 注销数据
  * @param {string} data.password - 当前密码

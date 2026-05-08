@@ -154,6 +154,7 @@ const roleOptions = [
   { label: '全部', value: '' },
   { label: '协会会长', value: 'PRESIDENT' },
   { label: '场馆管理者', value: 'VENUE_MANAGER' },
+  { label: '教练', value: 'COACH' },
   { label: '普通用户', value: 'USER' }
 ]
 const roleIndex = ref(0)
@@ -597,6 +598,11 @@ onMounted(() => {
 .role-chip.VENUE_MANAGER {
   background-color: #009cfc;
   color: #001d35;
+}
+
+.role-chip.COACH {
+  background-color: #86efac;
+  color: #14532d;
 }
 
 .role-chip.USER {

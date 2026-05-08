@@ -315,8 +315,8 @@
                   <p class="rental-amount">押金：¥{{ formatCurrency(rental.depositAmount || rental.deposit) }} | 租金：¥{{ formatCurrency(rental.rentalAmount) }}</p>
                   <p class="rental-time">备注：{{ rental.remark || '无' }}</p>
                   <p class="rental-payment">
-                    支付状态：<el-tag :type="rental.paymentStatus === 1 ? 'success' : 'warning'" size="small">{{ rental.paymentStatus === 1 ? '已支付' : '待支付' }}</el-tag>
-                    <span v-if="rental.paymentStatus === 1" style="margin-left: 8px">支付方式：{{ getPaymentMethodText(rental.paymentMethod) }}</span>
+                    支付状态：<el-tag :type="rental.paymentStatus === 1 ? 'success' : rental.paymentStatus === 3 ? 'danger' : 'warning'" size="small">{{ getPaymentStatusText(rental.paymentStatus) }}</el-tag>
+                    <span v-if="rental.paymentStatus === 1 || rental.paymentStatus === 3" style="margin-left: 8px">支付方式：{{ getPaymentMethodText(rental.paymentMethod) }}</span>
                   </p>
                 </div>
               </div>
@@ -343,7 +343,7 @@
                   size="small"
                   @click="handleCancelRental(rental)"
                 >
-                  取消
+                  {{ rental.paymentStatus === 1 ? '取消并申请退款' : '取消' }}
                 </el-button>
               </div>
             </div>
@@ -475,6 +475,11 @@ const getRentalStatusType = (status) => {
 const getPaymentMethodText = (method) => {
   const map = { BALANCE: '余额支付' }
   return map[method] || method || '-'
+}
+
+const getPaymentStatusText = (status) => {
+  const map = { 0: '待支付', 1: '已支付', 2: '已退款', 3: '退款中' }
+  return map[status] || '未知'
 }
 
 const loadEquipmentTypes = async () => {
@@ -663,13 +668,18 @@ const submitPay = async () => {
 
 const handleCancelRental = async (rental) => {
   try {
-    await ElMessageBox.confirm('确定要取消这个租借吗？', '提示', {
+    const requiresRefund = Number(rental?.paymentStatus ?? 0) === 1
+    await ElMessageBox.confirm(
+      requiresRefund ? '确定要取消这个租借吗？已支付订单会提交退款申请，等待处理。' : '确定要取消这个租借吗？',
+      '提示',
+      {
       type: 'warning'
-    })
+      }
+    )
     
     const res = await updateEquipmentRentalStatus(rental.id, 0)
     if (res.code === 200) {
-      ElMessage.success('取消成功')
+      ElMessage.success(requiresRefund ? '已取消，退款申请已提交' : '取消成功')
       loadMyRentals()
     } else {
       ElMessage.error(res.message || '取消失败')

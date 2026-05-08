@@ -11,7 +11,9 @@
     </div>
     <div class="chart-body">
       <div ref="chartRef" class="chart-container" v-loading="loading"></div>
-      <div class="stats-panel">
+      <div v-if="hasError" class="chart-message error">穿线服务数据加载失败</div>
+      <div v-else-if="!hasData" class="chart-message empty">暂无穿线服务数据</div>
+      <div v-else class="stats-panel">
         <div class="stat-item" v-for="(item, index) in statsData" :key="index">
           <div class="stat-color" :style="{ background: item.color }"></div>
           <div class="stat-info">
@@ -37,6 +39,8 @@ const chartRef = ref(null)
 let chartInstance = null
 const loading = ref(false)
 const statsData = ref([])
+const hasError = ref(false)
+const hasData = ref(false)
 
 const navigateTo = (path) => {
   router.push(path)
@@ -131,6 +135,7 @@ const getChartOption = (data) => {
 // 获取图表数据（接入真实统计接口）
 const fetchChartData = async () => {
   loading.value = true
+  hasError.value = false
   try {
     const res = await getStringingStatistics()
     let chartData = []
@@ -141,18 +146,10 @@ const fetchChartData = async () => {
         { name: '正在穿线', value: d.inProgress || 0 },
         { name: '已完成', value: d.completed || 0 },
         { name: '已取消', value: d.cancelled || 0 }
-      ].filter(item => item.value > 0)
-    }
-    if (chartData.length === 0) {
-      chartData = [
-        { name: '等待穿线', value: 0 },
-        { name: '正在穿线', value: 0 },
-        { name: '已完成', value: 0 },
-        { name: '已取消', value: 0 }
       ]
     }
-
     const total = chartData.reduce((sum, item) => sum + item.value, 0)
+    hasData.value = chartData.length > 0
     statsData.value = chartData.map((item, index) => ({
       name: item.name,
       value: item.value,
@@ -161,26 +158,17 @@ const fetchChartData = async () => {
     }))
 
     if (chartInstance) {
-      chartInstance.setOption(getChartOption(chartData))
+      chartInstance.clear()
+      if (chartData.length > 0) {
+        chartInstance.setOption(getChartOption(chartData))
+      }
     }
   } catch (error) {
     console.error('获取穿线服务数据失败:', error)
-    const fallbackData = [
-      { name: '等待穿线', value: 0 },
-      { name: '正在穿线', value: 0 },
-      { name: '已完成', value: 0 },
-      { name: '已取消', value: 0 }
-    ]
-    const total = fallbackData.reduce((sum, item) => sum + item.value, 0)
-    statsData.value = fallbackData.map((item, index) => ({
-      name: item.name,
-      value: item.value,
-      percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : 0,
-      color: `linear-gradient(135deg, ${colorScheme[index % colorScheme.length].start} 0%, ${colorScheme[index % colorScheme.length].end} 100%)`
-    }))
-    if (chartInstance) {
-      chartInstance.setOption(getChartOption(fallbackData))
-    }
+    hasError.value = true
+    hasData.value = false
+    statsData.value = []
+    chartInstance?.clear()
   } finally {
     loading.value = false
   }
@@ -253,12 +241,29 @@ onUnmounted(() => {
   display: flex;
   gap: 24px;
   align-items: center;
+  position: relative;
 }
 
 .chart-container {
   flex: 1;
   min-height: 300px;
   max-height: 350px;
+}
+
+.chart-message {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(100% - 264px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #64748B;
+  pointer-events: none;
+}
+
+.chart-message.error {
+  color: #B91C1C;
 }
 
 .stats-panel {

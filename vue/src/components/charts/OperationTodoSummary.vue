@@ -19,9 +19,9 @@
         <div class="todo-desc">提醒用户完成支付</div>
       </div>
       <div class="todo-item info">
-        <div class="todo-label">待处理退款/投诉</div>
-        <div class="todo-value">{{ pendingIssues }}</div>
-        <div class="todo-desc">保障用户体验与口碑</div>
+        <div class="todo-label">待退款订单</div>
+        <div class="todo-value">{{ pendingRefunds }}</div>
+        <div class="todo-desc">及时处理退款，避免用户久等</div>
       </div>
     </div>
   </div>
@@ -34,7 +34,7 @@ import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh
 
 const pendingBookings = ref(0)
 const unpaidOrders = ref(0)
-const pendingIssues = ref(0)
+const pendingRefunds = ref(0)
 const loading = ref(false)
 const hasError = ref(false)
 
@@ -53,7 +53,7 @@ const fetchTodoStatistics = async () => {
     if (res.code === 200 && res.data) {
       pendingBookings.value = parseNum(res.data.pendingBookings || res.data.pending)
       unpaidOrders.value = parseNum(res.data.unpaidOrders || res.data.unpaid)
-      pendingIssues.value = parseNum(res.data.pendingIssues || res.data.issues)
+      pendingRefunds.value = parseNum(res.data.pendingRefunds ?? res.data.pendingIssues ?? res.data.issues)
     }
   } catch (e) {
     console.error('获取运营待办统计失败:', e)
@@ -159,4 +159,3 @@ useDashboardChartRefresh(() => fetchTodoStatistics())
   color: #B91C1C;
 }
 </style>
-

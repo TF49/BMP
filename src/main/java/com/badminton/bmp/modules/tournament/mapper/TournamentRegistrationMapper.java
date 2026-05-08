@@ -142,6 +142,23 @@ public interface TournamentRegistrationMapper {
     @Select("SELECT COUNT(*) FROM biz_tournament_registration WHERE del_flag = 0")
     int countAll();
 
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM biz_tournament_registration tr " +
+            "LEFT JOIN biz_tournament t ON tr.tournament_id = t.id " +
+            "WHERE tr.del_flag = 0 AND tr.payment_status = #{paymentStatus} " +
+            "<if test='venueId != null'> AND t.venue_id = #{venueId} </if>" +
+            "</script>")
+    int countByPaymentStatus(@Param("venueId") Long venueId,
+                             @Param("paymentStatus") Integer paymentStatus);
+
+    @Select("SELECT COALESCE(SUM(CASE " +
+            "WHEN tr.status IN (1, 2, 3) THEN " +
+            "CASE WHEN tr.event_type_snapshot IN ('MD', 'WD', 'XD') OR tr.partner_id IS NOT NULL THEN 2 ELSE 1 END " +
+            "ELSE 0 END), 0) " +
+            "FROM biz_tournament_registration tr " +
+            "WHERE tr.tournament_id = #{tournamentId} AND tr.del_flag = 0")
+    int countOccupiedParticipants(@Param("tournamentId") Long tournamentId);
+
     /**
      * 定时任务：查询「已支付」且关联赛事已到开始时间的报名ID（用于自动改为已参赛）
      * 条件：tr.status=2 且 t.tournament_start <= #{now}

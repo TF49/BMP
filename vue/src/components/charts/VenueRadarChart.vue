@@ -10,8 +10,8 @@
           </svg>
         </div>
         <div class="chart-title-content">
-          <h3 class="chart-title">场地综合评估</h3>
-          <span class="chart-subtitle">多维度场地性能分析</span>
+          <h3 class="chart-title">场馆经营六项</h3>
+          <span class="chart-subtitle">真实业务统计口径</span>
         </div>
       </div>
       <div class="venue-selector">
@@ -34,10 +34,10 @@
       >
         <div class="metric-header">
           <span class="metric-name">{{ metric.name }}</span>
-          <span class="metric-value">{{ (metric.value ?? 0) }}%</span>
+          <span class="metric-value">{{ formatMetricValue(metric) }}</span>
         </div>
         <div class="metric-bar">
-          <div class="metric-fill" :style="{ width: (metric.value ?? 0) + '%', background: metricColors[index] }"></div>
+          <div class="metric-fill" :style="{ width: metric.percent + '%', background: metricColors[index] }"></div>
         </div>
       </div>
     </div>
@@ -53,13 +53,11 @@ import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh
 const chartRef = ref(null)
 let chartInstance = null
 
-// 获取CSS变量值的辅助函数
 const getCSSVar = (varName, defaultValue) => {
   if (typeof window === 'undefined') return defaultValue
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || defaultValue
 }
 
-// 获取主题颜色
 const themeColors = computed(() => ({
   primary: getCSSVar('--color-primary', '#3B82F6'),
   secondary: getCSSVar('--color-secondary', '#8B5CF6'),
@@ -73,9 +71,7 @@ const themeColors = computed(() => ({
 }))
 
 const selectedVenue = ref('all')
-const venues = ref([{ label: '全部场地', value: 'all' }])
-
-// 使用主题颜色生成指标颜色数组
+const venues = ref([{ label: '全部场馆', value: 'all' }])
 const metricColors = computed(() => [
   themeColors.value.primary,
   themeColors.value.secondary,
@@ -85,16 +81,17 @@ const metricColors = computed(() => [
   themeColors.value.accent
 ])
 
-const venueData = ref({ all: [0, 0, 0, 0, 0, 0] })
-
 const indicators = [
-  { name: '利用率', max: 100 },
-  { name: '预订率', max: 100 },
-  { name: '满意度', max: 100 },
-  { name: '收入贡献', max: 100 },
-  { name: '周转率', max: 100 },
-  { name: '复购率', max: 100 }
+  { name: '场地数', formatter: 'count' },
+  { name: '今日预订', formatter: 'count' },
+  { name: '今日收入', formatter: 'currency' },
+  { name: '课程数', formatter: 'count' },
+  { name: '赛事数', formatter: 'count' },
+  { name: '使用中场地', formatter: 'count' }
 ]
+
+const venueData = ref({ all: [0, 0, 0, 0, 0, 0] })
+const indicatorMax = ref([1, 1, 1, 1, 1, 1])
 
 const parseNum = (v) => {
   if (v == null) return 0
@@ -106,165 +103,168 @@ const parseNum = (v) => {
 const fetchVenueRadarData = async () => {
   try {
     const res = await getVenueStatistics()
-    if (res.code === 200 && res.data) {
-      const data = res.data
+    const metricsList = res.code === 200 && Array.isArray(res.data?.venueMetrics)
+      ? res.data.venueMetrics
+      : []
 
-      // 处理场馆列表
-      if (Array.isArray(data.venueMetrics)) {
-        venues.value = [
-          { label: '全部场地', value: 'all' },
-          ...data.venueMetrics.map(v => ({
-            label: v.venueName || v.name || '未知场馆',
-            value: String(v.venueId || v.id)
-          }))
-        ]
+    venues.value = [
+      { label: '全部场馆', value: 'all' },
+      ...metricsList.map(item => ({
+        label: item.venueName || item.name || '未知场馆',
+        value: String(item.venueId || item.id)
+      }))
+    ]
 
-        // 处理各场馆数据
-        const allData = { all: [0, 0, 0, 0, 0, 0] }
-        data.venueMetrics.forEach(v => {
-          const metrics = [
-            parseNum(v.utilizationRate || v.utilization),
-            parseNum(v.bookingRate || v.booking),
-            parseNum(v.satisfactionRate || v.satisfaction),
-            parseNum(v.revenueContribution || v.revenue),
-            parseNum(v.turnoverRate || v.turnover),
-            parseNum(v.repeatRate || v.repeat)
-          ]
-          allData[String(v.venueId || v.id)] = metrics
+    const allData = { all: [0, 0, 0, 0, 0, 0] }
+    metricsList.forEach(item => {
+      const values = [
+        parseNum(item.courtCount ?? item.court ?? item.repeatRate ?? item.repeat),
+        parseNum(item.todayBookings ?? item.booking ?? item.bookingRate),
+        parseNum(item.todayRevenue ?? item.revenue ?? item.revenueContribution),
+        parseNum(item.courseCount ?? item.course ?? item.satisfactionRate ?? item.satisfaction),
+        parseNum(item.tournamentCount ?? item.tournament ?? item.turnoverRate ?? item.turnover),
+        parseNum(item.courtsInUse ?? item.utilization ?? item.utilizationRate)
+      ]
+      allData[String(item.venueId || item.id)] = values
+      values.forEach((value, index) => {
+        allData.all[index] += value
+      })
+    })
 
-          // 累加到全部场地
-          metrics.forEach((val, idx) => {
-            allData.all[idx] += val
-          })
-        })
-
-        // 计算全部场地的平均值
-        if (data.venueMetrics.length > 0) {
-          allData.all = allData.all.map(v => Math.round(v / data.venueMetrics.length))
-        }
-
-        venueData.value = allData
-      } else {
-        venueData.value = { all: [0, 0, 0, 0, 0, 0] }
-      }
-    }
+    venueData.value = allData
+    indicatorMax.value = indicators.map((_, index) => {
+      const maxValue = Math.max(...Object.values(allData).map(metricList => parseNum(metricList[index])), 0)
+      return maxValue > 0 ? Math.ceil(maxValue * 1.2) : 1
+    })
   } catch (e) {
     console.error('获取场馆雷达图数据失败:', e)
     venueData.value = { all: [0, 0, 0, 0, 0, 0] }
+    indicatorMax.value = [1, 1, 1, 1, 1, 1]
   }
 }
 
 const currentMetrics = computed(() => {
-  const data = venueData.value[selectedVenue.value] || [0, 0, 0, 0, 0, 0]
-  return indicators.map((ind, i) => ({
-    name: ind.name,
-    value: data[i]
+  const values = venueData.value[selectedVenue.value] || [0, 0, 0, 0, 0, 0]
+  return indicators.map((indicator, index) => ({
+    name: indicator.name,
+    formatter: indicator.formatter,
+    value: parseNum(values[index]),
+    percent: indicatorMax.value[index] > 0 ? Math.min((parseNum(values[index]) / indicatorMax.value[index]) * 100, 100) : 0
   }))
 })
+
+const formatMetricValue = (metric) => {
+  if (metric.formatter === 'currency') {
+    return `¥${parseNum(metric.value).toLocaleString()}`
+  }
+  return parseNum(metric.value).toLocaleString()
+}
 
 const getChartOption = () => {
   const colors = themeColors.value
   const primaryRgb = hexToRgb(colors.primary)
   return {
-  tooltip: {
-    trigger: 'item',
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: [14, 18],
-    textStyle: {
-      color: colors.textPrimary,
-      fontSize: 13,
-      fontFamily: 'Open Sans, sans-serif'
-    }
-  },
-  radar: {
-    indicator: indicators,
-    center: ['50%', '50%'],
-    radius: '65%',
-    startAngle: 90,
-    splitNumber: 4,
-    shape: 'polygon',
-    axisName: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontFamily: 'Open Sans, sans-serif'
-    },
-    splitArea: {
-      areaStyle: {
-        color: [
-          `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.02)`,
-          `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.04)`,
-          `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.06)`,
-          `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.08)`
-        ]
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: [14, 18],
+      textStyle: {
+        color: colors.textPrimary,
+        fontSize: 13,
+        fontFamily: 'Open Sans, sans-serif'
+      },
+      formatter: params => {
+        const values = Array.isArray(params.value) ? params.value : []
+        const lines = indicators.map((indicator, index) => {
+          const rawValue = parseNum(values[index])
+          const display = indicator.formatter === 'currency'
+            ? `¥${rawValue.toLocaleString()}`
+            : rawValue.toLocaleString()
+          return `${indicator.name}：${display}`
+        })
+        return [params.name, ...lines].join('<br/>')
       }
     },
-    axisLine: {
-      lineStyle: {
-        color: colors.border
-      }
-    },
-    splitLine: {
-      lineStyle: {
-        color: colors.border
-      }
-    }
-  },
-  series: [{
-    name: '场地评估',
-    type: 'radar',
-    data: [{
-      value: venueData.value[selectedVenue.value] || [0, 0, 0, 0, 0, 0],
-      name: venues.value.find(v => v.value === selectedVenue.value)?.label,
-      symbol: 'circle',
-      symbolSize: 10,
-      lineStyle: {
-        width: 3.5,
-        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: colors.primary },
-          { offset: 0.5, color: colors.secondary },
-          { offset: 1, color: colors.info }
-        ]),
-        shadowBlur: 8,
-        shadowColor: colors.info + '4D'
+    radar: {
+      indicator: indicators.map((indicator, index) => ({
+        name: indicator.name,
+        max: indicatorMax.value[index] || 1
+      })),
+      center: ['50%', '50%'],
+      radius: '65%',
+      startAngle: 90,
+      splitNumber: 4,
+      shape: 'polygon',
+      axisName: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontFamily: 'Open Sans, sans-serif'
       },
-      areaStyle: {
-        color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
-          { offset: 0, color: colors.primary + '73' },
-          { offset: 0.5, color: colors.secondary + '40' },
-          { offset: 1, color: colors.info + '1F' }
-        ])
+      splitArea: {
+        areaStyle: {
+          color: [
+            `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.02)`,
+            `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.04)`,
+            `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.06)`,
+            `rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.08)`
+          ]
+        }
       },
-      itemStyle: {
-        color: colors.primary,
-        borderColor: '#fff',
-        borderWidth: 3,
-        shadowBlur: 12,
-        shadowColor: colors.primary + '99',
-        shadowOffsetY: 2
-      },
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 20,
-          shadowColor: colors.primary + 'CC',
-          borderWidth: 4,
-          symbolSize: 14
-        },
+      axisLine: {
         lineStyle: {
-          width: 4.5
+          color: colors.border
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: colors.border
         }
       }
-    }],
-    animationDuration: 1500,
-    animationEasing: 'elasticOut',
-    animationDelay: 200
-  }]
+    },
+    series: [{
+      name: '场馆经营指标',
+      type: 'radar',
+      data: [{
+        value: venueData.value[selectedVenue.value] || [0, 0, 0, 0, 0, 0],
+        name: venues.value.find(v => v.value === selectedVenue.value)?.label || '全部场馆',
+        symbol: 'circle',
+        symbolSize: 10,
+        lineStyle: {
+          width: 3.5,
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: colors.primary },
+            { offset: 0.5, color: colors.secondary },
+            { offset: 1, color: colors.info }
+          ]),
+          shadowBlur: 8,
+          shadowColor: colors.info + '4D'
+        },
+        areaStyle: {
+          color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
+            { offset: 0, color: colors.primary + '73' },
+            { offset: 0.5, color: colors.secondary + '40' },
+            { offset: 1, color: colors.info + '1F' }
+          ])
+        },
+        itemStyle: {
+          color: colors.primary,
+          borderColor: '#fff',
+          borderWidth: 3,
+          shadowBlur: 12,
+          shadowColor: colors.primary + '99',
+          shadowOffsetY: 2
+        }
+      }],
+      animationDuration: 1500,
+      animationEasing: 'elasticOut',
+      animationDelay: 200
+    }]
   }
 }
 
-// 辅助函数：将十六进制颜色转换为RGB
 const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result ? {

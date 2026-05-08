@@ -177,7 +177,15 @@
                 <el-button v-if="isAdmin" type="primary" size="small" :icon="Edit" plain @click="handleEdit(scope.row)">编辑</el-button>
                 <!-- 待支付显示支付，已支付显示退款（同一位置互斥，与赛事报名/课程预约一致） -->
                 <el-button v-if="isAdmin && scope.row.status === 1" type="success" size="small" plain @click="openPay(scope.row)">支付</el-button>
-                <el-button v-else-if="isAdmin && scope.row.status === 2" type="warning" size="small" plain @click="openRefund(scope.row)">退款</el-button>
+                <el-button
+                  v-else-if="isAdmin && (scope.row.paymentStatus === 1 || scope.row.paymentStatus === 3)"
+                  type="warning"
+                  size="small"
+                  plain
+                  @click="openRefund(scope.row)"
+                >
+                  {{ scope.row.paymentStatus === 3 ? '处理退款' : '退款' }}
+                </el-button>
                 <el-button v-if="isAdmin" type="danger" size="small" :icon="Delete" plain @click="handleDelete(scope.row)">删除</el-button>
               </div>
             </template>
@@ -632,13 +640,13 @@ const getPaymentMethodType = (method) => {
 
 // 支付状态文案
 const getPaymentStatusText = (status) => {
-  const map = { 0: '未支付', 1: '已支付', 2: '已退款' }
+  const map = { 0: '未支付', 1: '已支付', 2: '已退款', 3: '退款中' }
   return map[status] || '未知'
 }
 
 // 支付状态标签颜色
 const getPaymentStatusType = (status) => {
-  const map = { 0: 'warning', 1: 'success', 2: 'info' }
+  const map = { 0: 'warning', 1: 'success', 2: 'info', 3: 'danger' }
   return map[status] || 'info'
 }
 

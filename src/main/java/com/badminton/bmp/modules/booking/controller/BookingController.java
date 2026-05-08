@@ -404,7 +404,7 @@ public class BookingController extends BaseController {
     }
 
     /**
-     * 运营待办统计（Dashboard 待办总览：待确认预订、未付款订单、待处理事项）
+     * 运营待办统计（Dashboard 待办总览：待确认预订、未付款订单、待退款订单）
      */
     @Operation(summary = "待办运营数据")
     @GetMapping("/operation-todo")
@@ -416,9 +416,11 @@ public class BookingController extends BaseController {
             todo.put("pendingBookings", stats.get("pending") != null ? stats.get("pending") : 0);
             todo.put("pending", stats.get("pending") != null ? stats.get("pending") : 0);
             todo.put("unpaidOrders", stats.get("unpaidOrders") != null ? stats.get("unpaidOrders") : 0);
-            todo.put("unpaid", 0);
-            todo.put("pendingIssues", stats.get("pendingIssues") != null ? stats.get("pendingIssues") : 0);
-            todo.put("issues", 0);
+            todo.put("unpaid", stats.get("unpaidOrders") != null ? stats.get("unpaidOrders") : 0);
+            Object pendingRefunds = stats.get("pendingRefunds") != null ? stats.get("pendingRefunds") : 0;
+            todo.put("pendingRefunds", pendingRefunds);
+            todo.put("pendingIssues", pendingRefunds);
+            todo.put("issues", pendingRefunds);
             return success(todo);
         } catch (Exception e) {
             return error("获取运营待办统计时发生错误：" + e.getMessage());

@@ -40,7 +40,7 @@ public class User {
     @Size(max = 200, message = "个性签名长度不能超过200个字符")
     private String signature;
 
-    /** 角色：PRESIDENT-协会会长，ADMIN-管理员，VENUE_MANAGER-场馆管理者，COACH-教练；USER-普通用户（新注册），MEMBER-会员（充值达标后由USER升级，与USER同属用户端角色，权限一致） */
+    /** 角色：PRESIDENT-协会会长，ADMIN-管理员，VENUE_MANAGER-场馆管理者，COACH-教练；USER-用户端账号；MEMBER-历史兼容角色 */
     @NotNull(message = "角色不能为空")
     @Pattern(regexp = "^(PRESIDENT|ADMIN|VENUE_MANAGER|COACH|MEMBER|USER)$", message = "角色必须为PRESIDENT、ADMIN、VENUE_MANAGER、COACH、MEMBER或USER")
     private String role;

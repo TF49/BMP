@@ -62,6 +62,7 @@
                   <el-option label="场馆管理者" value="VENUE_MANAGER" />
                   <el-option label="教练" value="COACH" />
                   <el-option label="普通用户" value="USER" />
+                  <el-option label="会员账号（兼容）" value="MEMBER" />
                 </el-select>
               </el-form-item>
               <el-form-item label="状态" class="search-item">
@@ -710,6 +711,7 @@ const getRoleText = (role) => {
   if (role === 'PRESIDENT') return '协会会长'
   if (role === 'VENUE_MANAGER') return '场馆管理者'
   if (role === 'COACH') return '教练'
+  if (role === 'MEMBER') return '会员账号（兼容）'
   return '普通用户'
 }
 
@@ -725,6 +727,7 @@ const getRoleTagType = (role) => {
   if (role === 'PRESIDENT') return 'danger'
   if (role === 'VENUE_MANAGER') return 'warning'
   if (role === 'COACH') return 'success'
+  if (role === 'MEMBER') return 'info'
   return 'info'
 }
 

@@ -2,6 +2,11 @@ package com.badminton.bmp.modules.venue.service.impl;
 
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
+import com.badminton.bmp.modules.booking.mapper.BookingCourtMapper;
+import com.badminton.bmp.modules.booking.mapper.BookingMapper;
+import com.badminton.bmp.modules.course.mapper.CourseMapper;
+import com.badminton.bmp.modules.finance.entity.Finance;
+import com.badminton.bmp.modules.finance.mapper.FinanceMapper;
 import com.badminton.bmp.modules.venue.cache.VenueEntityCache;
 import com.badminton.bmp.modules.venue.entity.Venue;
 import com.badminton.bmp.modules.venue.mapper.VenueMapper;
@@ -14,7 +19,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,6 +45,18 @@ public class VenueServiceImpl implements VenueService {
 
     @Autowired
     private VenueStatusLogService venueStatusLogService;
+
+    @Autowired
+    private BookingMapper bookingMapper;
+
+    @Autowired
+    private BookingCourtMapper bookingCourtMapper;
+
+    @Autowired
+    private CourseMapper courseMapper;
+
+    @Autowired
+    private FinanceMapper financeMapper;
 
     @Override
     public Venue findById(Long id) {
@@ -305,45 +326,106 @@ public class VenueServiceImpl implements VenueService {
         statistics.put("paused", paused);
         statistics.put("closed", closed);
 
-        // Dashboard 雷达图/堆叠图：按场馆返回指标与收入结构（当前为占位 0，后续可接入真实汇总）
+        LocalDate today = LocalDate.now();
+        String todayStr = today.format(DateTimeFormatter.ISO_DATE);
+        LocalTime now = LocalTime.now();
+
         List<Map<String, Object>> venueMetrics = new ArrayList<>();
         List<Map<String, Object>> venueRevenue = new ArrayList<>();
         for (Venue v : allVenues) {
+            Long venueId = v.getId();
+            int courtCount = venueMapper.countCourtsByVenueId(venueId);
+            int todayBookings = bookingMapper.countByBookingDate(venueId, today);
+            BigDecimal todayRevenue = safeAmount(financeMapper.sumByType(venueId, Finance.INCOME, todayStr, todayStr));
+            int courseCount = courseMapper.countAllFiltered(venueId);
+            int tournamentCount = venueMapper.countTournamentsByVenueId(venueId);
+            int courtsInUse = bookingCourtMapper.countInUseCourts(venueId, today, now);
+
+            BigDecimal totalIncome = safeAmount(financeMapper.sumByType(venueId, Finance.INCOME, null, null));
+            Map<String, BigDecimal> incomeByBusinessType = toBusinessTypeMap(financeMapper.sumByBusinessType(venueId, null, null));
+            BigDecimal courtRevenue = safeAmount(incomeByBusinessType.get(Finance.TYPE_BOOKING));
+            BigDecimal courseRevenue = safeAmount(incomeByBusinessType.get(Finance.TYPE_COURSE));
+            BigDecimal tournamentRevenue = safeAmount(incomeByBusinessType.get(Finance.TYPE_TOURNAMENT));
+            BigDecimal otherRevenue = totalIncome
+                    .subtract(courtRevenue)
+                    .subtract(courseRevenue)
+                    .subtract(tournamentRevenue);
+            if (otherRevenue.compareTo(BigDecimal.ZERO) < 0) {
+                otherRevenue = BigDecimal.ZERO;
+            }
+
             Map<String, Object> m = new HashMap<>();
-            m.put("venueId", v.getId());
-            m.put("id", v.getId());
+            m.put("venueId", venueId);
+            m.put("id", venueId);
             m.put("venueName", v.getVenueName());
             m.put("name", v.getVenueName());
-            m.put("utilizationRate", 0);
-            m.put("utilization", 0);
-            m.put("bookingRate", 0);
-            m.put("booking", 0);
-            m.put("satisfactionRate", 0);
-            m.put("satisfaction", 0);
-            m.put("revenueContribution", 0);
-            m.put("revenue", 0);
-            m.put("turnoverRate", 0);
-            m.put("turnover", 0);
-            m.put("repeatRate", 0);
-            m.put("repeat", 0);
+            m.put("courtCount", courtCount);
+            m.put("court", courtCount);
+            m.put("todayBookings", todayBookings);
+            m.put("booking", todayBookings);
+            m.put("todayRevenue", todayRevenue);
+            m.put("revenue", todayRevenue);
+            m.put("courseCount", courseCount);
+            m.put("course", courseCount);
+            m.put("tournamentCount", tournamentCount);
+            m.put("tournament", tournamentCount);
+            m.put("courtsInUse", courtsInUse);
+            m.put("utilization", courtsInUse);
+            m.put("utilizationRate", courtsInUse);
+            m.put("bookingRate", todayBookings);
+            m.put("satisfactionRate", courseCount);
+            m.put("satisfaction", courseCount);
+            m.put("revenueContribution", todayRevenue);
+            m.put("turnoverRate", tournamentCount);
+            m.put("turnover", tournamentCount);
+            m.put("repeatRate", courtCount);
+            m.put("repeat", courtCount);
             venueMetrics.add(m);
 
             Map<String, Object> r = new HashMap<>();
+            r.put("venueId", venueId);
+            r.put("id", venueId);
             r.put("venueName", v.getVenueName());
             r.put("name", v.getVenueName());
-            r.put("courtRevenue", 0);
-            r.put("court", 0);
-            r.put("courseRevenue", 0);
-            r.put("course", 0);
-            r.put("tournamentRevenue", 0);
-            r.put("tournament", 0);
-            r.put("otherRevenue", 0);
-            r.put("other", 0);
+            r.put("courtRevenue", courtRevenue);
+            r.put("court", courtRevenue);
+            r.put("courseRevenue", courseRevenue);
+            r.put("course", courseRevenue);
+            r.put("tournamentRevenue", tournamentRevenue);
+            r.put("tournament", tournamentRevenue);
+            r.put("otherRevenue", otherRevenue);
+            r.put("other", otherRevenue);
             venueRevenue.add(r);
         }
         statistics.put("venueMetrics", venueMetrics);
         statistics.put("venueRevenue", venueRevenue);
 
         return statistics;
+    }
+
+    private BigDecimal safeAmount(BigDecimal amount) {
+        return amount != null ? amount : BigDecimal.ZERO;
+    }
+
+    private Map<String, BigDecimal> toBusinessTypeMap(List<Map<String, Object>> rows) {
+        Map<String, BigDecimal> result = new HashMap<>();
+        if (rows == null) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            Object typeObj = row.get("type");
+            if (typeObj == null) {
+                typeObj = row.get("TYPE");
+            }
+            Object amountObj = row.get("amount");
+            if (amountObj == null) {
+                amountObj = row.get("AMOUNT");
+            }
+            if (typeObj == null || amountObj == null) {
+                continue;
+            }
+            result.put(typeObj.toString(), new BigDecimal(amountObj.toString()));
+        }
+        return result;
     }
 }

@@ -205,4 +205,21 @@ public interface CourseMapper {
             "LIMIT #{limit}" +
             "</script>")
     List<Map<String, Object>> sumCurrentStudentsByCourseName(@Param("venueId") Long venueId, @Param("limit") int limit);
+
+    @Select("<script>" +
+            "SELECT DATE_SUB(c.course_date, INTERVAL WEEKDAY(c.course_date) DAY) AS weekStart, " +
+            "SUM(COALESCE(c.current_students, 0)) AS bookedStudents, " +
+            "SUM(COALESCE(c.max_students, 0)) AS totalCapacity " +
+            "FROM biz_course c " +
+            "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
+            "LEFT JOIN sys_coach co ON c.coach_id = co.id " +
+            "WHERE c.del_flag = 0 " +
+            "AND c.course_date &gt;= #{startDate} AND c.course_date &lt;= #{endDate} " +
+            "<if test='venueId != null'> AND (ct.venue_id = #{venueId} OR (c.court_id IS NULL AND co.venue_id = #{venueId})) </if>" +
+            "GROUP BY DATE_SUB(c.course_date, INTERVAL WEEKDAY(c.course_date) DAY) " +
+            "ORDER BY weekStart" +
+            "</script>")
+    List<Map<String, Object>> sumWeeklyCapacityStats(@Param("venueId") Long venueId,
+                                                     @Param("startDate") LocalDate startDate,
+                                                     @Param("endDate") LocalDate endDate);
 }

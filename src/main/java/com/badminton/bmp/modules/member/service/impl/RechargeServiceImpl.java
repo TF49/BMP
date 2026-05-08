@@ -129,13 +129,15 @@ public class RechargeServiceImpl implements RechargeService {
             member.setMemberName(user.getUsername());
             member.setPhone(user.getPhone()); // 手机号可以为空
             member.setMemberType("NORMAL"); // 默认为普通用户
-            member.setMemberLevel(0); // 默认等级为0
+            member.setMemberLevel(null); // 普通用户不展示会员等级
             member.setStatus(1); // 状态：正常
             member.setBalance(BigDecimal.ZERO); // 初始余额为0
             member.setTotalConsumption(BigDecimal.ZERO); // 累计消费为0
             member.setTotalRecharge(BigDecimal.ZERO); // 累计充值为0
+            member.setRegisterTime(java.time.LocalDateTime.now());
             member.setCreateTime(java.time.LocalDateTime.now());
             member.setUpdateTime(java.time.LocalDateTime.now());
+            member.setDelFlag(0);
 
             // 插入数据库
             int result = memberMapper.insert(member);
@@ -437,8 +439,8 @@ public class RechargeServiceImpl implements RechargeService {
     }
 
     /**
-     * 将普通用户升级为会员（同步更新 sys_member 与 sys_user.role）
-     * 业务含义：USER 与 MEMBER 同属“普通用户”角色，新注册为 USER，充值达标后升级为 MEMBER。
+     * 将普通用户升级为会员档案
+     * 业务含义：登录角色继续保持用户端账号角色，会员身份只由 sys_member 承载。
      * @param memberId 会员ID
      */
     private void upgradeToMember(Long memberId) {
@@ -451,11 +453,6 @@ public class RechargeServiceImpl implements RechargeService {
         LocalDateTime expireTime = LocalDateTime.now().plusYears(MEMBER_VALIDITY_YEARS);
         memberMapper.updateMemberTypeAndLevel(memberId, memberType, memberLevel, expireTime);
 
-        // 2. 同步更新用户表角色：USER -> MEMBER，使登录后角色与会员身份一致
-        Long userId = member.getUserId();
-        if (userId != null) {
-            userMapper.updateRole(userId, "MEMBER");
-        }
     }
 
     @Override

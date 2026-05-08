@@ -286,10 +286,8 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             registration.setPartnerPhoneSnapshot(null);
         }
         
-        // 验证赛事报名人数是否已满
-        if (tournament.getCurrentParticipants() >= tournament.getMaxParticipants()) {
-            throw new RuntimeException("赛事报名人数已满");
-        }
+        int occupancyUnits = resolveOccupancyUnits(eventType);
+        ensureTournamentCapacity(tournament, occupancyUnits, "赛事报名人数已满");
         
         // 生成报名单号（如果未提供）
         if (registration.getRegistrationNo() == null || registration.getRegistrationNo().trim().isEmpty()) {
@@ -315,10 +313,9 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         // 插入报名记录
         int result = tournamentRegistrationMapper.insert(registration);
         
-        // 如果插入成功，更新赛事的当前参赛人数
+        // 如果插入成功，按有效报名重算赛事当前占位人数
         if (result > 0) {
-            tournamentMapper.updateCurrentParticipants(registration.getTournamentId(), 
-                tournament.getCurrentParticipants() + 1);
+            syncTournamentCurrentParticipants(registration.getTournamentId());
         }
         
         return result;
@@ -393,48 +390,30 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         }
         Integer oldStatus = existing.getStatus();
         Integer newStatus = registration.getStatus() != null ? registration.getStatus() : existing.getStatus();
-        
-        // 如果修改了赛事ID，需要处理参赛人数的变化
-        if (registration.getTournamentId() != null && !registration.getTournamentId().equals(existing.getTournamentId())) {
-            // 从旧赛事减少参赛人数（如果旧状态是有效状态）
-            if (oldStatus != null && oldStatus >= 1 && oldStatus <= 3) {
-                Tournament oldTournament = tournamentMapper.findById(existing.getTournamentId());
-                if (oldTournament != null) {
-                    tournamentMapper.updateCurrentParticipants(existing.getTournamentId(), 
-                        Math.max(0, oldTournament.getCurrentParticipants() - 1));
+        boolean oldStatusValid = isActiveStatus(oldStatus);
+        boolean newStatusValid = isActiveStatus(newStatus);
+        boolean tournamentChanged = registration.getTournamentId() != null && !registration.getTournamentId().equals(existing.getTournamentId());
+        int occupancyUnits = 0;
+        if (tournamentForValidation != null) {
+            String effectiveEventType = TournamentTypeHelper.normalizeEventType(
+                    tournamentForValidation.getEventType(),
+                    tournamentForValidation.getTournamentType(),
+                    tournamentForValidation.getTournamentName(),
+                    tournamentForValidation.getDescription()
+            );
+            occupancyUnits = resolveOccupancyUnits(effectiveEventType);
+        }
+        if (newStatusValid) {
+            if (tournamentChanged) {
+                Tournament newTournament = tournamentMapper.findById(tournamentId);
+                if (newTournament == null) {
+                    throw new RuntimeException("新赛事不存在");
                 }
-            }
-            
-            // 向新赛事增加参赛人数（需要验证新赛事是否还有名额）
-            Tournament newTournament = tournamentMapper.findById(registration.getTournamentId());
-            if (newTournament == null) {
-                throw new RuntimeException("新赛事不存在");
-            }
-            if (newStatus != null && newStatus >= 1 && newStatus <= 3) {
-                if (newTournament.getCurrentParticipants() >= newTournament.getMaxParticipants()) {
-                    throw new RuntimeException("新赛事报名人数已满");
-                }
-                tournamentMapper.updateCurrentParticipants(registration.getTournamentId(), 
-                    newTournament.getCurrentParticipants() + 1);
-            }
-        } else if (newStatus != null && !newStatus.equals(oldStatus)) {
-            // 如果只修改了状态（未修改赛事），需要处理参赛人数的变化
-            Tournament tournament = tournamentMapper.findById(tournamentId);
-            if (tournament != null) {
-                boolean oldStatusValid = oldStatus != null && oldStatus >= 1 && oldStatus <= 3;
-                boolean newStatusValid = newStatus >= 1 && newStatus <= 3;
-                
-                if (oldStatusValid && !newStatusValid) {
-                    // 从有效状态变为无效状态（如已取消），减少参赛人数
-                    tournamentMapper.updateCurrentParticipants(tournamentId, 
-                        Math.max(0, tournament.getCurrentParticipants() - 1));
-                } else if (!oldStatusValid && newStatusValid) {
-                    // 从无效状态变为有效状态，增加参赛人数
-                    if (tournament.getCurrentParticipants() >= tournament.getMaxParticipants()) {
-                        throw new RuntimeException("赛事报名人数已满");
-                    }
-                    tournamentMapper.updateCurrentParticipants(tournamentId, 
-                        tournament.getCurrentParticipants() + 1);
+                ensureTournamentCapacity(newTournament, occupancyUnits, "新赛事报名人数已满");
+            } else if (!oldStatusValid) {
+                Tournament tournament = tournamentMapper.findById(tournamentId);
+                if (tournament != null) {
+                    ensureTournamentCapacity(tournament, occupancyUnits, "赛事报名人数已满");
                 }
             }
         }
@@ -489,7 +468,14 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         }
         // 设置更新时间
         registration.setUpdateTime(LocalDateTime.now());
-        return tournamentRegistrationMapper.update(registration);
+        int result = tournamentRegistrationMapper.update(registration);
+        if (result > 0) {
+            syncTournamentCurrentParticipants(tournamentId);
+            if (tournamentChanged) {
+                syncTournamentCurrentParticipants(existing.getTournamentId());
+            }
+        }
+        return result;
     }
 
     private java.math.BigDecimal resolveEntryFee(Tournament tournament, String eventType, java.math.BigDecimal requestedFee) {
@@ -542,16 +528,11 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             }
         }
         
-        // 如果状态是有效状态（1-待支付，2-已支付，3-已参赛），都需要减少赛事的当前参赛人数
-        if (registration.getStatus() != null && registration.getStatus() >= 1 && registration.getStatus() <= 3) {
-            Tournament tournament = tournamentMapper.findById(registration.getTournamentId());
-            if (tournament != null) {
-                tournamentMapper.updateCurrentParticipants(registration.getTournamentId(), 
-                    Math.max(0, tournament.getCurrentParticipants() - 1));
-            }
+        int result = tournamentRegistrationMapper.deleteById(id);
+        if (result > 0 && isActiveStatus(registration.getStatus())) {
+            syncTournamentCurrentParticipants(registration.getTournamentId());
         }
-        
-        return tournamentRegistrationMapper.deleteById(id);
+        return result;
     }
 
     /**
@@ -607,31 +588,46 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         if (status == null || status < 0 || status > 4) {
             throw new RuntimeException("无效的状态值，必须是0（已取消）、1（待支付）、2（已支付）、3（已参赛）或4（已退赛）");
         }
+
+        if (status == 0 && registration.getPaymentStatus() != null && registration.getPaymentStatus() == 1) {
+            registration.setStatus(0);
+            registration.setPaymentStatus(3);
+            registration.setUpdateTime(LocalDateTime.now());
+            int updated = tournamentRegistrationMapper.update(registration);
+            if (updated > 0) {
+                syncTournamentCurrentParticipants(registration.getTournamentId());
+                try {
+                    Long userId = null;
+                    Member m = memberMapper.findById(registration.getMemberId());
+                    if (m != null && m.getUserId() != null) userId = m.getUserId();
+                    webSocketPushService.pushOrderStatusToUser(userId, "tournamentRegistration", id, 0, "已取消", "赛事报名");
+                    webSocketPushService.pushDashboardRefresh();
+                } catch (Exception e) {
+                    org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+                }
+            }
+            return updated;
+        }
         
-        // 如果状态变更，需要处理参赛人数的变化
+        // 如果状态从无效变有效，需要校验席位是否足够
         Integer oldStatus = registration.getStatus();
-        if (oldStatus != null && !oldStatus.equals(status)) {
+        if (!isActiveStatus(oldStatus) && isActiveStatus(status)) {
             Tournament tournament = tournamentMapper.findById(registration.getTournamentId());
             if (tournament != null) {
-                boolean oldStatusValid = oldStatus >= 1 && oldStatus <= 3;
-                boolean newStatusValid = status >= 1 && status <= 3;
-                
-                if (oldStatusValid && !newStatusValid) {
-                    // 从有效状态变为无效状态（如已取消），减少参赛人数
-                    tournamentMapper.updateCurrentParticipants(registration.getTournamentId(), 
-                        Math.max(0, tournament.getCurrentParticipants() - 1));
-                } else if (!oldStatusValid && newStatusValid) {
-                    // 从无效状态变为有效状态，增加参赛人数
-                    if (tournament.getCurrentParticipants() >= tournament.getMaxParticipants()) {
-                        throw new RuntimeException("赛事报名人数已满");
-                    }
-                    tournamentMapper.updateCurrentParticipants(registration.getTournamentId(), 
-                        tournament.getCurrentParticipants() + 1);
-                }
+                String eventType = TournamentTypeHelper.normalizeEventType(
+                        tournament.getEventType(),
+                        tournament.getTournamentType(),
+                        tournament.getTournamentName(),
+                        tournament.getDescription()
+                );
+                ensureTournamentCapacity(tournament, resolveOccupancyUnits(eventType), "赛事报名人数已满");
             }
         }
         
         int result = tournamentRegistrationMapper.updateStatus(id, status);
+        if (result > 0) {
+            syncTournamentCurrentParticipants(registration.getTournamentId());
+        }
         try {
             Long userId = null;
             Member m = memberMapper.findById(registration.getMemberId());
@@ -643,6 +639,33 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
         }
         return result;
+    }
+
+    private boolean isActiveStatus(Integer status) {
+        return status != null && status >= 1 && status <= 3;
+    }
+
+    private int resolveOccupancyUnits(String eventType) {
+        return TournamentTypeHelper.isDoublesEvent(eventType) ? 2 : 1;
+    }
+
+    private void ensureTournamentCapacity(Tournament tournament, int additionalUnits, String fullMessage) {
+        if (tournament == null) {
+            return;
+        }
+        int occupied = tournamentRegistrationMapper.countOccupiedParticipants(tournament.getId());
+        int maxParticipants = tournament.getMaxParticipants() == null ? 0 : tournament.getMaxParticipants();
+        if (occupied + additionalUnits > maxParticipants) {
+            throw new RuntimeException(fullMessage);
+        }
+    }
+
+    private void syncTournamentCurrentParticipants(Long tournamentId) {
+        if (tournamentId == null) {
+            return;
+        }
+        int occupied = tournamentRegistrationMapper.countOccupiedParticipants(tournamentId);
+        tournamentMapper.updateCurrentParticipants(tournamentId, Math.max(0, occupied));
     }
 
     private static String tournamentRegistrationStatusText(int status) {
@@ -884,7 +907,16 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         }
 
         // 权限兜底：只有管理员，且 VM 仅限自己场馆
-        if (!SecurityUtils.isPresident()) {
+        return refundRegistration(registration, true);
+    }
+
+    private int refundRegistration(TournamentRegistration registration, boolean enforceAdminPermission) {
+        Long registrationId = registration.getId();
+        if (registrationId == null) {
+            throw new RuntimeException("报名记录不存在");
+        }
+
+        if (enforceAdminPermission && !SecurityUtils.isPresident()) {
             if (SecurityUtils.isVenueManager()) {
                 Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
                 Tournament tournament = tournamentMapper.findById(registration.getTournamentId());
@@ -896,9 +928,8 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             }
         }
 
-        // 验证报名支付状态，按状态返回明确提示（null 视为未支付，与场地预约一致）
         Integer payStatus = registration.getPaymentStatus();
-        if (payStatus == null || payStatus != 1) {
+        if (payStatus == null || (payStatus != 1 && payStatus != 3)) {
             String msg;
             if (payStatus == null || payStatus == 0) {
                 msg = "该报名尚未支付，无法退款";
@@ -910,7 +941,6 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             throw new RuntimeException(msg);
         }
 
-        // 调用退款记录服务（只有余额支付才需要）
         if ("BALANCE".equals(registration.getPaymentMethod())) {
             memberConsumeRecordService.createRefundRecord(
                 registration.getMemberId(),
@@ -922,11 +952,9 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             );
         }
 
-        // 获取场馆ID用于财务记录
         Tournament tournamentForRefund = tournamentMapper.findById(registration.getTournamentId());
         Long venueIdForRefund = tournamentForRefund != null ? tournamentForRefund.getVenueId() : null;
 
-        // 创建财务记录（支出/退款）
         financeService.createFromBusiness(
             Finance.TYPE_TOURNAMENT,
             registrationId,
@@ -937,19 +965,13 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             "赛事报名退款：" + registration.getRegistrationNo()
         );
 
-        // 更新报名状态
-        registration.setPaymentStatus(2); // 已退款
-        registration.setStatus(0); // 已取消
+        registration.setPaymentStatus(2);
+        registration.setStatus(0);
         registration.setUpdateTime(LocalDateTime.now());
         int result = tournamentRegistrationMapper.update(registration);
 
-        // 减少赛事的当前参赛人数
-        Tournament tournament = tournamentMapper.findById(registration.getTournamentId());
-        if (tournament != null) {
-            tournamentMapper.updateCurrentParticipants(registration.getTournamentId(),
-                Math.max(0, tournament.getCurrentParticipants() - 1));
-        }
         if (result > 0) {
+            syncTournamentCurrentParticipants(registration.getTournamentId());
             try {
                 Long userId = null;
                 Member m = memberMapper.findById(registration.getMemberId());

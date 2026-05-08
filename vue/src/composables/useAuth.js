@@ -48,7 +48,7 @@ export function useAuth() {
   /**
    * 检查是否为普通用户
    */
-  const isUser = computed(() => userRole.value === 'USER')
+  const isUser = computed(() => userRole.value === 'USER' || userRole.value === 'MEMBER')
 
   /**
    * 检查是否为教练

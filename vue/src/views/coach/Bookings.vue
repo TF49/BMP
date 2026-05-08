@@ -372,7 +372,7 @@ const bookingSummary = computed(() => {
 })
 
 const paymentStatusText = (status) => {
-  const map = { 0: '未支付', 1: '已支付', 2: '已退款' }
+  const map = { 0: '未支付', 1: '已支付', 2: '已退款', 3: '退款中' }
   return map[status] ?? '未知'
 }
 

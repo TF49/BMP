@@ -7,16 +7,20 @@ import com.badminton.bmp.modules.booking.entity.Booking;
 import com.badminton.bmp.modules.booking.entity.BookingCourt;
 import com.badminton.bmp.modules.booking.mapper.BookingCourtMapper;
 import com.badminton.bmp.modules.booking.mapper.BookingMapper;
+import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
 import com.badminton.bmp.modules.booking.service.BookingService;
 import com.badminton.bmp.modules.court.dto.CourtBookingUserDTO;
 import com.badminton.bmp.modules.court.entity.Court;
 import com.badminton.bmp.modules.court.mapper.CourtMapper;
 import com.badminton.bmp.modules.court.service.CourtService;
+import com.badminton.bmp.modules.equipment.mapper.EquipmentRentalMapper;
 import com.badminton.bmp.modules.finance.entity.Finance;
 import com.badminton.bmp.modules.finance.service.FinanceService;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
+import com.badminton.bmp.modules.stringing.mapper.StringingServiceMapper;
+import com.badminton.bmp.modules.tournament.mapper.TournamentRegistrationMapper;
 import com.badminton.bmp.websocket.WebSocketPushService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -58,6 +62,14 @@ public class BookingServiceImpl implements BookingService {
     private MemberConsumeRecordService memberConsumeRecordService;
     @Autowired
     private FinanceService financeService;
+    @Autowired
+    private CourseBookingMapper courseBookingMapper;
+    @Autowired
+    private TournamentRegistrationMapper tournamentRegistrationMapper;
+    @Autowired
+    private EquipmentRentalMapper equipmentRentalMapper;
+    @Autowired
+    private StringingServiceMapper stringingServiceMapper;
     @Autowired
     private WebSocketPushService webSocketPushService;
 
@@ -287,7 +299,14 @@ public class BookingServiceImpl implements BookingService {
         List<BookingCourt> details = bookingCourtMapper.findByBookingId(id);
         ensureAccess(booking, details);
 
-        bookingMapper.updateStatus(id, status);
+        if (status != null && status == 0 && booking.getPaymentStatus() != null && booking.getPaymentStatus() == 1) {
+            booking.setStatus(0);
+            booking.setPaymentStatus(3);
+            booking.setUpdateTime(LocalDateTime.now());
+            bookingMapper.update(booking);
+        } else {
+            bookingMapper.updateStatus(id, status);
+        }
         recomputeCourtStatuses(extractCourtIds(details));
         pushBookingUpdates();
         return 1;
@@ -296,7 +315,32 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public Map<String, Object> getStatistics() {
         Map<String, Object> stats = new HashMap<>();
-        List<Map<String, Object>> statusCounts = bookingMapper.countByStatus();
+        Long venueFilter = null;
+        Long memberFilter = null;
+        if (SecurityUtils.isVenueManager()) {
+            venueFilter = SecurityUtils.getCurrentUserVenueId();
+        } else if (!SecurityUtils.isPresident()) {
+            memberFilter = getCurrentMemberId();
+            if (memberFilter == null) {
+                stats.put("total", 0);
+                stats.put("cancelled", 0);
+                stats.put("pending", 0);
+                stats.put("paid", 0);
+                stats.put("inProgress", 0);
+                stats.put("completed", 0);
+                stats.put("ongoing", 0);
+                stats.put("finished", 0);
+                stats.put("unpaidOrders", 0);
+                stats.put("pendingRefunds", 0);
+                stats.put("pendingIssues", 0);
+                stats.put("todayBookings", 0);
+                stats.put("bookingTrend", 0D);
+                stats.put("peakHours", "--");
+                return stats;
+            }
+        }
+
+        List<Map<String, Object>> statusCounts = bookingMapper.countByStatusScoped(venueFilter, memberFilter);
         int total = 0;
         int cancelled = 0;
         int pending = 0;
@@ -322,14 +366,21 @@ public class BookingServiceImpl implements BookingService {
         stats.put("paid", paid);
         stats.put("inProgress", inProgress);
         stats.put("completed", completed);
+        stats.put("ongoing", inProgress);
+        stats.put("finished", completed);
         stats.put("unpaidOrders", pending);
-        stats.put("pendingIssues", 0);
+        int pendingRefunds = bookingMapper.countByPaymentStatusScoped(venueFilter, memberFilter, 3)
+                + (memberFilter == null ? courseBookingMapper.countByPaymentStatusFiltered(venueFilter, 3) : 0)
+                + (memberFilter == null ? tournamentRegistrationMapper.countByPaymentStatus(venueFilter, 3) : 0)
+                + (memberFilter == null ? equipmentRentalMapper.countByPaymentStatus(venueFilter, 3) : 0)
+                + (memberFilter == null ? stringingServiceMapper.countByPaymentStatus(venueFilter, 3) : 0);
+        stats.put("pendingRefunds", pendingRefunds);
+        stats.put("pendingIssues", pendingRefunds);
 
-        Long venueFilter = SecurityUtils.isVenueManager() ? SecurityUtils.getCurrentUserVenueId() : null;
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
-        int todayBookings = bookingMapper.countByBookingDate(venueFilter, today);
-        int yesterdayBookings = bookingMapper.countByBookingDate(venueFilter, yesterday);
+        int todayBookings = bookingMapper.countByBookingDateScoped(venueFilter, memberFilter, today);
+        int yesterdayBookings = bookingMapper.countByBookingDateScoped(venueFilter, memberFilter, yesterday);
         double bookingTrend = 0;
         if (yesterdayBookings > 0) {
             bookingTrend = ((double) (todayBookings - yesterdayBookings) / yesterdayBookings) * 100.0;
@@ -340,7 +391,7 @@ public class BookingServiceImpl implements BookingService {
         stats.put("bookingTrend", bookingTrend);
 
         String peakHours = "--";
-        List<Map<String, Object>> hourRows = bookingMapper.countStartHourForDate(venueFilter, today);
+        List<Map<String, Object>> hourRows = bookingMapper.countStartHourForDateScoped(venueFilter, memberFilter, today);
         if (hourRows != null && !hourRows.isEmpty()) {
             Object hourObj = hourRows.get(0).get("hour");
             int hour = hourObj instanceof Number ? ((Number) hourObj).intValue() : Integer.parseInt(hourObj.toString());
@@ -484,7 +535,7 @@ public class BookingServiceImpl implements BookingService {
         ensureAdminAccess(booking, details);
 
         Integer payStatus = booking.getPaymentStatus();
-        if (payStatus == null || payStatus != 1) {
+        if (payStatus == null || (payStatus != 1 && payStatus != 3)) {
             if (payStatus == null || payStatus == 0) throw new BusinessException("该预约尚未支付，无法退款");
             if (payStatus == 2) throw new BusinessException("该预约已退款，无需重复退款");
             throw new BusinessException("只能对已支付的预约进行退款");
@@ -554,9 +605,10 @@ public class BookingServiceImpl implements BookingService {
         todo.put("pendingBookings", stats.getOrDefault("pending", 0));
         todo.put("pending", stats.getOrDefault("pending", 0));
         todo.put("unpaidOrders", stats.getOrDefault("unpaidOrders", 0));
-        todo.put("unpaid", 0);
+        todo.put("unpaid", stats.getOrDefault("unpaidOrders", 0));
+        todo.put("pendingRefunds", stats.getOrDefault("pendingRefunds", 0));
         todo.put("pendingIssues", stats.getOrDefault("pendingIssues", 0));
-        todo.put("issues", 0);
+        todo.put("issues", stats.getOrDefault("pendingRefunds", 0));
         return todo;
     }
 

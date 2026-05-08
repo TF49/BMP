@@ -117,6 +117,21 @@ public class UserController extends BaseController {
         }
     }
 
+    @Operation(summary = "可绑定会员的用户账号列表", description = "返回尚未绑定会员档案的用户端账号（USER/MEMBER）")
+    @GetMapping("/member-candidates")
+    @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
+    public Result<Object> getMemberCandidates() {
+        try {
+            List<User> users = userService.findAvailableMemberUsers();
+            users.forEach(user -> user.setPassword(null));
+            return success(users);
+        } catch (AccessDeniedException e) {
+            throw e;
+        } catch (Exception e) {
+            return error("获取可绑定会员账号失败：" + e.getMessage());
+        }
+    }
+
     @Operation(summary = "添加用户")
     @PostMapping("/add")
     @PreAuthorize("hasRole('PRESIDENT')")

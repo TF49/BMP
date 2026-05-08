@@ -117,14 +117,21 @@ const fetchTournaments = async () => {
   loading.value = true
   try {
     const res = await getTournamentList({
-      pageNum: 1,
-      pageSize: 4,
+      page: 1,
+      size: 4,
       status: 1
     })
-    if (res.code === 200 && Array.isArray(res.data?.list || res.data)) {
-      const list = res.data?.list || res.data
+    const list = Array.isArray(res.data?.data)
+      ? res.data.data
+      : Array.isArray(res.data?.list)
+        ? res.data.list
+        : Array.isArray(res.data)
+          ? res.data
+          : []
+
+    if (res.code === 200) {
       tournaments.value = list.slice(0, 4).map((item, index) => {
-        const dateInfo = formatDate(item.startDate || item.date)
+        const dateInfo = formatDate(item.tournamentStart || item.startDate || item.date)
         return {
           id: item.id || index,
           name: item.name || item.tournamentName || '未命名赛事',
@@ -133,7 +140,7 @@ const fetchTournaments = async () => {
           level: getLevelClass(item.level || item.type || 1),
           levelLabel: getLevelLabel(item.level || item.type || 1),
           venue: item.venueName || item.venue || '待定',
-          signup: parseNum(item.currentSignup || item.registrationCount),
+          signup: parseNum(item.currentParticipants || item.currentSignup || item.registrationCount),
           quota: parseNum(item.maxSignup || item.maxParticipants || 0)
         }
       })
@@ -376,4 +383,3 @@ useDashboardChartRefresh(() => fetchTournaments())
   }
 }
 </style>
-

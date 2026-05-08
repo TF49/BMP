@@ -583,7 +583,15 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             equipmentRentalMapper.update(rental);
         }
 
-        int result = equipmentRentalMapper.updateStatus(id, status);
+        int result;
+        if (status == 0 && rental.getPaymentStatus() != null && rental.getPaymentStatus() == 1) {
+            rental.setStatus(0);
+            rental.setPaymentStatus(3);
+            rental.setUpdateTime(LocalDateTime.now());
+            result = equipmentRentalMapper.update(rental);
+        } else {
+            result = equipmentRentalMapper.updateStatus(id, status);
+        }
         try {
             Long userId = null;
             Member m = memberMapper.findById(rental.getMemberId());
@@ -829,7 +837,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
 
         // 验证租借支付状态，按状态返回明确提示
         Integer payStatus = rental.getPaymentStatus();
-        if (payStatus == null || payStatus != 1) {
+        if (payStatus == null || (payStatus != 1 && payStatus != 3)) {
             String msg;
             if (payStatus == null || payStatus == 0) {
                 msg = "该租借尚未支付，无法退款";

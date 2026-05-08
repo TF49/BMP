@@ -118,9 +118,19 @@
                 <el-button v-if="isAdmin" type="success" size="small" :icon="Edit" plain @click="handleEdit(scope.row)">编辑</el-button>
                 <!-- 待支付显示支付，已支付显示退款（同一位置互斥） -->
                 <el-button v-if="isAdmin && scope.row.status === 1" type="primary" size="small" plain @click="handlePayment(scope.row)">支付</el-button>
-                <el-button v-else-if="isAdmin && scope.row.status === 2" type="warning" size="small" plain @click="handleRefund(scope.row)">退款</el-button>
+                <el-button
+                  v-else-if="isAdmin && (scope.row.paymentStatus === 1 || scope.row.paymentStatus === 3)"
+                  type="warning"
+                  size="small"
+                  plain
+                  @click="handleRefund(scope.row)"
+                >
+                  {{ scope.row.paymentStatus === 3 ? '处理退款' : '退款' }}
+                </el-button>
                 <el-button v-if="isAdmin" type="primary" size="small" plain @click="changeStatus(scope.row, 3)">标记参赛</el-button>
-                <el-button v-if="isAdmin || isUser" type="warning" size="small" plain @click="changeStatus(scope.row, 0)">取消</el-button>
+                <el-button v-if="isAdmin || isUser" type="warning" size="small" plain @click="changeStatus(scope.row, 0)">
+                  {{ scope.row.status === 2 ? '取消并申请退款' : '取消' }}
+                </el-button>
                 <el-button v-if="isAdmin" type="danger" size="small" :icon="Delete" plain @click="handleDelete(scope.row)">删除</el-button>
               </div>
             </template>
@@ -657,15 +667,22 @@ const handleSubmit = async () => {
 
 const changeStatus = async (row, status) => {
   try {
+    if (status === 0) {
+      const confirmMessage = row.status === 2
+        ? `确定取消报名 ${row.registrationNo} 吗？该报名已支付，取消后会提交退款申请，等待处理。`
+        : `确定取消报名 ${row.registrationNo} 吗？`
+      await ElMessageBox.confirm(confirmMessage, '提示', { type: 'warning' })
+    }
     const res = await updateTournamentRegistrationStatus(row.id, status)
     if (res.code === 200) {
-      ElMessage.success('状态已更新')
+      ElMessage.success(status === 0 && row.status === 2 ? '已取消，退款申请已提交' : '状态已更新')
       loadList()
       loadStatistics()
     } else {
       ElMessage.error(res.message || '更新状态失败')
     }
   } catch (e) {
+    if (e === 'cancel') return
     console.error('更新状态失败:', e)
     // 提取错误信息：优先使用 response.data.message，其次使用 e.message
     const errorMessage = e.response?.data?.message || e.message || '更新状态失败，请稍后重试'
