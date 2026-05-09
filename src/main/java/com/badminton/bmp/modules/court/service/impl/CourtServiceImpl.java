@@ -8,7 +8,9 @@ import com.badminton.bmp.modules.court.service.CourtService;
 import org.springframework.cache.annotation.CacheEvict;
 import com.badminton.bmp.modules.course.mapper.CourseMapper;
 import com.badminton.bmp.modules.venue.entity.Venue;
+import com.badminton.bmp.modules.venue.entity.VenueSchedule;
 import com.badminton.bmp.modules.venue.mapper.VenueMapper;
+import com.badminton.bmp.modules.venue.service.VenueScheduleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,13 @@ import java.util.*;
  */
 @Service
 public class CourtServiceImpl implements CourtService {
+    private static final int BUSINESS_OPEN_HOUR = 8;
+    private static final int BUSINESS_CLOSE_HOUR = 22;
+    private static final String SCHEDULE_WORKDAY = "WORKDAY";
+    private static final String SCHEDULE_WEEKEND = "WEEKEND";
+    private static final String SCHEDULE_HOLIDAY = "HOLIDAY";
+    private static final double LOW_UTILIZATION_THRESHOLD = 0.30D;
+    private static final double HIGH_UTILIZATION_THRESHOLD = 0.85D;
 
     @Autowired
     private CourtMapper courtMapper;
@@ -39,6 +48,9 @@ public class CourtServiceImpl implements CourtService {
 
     @Autowired
     private VenueMapper venueMapper;
+
+    @Autowired
+    private VenueScheduleService venueScheduleService;
 
     @Autowired
     private BookingMapper bookingMapper;
@@ -526,6 +538,130 @@ public class CourtServiceImpl implements CourtService {
         return result;
     }
 
+    @Override
+    public List<Map<String, Object>> getDailyUtilization(String date) {
+        LocalDate queryDate = parseDateOrToday(date);
+        Long venueFilter = SecurityUtils.isVenueManager() ? SecurityUtils.getCurrentUserVenueId() : null;
+        List<Map<String, Object>> rows = courtMapper.findDailyUtilizationRows(venueFilter, queryDate);
+        List<Map<String, Object>> result = new ArrayList<>();
+        Map<Long, Integer> availableMinutesByVenue = new HashMap<>();
+        if (rows == null) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            int occupiedMinutes = Math.max(0, toInt(row.get("occupiedMinutes")));
+            Long venueId = toLongObject(row.get("venueId"));
+            int availableMinutes = resolveAvailableMinutes(queryDate, venueId, availableMinutesByVenue);
+            double utilizationRate = availableMinutes > 0 ? occupiedMinutes * 1.0D / availableMinutes : 0D;
+            Map<String, Object> item = new HashMap<>();
+            Long courtId = toLong(row.get("courtId"));
+            String courtName = row.get("courtName") != null && !String.valueOf(row.get("courtName")).trim().isEmpty()
+                    ? String.valueOf(row.get("courtName"))
+                    : String.valueOf(row.get("courtCode"));
+            item.put("courtId", courtId);
+            item.put("courtName", courtName);
+            item.put("occupiedMinutes", occupiedMinutes);
+            item.put("availableMinutes", availableMinutes);
+            item.put("utilizationRate", Math.round(utilizationRate * 1000D) / 1000D);
+            item.put("status", buildUtilizationStatus(utilizationRate, toInt(row.get("status"))));
+            result.add(item);
+        }
+        return result;
+    }
+
+    private int resolveAvailableMinutes(LocalDate queryDate, Long venueId, Map<Long, Integer> cache) {
+        if (venueId == null) {
+            return defaultAvailableMinutes();
+        }
+        Integer cached = cache.get(venueId);
+        if (cached != null) {
+            return cached;
+        }
+        int availableMinutes = defaultAvailableMinutes();
+        VenueSchedule schedule = findScheduleForDate(venueId, queryDate);
+        if (schedule != null && schedule.getStartTime() != null && schedule.getEndTime() != null) {
+            availableMinutes = Math.max(0, (int) java.time.Duration.between(schedule.getStartTime(), schedule.getEndTime()).toMinutes());
+        } else {
+            Venue venue = venueMapper.findById(venueId);
+            Integer businessHoursMinutes = parseBusinessHoursMinutes(venue != null ? venue.getBusinessHours() : null);
+            if (businessHoursMinutes != null) {
+                availableMinutes = businessHoursMinutes;
+            }
+        }
+        cache.put(venueId, availableMinutes);
+        return availableMinutes;
+    }
+
+    private VenueSchedule findScheduleForDate(Long venueId, LocalDate queryDate) {
+        List<VenueSchedule> schedules = venueScheduleService.findByVenueId(venueId);
+        if (schedules == null || schedules.isEmpty()) {
+            return null;
+        }
+        List<String> preferredTypes = new ArrayList<>();
+        if (queryDate.getDayOfWeek().getValue() >= 6) {
+            preferredTypes.add(SCHEDULE_WEEKEND);
+            preferredTypes.add(SCHEDULE_WORKDAY);
+        } else {
+            preferredTypes.add(SCHEDULE_WORKDAY);
+            preferredTypes.add(SCHEDULE_WEEKEND);
+        }
+        preferredTypes.add(SCHEDULE_HOLIDAY);
+        for (String scheduleType : preferredTypes) {
+            for (VenueSchedule schedule : schedules) {
+                if (schedule != null
+                        && Objects.equals(schedule.getIsActive(), 1)
+                        && scheduleType.equalsIgnoreCase(schedule.getScheduleType())
+                        && schedule.getStartTime() != null
+                        && schedule.getEndTime() != null) {
+                    return schedule;
+                }
+            }
+        }
+        for (VenueSchedule schedule : schedules) {
+            if (schedule != null
+                    && Objects.equals(schedule.getIsActive(), 1)
+                    && schedule.getStartTime() != null
+                    && schedule.getEndTime() != null) {
+                return schedule;
+            }
+        }
+        return null;
+    }
+
+    private Integer parseBusinessHoursMinutes(String businessHours) {
+        if (businessHours == null || businessHours.trim().isEmpty()) {
+            return null;
+        }
+        String[] parts = businessHours.trim().split("-");
+        if (parts.length != 2) {
+            return null;
+        }
+        try {
+            LocalTime start = LocalTime.parse(parts[0].trim());
+            LocalTime end = LocalTime.parse(parts[1].trim());
+            return Math.max(0, (int) java.time.Duration.between(start, end).toMinutes());
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    private int defaultAvailableMinutes() {
+        return Math.max(0, (BUSINESS_CLOSE_HOUR - BUSINESS_OPEN_HOUR) * 60);
+    }
+
+    private String buildUtilizationStatus(double utilizationRate, int courtStatus) {
+        if (courtStatus == 0) {
+            return "maintenance";
+        }
+        if (utilizationRate < LOW_UTILIZATION_THRESHOLD) {
+            return "low";
+        }
+        if (utilizationRate > HIGH_UTILIZATION_THRESHOLD) {
+            return "high";
+        }
+        return "normal";
+    }
+
     /**
      * 安全转换为 int。MySQL TINYINT(1) 可能被 JDBC 映射为 Boolean，需兼容处理。
      */
@@ -550,6 +686,23 @@ public class CourtServiceImpl implements CourtService {
             return (Boolean) obj ? 1L : 0L;
         }
         return 0L;
+    }
+
+    private Long toLongObject(Object obj) {
+        if (obj instanceof Number) {
+            return ((Number) obj).longValue();
+        }
+        if (obj instanceof Boolean) {
+            return (Boolean) obj ? 1L : 0L;
+        }
+        if (obj instanceof String) {
+            try {
+                return Long.parseLong(((String) obj).trim());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     /**

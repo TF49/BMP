@@ -159,6 +159,23 @@ public interface TournamentRegistrationMapper {
             "WHERE tr.tournament_id = #{tournamentId} AND tr.del_flag = 0")
     int countOccupiedParticipants(@Param("tournamentId") Long tournamentId);
 
+    @Select("SELECT COUNT(DISTINCT member_id) FROM (" +
+            "   SELECT tr.member_id AS member_id " +
+            "   FROM biz_tournament_registration tr " +
+            "   INNER JOIN sys_member m ON m.id = tr.member_id AND m.del_flag = 0 " +
+            "   WHERE tr.tournament_id = #{tournamentId} AND tr.del_flag = 0 " +
+            "   AND COALESCE(m.register_time, m.create_time) BETWEEN #{startTime} AND #{endTime} " +
+            "   UNION ALL " +
+            "   SELECT tr.partner_id AS member_id " +
+            "   FROM biz_tournament_registration tr " +
+            "   INNER JOIN sys_member m ON m.id = tr.partner_id AND m.del_flag = 0 " +
+            "   WHERE tr.tournament_id = #{tournamentId} AND tr.del_flag = 0 AND tr.partner_id IS NOT NULL " +
+            "   AND COALESCE(m.register_time, m.create_time) BETWEEN #{startTime} AND #{endTime} " +
+            ") new_member_links")
+    int countNewMembersDriven(@Param("tournamentId") Long tournamentId,
+                              @Param("startTime") LocalDateTime startTime,
+                              @Param("endTime") LocalDateTime endTime);
+
     /**
      * 定时任务：查询「已支付」且关联赛事已到开始时间的报名ID（用于自动改为已参赛）
      * 条件：tr.status=2 且 t.tournament_start <= #{now}

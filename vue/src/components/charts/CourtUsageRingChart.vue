@@ -67,13 +67,12 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { Check, Close, Grid, Warning } from '@element-plus/icons-vue'
-import { getCourtList, getTodayBookingCounts, getCourtStatistics } from '@/api/court'
+import { getCourtDailyUtilization, getCourtStatistics } from '@/api/court'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const router = useRouter()
 const loading = ref(false)
 const courtData = ref([])
-const bookingCounts = ref({})
 const chartRefs = ref({})
 const chartInstances = ref({})
 const filterStatus = ref(null) // null=全部, 0=维护中, 1=空闲, [2,3]=使用中
@@ -101,10 +100,7 @@ const getLocalTodayDateStr = () => {
 const filteredCourtData = computed(() => {
   if (filterStatus.value === null) return courtData.value
   if (Array.isArray(filterStatus.value)) {
-    return courtData.value.filter(c => {
-      const cnt = bookingCounts.value?.[c.id] != null ? Number(bookingCounts.value[c.id]) : 0
-      return cnt > 0 && c.status !== 0
-    })
+    return courtData.value.filter(c => c.status === 2 || c.status === 3)
   }
   return courtData.value.filter(c => c.status === filterStatus.value)
 })
@@ -230,23 +226,19 @@ const initRingChart = (id, usage) => {
   })
 }
 
-// 获取场地数据：列表用 list API（多拉一些以支持筛选展示），统计用 statistics API 与场地管理一致
+// 获取场地数据：利用率统一取后端真实统计口径
 const fetchCourtData = async () => {
   loading.value = true
   try {
-    const [listRes, statsRes] = await Promise.all([
-      getCourtList({ page: 1, size: 100, status: null }),
+    const [utilizationRes, statsRes] = await Promise.all([
+      getCourtDailyUtilization(getLocalTodayDateStr()),
       getCourtStatistics()
     ])
 
-    let list = []
-    if (listRes.code === 200 && listRes.data) {
-      if (Array.isArray(listRes.data)) list = listRes.data
-      else if (listRes.data.data && Array.isArray(listRes.data.data)) list = listRes.data.data
-      else if (listRes.data.records && Array.isArray(listRes.data.records)) list = listRes.data.records
-      else if (listRes.data.list && Array.isArray(listRes.data.list)) list = listRes.data.list
+    let courts = []
+    if (utilizationRes.code === 200 && Array.isArray(utilizationRes.data)) {
+      courts = utilizationRes.data
     }
-    const courts = list
     if (courts.length === 0) {
       courtData.value = []
       summaryData.value = { available: 0, occupied: 0, maintenance: 0, avgUsage: 0 }
@@ -254,38 +246,24 @@ const fetchCourtData = async () => {
       return
     }
 
-    const courtIds = courts.map(c => c.id)
-    const today = getLocalTodayDateStr()
-    let countMap = {}
-    try {
-      const countRes = await getTodayBookingCounts(courtIds, today)
-      if (countRes.code === 200 && countRes.data && typeof countRes.data === 'object') {
-        countMap = countRes.data
-      }
-    } catch (e) {
-      console.warn('获取今日预约数失败:', e)
-    }
-
-    bookingCounts.value = countMap
-
     courtData.value = courts.map(court => {
-      const count = countMap[court.id] != null ? Number(countMap[court.id]) : 0
-      const usage = Math.min(100, Math.round(count * 10))
+      const usage = Math.round(Number(court.utilizationRate || 0) * 100)
+      const utilizationStatus = court.status
+      let status = 1
+      if (utilizationStatus === 'maintenance') status = 0
+      else if (usage > 0) status = usage >= 85 ? 3 : 2
       return {
-        id: court.id,
-        name: court.courtName || court.courtCode || `场地${court.id}`,
+        id: court.courtId,
+        name: court.courtName || `场地${court.courtId}`,
         usage,
-        status: court.status
+        status
       }
     })
 
     const stats = (statsRes.code === 200 && statsRes.data) ? statsRes.data : {}
     const available = Number(stats.available) || 0
     const maintenance = Number(stats.maintenance) || 0
-    const occupiedCourtsByBookings = courtIds.reduce((acc, id) => {
-      const c = countMap[id] != null ? Number(countMap[id]) : 0
-      return acc + (c > 0 ? 1 : 0)
-    }, 0)
+    const occupiedCourtsByBookings = courtData.value.filter(item => item.status === 2 || item.status === 3).length
     const totalUsage = courtData.value.reduce((sum, c) => sum + c.usage, 0)
     summaryData.value = {
       available,
@@ -301,7 +279,6 @@ const fetchCourtData = async () => {
   } catch (error) {
     console.error('获取场地数据失败:', error)
     courtData.value = []
-    bookingCounts.value = {}
     summaryData.value = { available: 0, occupied: 0, maintenance: 0, avgUsage: 0 }
   } finally {
     loading.value = false

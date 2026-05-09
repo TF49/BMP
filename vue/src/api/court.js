@@ -173,6 +173,22 @@ export function getTodayBookingCounts(courtIds, date) {
 }
 
 /**
+ * 获取指定日期各场地真实利用率
+ * @param {string} [date] - 查询日期 yyyy-MM-dd
+ */
+export function getCourtDailyUtilization(date) {
+  const params = {}
+  if (date) params.date = date
+  return withDedupe(`GET:/api/court/utilization/daily:${date || ''}`, () =>
+    request({
+      url: '/api/court/utilization/daily',
+      method: 'get',
+      params
+    })
+  )
+}
+
+/**
  * 获取指定日期各场地的占用时间轴（Dashboard 今日场地时间轴）
  * @param {Object} params - { date: 'yyyy-MM-dd' }
  * @returns {Promise} 返回 [{ courtId, courtName, timeSlots: [{ status, duration }] }]

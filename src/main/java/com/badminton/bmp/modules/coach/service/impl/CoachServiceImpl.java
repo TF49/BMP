@@ -466,6 +466,7 @@ public class CoachServiceImpl implements CoachService {
 
         statistics.put("disabled", disabled);
         statistics.put("normal", normal);
+        statistics.put("coachWorkload", coachMapper.findCoachWorkload(venueFilter));
 
         return statistics;
     }

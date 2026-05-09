@@ -162,6 +162,33 @@ public interface CoachMapper {
             "</script>")
     int countAll(@Param("venueId") Long venueId);
 
+    @Select("<script>" +
+            "SELECT c.id, c.coach_name AS coachName, c.avatar, c.specialty, c.rating, " +
+            "COALESCE(course_stats.scheduled_courses, 0) AS scheduledCourses, " +
+            "COALESCE(course_stats.completed_courses, 0) AS completedCourses, " +
+            "COALESCE(booking_stats.booking_count, 0) AS bookingCount, " +
+            "COALESCE(booking_stats.student_count, 0) AS studentCount " +
+            "FROM sys_coach c " +
+            "LEFT JOIN (" +
+            "   SELECT course.coach_id, COUNT(*) AS scheduled_courses, " +
+            "          SUM(CASE WHEN course.status = 3 THEN 1 ELSE 0 END) AS completed_courses " +
+            "   FROM biz_course course " +
+            "   WHERE course.del_flag = 0 " +
+            "   GROUP BY course.coach_id" +
+            ") course_stats ON course_stats.coach_id = c.id " +
+            "LEFT JOIN (" +
+            "   SELECT course.coach_id, COUNT(cb.id) AS booking_count, COUNT(DISTINCT cb.member_id) AS student_count " +
+            "   FROM biz_course course " +
+            "   LEFT JOIN biz_course_booking cb ON cb.course_id = course.id AND cb.del_flag = 0 AND cb.status IN (1, 2, 3, 4) " +
+            "   WHERE course.del_flag = 0 " +
+            "   GROUP BY course.coach_id" +
+            ") booking_stats ON booking_stats.coach_id = c.id " +
+            "WHERE c.del_flag = 0 " +
+            "<if test='venueId != null'> AND c.venue_id = #{venueId} </if>" +
+            "ORDER BY COALESCE(booking_stats.booking_count, 0) DESC, COALESCE(course_stats.completed_courses, 0) DESC, c.id ASC" +
+            "</script>")
+    List<Map<String, Object>> findCoachWorkload(@Param("venueId") Long venueId);
+
     /**
      * 查询已绑定账号的用户ID列表（用于管理端“未绑定 COACH”列表）
      */

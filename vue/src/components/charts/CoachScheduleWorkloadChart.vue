@@ -15,7 +15,8 @@
       </div>
     </div>
     <div class="chart-body" v-loading="loading">
-      <div ref="chartRef" class="chart-container"></div>
+      <div v-if="coachData.length === 0" class="chart-empty">暂无教练排课数据</div>
+      <div v-else ref="chartRef" class="chart-container"></div>
     </div>
   </div>
 </template>
@@ -66,32 +67,14 @@ const fetchCoachWorkload = async () => {
           completed: parseNum(item.completedCourses || item.completed)
         }))
       } else {
-        coachData.value = [
-          { name: '教练1', scheduled: 0, completed: 0 },
-          { name: '教练2', scheduled: 0, completed: 0 },
-          { name: '教练3', scheduled: 0, completed: 0 },
-          { name: '教练4', scheduled: 0, completed: 0 },
-          { name: '教练5', scheduled: 0, completed: 0 }
-        ]
+        coachData.value = []
       }
     } else {
-      coachData.value = [
-        { name: '教练1', scheduled: 0, completed: 0 },
-        { name: '教练2', scheduled: 0, completed: 0 },
-        { name: '教练3', scheduled: 0, completed: 0 },
-        { name: '教练4', scheduled: 0, completed: 0 },
-        { name: '教练5', scheduled: 0, completed: 0 }
-      ]
+      coachData.value = []
     }
   } catch (e) {
     console.error('获取教练工作量数据失败:', e)
-    coachData.value = [
-      { name: '教练1', scheduled: 0, completed: 0 },
-      { name: '教练2', scheduled: 0, completed: 0 },
-      { name: '教练3', scheduled: 0, completed: 0 },
-      { name: '教练4', scheduled: 0, completed: 0 },
-      { name: '教练5', scheduled: 0, completed: 0 }
-    ]
+    coachData.value = []
   } finally {
     loading.value = false
   }
@@ -216,12 +199,24 @@ const updateChart = () => {
 }
 
 onMounted(() => {
-  initChart()
-  fetchCoachWorkload().then(() => updateChart())
+  fetchCoachWorkload().then(() => {
+    if (coachData.value.length > 0) {
+      initChart()
+      updateChart()
+    }
+  })
   window.addEventListener('resize', resizeChart)
 })
 
-useDashboardChartRefresh(() => fetchCoachWorkload().then(() => updateChart()))
+useDashboardChartRefresh(() => fetchCoachWorkload().then(() => {
+  if (coachData.value.length > 0) {
+    if (!chartInstance) initChart()
+    updateChart()
+  } else {
+    chartInstance?.dispose()
+    chartInstance = null
+  }
+}))
 
 onUnmounted(() => {
   window.removeEventListener('resize', resizeChart)
@@ -308,10 +303,18 @@ onUnmounted(() => {
   height: 210px;
 }
 
+.chart-empty {
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary, #64748B);
+  font-size: 14px;
+}
+
 @media (max-width: 768px) {
   .chart-container {
     height: 190px;
   }
 }
 </style>
-

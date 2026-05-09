@@ -3,6 +3,7 @@ package com.badminton.bmp.modules.member.mapper;
 import com.badminton.bmp.modules.member.entity.Member;
 import org.apache.ibatis.annotations.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -221,11 +222,52 @@ public interface MemberMapper {
     @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER + "WHERE m.del_flag = 0")
     int countAll();
 
+    @Select("SELECT COUNT(*) FROM sys_member WHERE del_flag = 0")
+    int countAllAnalyticsMembers();
+
+    @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER +
+            "WHERE m.del_flag = 0 AND COALESCE(m.member_level, 0) >= #{level}")
+    int countByMemberLevelAtLeast(@Param("level") int level);
+
+    @Select("SELECT COUNT(*) FROM sys_member WHERE del_flag = 0 AND COALESCE(member_level, 0) >= #{level}")
+    int countAnalyticsMembersByLevelAtLeast(@Param("level") int level);
+
     /**
      * 按状态统计 - 仅用户(USER/MEMBER)
      */
     @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER + "WHERE m.del_flag = 0 AND m.status = #{status}")
     int countByStatus(@Param("status") Integer status);
+
+    @Select(
+            "SELECT activity.member_id AS memberId, MAX(activity.member_level) AS memberLevel, COUNT(*) AS activityCount " +
+            "FROM (" +
+            "  SELECT b.member_id, COALESCE(m.member_level, 0) AS member_level, b.create_time AS activity_time " +
+            "  FROM biz_booking b " +
+            "  INNER JOIN sys_member m ON b.member_id = m.id " +
+            "  WHERE b.del_flag = 0 AND m.del_flag = 0 AND b.create_time >= #{since} " +
+            "  UNION ALL " +
+            "  SELECT cb.member_id, COALESCE(m.member_level, 0) AS member_level, cb.create_time AS activity_time " +
+            "  FROM biz_course_booking cb " +
+            "  INNER JOIN sys_member m ON cb.member_id = m.id " +
+            "  WHERE cb.del_flag = 0 AND m.del_flag = 0 AND cb.create_time >= #{since} " +
+            "  UNION ALL " +
+            "  SELECT cr.member_id, COALESCE(m.member_level, 0) AS member_level, cr.create_time AS activity_time " +
+            "  FROM biz_member_consume_record cr " +
+            "  INNER JOIN sys_member m ON cr.member_id = m.id " +
+            "  WHERE m.del_flag = 0 AND cr.create_time >= #{since} " +
+            ") activity " +
+            "GROUP BY activity.member_id")
+    List<java.util.Map<String, Object>> countMemberActivitiesSince(@Param("since") LocalDateTime since);
+
+    @Select("SELECT m.id, m.user_id, m.member_name, m.member_type, m.phone, m.id_card, " +
+            "m.register_time, m.create_time, m.total_consumption, m.total_recharge, m.balance, " +
+            "u.username, u.create_time AS user_create_time " +
+            "FROM sys_member m " +
+            "LEFT JOIN sys_user u ON m.user_id = u.id " +
+            "WHERE m.del_flag = 0 " +
+            "AND (m.user_id IS NULL OR u.role IN ('USER','MEMBER')) " +
+            "ORDER BY m.id")
+    List<java.util.Map<String, Object>> findSourceAnalyticsRows();
 
     /**
      * 按类型和等级分组统计 - 仅用户(USER/MEMBER)

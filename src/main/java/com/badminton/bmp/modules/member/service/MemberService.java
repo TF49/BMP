@@ -85,7 +85,7 @@ public interface MemberService {
     java.util.List<java.util.Map<String, Object>> getExpiringMembers(int days);
 
     /**
-     * 会员来源分布（Dashboard 饼图，按会员类型聚合：会员/普通用户）
+     * 会员来源分布（Dashboard 饼图，真实来源渠道口径）
      * @return [{ source, count }]
      */
     java.util.List<java.util.Map<String, Object>> getSource();

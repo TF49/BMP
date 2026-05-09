@@ -296,6 +296,17 @@ public class CourtController extends BaseController {
         }
     }
 
+    @Operation(summary = "场地日利用率", description = "返回指定日期各场地真实利用率")
+    @GetMapping("/utilization/daily")
+    @PreAuthorize("isAuthenticated()")
+    public Result<Object> getDailyUtilization(@RequestParam(value = "date", required = false) String date) {
+        try {
+            return success(courtService.getDailyUtilization(date));
+        } catch (Exception e) {
+            return error("获取场地利用率时发生错误：" + e.getMessage());
+        }
+    }
+
     @Operation(summary = "今日场地时间轴", description = "指定日期各场地占用时间轴，date 格式 yyyy-MM-dd")
     @GetMapping("/timeline/today")
     @PreAuthorize("isAuthenticated()")

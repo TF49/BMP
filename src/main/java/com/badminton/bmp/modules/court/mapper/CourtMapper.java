@@ -207,6 +207,24 @@ public interface CourtMapper {
     List<Map<String, Object>> countTodayBookingsByCourtIds(@Param("courtIds") List<Long> courtIds,
                                                            @Param("bookingDate") LocalDate bookingDate);
 
+    @Select("<script>" +
+            "SELECT c.id AS courtId, c.venue_id AS venueId, c.court_name AS courtName, c.court_code AS courtCode, c.status, " +
+            "COALESCE(usage_stats.occupied_minutes, 0) AS occupiedMinutes " +
+            "FROM sys_court c " +
+            "LEFT JOIN (" +
+            "   SELECT bc.court_id, SUM(TIMESTAMPDIFF(MINUTE, bc.start_time, bc.end_time)) AS occupied_minutes " +
+            "   FROM biz_booking_court bc " +
+            "   INNER JOIN biz_booking b ON b.id = bc.booking_id " +
+            "   WHERE b.del_flag = 0 AND b.status IN (1, 2, 3) AND bc.booking_date = #{bookingDate} " +
+            "   GROUP BY bc.court_id" +
+            ") usage_stats ON usage_stats.court_id = c.id " +
+            "WHERE c.del_flag = 0 " +
+            "<if test='venueId != null'> AND c.venue_id = #{venueId} </if>" +
+            "ORDER BY c.venue_id, c.court_code, c.id" +
+            "</script>")
+    List<Map<String, Object>> findDailyUtilizationRows(@Param("venueId") Long venueId,
+                                                       @Param("bookingDate") LocalDate bookingDate);
+
     /**
      * 统计指定日期新增场地数量（按 create_time）
      */

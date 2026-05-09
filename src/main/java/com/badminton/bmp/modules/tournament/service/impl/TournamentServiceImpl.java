@@ -375,7 +375,12 @@ public class TournamentServiceImpl implements TournamentService {
         List<Map<String, Object>> tournamentImpact = new ArrayList<>();
         if (tournamentList != null) {
             for (Tournament t : tournamentList) {
-                int newMembers = tournamentRegistrationMapper.count(null, t.getId(), null, null, null, null, null, null, null);
+                // 归因口径：赛事报名窗口内完成会员注册，且与该赛事报名记录有关联的会员数。
+                int newMembers = tournamentRegistrationMapper.countNewMembersDriven(
+                        t.getId(),
+                        t.getRegistrationStart(),
+                        t.getRegistrationEnd()
+                );
                 BigDecimal revenue = financeMapper.sumTournamentIncomeByTournamentId(t.getId());
                 if (revenue == null) revenue = BigDecimal.ZERO;
                 Map<String, Object> item = new HashMap<>();

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +29,11 @@ import java.util.Map;
  */
 @Service
 public class MemberServiceImpl implements MemberService {
+    private static final int ACTIVE_MEMBER_WINDOW_DAYS = 30;
+    private static final int HIGH_FREQUENCY_ACTIVITY_THRESHOLD = 4;
+    private static final String SOURCE_MANUAL = "后台录入";
+    private static final String SOURCE_APP = "用户端注册";
+    private static final String SOURCE_SYSTEM = "系统补档";
 
     @Autowired
     private MemberMapper memberMapper;
@@ -391,7 +397,7 @@ public class MemberServiceImpl implements MemberService {
         reconcileUserSideMemberArchives();
         ensurePresidentAnalyticsAccess();
         Map<String, Object> map = new HashMap<>();
-        int total = memberMapper.countAll();
+        int total = memberMapper.countAllAnalyticsMembers();
         int normal = memberMapper.countByStatus(1);
         int frozen = memberMapper.countByStatus(0);
         int expired = memberMapper.countByStatus(2);
@@ -482,40 +488,30 @@ public class MemberServiceImpl implements MemberService {
         reconcileUserSideMemberArchives();
         ensurePresidentAnalyticsAccess();
         List<Map<String, Object>> result = new ArrayList<>();
-        int total = memberMapper.countAll();
-        int normal = memberMapper.countByStatus(1);
-        int vip = 0, gold = 0, silver = 0;
-        List<Map<String, Object>> typeLevel = memberMapper.countByTypeAndLevel();
-        if (typeLevel != null) {
-            for (Map<String, Object> row : typeLevel) {
-                if (row == null) continue;
-                Object typeObj = row.get("memberType");
-                if (typeObj == null) typeObj = row.get("MEMBERTYPE");
-                if (!"MEMBER".equalsIgnoreCase(String.valueOf(typeObj))) continue;
-                Object levelObj = row.get("memberLevel");
-                if (levelObj == null) levelObj = row.get("MEMBERLEVEL");
-                int level = 0;
-                if (levelObj instanceof Number) level = ((Number) levelObj).intValue();
-                else if (levelObj != null) {
-                    try { level = Integer.parseInt(levelObj.toString()); } catch (NumberFormatException ignored) {}
+        int total = memberMapper.countAllAnalyticsMembers();
+        LocalDateTime since = LocalDateTime.now().minusDays(ACTIVE_MEMBER_WINDOW_DAYS);
+        List<Map<String, Object>> activityRows = memberMapper.countMemberActivitiesSince(since);
+        int activeMembers = 0;
+        int highFrequencyMembers = 0;
+        int vipMembers = 0;
+        if (activityRows != null) {
+            for (Map<String, Object> row : activityRows) {
+                int activityCount = parseIntValue(row.get("activityCount"));
+                if (activityCount > 0) {
+                    activeMembers++;
                 }
-                Object cntObj = row.get("cnt");
-                if (cntObj == null) cntObj = row.get("CNT");
-                int cnt = 0;
-                if (cntObj instanceof Number) cnt = ((Number) cntObj).intValue();
-                else if (cntObj != null) {
-                    try { cnt = Integer.parseInt(cntObj.toString()); } catch (NumberFormatException ignored) {}
+                if (activityCount >= HIGH_FREQUENCY_ACTIVITY_THRESHOLD) {
+                    highFrequencyMembers++;
+                    if (parseIntValue(row.get("memberLevel")) >= 3) {
+                        vipMembers++;
+                    }
                 }
-                if (level >= 3) vip += cnt;
-                else if (level == 2) gold += cnt;
-                else if (level == 1) silver += cnt;
             }
         }
-        int highFreq = gold + silver + vip;
         result.add(mapFunnelItem("注册会员", total, total > 0 ? 100.0 : 0));
-        result.add(mapFunnelItem("活跃会员", normal, total > 0 ? (normal * 100.0 / total) : 0));
-        result.add(mapFunnelItem("高频会员", highFreq, normal > 0 ? (highFreq * 100.0 / normal) : 0));
-        result.add(mapFunnelItem("VIP会员", vip, highFreq > 0 ? (vip * 100.0 / highFreq) : 0));
+        result.add(mapFunnelItem("活跃会员", activeMembers, total > 0 ? (activeMembers * 100.0 / total) : 0));
+        result.add(mapFunnelItem("高频会员", highFrequencyMembers, activeMembers > 0 ? (highFrequencyMembers * 100.0 / activeMembers) : 0));
+        result.add(mapFunnelItem("VIP会员", vipMembers, highFrequencyMembers > 0 ? (vipMembers * 100.0 / highFrequencyMembers) : 0));
         return result;
     }
 
@@ -651,33 +647,116 @@ public class MemberServiceImpl implements MemberService {
     public List<Map<String, Object>> getSource() {
         reconcileUserSideMemberArchives();
         ensurePresidentAnalyticsAccess();
-        List<Map<String, Object>> typeLevel = memberMapper.countByTypeAndLevel();
+        List<Map<String, Object>> rows = memberMapper.findSourceAnalyticsRows();
         Map<String, Integer> byType = new HashMap<>();
-        if (typeLevel != null) {
-            for (Map<String, Object> row : typeLevel) {
-                if (row == null) continue;
-                Object typeObj = row.get("memberType");
-                if (typeObj == null) typeObj = row.get("MEMBERTYPE");
-                String type = typeObj != null ? String.valueOf(typeObj) : "NORMAL";
-                Object cntObj = row.get("cnt");
-                if (cntObj == null) cntObj = row.get("CNT");
-                int cnt = 0;
-                if (cntObj instanceof Number) cnt = ((Number) cntObj).intValue();
-                else if (cntObj != null) {
-                    try { cnt = Integer.parseInt(cntObj.toString()); } catch (NumberFormatException ignored) {}
-                }
-                byType.merge("MEMBER".equalsIgnoreCase(type) ? "会员" : "普通用户", cnt, Integer::sum);
+        byType.put(SOURCE_MANUAL, 0);
+        byType.put(SOURCE_APP, 0);
+        byType.put(SOURCE_SYSTEM, 0);
+        if (rows != null) {
+            for (Map<String, Object> row : rows) {
+                String source = classifyMemberSource(row);
+                byType.merge(source, 1, Integer::sum);
             }
         }
         List<Map<String, Object>> result = new ArrayList<>();
-        for (Map.Entry<String, Integer> e : byType.entrySet()) {
+        for (String source : new String[]{SOURCE_MANUAL, SOURCE_APP, SOURCE_SYSTEM}) {
             Map<String, Object> item = new HashMap<>();
-            item.put("source", e.getKey());
-            item.put("name", e.getKey());
-            item.put("count", e.getValue());
-            item.put("value", e.getValue());
+            int count = byType.getOrDefault(source, 0);
+            item.put("source", source);
+            item.put("name", source);
+            item.put("count", count);
+            item.put("value", count);
             result.add(item);
         }
         return result;
+    }
+
+    private int parseIntValue(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value == null) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    private String classifyMemberSource(Map<String, Object> row) {
+        if (row == null) {
+            return SOURCE_MANUAL;
+        }
+        Object userId = row.get("user_id");
+        if (userId == null) {
+            return SOURCE_MANUAL;
+        }
+
+        String memberName = stringValue(row.get("member_name"));
+        String username = stringValue(row.get("username"));
+        String memberType = stringValue(row.get("member_type"));
+        LocalDateTime registerTime = toLocalDateTime(row.get("register_time"));
+        LocalDateTime userCreateTime = toLocalDateTime(row.get("user_create_time"));
+        BigDecimal totalConsumption = toBigDecimal(row.get("total_consumption"));
+        BigDecimal totalRecharge = toBigDecimal(row.get("total_recharge"));
+        BigDecimal balance = toBigDecimal(row.get("balance"));
+
+        // 当前库没有独立 source 字段，这里按已存在业务行为做最小兼容分类：
+        // 1) 未绑定账号 -> 后台录入
+        // 2) 由用户端账号自动补齐的默认会员档案 -> 系统补档
+        // 3) 其余绑定用户端账号的档案 -> 用户端注册
+        boolean looksLikeAutoArchive =
+                "NORMAL".equalsIgnoreCase(memberType)
+                        && memberName != null
+                        && memberName.equals(username)
+                        && totalConsumption.compareTo(BigDecimal.ZERO) == 0
+                        && totalRecharge.compareTo(BigDecimal.ZERO) == 0
+                        && balance.compareTo(BigDecimal.ZERO) == 0
+                        && registerTime != null
+                        && userCreateTime != null
+                        && Math.abs(Duration.between(userCreateTime, registerTime).toMinutes()) <= 10;
+        return looksLikeAutoArchive ? SOURCE_SYSTEM : SOURCE_APP;
+    }
+
+    private String stringValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private LocalDateTime toLocalDateTime(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof LocalDateTime) {
+            return (LocalDateTime) value;
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(text.replace(" ", "T"));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value == null) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return BigDecimal.ZERO;
+        }
     }
 }

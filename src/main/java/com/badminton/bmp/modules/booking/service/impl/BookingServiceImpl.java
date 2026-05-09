@@ -368,7 +368,12 @@ public class BookingServiceImpl implements BookingService {
         stats.put("completed", completed);
         stats.put("ongoing", inProgress);
         stats.put("finished", completed);
-        stats.put("unpaidOrders", pending);
+        int unpaidOrders = bookingMapper.countByPaymentStatusScoped(venueFilter, memberFilter, 0)
+                + (memberFilter == null ? courseBookingMapper.countByPaymentStatusFiltered(venueFilter, 0) : 0)
+                + (memberFilter == null ? tournamentRegistrationMapper.countByPaymentStatus(venueFilter, 0) : 0)
+                + (memberFilter == null ? equipmentRentalMapper.countByPaymentStatus(venueFilter, 0) : 0)
+                + (memberFilter == null ? stringingServiceMapper.countByPaymentStatus(venueFilter, 0) : 0);
+        stats.put("unpaidOrders", unpaidOrders);
         int pendingRefunds = bookingMapper.countByPaymentStatusScoped(venueFilter, memberFilter, 3)
                 + (memberFilter == null ? courseBookingMapper.countByPaymentStatusFiltered(venueFilter, 3) : 0)
                 + (memberFilter == null ? tournamentRegistrationMapper.countByPaymentStatus(venueFilter, 3) : 0)
@@ -600,15 +605,35 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Map<String, Object> getOperationTodoCount() {
-        Map<String, Object> stats = getStatistics();
         Map<String, Object> todo = new HashMap<>();
-        todo.put("pendingBookings", stats.getOrDefault("pending", 0));
-        todo.put("pending", stats.getOrDefault("pending", 0));
-        todo.put("unpaidOrders", stats.getOrDefault("unpaidOrders", 0));
-        todo.put("unpaid", stats.getOrDefault("unpaidOrders", 0));
-        todo.put("pendingRefunds", stats.getOrDefault("pendingRefunds", 0));
-        todo.put("pendingIssues", stats.getOrDefault("pendingIssues", 0));
-        todo.put("issues", stats.getOrDefault("pendingRefunds", 0));
+        Long venueFilter = SecurityUtils.isVenueManager() ? SecurityUtils.getCurrentUserVenueId() : null;
+        Long memberFilter = (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) ? getCurrentMemberId() : null;
+
+        int pendingBookings = bookingMapper.countByStatusOnlyScoped(venueFilter, memberFilter, 1);
+        int unpaidOrders = bookingMapper.countByPaymentStatusScoped(venueFilter, memberFilter, 0)
+                + (memberFilter == null ? courseBookingMapper.countByPaymentStatusFiltered(venueFilter, 0) : 0)
+                + (memberFilter == null ? tournamentRegistrationMapper.countByPaymentStatus(venueFilter, 0) : 0)
+                + (memberFilter == null ? equipmentRentalMapper.countByPaymentStatus(venueFilter, 0) : 0)
+                + (memberFilter == null ? stringingServiceMapper.countByPaymentStatus(venueFilter, 0) : 0);
+        int pendingRefunds = bookingMapper.countByPaymentStatusScoped(venueFilter, memberFilter, 3)
+                + (memberFilter == null ? courseBookingMapper.countByPaymentStatusFiltered(venueFilter, 3) : 0)
+                + (memberFilter == null ? tournamentRegistrationMapper.countByPaymentStatus(venueFilter, 3) : 0)
+                + (memberFilter == null ? equipmentRentalMapper.countByPaymentStatus(venueFilter, 3) : 0)
+                + (memberFilter == null ? stringingServiceMapper.countByPaymentStatus(venueFilter, 3) : 0);
+
+        todo.put("pendingBookings", pendingBookings);
+        todo.put("pending", pendingBookings);
+        todo.put("pendingBookingsLabel", "待支付预约");
+        todo.put("pendingBookingsDescription", "待支付的场地预约");
+        todo.put("unpaidOrders", unpaidOrders);
+        todo.put("unpaid", unpaidOrders);
+        todo.put("unpaidOrdersLabel", "未付款订单");
+        todo.put("unpaidOrdersDescription", "待完成支付的全部业务订单");
+        todo.put("pendingRefunds", pendingRefunds);
+        todo.put("pendingIssues", pendingRefunds);
+        todo.put("issues", pendingRefunds);
+        todo.put("pendingRefundsLabel", "待退款订单");
+        todo.put("pendingRefundsDescription", "退款申请处理中订单");
         return todo;
     }
 

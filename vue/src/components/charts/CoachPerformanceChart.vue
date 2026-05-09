@@ -65,7 +65,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { StarFilled } from '@element-plus/icons-vue'
-import { getCoachList } from '@/api/coach'
+import { getCoachStatistics } from '@/api/coach'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const router = useRouter()
@@ -107,20 +107,20 @@ const resolveCoachAvatarUrl = (url) => {
   return '/' + t
 }
 
-// 获取教练数据（真实 API 数据，无模拟数据fallback）
+// 获取教练数据（真实预约量排行）
 const fetchCoachData = async () => {
   loading.value = true
   try {
-    const res = await getCoachList({ page: 1, size: 10, status: 1 })
+    const res = await getCoachStatistics()
     if (res.code === 200 && res.data) {
-      const list = res.data.data || res.data.records || res.data.list || []
+      const list = res.data.coachWorkload || []
       if (Array.isArray(list) && list.length > 0) {
         const mapped = list.map(coach => ({
           id: coach.id,
-          name: coach.coachName || coach.name,
+          name: coach.coachName || coach.name || '未知教练',
           avatar: coach.avatar || '',
-          specialty: coach.specialty || '羽毛球教练',
-          bookings: coach.totalStudents ?? 0,
+          specialty: coach.specialty || '暂无专长信息',
+          bookings: Number(coach.bookingCount ?? 0),
           rating: coach.rating != null ? Number(coach.rating) : 0
         }))
         coachData.value = mapped

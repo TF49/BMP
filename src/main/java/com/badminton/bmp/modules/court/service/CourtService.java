@@ -97,6 +97,11 @@ public interface CourtService {
     Map<Long, Integer> getTodayBookingCounts(List<Long> courtIds, String date);
 
     /**
+     * 获取指定日期各场地真实利用率。
+     */
+    List<Map<String, Object>> getDailyUtilization(String date);
+
+    /**
      * 根据该场地当前有效预约重算场地状态并更新（1-空闲，2-预约中，3-使用中）
      * 用于预约完成后或定时任务将“进行中”改为“已完成”后，保证场地状态正确
      */

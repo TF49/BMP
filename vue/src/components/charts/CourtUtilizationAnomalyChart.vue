@@ -24,8 +24,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
-import { getCourtList, getTodayBookingCounts } from '@/api/court'
-import { formatLocalDate } from '@/utils/localDate'
+import { getCourtDailyUtilization } from '@/api/court'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 
 const chartRef = ref(null)
@@ -48,7 +47,6 @@ const themeColors = computed(() => ({
 }))
 
 const courtData = ref([])
-let cachedCourts = null
 
 const parseNum = (v) => {
   if (v == null) return 0
@@ -57,57 +55,28 @@ const parseNum = (v) => {
   return Number.isFinite(n) ? n : 0
 }
 
-// 拉取所有场地（分页直到取完，使用缓存）
-const fetchAllCourts = async () => {
-  if (cachedCourts) return cachedCourts
-
-  const pageSize = 100
-  let page = 1
-  let list = []
-  let hasMore = true
-  while (hasMore) {
-    const listRes = await getCourtList({ page, size: pageSize, status: null })
-    let chunk = []
-    if (listRes.code === 200 && listRes.data) {
-      const raw = listRes.data
-      if (Array.isArray(raw)) chunk = raw
-      else if (raw.records && Array.isArray(raw.records)) chunk = raw.records
-      else if (raw.data && Array.isArray(raw.data)) chunk = raw.data
-      else if (raw.list && Array.isArray(raw.list)) chunk = raw.list
-    }
-    list = list.concat(chunk)
-    hasMore = chunk.length >= pageSize
-    page += 1
-  }
-  cachedCourts = list
-  return list
+const getLocalTodayDateStr = () => {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
-// 使用场地列表 + 今日预约数计算利用率（与 CourtUsageRingChart 一致）
 const fetchCourtUtilization = async () => {
   try {
-    const list = await fetchAllCourts()
+    const res = await getCourtDailyUtilization(getLocalTodayDateStr())
+    const list = res.code === 200 && Array.isArray(res.data) ? res.data : []
     if (list.length === 0) {
       courtData.value = []
       return
     }
-    const courtIds = list.map(c => c.id)
-    const today = formatLocalDate()
-    let countMap = {}
-    try {
-      const countRes = await getTodayBookingCounts(courtIds, today)
-      if (countRes.code === 200 && countRes.data && typeof countRes.data === 'object') {
-        countMap = countRes.data
-      }
-    } catch (e) {
-      console.warn('获取今日预约数失败:', e)
-    }
     courtData.value = list.map(court => {
-      const count = countMap[court.id] != null ? Number(countMap[court.id]) : 0
-      const usage = Math.min(100, Math.round(count * 10))
+      const usage = Number(court.utilizationRate || 0)
       return {
-        name: court.courtName || court.courtCode || `场地${court.id}`,
-        utilization: usage / 100
+        name: court.courtName || `场地${court.courtId}`,
+        utilization: usage,
+        status: court.status || 'normal'
       }
     })
   } catch (e) {
@@ -118,6 +87,30 @@ const fetchCourtUtilization = async () => {
 
 const getChartOption = () => {
   const colors = themeColors.value
+  const getStatusMeta = value => {
+    if (value.status === 'maintenance') {
+      return {
+        label: '维护中',
+        color: colors.textSecondary
+      }
+    }
+    if (value.utilization < 0.3) {
+      return {
+        label: '利用偏低',
+        color: colors.warning
+      }
+    }
+    if (value.utilization > 0.85) {
+      return {
+        label: '利用过高',
+        color: colors.danger
+      }
+    }
+    return {
+      label: '正常',
+      color: colors.success
+    }
+  }
   return {
     tooltip: {
       trigger: 'axis',
@@ -135,10 +128,7 @@ const getChartOption = () => {
         const data = params[0]
         const value = courtData.value[data.dataIndex]
         const percent = (value.utilization * 100).toFixed(1)
-        const label =
-          value.utilization < 0.3 ? '利用偏低' :
-          value.utilization > 0.85 ? '利用过高' :
-          '正常'
+        const statusMeta = getStatusMeta(value)
         return `
           <div style="font-weight:600;margin-bottom:6px;color:${colors.textPrimary};">场地 ${value.name}</div>
           <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:${colors.textSecondary};">
@@ -147,11 +137,7 @@ const getChartOption = () => {
           </div>
           <div style="margin-top:4px;font-size:12px;color:${colors.textSecondary};display:flex;justify-content:space-between;gap:12px;">
             <span>状态</span>
-            <span style="font-weight:600;color:${
-              value.utilization < 0.3 ? colors.warning :
-              value.utilization > 0.85 ? colors.danger :
-              colors.success
-            };">${label}</span>
+            <span style="font-weight:600;color:${statusMeta.color};">${statusMeta.label}</span>
           </div>
         `
       }
@@ -200,10 +186,8 @@ const getChartOption = () => {
         itemStyle: {
           borderRadius: [6, 6, 0, 0],
           color: params => {
-            const v = courtData.value[params.dataIndex].utilization
-            if (v < 0.3) return colors.warning
-            if (v > 0.85) return colors.danger
-            return colors.success
+            const value = courtData.value[params.dataIndex]
+            return getStatusMeta(value).color
           }
         }
       }
@@ -327,4 +311,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

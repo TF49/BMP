@@ -9,19 +9,19 @@
     </div>
     <div v-else class="todo-grid">
       <div class="todo-item warning">
-        <div class="todo-label">待确认预订</div>
+        <div class="todo-label">{{ pendingBookingsLabel }}</div>
         <div class="todo-value">{{ pendingBookings }}</div>
-        <div class="todo-desc">尽快确认，避免资源浪费</div>
+        <div class="todo-desc">{{ pendingBookingsDesc }}</div>
       </div>
       <div class="todo-item danger">
-        <div class="todo-label">未付款订单</div>
+        <div class="todo-label">{{ unpaidOrdersLabel }}</div>
         <div class="todo-value">{{ unpaidOrders }}</div>
-        <div class="todo-desc">提醒用户完成支付</div>
+        <div class="todo-desc">{{ unpaidOrdersDesc }}</div>
       </div>
       <div class="todo-item info">
-        <div class="todo-label">待退款订单</div>
+        <div class="todo-label">{{ pendingRefundsLabel }}</div>
         <div class="todo-value">{{ pendingRefunds }}</div>
-        <div class="todo-desc">及时处理退款，避免用户久等</div>
+        <div class="todo-desc">{{ pendingRefundsDesc }}</div>
       </div>
     </div>
   </div>
@@ -35,6 +35,12 @@ import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh
 const pendingBookings = ref(0)
 const unpaidOrders = ref(0)
 const pendingRefunds = ref(0)
+const pendingBookingsLabel = ref('待支付预约')
+const pendingBookingsDesc = ref('待支付的场地预约')
+const unpaidOrdersLabel = ref('未付款订单')
+const unpaidOrdersDesc = ref('待完成支付的全部业务订单')
+const pendingRefundsLabel = ref('待退款订单')
+const pendingRefundsDesc = ref('退款申请处理中订单')
 const loading = ref(false)
 const hasError = ref(false)
 
@@ -54,6 +60,12 @@ const fetchTodoStatistics = async () => {
       pendingBookings.value = parseNum(res.data.pendingBookings || res.data.pending)
       unpaidOrders.value = parseNum(res.data.unpaidOrders || res.data.unpaid)
       pendingRefunds.value = parseNum(res.data.pendingRefunds ?? res.data.pendingIssues ?? res.data.issues)
+      pendingBookingsLabel.value = res.data.pendingBookingsLabel || '待支付预约'
+      pendingBookingsDesc.value = res.data.pendingBookingsDescription || '待支付的场地预约'
+      unpaidOrdersLabel.value = res.data.unpaidOrdersLabel || '未付款订单'
+      unpaidOrdersDesc.value = res.data.unpaidOrdersDescription || '待完成支付的全部业务订单'
+      pendingRefundsLabel.value = res.data.pendingRefundsLabel || '待退款订单'
+      pendingRefundsDesc.value = res.data.pendingRefundsDescription || '退款申请处理中订单'
     }
   } catch (e) {
     console.error('获取运营待办统计失败:', e)

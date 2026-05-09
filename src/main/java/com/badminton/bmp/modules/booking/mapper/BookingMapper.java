@@ -182,6 +182,18 @@ public interface BookingMapper {
                                    @Param("memberId") Long memberId,
                                    @Param("paymentStatus") Integer paymentStatus);
 
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM biz_booking b " +
+            "WHERE b.del_flag = 0 AND b.status = #{status} " +
+            "<if test='memberId != null'> AND b.member_id = #{memberId} </if>" +
+            "<if test='venueId != null'> AND EXISTS (" +
+            "SELECT 1 FROM biz_booking_court bc LEFT JOIN sys_court c ON bc.court_id = c.id " +
+            "WHERE bc.booking_id = b.id AND c.venue_id = #{venueId}) </if>" +
+            "</script>")
+    int countByStatusOnlyScoped(@Param("venueId") Long venueId,
+                                @Param("memberId") Long memberId,
+                                @Param("status") Integer status);
+
     /**
      * 统计总预约数
      */
