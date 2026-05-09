@@ -103,6 +103,7 @@
 
       <!-- 用户列表表格 -->
       <div class="glass-card table-card">
+        <div class="responsive-table-shell user-table-shell">
         <el-table
           :data="userList"
           v-loading="loading"
@@ -211,6 +212,7 @@
             </template>
           </el-table-column>
         </el-table>
+        </div>
 
         <!-- 分页 -->
         <div class="pagination-wrapper">
@@ -233,7 +235,7 @@
       v-model="dialogVisible"
       :title="dialogTitle"
       :close-on-click-modal="false"
-      class="user-dialog modern-dialog"
+      class="user-dialog modern-dialog responsive-dialog"
       @close="handleDialogClose"
     >
       <el-form
@@ -322,74 +324,13 @@
 
           <!-- 角色字段 -->
           <el-form-item label="用户角色" prop="role" class="form-item-enhanced modern-form-item">
-            <div class="role-selector modern-role-selector">
-              <el-radio-group v-model="userForm.role" class="role-group modern-role-group" @change="handleRoleChange">
-                <el-radio label="PRESIDENT" class="role-item modern-role-item" :disabled="presidentExists && userForm.role !== 'PRESIDENT'">
-                  <div class="role-content">
-                    <div class="role-icon-wrapper president-icon">
-                      <el-icon class="role-icon"><Trophy /></el-icon>
-                    </div>
-                    <div class="role-info">
-                      <h3 class="role-name">协会会长</h3>
-                      <p class="role-desc">最高权限，管理所有模块</p>
-                      <p v-if="presidentExists && userForm.role !== 'PRESIDENT'" class="role-warning" style="color: #f56c6c; font-size: 12px; margin-top: 4px;">
-                        ⚠️ 系统中已存在协会会长
-                      </p>
-                    </div>
-                    <div class="role-check">
-                      <el-icon class="check-icon"><CircleCheckFilled /></el-icon>
-                    </div>
-                  </div>
-                </el-radio>
-                <el-radio label="VENUE_MANAGER" class="role-item modern-role-item">
-                  <div class="role-content">
-                    <div class="role-icon-wrapper manager-icon">
-                      <el-icon class="role-icon"><Management /></el-icon>
-                    </div>
-                    <div class="role-info">
-                      <h3 class="role-name">场馆管理者</h3>
-                      <p class="role-desc">管理自己场馆的业务</p>
-                    </div>
-                    <div class="role-check">
-                      <el-icon class="check-icon"><CircleCheckFilled /></el-icon>
-                    </div>
-                  </div>
-                </el-radio>
-                <el-radio label="COACH" class="role-item modern-role-item">
-                  <div class="role-content">
-                    <div class="role-icon-wrapper coach-icon">
-                      <el-icon class="role-icon"><Avatar /></el-icon>
-                    </div>
-                    <div class="role-info">
-                      <h3 class="role-name">教练</h3>
-                      <p class="role-desc">登录教练端，查看我的课程与预约</p>
-                    </div>
-                    <div class="role-check">
-                      <el-icon class="check-icon"><CircleCheckFilled /></el-icon>
-                    </div>
-                  </div>
-                </el-radio>
-                <el-radio label="USER" class="role-item modern-role-item">
-                  <div class="role-content">
-                    <div class="role-icon-wrapper user-icon">
-                      <el-icon class="role-icon"><User /></el-icon>
-                    </div>
-                    <div class="role-info">
-                      <h3 class="role-name">普通用户</h3>
-                      <p class="role-desc">基础查看权限</p>
-                    </div>
-                    <div class="role-check">
-                      <el-icon class="check-icon"><CircleCheckFilled /></el-icon>
-                    </div>
-                  </div>
-                </el-radio>
-              </el-radio-group>
-            </div>
+            <UserRoleSelector
+              v-model="userForm.role"
+              :options="roleOptions"
+              @change="handleRoleChange"
+            />
             <span class="field-hint modern-field-hint">
-              <span v-if="userForm.role === 'PRESIDENT'">协会会长拥有系统最高权限，系统中只能存在一个</span>
-              <span v-else-if="userForm.role === 'VENUE_MANAGER'">场馆管理者只能管理自己场馆的业务，需要选择所属场馆</span>
-              <span v-else-if="userForm.role === 'COACH'">教练需在「教练管理」中关联教练档案后即可登录教练端</span>
-              <span v-else>普通用户仅可查看和操作自己的数据</span>
+              {{ selectedRoleHint }}
             </span>
           </el-form-item>
 
@@ -468,7 +409,7 @@
       v-model="viewDialogVisible"
       width="600px"
       @close="handleViewDialogClose"
-      class="modern-dialog"
+      class="modern-dialog responsive-dialog"
     >
       <el-descriptions :column="1" border :model="viewFormData" class="modern-descriptions">
         <el-descriptions-item label="用户名" class="modern-descriptions-item">
@@ -530,8 +471,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import {
   Search,
   Refresh,
@@ -544,15 +486,12 @@ import {
   Lock,
   Phone,
   DocumentCopy,
-  Management,
   SuccessFilled,
-  CircleCloseFilled,
-  CircleCheckFilled,
-  Trophy,
-  Avatar
+  CircleCloseFilled
 } from '@element-plus/icons-vue'
 import { getUserList, addUser, updateUser, deleteUser, findUserByRole } from '@/api/user'
 import { getVenueOptions } from '@/api/court'
+import UserRoleSelector from '@/components/user/UserRoleSelector.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -578,6 +517,7 @@ const dialogVisible = ref(false)
 const viewDialogVisible = ref(false)
 const dialogTitle = ref('添加用户')
 const isEdit = ref(false)
+const originalRole = ref('USER')
 const submitLoading = ref(false)
 const userFormRef = ref(null)
 
@@ -609,6 +549,56 @@ const venueOptions = ref([])
 
 // 协会会长唯一性检查
 const presidentExists = ref(false)
+
+const roleOptions = computed(() => ([
+  {
+    value: 'PRESIDENT',
+    title: '协会会长',
+    desc: '掌管全局配置、用户权限与核心运营数据。',
+    hint: presidentExists.value && userForm.role !== 'PRESIDENT'
+      ? '系统内已存在协会会长，当前不可再新增同角色账户。'
+      : '系统中只能存在一个协会会长账号。',
+    badge: '最高权限',
+    tone: 'red',
+    icon: 'trophy',
+    disabled: presidentExists.value && userForm.role !== 'PRESIDENT',
+    disabledReason: presidentExists.value && userForm.role !== 'PRESIDENT'
+      ? '系统中已存在协会会长'
+      : ''
+  },
+  {
+    value: 'VENUE_MANAGER',
+    title: '场馆管理者',
+    desc: '负责所属场馆的场地、服务、预约和运营事务。',
+    hint: '需要绑定所属场馆后才可生效。',
+    badge: '场馆运营',
+    tone: 'amber',
+    icon: 'management'
+  },
+  {
+    value: 'COACH',
+    title: '教练',
+    desc: '进入教练端处理课程、预约和个人档案。',
+    hint: '需在教练管理中绑定教练档案后登录。',
+    badge: '教练端',
+    tone: 'teal',
+    icon: 'avatar'
+  },
+  {
+    value: 'USER',
+    title: '普通用户',
+    desc: '使用预约、充值、课程与个人中心等基础能力。',
+    hint: '仅可查看和操作自己的数据。',
+    badge: '默认角色',
+    tone: 'blue',
+    icon: 'user'
+  }
+]))
+
+const selectedRoleHint = computed(() => {
+  const matched = roleOptions.value.find((item) => item.value === userForm.role)
+  return matched?.hint || '请选择一个角色。'
+})
 
 // 表单验证规则
 const userFormRules = {
@@ -731,6 +721,16 @@ const getRoleTagType = (role) => {
   return 'info'
 }
 
+const handleRoleChange = () => {
+  if (userForm.role !== 'VENUE_MANAGER') {
+    userForm.venueId = null
+  }
+
+  if (userFormRef.value) {
+    userFormRef.value.clearValidate(['role', 'venueId'])
+  }
+}
+
 // 搜索
 const handleSearch = () => {
   pagination.page = 1
@@ -755,6 +755,7 @@ const handleAdd = async () => {
   await loadVenueOptions()
   dialogTitle.value = '添加用户'
   isEdit.value = false
+  originalRole.value = 'USER'
   resetForm()
   dialogVisible.value = true
 }
@@ -768,6 +769,7 @@ const handleEdit = async (row) => {
   // 检查协会会长唯一性
   await checkPresidentExists()
   
+  originalRole.value = row.role || 'USER'
   Object.assign(userForm, {
     id: row.id,
     username: row.username,
@@ -816,15 +818,16 @@ const handleStatusChange = async (row) => {
 
 // 删除用户
 const handleDelete = (row) => {
-  ElMessageBox.confirm(
-    `确定要删除用户 "${row.username}" 吗？`,
-    '删除确认',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '删除用户',
+    message: '确认删除这个用户账号吗？',
+    detail: '删除后该账号将无法登录，且相关关联信息可能需要重新绑定。',
+    entityLabel: '用户名',
+    entityValue: row.username,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留账号'
+  }).then(async () => {
     try {
       const response = await deleteUser(row.id)
       if (response.code === 200) {
@@ -849,7 +852,8 @@ const handleSubmit = async () => {
       // 检查协会会长唯一性
       if (userForm.role === 'PRESIDENT') {
         await checkPresidentExists()
-        if (presidentExists.value) {
+        const switchingToPresident = !isEdit.value || originalRole.value !== 'PRESIDENT'
+        if (switchingToPresident && presidentExists.value) {
           ElMessage.warning('系统中已存在协会会长，请先修改现有协会会长的角色')
           return
         }
@@ -905,8 +909,10 @@ const resetForm = () => {
     phone: '',
     idCard: '',
     role: 'USER',
+    venueId: null,
     status: 1
   })
+  originalRole.value = 'USER'
   if (userFormRef.value) {
     userFormRef.value.resetFields()
   }
@@ -1017,7 +1023,7 @@ onMounted(() => {
   position: relative;
   z-index: 1;
   padding: 0;
-  max-width: 1600px;
+  max-width: var(--bmp-page-max-width);
   margin: 0 auto;
 }
 
@@ -1352,6 +1358,10 @@ onMounted(() => {
 .table-card {
   padding: 24px;
   animation: fadeInUp 0.6s ease-out 0.3s both;
+}
+
+.user-table-shell {
+  margin-inline: -2px;
 }
 
 .table-card :deep(.el-table) {
@@ -2917,6 +2927,11 @@ onMounted(() => {
 
   .search-fields {
     gap: 12px;
+  }
+
+  .search-buttons {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .search-input {

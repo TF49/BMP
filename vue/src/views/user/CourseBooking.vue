@@ -237,6 +237,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Tickets, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getCourseList } from '@/api/course'
 import { getCourseBookingList, addCourseBooking, payMemberCourseBooking, updateCourseBookingStatus } from '@/api/courseBooking'
@@ -397,15 +398,17 @@ const loadMyCourses = async () => {
 }
 
 const handlePay = (course) => {
-  ElMessageBox.confirm(
-    `确认使用余额支付该课程订单吗？\n订单金额：¥${formatCurrency(course.orderAmount)}`,
-    '课程支付确认',
-    {
-      type: 'warning',
-      confirmButtonText: '确认支付',
-      cancelButtonText: '稍后支付'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '课程支付确认',
+    eyebrow: 'BALANCE PAYMENT',
+    message: '确认使用余额支付这笔课程订单吗？',
+    detail: `订单金额：¥${formatCurrency(course.orderAmount)}`,
+    entityLabel: '课程单号',
+    entityValue: course.bookingNo,
+    tone: 'warning',
+    confirmButtonText: '确认支付',
+    cancelButtonText: '稍后支付'
+  }).then(async () => {
     try {
       const res = await payMemberCourseBooking({
         bookingId: course.id,
@@ -429,8 +432,14 @@ const handleCancel = async (course) => {
     const confirmMessage = course.status === 2
       ? '确定要取消这个课程预约吗？当前订单已支付，取消后会提交退款申请，等待管理员处理。'
       : '确定要取消这个课程预约吗？'
-    await ElMessageBox.confirm(confirmMessage, '提示', {
-      type: 'warning'
+    await openActionConfirm({
+      title: '取消课程预约',
+      message: confirmMessage,
+      entityLabel: '课程单号',
+      entityValue: course.bookingNo,
+      tone: 'warning',
+      confirmButtonText: '确认取消',
+      cancelButtonText: '继续保留'
     })
     
     const res = await updateCourseBookingStatus(course.id, 0)

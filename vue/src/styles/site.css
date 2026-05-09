@@ -31,7 +31,7 @@
   --site-shadow-glow: 0 0 60px -12px rgba(14, 165, 233, 0.35);
 
   --site-nav-height: 72px;
-  --site-container: min(1180px, calc(100vw - 32px));
+  --site-container: min(1240px, calc(100vw - 32px));
   --site-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --site-font-display: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -405,6 +405,32 @@ html:not(.theme-dark-mode) .btn-secondary {
 .nav-link--active {
   color: var(--site-text);
   background: color-mix(in srgb, var(--site-accent) 12%, transparent);
+}
+
+@media (max-width: 1440px) {
+  :root {
+    --site-container: min(1180px, calc(100vw - 28px));
+  }
+}
+
+@media (max-width: 1200px) {
+  :root {
+    --site-nav-height: 68px;
+    --site-container: calc(100vw - 24px);
+  }
+}
+
+@media (max-width: 992px) {
+  :root {
+    --site-nav-height: 64px;
+    --site-container: calc(100vw - 20px);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --site-container: calc(100vw - 16px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

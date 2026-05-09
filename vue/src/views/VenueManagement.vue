@@ -81,6 +81,7 @@
 
       <!-- 场馆列表表格 -->
       <div class="glass-card table-card">
+        <div class="responsive-table-shell venue-table-shell">
         <el-table :data="venueList" v-loading="loading" element-loading-text="加载中..." style="width: 100%" stripe border
           highlight-current-row :header-cell-style="tableHeaderStyle"
           :cell-style="{ textAlign: 'center', padding: '12px 0' }" row-key="id" :height="tableHeight"
@@ -141,6 +142,7 @@
             </template>
           </el-table-column>
         </el-table>
+        </div>
 
         <!-- 分页 -->
         <div class="pagination-wrapper">
@@ -153,7 +155,7 @@
 
     <!-- 添加/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" :close-on-click-modal="false"
-      class="venue-dialog modern-dialog" @close="handleDialogClose" width="700px">
+      class="venue-dialog modern-dialog responsive-dialog" @close="handleDialogClose" width="700px">
       <el-form ref="venueFormRef" :model="venueForm" :rules="venueFormRules" label-width="auto" label-position="top"
         class="venue-form modern-form">
         <!-- 基本信息 -->
@@ -494,6 +496,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import {
   Search,
   Refresh,
@@ -1458,15 +1461,16 @@ const getStatusLogType = (status) => {
 
 // 删除场馆
 const handleDelete = (row) => {
-  ElMessageBox.confirm(
-    `确定要删除场馆 "${row.venueName}" 吗？`,
-    '删除确认',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '删除场馆',
+    message: '确认删除这个场馆吗？',
+    detail: '删除后该场馆下的预约入口与关联统计都将受到影响。',
+    entityLabel: '场馆名称',
+    entityValue: row.venueName,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留场馆'
+  }).then(async () => {
     try {
       const response = await deleteVenue(row.id)
       if (response.code === 200) {
@@ -1849,7 +1853,7 @@ onUnmounted(() => {
   position: relative;
   z-index: 1;
   padding: 0;
-  max-width: 1600px;
+  max-width: var(--bmp-page-max-width);
   margin: 0 auto;
 }
 
@@ -2138,6 +2142,10 @@ onUnmounted(() => {
 .table-card {
   padding: 24px;
   animation: fadeInUp 0.6s ease-out 0.3s both;
+}
+
+.venue-table-shell {
+  margin-inline: -2px;
 }
 
 .table-card :deep(.el-table) {
@@ -2862,6 +2870,11 @@ onUnmounted(() => {
     width: 72px;
     min-width: 72px;
     max-width: 72px;
+  }
+
+  .search-buttons {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 

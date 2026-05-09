@@ -87,7 +87,8 @@
       </div>
 
       <div class="glass-card table-card">
-        <el-table
+        <div class="responsive-table-shell course-booking-table-shell">
+          <el-table
           :data="bookingList"
           v-loading="loading"
           border
@@ -157,7 +158,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <div class="pagination-wrapper">
           <el-pagination
@@ -281,6 +283,7 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Tickets } from '@element-plus/icons-vue'
 import {
   getCourseBookingList,
@@ -536,7 +539,16 @@ const handleEdit = async (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定删除预约 ${row.bookingNo} 吗？`, '提示', { type: 'warning' })
+  openActionConfirm({
+    title: '删除课程预约',
+    message: '确认删除这条课程预约记录吗？',
+    detail: '删除后该课程预约将不再出现在统计和列表中。',
+    entityLabel: '预约单号',
+    entityValue: row.bookingNo,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留记录'
+  })
     .then(async () => {
       try {
         const res = await deleteCourseBooking(row.id)

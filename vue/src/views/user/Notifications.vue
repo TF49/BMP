@@ -94,6 +94,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import request from '@/utils/request'
 import { getInfo } from '@/api/login'
 
@@ -252,10 +253,15 @@ const submitNotification = async () => {
 
 // 删除通知
 const deleteNotification = (notification: Notification) => {
-  ElMessageBox.confirm('确定要删除这条通知吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
+  openActionConfirm({
+    title: '删除通知',
+    message: '确认删除这条通知吗？',
+    detail: '删除后通知内容将无法恢复。',
+    entityLabel: '通知标题',
+    entityValue: notification.title,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留通知'
   }).then(async () => {
     try {
       const response: any = await request({

@@ -436,6 +436,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { ArrowLeft, OfficeBuilding, Location, Coin, InfoFilled } from '@element-plus/icons-vue'
 import { CircleCheck } from '@element-plus/icons-vue'
 import { getVenueList } from '@/api/venue'
@@ -1064,15 +1065,17 @@ const loadMyBookings = async () => {
 }
 
 const handlePay = (booking) => {
-  ElMessageBox.confirm(
-    `确认使用余额支付该预约订单吗？\n订单金额：¥${formatCurrency(booking.orderAmount)}`,
-    '预约支付确认',
-    {
-      type: 'warning',
-      confirmButtonText: '确认支付',
-      cancelButtonText: '稍后支付'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '预约支付确认',
+    eyebrow: 'BALANCE PAYMENT',
+    message: '确认使用余额支付这笔场地预约订单吗？',
+    detail: `订单金额：¥${formatCurrency(booking.orderAmount)}`,
+    entityLabel: '预约单号',
+    entityValue: booking.bookingNo,
+    tone: 'warning',
+    confirmButtonText: '确认支付',
+    cancelButtonText: '稍后支付'
+  }).then(async () => {
     try {
       const res = await payMemberBooking({
         bookingId: booking.id,
@@ -1096,8 +1099,14 @@ const handleCancel = async (booking) => {
     const confirmMessage = booking.status === 2
       ? '确定要取消这个预约吗？当前订单已支付，取消后会提交退款申请，等待管理员处理。'
       : '确定要取消这个预约吗？'
-    await ElMessageBox.confirm(confirmMessage, '提示', {
-      type: 'warning'
+    await openActionConfirm({
+      title: '取消预约',
+      message: confirmMessage,
+      entityLabel: '预约单号',
+      entityValue: booking.bookingNo,
+      tone: 'warning',
+      confirmButtonText: '确认取消',
+      cancelButtonText: '继续保留'
     })
     
     const res = await updateBookingStatus(booking.id, 0)
@@ -1165,6 +1174,8 @@ onMounted(() => {
 
 .user-booking {
   padding: 0;
+  width: 100%;
+  min-width: 0;
   animation: fadeIn 0.5s ease-out;
 }
 
@@ -1223,6 +1234,7 @@ onMounted(() => {
   padding: 24px 0;
   position: relative;
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .page-header::before {
@@ -2325,6 +2337,34 @@ html.theme-dark-mode .page-subtitle {
   .booking-item-card {
     -webkit-tap-highlight-color: rgba(37, 99, 235, 0.1);
     touch-action: manipulation;
+  }
+}
+
+@media (max-width: 1200px) {
+  .booking-step {
+    padding: 20px;
+  }
+
+  .selected-info-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 24px 28px;
+  }
+
+  .time-selection,
+  .confirm-card {
+    max-width: 100%;
+  }
+
+  .venue-grid,
+  .court-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .venue-grid,
+  .court-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

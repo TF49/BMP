@@ -299,6 +299,7 @@ onUnmounted(() => {
   background: var(--color-background, #F8FAFC);
   display: flex;
   flex-direction: column;
+  min-width: 0;
   transition: background-color 0.3s ease;
 }
 
@@ -325,11 +326,12 @@ html.theme-dark-mode .user-header {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 24px;
-  height: 64px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  flex-wrap: wrap;
 }
 
 .header-left {
@@ -337,6 +339,7 @@ html.theme-dark-mode .user-header {
   align-items: center;
   gap: 32px;
   flex: 1;
+  min-width: 0;
 }
 
 .logo-section {
@@ -495,7 +498,25 @@ html.theme-dark-mode .user-header {
 .header-right {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .header-content {
+    gap: 16px;
+  }
+
+  .header-left,
+  .header-right {
+    flex: 1 1 320px;
+  }
+
+  .logo-section {
+    min-width: 0;
+  }
 }
 
 .user-info {
@@ -711,6 +732,11 @@ html.theme-dark-mode .user-footer-mobile {
 @media (max-width: 1024px) {
   .header-content {
     padding: 0 16px;
+  }
+
+  .header-content,
+  .user-main {
+    max-width: var(--bmp-page-max-width);
   }
   
   .top-nav {

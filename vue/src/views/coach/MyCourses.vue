@@ -814,4 +814,23 @@ onMounted(() => {
     justify-content: center;
   }
 }
+
+@media (max-width: 1200px) {
+  .page-hero,
+  .toolbar-header {
+    flex-wrap: wrap;
+  }
+
+  .hero-actions {
+    margin-left: auto;
+  }
+
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .toolbar-input {
+    width: min(280px, 100%);
+  }
+}
 </style>

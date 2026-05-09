@@ -7,19 +7,19 @@
         @mouseenter="handleSidebarMouseEnter"
         @mouseleave="handleSidebarMouseLeave"
       >
-        <div class="sidebar-logo" :class="{ collapse: isCollapse }">
+          <div class="sidebar-logo" :class="{ collapse: isSidebarCollapsed }">
           <div class="logo-icon">
             <img :src="brandLogo" alt="羽擎 Logo" class="badminton-logo" />
           </div>
           <transition name="fade">
-            <span v-if="!isCollapse" class="logo-title">羽擎</span>
+            <span v-if="!isSidebarCollapsed" class="logo-title">羽擎</span>
           </transition>
         </div>
         
         <el-menu
           :default-active="currentRoute"
           class="el-menu-vertical"
-          :collapse="isCollapse"
+          :collapse="isSidebarCollapsed"
           router
           background-color="transparent"
           text-color="rgba(255, 255, 255, 0.75)"
@@ -32,7 +32,7 @@
                 :key="child.path"
                 :content="child.meta?.title"
                 placement="right"
-                :disabled="!isCollapse"
+                :disabled="!isSidebarCollapsed"
               >
                 <el-menu-item
                   :index="`${route.path}${child.path}`"
@@ -50,7 +50,7 @@
                 v-if="!route.children?.length"
                 :content="route.meta?.title"
                 placement="right"
-                :disabled="!isCollapse"
+                :disabled="!isSidebarCollapsed"
               >
                 <el-menu-item
                   :index="route.path"
@@ -75,7 +75,7 @@
                   :key="child.path"
                   :content="child.meta?.title"
                   placement="right"
-                  :disabled="!isCollapse"
+                  :disabled="!isSidebarCollapsed"
                 >
                   <el-menu-item
                     :index="`${route.path}/${child.path}`"
@@ -99,10 +99,10 @@
             <button 
               class="menu-toggle" 
               @click="toggleCollapse"
-              :aria-label="isCollapse ? '展开菜单' : '折叠菜单'"
+              :aria-label="isSidebarCollapsed ? '展开菜单' : '折叠菜单'"
             >
               <el-icon :size="20">
-                <component :is="isCollapse ? 'Expand' : 'Fold'" />
+                <component :is="isSidebarCollapsed ? 'Expand' : 'Fold'" />
               </el-icon>
             </button>
             <h2 class="header-title">羽擎</h2>
@@ -281,8 +281,12 @@ const pendingTodoCount = computed(() => {
   return Number(initialTodoCount.value?.pendingBookings ?? initialTodoCount.value?.pending ?? 0)
 })
 
+const isSidebarCollapsed = computed<boolean>(() => {
+  return isCollapse.value && !isHovering.value
+})
+
 const sidebarWidth = computed<string>(() => {
-  if (isCollapse.value && !isHovering.value) {
+  if (isSidebarCollapsed.value) {
     return '64px'
   }
   return '200px'
@@ -354,6 +358,9 @@ const getIconComponent = (iconName?: string): any => {
 
 const toggleCollapse = (): void => {
   isCollapse.value = !isCollapse.value
+  if (!isCollapse.value) {
+    isHovering.value = false
+  }
 }
 
 const handleSidebarMouseEnter = (): void => {
@@ -450,6 +457,7 @@ onUnmounted(() => {
 .app-wrapper {
   height: 100vh;
   width: 100%;
+  min-width: 0;
   background: var(--color-background, #F8FAFC);
   overflow: hidden;
   position: relative;
@@ -471,6 +479,7 @@ onUnmounted(() => {
 .main-wrapper {
   flex: 1;
   height: 100vh;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -563,19 +572,43 @@ onUnmounted(() => {
 }
 
 .el-menu-vertical.el-menu--collapse .el-menu-item {
+  display: flex;
+  align-items: center;
   margin: 6px 8px;
   padding: 0 !important;
   justify-content: center;
   border-radius: 10px;
+  height: 44px;
   min-height: 44px;
+  line-height: 44px;
   position: relative;
 }
 
 .el-menu-vertical.el-menu--collapse .el-menu-item .el-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   margin: 0;
+  line-height: 1;
   font-size: 20px;
   color: var(--color-text-secondary, #64748B);
   transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.el-menu-vertical.el-menu--collapse :deep(.el-menu-item > *) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.el-menu-vertical.el-menu--collapse :deep(.el-menu-item .el-tooltip__trigger) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .el-menu-vertical.el-menu--collapse .el-menu-item:hover .el-icon {
@@ -585,11 +618,18 @@ onUnmounted(() => {
 
 .el-menu-vertical.el-menu--collapse .el-menu-item.is-active {
   background: linear-gradient(135deg, var(--color-card-bg-hover, #EFF6FF) 0%, rgba(59, 130, 246, 0.1) 100%) !important;
+  border-left: none;
+  padding-left: 0 !important;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
 .el-menu-vertical.el-menu--collapse .el-menu-item.is-active .el-icon {
   color: var(--color-primary, #2563EB) !important;
+}
+
+.el-menu-vertical.el-menu--collapse .el-menu-item:hover,
+.el-menu-vertical.el-menu--collapse .el-menu-item.is-active:hover {
+  transform: none;
 }
 
 .el-menu-vertical.el-menu--collapse .el-menu-item.is-active::after {
@@ -778,6 +818,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   background: var(--color-card-bg, #FFFFFF);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -794,6 +835,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .menu-toggle {
@@ -851,6 +893,8 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--color-text-primary, #1E293B);
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-family: 'Poppins', 'Inter', 'Fira Sans', sans-serif;
   letter-spacing: 0.2px;
 }
@@ -858,7 +902,10 @@ onUnmounted(() => {
 .header-right {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 16px;
+  min-width: 0;
 }
 
 .header-todo-badge {
@@ -924,8 +971,48 @@ onUnmounted(() => {
   background: transparent;
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   z-index: 1;
+}
+
+@media (max-width: 1200px) {
+  .sidebar-container {
+    width: 80px !important;
+  }
+
+  .sidebar-logo {
+    padding: 16px 8px;
+    justify-content: center;
+  }
+
+  .logo-title {
+    display: none;
+  }
+
+  .header-container {
+    padding: 0 20px;
+    min-height: 60px;
+    height: auto;
+    flex-wrap: wrap;
+  }
+
+  .header-left,
+  .header-right {
+    flex: 1 1 320px;
+  }
+
+  .header-right {
+    gap: 12px;
+  }
+
+  .main-container {
+    padding: 20px;
+  }
+
+  .footer-container {
+    padding: 14px 20px;
+  }
 }
 
 .main-container::-webkit-scrollbar {
@@ -1046,6 +1133,10 @@ onUnmounted(() => {
 
   .main-container {
     padding: 16px;
+  }
+
+  .footer-container {
+    padding: 12px 16px;
   }
 }
 

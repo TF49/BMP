@@ -5,6 +5,7 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import '@/styles/uiverse/index.css'
 import '@/styles/site.css'
+import '@/styles/responsive.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { setupPermissionDirective } from '@/directives/permission'
 

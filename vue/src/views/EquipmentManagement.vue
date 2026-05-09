@@ -67,16 +67,17 @@
       </div>
 
       <div class="glass-card table-card">
-        <el-table
-          :data="equipmentList"
-          v-loading="loading"
-          border
-          stripe
-          :height="tableHeight"
-          :header-cell-style="tableHeaderStyle"
-          :cell-style="{ textAlign: 'center', padding: '12px 0' }"
-          row-key="id"
-        >
+        <div class="responsive-table-shell equipment-table-shell">
+          <el-table
+            :data="equipmentList"
+            v-loading="loading"
+            border
+            stripe
+            :height="tableHeight"
+            :header-cell-style="tableHeaderStyle"
+            :cell-style="{ textAlign: 'center', padding: '12px 0' }"
+            row-key="id"
+          >
           <el-table-column prop="equipmentCode" label="编号" min-width="120" />
           <el-table-column prop="equipmentName" label="名称" min-width="140" />
           <el-table-column prop="equipmentType" label="类型" min-width="120">
@@ -122,7 +123,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <div class="pagination-wrapper">
           <el-pagination
@@ -144,7 +146,7 @@
       :title="dialogTitle"
       width="640px"
       :close-on-click-modal="false"
-      class="modern-dialog"
+      class="modern-dialog responsive-dialog"
       @close="handleDialogClose"
     >
       <el-form ref="formRef" :model="form" :rules="formRules" label-position="top" class="modern-form">
@@ -203,6 +205,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Box } from '@element-plus/icons-vue'
 import {
   getEquipmentList,
@@ -437,7 +440,16 @@ const handleEdit = async (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定删除器材 ${row.equipmentName || row.equipmentCode} 吗？`, '提示', { type: 'warning' })
+  openActionConfirm({
+    title: '删除器材',
+    message: '确认删除这项器材吗？',
+    detail: '删除后库存与租借引用都会失去对应项，请先确认没有待处理订单。',
+    entityLabel: '器材名称',
+    entityValue: row.equipmentName || row.equipmentCode,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留器材'
+  })
     .then(async () => {
       try {
         const res = await deleteEquipment(row.id)
@@ -951,19 +963,38 @@ onUnmounted(() => {
   gap: 10px;
 }
 
-@media (max-width: 1024px) {
-  .header-content {
-    flex-direction: column;
-    align-items: flex-start;
+@media (max-width: 1200px) {
+  .header-stats {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
+
   .search-container {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .search-fields,
+  .search-buttons {
+    width: 100%;
+  }
+
+  .search-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
   .search-input,
   .search-select,
   .search-select-small {
     width: 100%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

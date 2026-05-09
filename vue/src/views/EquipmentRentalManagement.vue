@@ -90,7 +90,8 @@
       </div>
 
       <div class="glass-card table-card">
-        <el-table
+        <div class="responsive-table-shell equipment-rental-table-shell">
+          <el-table
           :data="rentalList"
           v-loading="loading"
           border
@@ -174,7 +175,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <div class="pagination-wrapper">
           <el-pagination
@@ -308,6 +310,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, ShoppingBag } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import {
@@ -665,10 +668,15 @@ const submitPay = async () => {
 }
 
 const handleRefund = (row) => {
-  ElMessageBox.confirm(`确定对租借单 ${row.rentalNo} 进行退款操作吗？`, '退款确认', {
-    type: 'warning',
+  openActionConfirm({
+    title: '租借单退款',
+    message: '确认对这笔器材租借发起退款吗？',
+    detail: '退款提交后会立即更新订单状态，请确认金额与支付记录已经核对。',
+    entityLabel: '租借单号',
+    entityValue: row.rentalNo,
+    tone: 'warning',
     confirmButtonText: '确认退款',
-    cancelButtonText: '取消'
+    cancelButtonText: '暂不退款'
   })
     .then(async () => {
       try {
@@ -693,7 +701,16 @@ const handleRefund = (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定删除租借单 ${row.rentalNo} 吗？`, '提示', { type: 'warning' })
+  openActionConfirm({
+    title: '删除租借单',
+    message: '确认删除这条器材租借记录吗？',
+    detail: '删除后该记录将不再参与后续查询和统计。',
+    entityLabel: '租借单号',
+    entityValue: row.rentalNo,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留记录'
+  })
     .then(async () => {
       try {
         const res = await deleteEquipmentRental(row.id)

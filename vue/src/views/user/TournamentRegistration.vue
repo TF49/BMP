@@ -255,6 +255,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Trophy, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getTournamentList } from '@/api/tournament'
 import { getCurrentMember } from '@/api/member'
@@ -519,15 +520,17 @@ const getPartnerName = (partnerId) => {
 
 const handlePay = (registration) => {
   const fee = Number(registration.registrationFee ?? registration.entryFee ?? 0)
-  ElMessageBox.confirm(
-    `确认使用余额支付该赛事报名吗？\n报名费用：¥${formatCurrency(fee)}\n当前余额：¥${formatCurrency(currentBalance.value)}`,
-    '赛事报名支付确认',
-    {
-      type: 'warning',
-      confirmButtonText: '确认支付',
-      cancelButtonText: '稍后支付'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '赛事报名支付确认',
+    eyebrow: 'BALANCE PAYMENT',
+    message: '确认使用余额支付这笔赛事报名吗？',
+    detail: `报名费用：¥${formatCurrency(fee)}\n当前余额：¥${formatCurrency(currentBalance.value)}`,
+    entityLabel: '报名编号',
+    entityValue: registration.registrationNo,
+    tone: 'warning',
+    confirmButtonText: '确认支付',
+    cancelButtonText: '稍后支付'
+  }).then(async () => {
       try {
         const res = await processMemberTournamentRegistrationPayment(registration.id, 'BALANCE')
         if (res.code === 200) {
@@ -548,8 +551,14 @@ const handleCancel = async (registration) => {
     const confirmMessage = registration.status === 2
       ? '确定要取消这个报名吗？当前报名已支付，取消后会提交退款申请，等待管理员处理。'
       : '确定要取消这个报名吗？'
-    await ElMessageBox.confirm(confirmMessage, '提示', {
-      type: 'warning'
+    await openActionConfirm({
+      title: '取消报名',
+      message: confirmMessage,
+      entityLabel: '报名编号',
+      entityValue: registration.registrationNo,
+      tone: 'warning',
+      confirmButtonText: '确认取消',
+      cancelButtonText: '继续保留'
     })
     
     const res = await updateTournamentRegistrationStatus(registration.id, 0)

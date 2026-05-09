@@ -345,6 +345,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Coin, View } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import {
@@ -938,8 +939,13 @@ async function handleSubmit() {
 // 删除
 async function handleDelete(row) {
   try {
-    await ElMessageBox.confirm('确定要删除这条财务记录吗？', '提示', {
-      type: 'warning'
+    await openActionConfirm({
+      title: '删除财务记录',
+      message: '确认删除这条财务记录吗？',
+      detail: '删除后统计口径会立即变化，请确认该数据无需保留。',
+      tone: 'danger',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '保留记录'
     })
 
     const res = await deleteFinance(row.id)

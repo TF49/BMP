@@ -732,7 +732,7 @@ onMounted(async () => {
 
 <style scoped>
 .coach-dashboard {
-  max-width: 1200px;
+  max-width: min(1200px, 100%);
   margin: 0 auto;
   animation: fadeIn 0.5s ease-out;
 }
@@ -1381,6 +1381,18 @@ onMounted(async () => {
   .stats-grid,
   .board-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1200px) {
+  .coach-info-card {
+    padding: 28px;
+    flex-wrap: wrap;
+  }
+
+  .coach-stats {
+    flex-wrap: wrap;
+    gap: 20px;
   }
 }
 

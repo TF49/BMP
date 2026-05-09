@@ -103,6 +103,7 @@
 
       <!-- 表格 -->
       <div class="glass-card table-card">
+        <div class="responsive-table-shell booking-table-shell">
         <el-table
           :data="bookingList"
           v-loading="loading"
@@ -191,6 +192,7 @@
             </template>
           </el-table-column>
         </el-table>
+        </div>
 
         <div class="pagination-wrapper">
           <el-pagination
@@ -213,7 +215,7 @@
       :title="dialogTitle"
       width="720px"
       :close-on-click-modal="false"
-      class="modern-dialog"
+      class="modern-dialog responsive-dialog"
       @close="handleDialogClose"
     >
       <el-form ref="formRef" :model="form" :rules="formRules" label-position="top" class="modern-form">
@@ -355,7 +357,7 @@
     </el-dialog>
 
     <!-- 支付弹窗 -->
-    <el-dialog v-model="payDialogVisible" title="预约支付" width="420px">
+    <el-dialog v-model="payDialogVisible" title="预约支付" width="420px" class="responsive-dialog">
       <el-form label-width="100px">
         <el-form-item label="预约单号">
           <el-tag type="info">{{ currentPay?.bookingNo || '-' }}</el-tag>
@@ -376,7 +378,7 @@
     </el-dialog>
 
     <!-- 退款弹窗 -->
-    <el-dialog v-model="refundDialogVisible" title="预约退款" width="420px">
+    <el-dialog v-model="refundDialogVisible" title="预约退款" width="420px" class="responsive-dialog">
       <el-form label-width="100px">
         <el-form-item label="预约单号">
           <el-tag type="warning">{{ currentRefund?.bookingNo || '-' }}</el-tag>
@@ -400,6 +402,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, DataLine, WarningFilled } from '@element-plus/icons-vue'
 import {
   getBookingList,
@@ -1040,8 +1043,15 @@ const handleEdit = async (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定删除预约 ${row.bookingNo} 吗？`, '提示', {
-    type: 'warning'
+  openActionConfirm({
+    title: '删除预约',
+    message: '确认删除这条预约记录吗？',
+    detail: '删除后不可恢复，请确认该预约单已经完成核对。',
+    entityLabel: '预约单号',
+    entityValue: row.bookingNo,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留记录'
   })
     .then(async () => {
       try {
@@ -1295,7 +1305,7 @@ onUnmounted(() => {
 .page-content {
   position: relative;
   z-index: 1;
-  max-width: 1600px;
+  max-width: var(--bmp-page-max-width);
   margin: 0 auto;
 }
 
@@ -1470,6 +1480,10 @@ onUnmounted(() => {
 
 .table-card {
   padding: 24px;
+}
+
+.booking-table-shell {
+  margin-inline: -2px;
 }
 
 .price-text {
@@ -1727,6 +1741,54 @@ onUnmounted(() => {
   .search-fields {
     width: 100%;
   }
+  .search-input,
+  .search-select,
+  .search-select-small {
+    width: 100%;
+  }
+}
+
+@media (max-width: 1200px) {
+  .page-wrapper {
+    padding: var(--bmp-page-padding-md);
+  }
+
+  .page-header,
+  .search-card,
+  .table-card {
+    padding: var(--bmp-card-padding-md);
+  }
+
+  .header-stats,
+  .search-buttons {
+    width: 100%;
+  }
+
+  .search-buttons {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 992px) {
+  .page-wrapper {
+    padding: var(--bmp-page-padding-sm);
+  }
+
+  .page-header,
+  .search-card,
+  .table-card {
+    padding: var(--bmp-card-padding-sm);
+  }
+
+  .search-fields {
+    width: 100%;
+  }
+
+  .search-item,
+  .search-item :deep(.el-form-item__content) {
+    width: 100%;
+  }
+
   .search-input,
   .search-select,
   .search-select-small {

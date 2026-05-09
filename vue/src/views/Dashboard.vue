@@ -1219,7 +1219,7 @@ onUnmounted(() => {
 .dashboard-content {
   position: relative;
   z-index: 1;
-  max-width: 1600px;
+  max-width: var(--bmp-page-max-width);
   margin: 0 auto;
 }
 
@@ -1997,8 +1997,20 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1200px) {
+  .dashboard {
+    padding: 20px;
+  }
+
   .shortcut-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .glass-card {
+    padding: 20px;
+  }
+
+  .court-summary {
+    gap: 18px;
   }
 }
 

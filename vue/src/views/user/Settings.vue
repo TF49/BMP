@@ -110,6 +110,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import {
   UserFilled,
   InfoFilled,
@@ -215,10 +216,13 @@ const goHelp = () => {
 // 退出登录
 const handleLogout = async () => {
   try {
-    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
+    await openActionConfirm({
+      title: '退出登录',
+      message: '确定要退出当前账号吗？',
+      detail: '退出后需要重新登录才能继续访问个人数据。',
+      tone: 'warning',
+      confirmButtonText: '确认退出',
+      cancelButtonText: '继续停留'
     })
 
     try {
@@ -246,15 +250,14 @@ const handleLogout = async () => {
 // 账号注销
 const handleDeleteAccount = async () => {
   try {
-    await ElMessageBox.confirm(
-      '注销后账户及关联数据将被删除且无法恢复，确定要继续吗？',
-      '注销账号',
-      {
-        confirmButtonText: '继续注销',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    await openActionConfirm({
+      title: '注销账号',
+      message: '注销后账户及关联数据将被删除且无法恢复，确定要继续吗？',
+      detail: '这是不可逆操作，后续将需要输入当前密码进行最终确认。',
+      tone: 'danger',
+      confirmButtonText: '继续注销',
+      cancelButtonText: '保留账号'
+    })
     const { value: password } = await ElMessageBox.prompt('请输入当前密码以确认注销', '确认密码', {
       confirmButtonText: '确认注销',
       cancelButtonText: '取消',

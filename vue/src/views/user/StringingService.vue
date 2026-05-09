@@ -332,6 +332,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Location, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getVenueList } from '@/api/venue'
 import {
@@ -613,13 +614,15 @@ const loadMyServices = async () => {
 const handleCancelService = async (service) => {
   try {
     const requiresRefund = Number(service?.paymentStatus ?? 0) === 1
-    await ElMessageBox.confirm(
-      requiresRefund ? '确定要取消这个申请吗？已支付订单会提交退款申请，等待处理。' : '确定要取消这个申请吗？',
-      '提示',
-      {
-      type: 'warning'
-      }
-    )
+    await openActionConfirm({
+      title: '取消穿线申请',
+      message: requiresRefund ? '确定要取消这个申请吗？已支付订单会提交退款申请，等待处理。' : '确定要取消这个申请吗？',
+      entityLabel: '服务单号',
+      entityValue: service.serviceNo,
+      tone: 'warning',
+      confirmButtonText: '确认取消',
+      cancelButtonText: '继续保留'
+    })
     const res = await cancelStringing(service.id)
     if (res.code === 200) {
       ElMessage.success(requiresRefund ? '已取消，退款申请已提交' : '取消成功')
@@ -637,15 +640,17 @@ const handleCancelService = async (service) => {
 
 const handlePayService = (service) => {
   const amount = Number(service?.servicePrice) || 0
-  ElMessageBox.confirm(
-    `确认使用余额支付该穿线服务吗？\n服务金额：¥${formatCurrency(amount)}\n当前余额：¥${formatCurrency(currentBalance.value)}`,
-    '穿线服务支付确认',
-    {
-      type: 'warning',
-      confirmButtonText: '确认支付',
-      cancelButtonText: '稍后支付'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '穿线服务支付确认',
+    eyebrow: 'BALANCE PAYMENT',
+    message: '确认使用余额支付这笔穿线服务吗？',
+    detail: `服务金额：¥${formatCurrency(amount)}\n当前余额：¥${formatCurrency(currentBalance.value)}`,
+    entityLabel: '服务单号',
+    entityValue: service.serviceNo,
+    tone: 'warning',
+    confirmButtonText: '确认支付',
+    cancelButtonText: '稍后支付'
+  }).then(async () => {
     try {
       const res = await processMemberStringingPayment(service.id, 'BALANCE')
       if (res.code === 200) {

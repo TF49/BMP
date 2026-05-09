@@ -91,7 +91,8 @@
       </div>
 
       <div class="glass-card table-card">
-        <el-table
+        <div class="responsive-table-shell stringing-table-shell">
+          <el-table
           :data="serviceList"
           v-loading="loading"
           border
@@ -217,7 +218,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <div class="pagination-wrapper">
           <el-pagination
@@ -484,6 +486,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Tools } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
 import {
@@ -880,10 +883,15 @@ const submitPay = async () => {
 
 const handleRefund = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定对穿线服务 ${row.serviceNo} 进行退款吗？`, '退款确认', {
-      type: 'warning',
+    await openActionConfirm({
+      title: '穿线服务退款',
+      message: '确认对这笔穿线服务发起退款吗？',
+      detail: '退款会影响财务与订单状态，请确认服务费用已经完成核对。',
+      entityLabel: '服务单号',
+      entityValue: row.serviceNo,
+      tone: 'warning',
       confirmButtonText: '确认退款',
-      cancelButtonText: '取消'
+      cancelButtonText: '暂不退款'
     })
     const res = await processStringingRefund(row.id)
     if (res.code === 200) {
@@ -903,7 +911,15 @@ const handleRefund = async (row) => {
 
 const handleStartStringing = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要开始穿线吗？', '提示', { type: 'warning' })
+    await openActionConfirm({
+      title: '开始穿线',
+      message: '确认将该服务状态更新为“正在穿线”吗？',
+      entityLabel: '服务单号',
+      entityValue: row.serviceNo,
+      tone: 'info',
+      confirmButtonText: '开始穿线',
+      cancelButtonText: '稍后处理'
+    })
     const res = await updateStringingStatus(row.id, 2)
     if (res.code === 200) {
       ElMessage.success('状态已更新为"正在穿线"')
@@ -924,7 +940,15 @@ const handleStartStringing = async (row) => {
 
 const handleCompleteStringing = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要完成穿线吗？', '提示', { type: 'warning' })
+    await openActionConfirm({
+      title: '完成穿线',
+      message: '确认将该服务状态更新为“已完成”吗？',
+      entityLabel: '服务单号',
+      entityValue: row.serviceNo,
+      tone: 'success',
+      confirmButtonText: '确认完成',
+      cancelButtonText: '再等等'
+    })
     const res = await updateStringingStatus(row.id, 3)
     if (res.code === 200) {
       ElMessage.success('状态已更新为"已完成"')
@@ -945,7 +969,16 @@ const handleCompleteStringing = async (row) => {
 
 const handleCancelService = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要取消这个服务吗？', '提示', { type: 'warning' })
+    await openActionConfirm({
+      title: '取消服务',
+      message: '确认取消这笔穿线服务吗？',
+      detail: '取消后当前服务流程会终止，请确认无需继续处理。',
+      entityLabel: '服务单号',
+      entityValue: row.serviceNo,
+      tone: 'warning',
+      confirmButtonText: '确认取消',
+      cancelButtonText: '继续保留'
+    })
     const res = await updateStringingStatus(row.id, 0)
     if (res.code === 200) {
       ElMessage.success('服务已取消')
@@ -1047,7 +1080,16 @@ const handleEditSubmit = async () => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定删除服务 ${row.serviceNo} 吗？`, '提示', { type: 'warning' })
+  openActionConfirm({
+    title: '删除服务',
+    message: '确认删除这条穿线服务记录吗？',
+    detail: '删除后该服务单不会再出现在列表与统计中。',
+    entityLabel: '服务单号',
+    entityValue: row.serviceNo,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留记录'
+  })
     .then(async () => {
       try {
         const res = await deleteStringingService(row.id)

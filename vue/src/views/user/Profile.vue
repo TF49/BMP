@@ -542,7 +542,7 @@ $shadow-hover: 0 8px 16px rgba(15, 23, 42, 0.06), 0 16px 40px rgba(249, 115, 22,
 $transition-base: 0.2s ease;
 
 .profile-page {
-  max-width: 1040px;
+  max-width: min(1040px, 100%);
   margin: 0 auto;
   padding: 24px 0 40px;
   background: linear-gradient(
@@ -933,9 +933,19 @@ $transition-base: 0.2s ease;
   }
 }
 
+@media (max-width: 1200px) {
+  .profile-page {
+    padding: 20px;
+  }
+
+  .profile-layout {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .profile-page {
-    padding: 16px 0 24px;
+    padding: 16px;
     border-radius: 16px;
   }
 

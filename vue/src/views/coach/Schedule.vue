@@ -1049,6 +1049,18 @@ watch(
   }
 }
 
+@media (max-width: 1200px) {
+  .toolbar-top,
+  .toolbar-bottom {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 900px) {
   .page-hero,
   .hero-actions,

@@ -71,7 +71,8 @@
       </div>
 
       <div class="glass-card table-card">
-        <el-table
+        <div class="responsive-table-shell coach-table-shell">
+          <el-table
           :data="coachList"
           v-loading="loading"
           border
@@ -141,7 +142,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <div class="pagination-wrapper">
           <el-pagination
@@ -241,6 +243,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, User } from '@element-plus/icons-vue'
 import {
   getCoachList,
@@ -474,7 +477,16 @@ const handleEdit = async (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定删除教练 ${row.coachName} 吗？`, '提示', { type: 'warning' })
+  openActionConfirm({
+    title: '删除教练',
+    message: '确认删除这位教练信息吗？',
+    detail: '删除后将无法继续在排班和课程中引用该教练。',
+    entityLabel: '教练姓名',
+    entityValue: row.coachName,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '暂不删除'
+  })
     .then(async () => {
       try {
         const res = await deleteCoach(row.id)

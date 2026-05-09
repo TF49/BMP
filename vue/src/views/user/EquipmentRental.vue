@@ -379,6 +379,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { ShoppingBag, CircleCheck, ArrowLeft, Wallet } from '@element-plus/icons-vue'
 import { getEquipmentList, getEquipmentTypes } from '@/api/equipment'
 import { getEquipmentRentalList, addEquipmentRental, updateEquipmentRentalStatus, processEquipmentRentalPayment } from '@/api/equipmentRental'
@@ -620,8 +621,15 @@ const loadMyRentals = async () => {
 
 const handleReturn = async (rental) => {
   try {
-    await ElMessageBox.confirm('确定要归还这个器材吗？', '提示', {
-      type: 'warning'
+    await openActionConfirm({
+      title: '确认归还',
+      message: '确认归还这项器材吗？',
+      detail: '确认后系统会更新库存和租借状态。',
+      entityLabel: '租借单号',
+      entityValue: rental.rentalNo,
+      tone: 'info',
+      confirmButtonText: '确认归还',
+      cancelButtonText: '稍后归还'
     })
     
     const res = await updateEquipmentRentalStatus(rental.id, 2)
@@ -669,13 +677,15 @@ const submitPay = async () => {
 const handleCancelRental = async (rental) => {
   try {
     const requiresRefund = Number(rental?.paymentStatus ?? 0) === 1
-    await ElMessageBox.confirm(
-      requiresRefund ? '确定要取消这个租借吗？已支付订单会提交退款申请，等待处理。' : '确定要取消这个租借吗？',
-      '提示',
-      {
-      type: 'warning'
-      }
-    )
+    await openActionConfirm({
+      title: '取消租借',
+      message: requiresRefund ? '确定要取消这个租借吗？已支付订单会提交退款申请，等待处理。' : '确定要取消这个租借吗？',
+      entityLabel: '租借单号',
+      entityValue: rental.rentalNo,
+      tone: 'warning',
+      confirmButtonText: '确认取消',
+      cancelButtonText: '继续保留'
+    })
     
     const res = await updateEquipmentRentalStatus(rental.id, 0)
     if (res.code === 200) {

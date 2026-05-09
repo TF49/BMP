@@ -147,7 +147,7 @@
       />
     </div>
 
-    <el-dialog v-model="detailVisible" title="预约详情" width="760px" destroy-on-close>
+    <el-dialog v-model="detailVisible" title="预约详情" width="760px" destroy-on-close class="responsive-dialog">
       <div v-loading="detailLoading">
         <template v-if="detail">
           <el-descriptions :column="2" border class="detail-descriptions">
@@ -239,6 +239,7 @@
       :title="statusDialogTitle"
       width="460px"
       destroy-on-close
+      class="responsive-dialog"
       @closed="resetStatusDialog"
     >
       <div class="status-dialog-body">
@@ -1110,6 +1111,29 @@ onMounted(() => {
 
   .pagination-wrap {
     justify-content: center;
+  }
+}
+
+@media (max-width: 1200px) {
+  .page-hero,
+  .toolbar-header {
+    flex-wrap: wrap;
+  }
+
+  .hero-actions {
+    margin-left: auto;
+  }
+
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .toolbar-input {
+    width: min(320px, 100%);
+  }
+
+  .booking-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

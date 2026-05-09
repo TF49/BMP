@@ -89,20 +89,21 @@
 
       <!-- 会员列表表格 -->
       <div class="glass-card table-card">
-        <el-table
-          :data="memberList"
-          v-loading="loading"
-          element-loading-text="加载中..."
-          style="width: 100%"
-          stripe
-          border
-          highlight-current-row
-          :header-cell-style="tableHeaderStyle"
-          :cell-style="{ textAlign: 'center', padding: '12px 0' }"
-          row-key="id"
-          :height="tableHeight"
-          :virtual-scroll="memberList.length > 100"
-        >
+        <div class="responsive-table-shell member-table-shell">
+          <el-table
+            :data="memberList"
+            v-loading="loading"
+            element-loading-text="加载中..."
+            style="width: 100%"
+            stripe
+            border
+            highlight-current-row
+            :header-cell-style="tableHeaderStyle"
+            :cell-style="{ textAlign: 'center', padding: '12px 0' }"
+            row-key="id"
+            :height="tableHeight"
+            :virtual-scroll="memberList.length > 100"
+          >
           <el-table-column
             label="序号"
             type="index"
@@ -170,7 +171,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <!-- 分页 -->
         <div class="pagination-wrapper">
@@ -193,7 +195,7 @@
       v-model="dialogVisible"
       :title="dialogTitle"
       :close-on-click-modal="false"
-      class="member-dialog modern-dialog"
+      class="member-dialog modern-dialog responsive-dialog"
       @close="handleDialogClose"
       width="700px"
     >
@@ -366,7 +368,7 @@
       v-model="viewDialogVisible"
       width="780px"
       @close="handleViewDialogClose"
-      class="modern-dialog"
+      class="modern-dialog responsive-dialog"
     >
       <el-tabs v-model="viewActiveTab" class="member-view-tabs">
         <el-tab-pane label="基本信息" name="info">
@@ -438,15 +440,16 @@
 
         <el-tab-pane label="消费记录" name="consume">
           <div class="consume-records-container">
-            <el-table
-              :data="consumeRecords"
-              v-loading="consumeLoading"
-              element-loading-text="加载中..."
-              size="small"
-              border
-              stripe
-              :header-cell-style="tableHeaderStyle"
-            >
+            <div class="responsive-table-shell member-consume-table-shell">
+              <el-table
+                :data="consumeRecords"
+                v-loading="consumeLoading"
+                element-loading-text="加载中..."
+                size="small"
+                border
+                stripe
+                :header-cell-style="tableHeaderStyle"
+              >
               <el-table-column prop="createTime" label="时间" min-width="160" align="center">
                 <template #default="scope">
                   {{ formatDateTime(scope.row.createTime) }}
@@ -478,7 +481,8 @@
                 </template>
               </el-table-column>
               <el-table-column prop="remark" label="备注" min-width="160" align="center" show-overflow-tooltip />
-            </el-table>
+              </el-table>
+            </div>
             <div class="pagination-wrapper" style="margin-top: 12px;">
               <el-pagination
                 v-model:current-page="consumePagination.page"
@@ -503,7 +507,7 @@
     </el-dialog>
 
     <!-- 管理员充值对话框 -->
-    <el-dialog v-model="rechargeDialogVisible" title="会员充值" width="420px">
+    <el-dialog v-model="rechargeDialogVisible" title="会员充值" width="420px" class="responsive-dialog">
       <el-form label-width="90px">
         <el-form-item label="会员编号">
           <el-tag type="info">{{ formatMemberNo(rechargeForm.memberId) }}</el-tag>
@@ -532,6 +536,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import {
   Search,
   Refresh,
@@ -1043,15 +1048,16 @@ const handleDelete = (row) => {
     ElMessage.warning('该会员已绑定用户账号，不能直接删除。请改为冻结会员或禁用对应用户账号')
     return
   }
-  ElMessageBox.confirm(
-    `确定要删除会员 "${row.memberName}" 吗？`,
-    '删除确认',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '删除会员',
+    message: '确认删除这位会员吗？',
+    detail: '删除后会员档案、等级和余额关联信息都将无法继续使用。',
+    entityLabel: '会员姓名',
+    entityValue: row.memberName,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留会员'
+  }).then(async () => {
     try {
       const res = await deleteMember(row.id)
       if (res.code === 200) {
@@ -1932,6 +1938,26 @@ onUnmounted(() => {
     min-width: 72px;
     max-width: 72px;
   }
+
+  .search-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-fields,
+  .search-buttons {
+    width: 100%;
+  }
+
+  .search-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .search-input,
+  .search-select {
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1949,11 +1975,6 @@ onUnmounted(() => {
     width: 68px;
     min-width: 68px;
     max-width: 68px;
-  }
-
-  .search-container {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .search-fields {

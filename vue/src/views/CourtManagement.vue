@@ -112,9 +112,10 @@
 
       <!-- 场地列表表格 -->
       <div class="glass-card table-card">
-        <el-table :data="courtList" v-loading="loading" element-loading-text="加载中..." style="width: 100%" stripe border
-          highlight-current-row :header-cell-style="tableHeaderStyle"
-          :cell-style="{ textAlign: 'center', padding: '12px 0' }" row-key="id" :height="tableHeight">
+        <div class="responsive-table-shell court-table-shell">
+          <el-table :data="courtList" v-loading="loading" element-loading-text="加载中..." style="width: 100%" stripe border
+            highlight-current-row :header-cell-style="tableHeaderStyle"
+            :cell-style="{ textAlign: 'center', padding: '12px 0' }" row-key="id" :height="tableHeight">
           <el-table-column
             label="序号"
             type="index"
@@ -195,7 +196,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <!-- 分页 -->
         <div class="pagination-wrapper">
@@ -208,7 +210,7 @@
 
     <!-- 添加/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" :close-on-click-modal="false"
-      class="court-dialog modern-dialog" @close="handleDialogClose" width="600px">
+      class="court-dialog modern-dialog responsive-dialog" @close="handleDialogClose" width="600px">
       <el-form ref="courtFormRef" :model="courtForm" :rules="courtFormRules" label-width="auto" label-position="top"
         class="court-form modern-form">
         <!-- 基本信息 -->
@@ -355,7 +357,7 @@
       :title="bookingDialogTitle"
       width="540px"
       top="15vh"
-      class="booking-dialog modern-dialog"
+      class="booking-dialog modern-dialog responsive-dialog"
       :close-on-click-modal="true"
     >
       <transition name="booking-dialog-zoom">
@@ -427,6 +429,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import {
   Search,
   Refresh,
@@ -893,15 +896,16 @@ const handleEdit = (row) => {
 
 // 删除场地
 const handleDelete = (row) => {
-  ElMessageBox.confirm(
-    `确定要删除场地 "${row.courtCode}" 吗？`,
-    '删除确认',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '删除场地',
+    message: '确认删除这个场地吗？',
+    detail: '删除后场地将无法继续用于预约和排期。',
+    entityLabel: '场地编号',
+    entityValue: row.courtCode,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留场地'
+  }).then(async () => {
     try {
       const response = await deleteCourt(row.id)
       if (response.code === 200) {
@@ -1992,17 +1996,34 @@ onUnmounted(() => {
     min-width: 68px;
     max-width: 68px;
   }
+
+  .search-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-fields,
+  .search-buttons {
+    width: 100%;
+  }
+
+  .search-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .search-input,
+  .search-select,
+  .search-select-small,
+  .search-date-picker {
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .search-container {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .search-fields {

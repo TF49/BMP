@@ -83,7 +83,8 @@
       </div>
 
       <div class="glass-card table-card">
-        <el-table
+        <div class="responsive-table-shell tournament-registration-table-shell">
+          <el-table
           :data="registrationList"
           v-loading="loading"
           border
@@ -135,7 +136,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <div class="pagination-wrapper">
           <el-pagination
@@ -283,6 +285,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Medal } from '@element-plus/icons-vue'
 import {
   getTournamentRegistrationList,
@@ -609,7 +612,16 @@ const handleEdit = async (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定删除报名 ${row.registrationNo} 吗？`, '提示', { type: 'warning' })
+  openActionConfirm({
+    title: '删除报名',
+    message: '确认删除这条赛事报名记录吗？',
+    detail: '删除后报名记录将无法继续查询，也不会保留在统计中。',
+    entityLabel: '报名编号',
+    entityValue: row.registrationNo,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留记录'
+  })
     .then(async () => {
       try {
         const res = await deleteTournamentRegistration(row.id)
@@ -671,7 +683,15 @@ const changeStatus = async (row, status) => {
       const confirmMessage = row.status === 2
         ? `确定取消报名 ${row.registrationNo} 吗？该报名已支付，取消后会提交退款申请，等待处理。`
         : `确定取消报名 ${row.registrationNo} 吗？`
-      await ElMessageBox.confirm(confirmMessage, '提示', { type: 'warning' })
+      await openActionConfirm({
+        title: '取消报名',
+        message: confirmMessage,
+        entityLabel: '报名编号',
+        entityValue: row.registrationNo,
+        tone: 'warning',
+        confirmButtonText: '确认取消',
+        cancelButtonText: '继续保留'
+      })
     }
     const res = await updateTournamentRegistrationStatus(row.id, status)
     if (res.code === 200) {
@@ -727,7 +747,16 @@ const handlePaymentSubmit = async () => {
 }
 
 const handleRefund = (row) => {
-  ElMessageBox.confirm(`确定对报名 ${row.registrationNo} 进行退款吗？`, '提示', { type: 'warning' })
+  openActionConfirm({
+    title: '报名退款',
+    message: '确认对这笔赛事报名发起退款吗？',
+    detail: '退款后报名状态和财务流水都会同步更新。',
+    entityLabel: '报名编号',
+    entityValue: row.registrationNo,
+    tone: 'warning',
+    confirmButtonText: '确认退款',
+    cancelButtonText: '暂不退款'
+  })
     .then(async () => {
       try {
         const res = await processTournamentRegistrationRefund(row.id)

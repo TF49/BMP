@@ -146,6 +146,7 @@
 import { ref, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import {
   UserFilled,
   Money,
@@ -344,15 +345,17 @@ const loadBookings = async () => {
 }
 
 const handlePay = (booking) => {
-  ElMessageBox.confirm(
-    `确认使用余额支付该预约订单吗？\n订单金额：¥${formatCurrency(booking.orderAmount)}`,
-    '预约支付确认',
-    {
-      type: 'warning',
-      confirmButtonText: '确认支付',
-      cancelButtonText: '稍后支付'
-    }
-  ).then(async () => {
+  openActionConfirm({
+    title: '预约支付确认',
+    eyebrow: 'BALANCE PAYMENT',
+    message: '确认使用余额支付这笔预约订单吗？',
+    detail: `订单金额：¥${formatCurrency(booking.orderAmount)}`,
+    entityLabel: '预约单号',
+    entityValue: booking.bookingNo,
+    tone: 'warning',
+    confirmButtonText: '确认支付',
+    cancelButtonText: '稍后支付'
+  }).then(async () => {
     try {
       const res = await payMemberBooking({
         bookingId: booking.id,
@@ -376,8 +379,14 @@ const handleCancel = async (booking) => {
     const confirmMessage = booking.status === 2
       ? '确定要取消这个预约吗？当前订单已支付，取消后会提交退款申请，等待管理员处理。'
       : '确定要取消这个预约吗？'
-    await ElMessageBox.confirm(confirmMessage, '提示', {
-      type: 'warning'
+    await openActionConfirm({
+      title: '取消预约',
+      message: confirmMessage,
+      entityLabel: '预约单号',
+      entityValue: booking.bookingNo,
+      tone: 'warning',
+      confirmButtonText: '确认取消',
+      cancelButtonText: '继续保留'
     })
     
     const res = await updateBookingStatus(booking.id, 0)

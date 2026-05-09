@@ -1,0 +1,79 @@
+:root {
+  --bmp-breakpoint-wide: 1440px;
+  --bmp-breakpoint-desktop: 1200px;
+  --bmp-breakpoint-tablet: 992px;
+  --bmp-breakpoint-mobile: 768px;
+  --bmp-page-max-width: min(1600px, calc(100vw - 32px));
+  --bmp-page-padding-lg: 24px;
+  --bmp-page-padding-md: 20px;
+  --bmp-page-padding-sm: 16px;
+  --bmp-page-padding-xs: 12px;
+  --bmp-card-padding-lg: 24px;
+  --bmp-card-padding-md: 20px;
+  --bmp-card-padding-sm: 16px;
+}
+
+html,
+body,
+#app {
+  min-width: 320px;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+.responsive-table-shell {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.responsive-table-shell > .el-table {
+  min-width: 100%;
+}
+
+.responsive-dialog .el-dialog {
+  width: min(var(--dialog-max-width, 720px), calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px);
+}
+
+.responsive-dialog .el-dialog__body,
+.responsive-dialog .el-dialog__header,
+.responsive-dialog .el-dialog__footer {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1440px) {
+  :root {
+    --bmp-page-max-width: min(1480px, calc(100vw - 28px));
+  }
+}
+
+@media (max-width: 1200px) {
+  :root {
+    --bmp-page-max-width: calc(100vw - 24px);
+  }
+}
+
+@media (max-width: 992px) {
+  :root {
+    --bmp-page-max-width: calc(100vw - 20px);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --bmp-page-max-width: calc(100vw - 16px);
+  }
+
+  .responsive-dialog .el-dialog {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px);
+  }
+}

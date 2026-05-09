@@ -89,7 +89,8 @@
       </div>
 
       <div class="glass-card table-card">
-        <el-table
+        <div class="responsive-table-shell tournament-table-shell">
+          <el-table
           :data="tournamentList"
           v-loading="loading"
           border
@@ -145,7 +146,8 @@
               </div>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
 
         <div class="pagination-wrapper">
           <el-pagination
@@ -246,6 +248,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Trophy } from '@element-plus/icons-vue'
 import {
   getTournamentList,
@@ -466,7 +469,16 @@ const handleEdit = async (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定删除赛事 ${row.tournamentName} 吗？`, '提示', { type: 'warning' })
+  openActionConfirm({
+    title: '删除赛事',
+    message: '确认删除这场赛事吗？',
+    detail: '删除后赛事配置、报名入口和相关统计都将失效。',
+    entityLabel: '赛事名称',
+    entityValue: row.tournamentName,
+    tone: 'danger',
+    confirmButtonText: '确认删除',
+    cancelButtonText: '保留赛事'
+  })
     .then(async () => {
       try {
         const res = await deleteTournament(row.id)
