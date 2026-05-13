@@ -68,4 +68,7 @@ public class Course {
 
     private String coachName;
     private String courtName;
+    private Boolean hasBookedByCurrentUser;
+    private Long currentUserBookingId;
+    private Boolean isCurrentCourseCoach;
 }

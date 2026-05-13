@@ -26,6 +26,9 @@ export interface CourseItem {
   coachRating?: number
   coachExperience?: string
   reviews?: any[]
+  hasBookedByCurrentUser?: boolean
+  currentUserBookingId?: number | null
+  isCurrentCourseCoach?: boolean
 }
 
 export interface CoursePayload {

@@ -5,6 +5,7 @@ import com.badminton.bmp.modules.course.entity.CourseBooking;
 import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
 import com.badminton.bmp.modules.course.mapper.CourseMapper;
 import com.badminton.bmp.modules.course.service.CourseBookingService;
+import com.badminton.bmp.modules.coach.mapper.CoachMapper;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
@@ -14,6 +15,8 @@ import com.badminton.bmp.modules.finance.entity.Finance;
 import com.badminton.bmp.modules.finance.service.FinanceService;
 import com.badminton.bmp.common.util.SecurityUtils;
 import com.badminton.bmp.websocket.WebSocketPushService;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +51,10 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     private FinanceService financeService;
     @Autowired
     private WebSocketPushService webSocketPushService;
+    @Autowired
+    private CoachMapper coachMapper;
+    @Autowired
+    private CacheManager cacheManager;
 
     /**
      * 根据ID查找课程预约记录
@@ -189,6 +196,24 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     }
 
     @Override
+    public CourseBooking findLatestActiveByMemberAndCourse(Long memberId, Long courseId) {
+        if (memberId == null || courseId == null) {
+            return null;
+        }
+        return courseBookingMapper.findLatestActiveByMemberIdAndCourseId(memberId, courseId);
+    }
+
+    private void evictCourseCache(Long courseId) {
+        if (courseId == null) {
+            return;
+        }
+        Cache cache = cacheManager.getCache("course");
+        if (cache != null) {
+            cache.evict(courseId);
+        }
+    }
+
+    @Override
     @Transactional
     public int updateStatusForCoach(Long coachId, Long id, Integer status, String remark) {
         if (coachId == null) {
@@ -234,6 +259,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
                     courseMapper.updateCurrentStudents(booking.getCourseId(), Math.max(0, current - 1));
                 }
             }
+            evictCourseCache(booking.getCourseId());
             try {
                 Long userId = null;
                 Member member = memberMapper.findById(booking.getMemberId());
@@ -285,6 +311,20 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (course == null) {
             throw new RuntimeException("课程不存在");
         }
+        if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
+            com.badminton.bmp.modules.system.entity.User current = SecurityUtils.getCurrentUser();
+            if (current != null && current.getId() != null) {
+                com.badminton.bmp.modules.coach.entity.Coach currentCoach = coachMapper.findByUserId(current.getId());
+                if (currentCoach != null && currentCoach.getId() != null && currentCoach.getId().equals(course.getCoachId())) {
+                    throw new RuntimeException("不能预约自己授课的课程");
+                }
+            }
+        }
+        CourseBooking latestActiveBooking = courseBookingMapper.findLatestActiveByMemberIdAndCourseId(
+                booking.getMemberId(), booking.getCourseId());
+        if (latestActiveBooking != null) {
+            throw new RuntimeException("您已预约该课程，请勿重复提交");
+        }
         
         // 未传金额时使用课程价格
         if (booking.getOrderAmount() == null || booking.getOrderAmount().signum() <= 0) {
@@ -325,6 +365,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (result > 0) {
             int newCurrent = currentStudents + 1;
             courseMapper.updateCurrentStudents(booking.getCourseId(), newCurrent);
+            evictCourseCache(booking.getCourseId());
         }
         
         return result;
@@ -372,6 +413,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             }
         }
         
+        Long originalCourseId = existing.getCourseId();
         Long courseId = booking.getCourseId() != null ? booking.getCourseId() : existing.getCourseId();
         Integer oldStatus = existing.getStatus();
         Integer newStatus = booking.getStatus() != null ? booking.getStatus() : existing.getStatus();
@@ -426,7 +468,12 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         
         // 设置更新时间
         booking.setUpdateTime(LocalDateTime.now());
-        return courseBookingMapper.update(booking);
+        int result = courseBookingMapper.update(booking);
+        if (result > 0) {
+            evictCourseCache(originalCourseId);
+            evictCourseCache(courseId);
+        }
+        return result;
     }
 
     /**
@@ -481,7 +528,11 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             }
         }
         
-        return courseBookingMapper.deleteById(id);
+        int result = courseBookingMapper.deleteById(id);
+        if (result > 0) {
+            evictCourseCache(booking.getCourseId());
+        }
+        return result;
     }
 
     /**
@@ -568,6 +619,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             result = courseBookingMapper.update(booking);
         } else {
             result = courseBookingMapper.updateStatus(id, status);
+        }
+        if (result > 0) {
+            evictCourseCache(booking.getCourseId());
         }
         try {
             Long userId = null;
@@ -839,6 +893,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         booking.setUpdateTime(LocalDateTime.now());
         int updated = courseBookingMapper.update(booking);
         if (updated > 0) {
+            evictCourseCache(booking.getCourseId());
             try {
                 Long notifyUserId = null;
                 Member m = memberMapper.findById(booking.getMemberId());
@@ -937,6 +992,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
                 Math.max(0, current - 1));
         }
         if (result > 0) {
+            evictCourseCache(booking.getCourseId());
             try {
                 Long userId = null;
                 Member m = memberMapper.findById(booking.getMemberId());
@@ -964,7 +1020,16 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         List<Long> toFinish = courseBookingMapper.findBookingIdsToFinish(today, now);
         if (toFinish != null) {
             for (Long id : toFinish) {
+                CourseBooking booking = courseBookingMapper.findById(id);
                 courseBookingMapper.updateStatus(id, 4); // 已完成
+                if (booking != null) {
+                    Course course = courseMapper.findById(booking.getCourseId());
+                    if (course != null) {
+                        int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
+                        courseMapper.updateCurrentStudents(booking.getCourseId(), Math.max(0, current - 1));
+                    }
+                    evictCourseCache(booking.getCourseId());
+                }
             }
         }
         if ((toStart != null && !toStart.isEmpty()) || (toFinish != null && !toFinish.isEmpty())) {

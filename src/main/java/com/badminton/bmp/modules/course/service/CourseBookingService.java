@@ -13,6 +13,7 @@ public interface CourseBookingService {
     List<CourseBooking> findAllForCoach(Long coachId, Long courseId, Integer status, String keyword, int page, int size);
     int countForCoach(Long coachId, Long courseId, Integer status, String keyword);
     CourseBooking findByIdForCoach(Long coachId, Long id);
+    CourseBooking findLatestActiveByMemberAndCourse(Long memberId, Long courseId);
     int updateStatusForCoach(Long coachId, Long id, Integer status, String remark);
     int add(CourseBooking booking);
     int update(CourseBooking booking);

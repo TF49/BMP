@@ -2,12 +2,17 @@ package com.badminton.bmp.modules.course.controller;
 
 import com.badminton.bmp.common.Result;
 import com.badminton.bmp.framework.web.BaseController;
+import com.badminton.bmp.common.util.SecurityUtils;
 import com.badminton.bmp.modules.coach.entity.Coach;
 import com.badminton.bmp.modules.coach.service.CoachService;
 import com.badminton.bmp.modules.course.entity.Course;
+import com.badminton.bmp.modules.course.service.CourseBookingService;
 import com.badminton.bmp.modules.course.service.CourseService;
 import com.badminton.bmp.modules.court.entity.Court;
 import com.badminton.bmp.modules.court.service.CourtService;
+import com.badminton.bmp.modules.member.entity.Member;
+import com.badminton.bmp.modules.member.service.MemberService;
+import com.badminton.bmp.modules.system.entity.User;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +39,10 @@ public class CourseController extends BaseController {
     private CoachService coachService;
     @Autowired
     private CourtService courtService;
+    @Autowired
+    private MemberService memberService;
+    @Autowired
+    private CourseBookingService courseBookingService;
 
     private boolean isAdmin() {
         return com.badminton.bmp.common.util.SecurityUtils.isPresident()
@@ -115,11 +124,41 @@ public class CourseController extends BaseController {
     public Result<Course> getCourseInfo(@PathVariable("id") Long id) {
         try {
             Course course = courseService.findById(id);
+            enrichCurrentUserView(course);
             return course != null ? success(course) : error("课程不存在");
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
             return error("获取课程信息时发生错误：" + e.getMessage());
+        }
+    }
+
+    private void enrichCurrentUserView(Course course) {
+        if (course == null) {
+            return;
+        }
+        course.setHasBookedByCurrentUser(false);
+        course.setCurrentUserBookingId(null);
+        course.setIsCurrentCourseCoach(false);
+
+        User current = SecurityUtils.getCurrentUser();
+        if (current == null || current.getId() == null) {
+            return;
+        }
+
+        Member currentMember = memberService.findByUserId(current.getId());
+        if (currentMember != null && currentMember.getId() != null) {
+            com.badminton.bmp.modules.course.entity.CourseBooking latestBooking =
+                    courseBookingService.findLatestActiveByMemberAndCourse(currentMember.getId(), course.getId());
+            if (latestBooking != null) {
+                course.setHasBookedByCurrentUser(true);
+                course.setCurrentUserBookingId(latestBooking.getId());
+            }
+        }
+
+        Coach currentCoach = coachService.findByUserId(current.getId());
+        if (currentCoach != null && currentCoach.getId() != null && currentCoach.getId().equals(course.getCoachId())) {
+            course.setIsCurrentCourseCoach(true);
         }
     }
 

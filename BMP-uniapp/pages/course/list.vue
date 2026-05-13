@@ -184,7 +184,7 @@
     </scroll-view>
 
     <!-- FAB -->
-    <view class="fixed bottom-24 right-6 fab-layer" hover-class="scale-95">
+    <view class="fixed right-6 fab-layer" :style="{ bottom: fabBottomPx + 'px' }" hover-class="scale-95">
       <view class="fab-btn w-14 h-14 rounded-full flex items-center justify-center" @tap="showFilterSheet = true">
         <uni-icons type="bars" size="22" color="#561d00"></uni-icons>
       </view>
@@ -235,7 +235,9 @@ import { useUserStore } from '@/store/modules/user'
 const userStore = useUserStore()
 const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
+const safeAreaBottom = ref(0)
 const headerOffsetPx = computed(() => (statusBarHeight.value || 44) + 56)
+const fabBottomPx = computed(() => 112 + safeAreaBottom.value)
 
 const searchKeyword = ref('')
 const selectedDateIndex = ref(0)
@@ -471,6 +473,7 @@ onLoad((options?: Record<string, string | undefined>) => {
 onMounted(() => {
   const systemInfo = getSafeSystemInfo()
   statusBarHeight.value = systemInfo.statusBarHeight || 44
+  safeAreaBottom.value = systemInfo.safeAreaInsets?.bottom ?? 0
   // #ifdef MP
   try {
     const menuInfo = uni.getMenuButtonBoundingClientRect()
@@ -600,9 +603,6 @@ onPullDownRefresh(() => {
 .right-0 {
   right: 0;
 }
-.bottom-24 {
-  bottom: 240rpx;
-}
 .right-6 {
   right: 24rpx;
 }
@@ -637,7 +637,7 @@ onPullDownRefresh(() => {
   padding: 16rpx;
 }
 .pb-32 {
-  padding-bottom: 240rpx;
+  padding-bottom: 320rpx;
 }
 .pb-4 {
   padding-bottom: 16rpx;
@@ -930,6 +930,8 @@ onPullDownRefresh(() => {
 }
 
 .fab-btn {
+  width: 50px;
+  height: 50px;
   background-color: #ff6600;
   box-shadow: 0 20px 40px rgba(255, 102, 0, 0.35);
 }

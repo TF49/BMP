@@ -207,7 +207,15 @@ const payableValue = computed(() => {
 
 const canSubmit = computed(() => {
   if (!course.value) return false
-  return Number(course.value.status ?? 1) === 1 && Number(course.value.currentStudents || 0) < Number(course.value.maxStudents || 0)
+  return Number(course.value.status ?? 1) === 1
+    && Number(course.value.currentStudents || 0) < Number(course.value.maxStudents || 0)
+    && !course.value.hasBookedByCurrentUser
+    && !course.value.isCurrentCourseCoach
+})
+
+const existingBookingId = computed(() => {
+  if (course.value?.currentUserBookingId == null) return null
+  return Number(course.value.currentUserBookingId)
 })
 
 const detail = computed<CourseBookingVm | null>(() => {
@@ -244,6 +252,9 @@ const getCourseBookingErrorMessage = (error: unknown): string => {
   if (msg.includes('full') || rawMsg.includes('满员') || rawMsg.includes('名额')) {
     return '课程名额已满，请选择其他课程'
   }
+  if (rawMsg.includes('本人授课') || rawMsg.includes('自己授课')) {
+    return '本人授课课程不可预约，请从教练端查看预约明细'
+  }
   if (msg.includes('duplicate') || rawMsg.includes('重复') || rawMsg.includes('已预约')) {
     return '您已预约该课程，请勿重复提交'
   }
@@ -264,6 +275,25 @@ async function loadCourseDetail() {
   errorText.value = ''
   try {
     course.value = await getCourseDetail(courseId.value)
+    if (course.value?.isCurrentCourseCoach) {
+      errorText.value = '本人授课课程不可预约，请从教练端查看预约明细'
+      return
+    }
+    if (course.value?.hasBookedByCurrentUser) {
+      if (existingBookingId.value) {
+        uni.showToast({
+          title: '您已预约该课程，正在跳转订单',
+          icon: 'none'
+        })
+        setTimeout(() => {
+          uni.redirectTo({
+            url: `/pages/course/booking-detail?id=${existingBookingId.value}`
+          })
+        }, 500)
+        return
+      }
+      errorText.value = '您已预约该课程，请勿重复提交'
+    }
   } catch (error) {
     console.error('加载课程详情失败:', error)
     errorText.value = error instanceof Error ? error.message : '加载课程详情失败'
@@ -276,6 +306,19 @@ async function handleSubmit() {
   if (isSubmitting.value || !detail.value) return
 
   if (!canSubmit.value) {
+    if (course.value?.isCurrentCourseCoach) {
+      uni.showToast({
+        title: '本人授课课程不可预约',
+        icon: 'none'
+      })
+      return
+    }
+    if (course.value?.hasBookedByCurrentUser && existingBookingId.value) {
+      uni.navigateTo({
+        url: `/pages/course/booking-detail?id=${existingBookingId.value}`
+      })
+      return
+    }
     uni.showToast({
       title: '当前课程暂不可预约',
       icon: 'none'

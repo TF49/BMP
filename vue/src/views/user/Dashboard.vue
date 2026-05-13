@@ -79,7 +79,7 @@
             </div>
             <div class="booking-details">
               <p class="booking-venue">{{ booking.venueName }} · {{ booking.courtName }}</p>
-              <p class="booking-time">{{ formatTimeRange(booking.startTime, booking.endTime) }}</p>
+              <p class="booking-time">{{ formatTimeRange(booking.startTime, booking.endTime, booking.bookingDate) }}</p>
               <p class="booking-amount">¥{{ formatCurrency(booking.orderAmount) }}</p>
             </div>
           </div>
@@ -271,10 +271,24 @@ const formatCurrency = (val) => {
   return num.toFixed(2)
 }
 
-const formatTimeRange = (start, end) => {
+const formatTimeRange = (start, end, bookingDate) => {
   if (!start || !end) return '-'
-  const startDate = new Date(start)
-  const endDate = new Date(end)
+  const parseDateTime = (value, fallbackDate) => {
+    const raw = String(value || '').trim()
+    if (!raw) return null
+    if (raw.includes('T') || raw.includes(' ') || raw.includes('/')) {
+      const directDate = new Date(raw)
+      if (!Number.isNaN(directDate.getTime())) return directDate
+    }
+    if (fallbackDate) {
+      const mergedDate = new Date(`${fallbackDate} ${raw}`.replace(/-/g, '/'))
+      if (!Number.isNaN(mergedDate.getTime())) return mergedDate
+    }
+    return null
+  }
+  const startDate = parseDateTime(start, bookingDate)
+  const endDate = parseDateTime(end, bookingDate)
+  if (!startDate || !endDate) return '-'
   const dateStr = `${startDate.getMonth() + 1}月${startDate.getDate()}日`
   const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`
   const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`

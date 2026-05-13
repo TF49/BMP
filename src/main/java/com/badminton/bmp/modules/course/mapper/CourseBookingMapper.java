@@ -199,6 +199,15 @@ public interface CourseBookingMapper {
             "AND (ct.venue_id = #{venueId} OR (c.court_id IS NULL AND co.venue_id = #{venueId}))")
     int countByMemberIdAndVenueId(@Param("memberId") Long memberId, @Param("venueId") Long venueId);
 
+    @Select("SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+            "LEFT JOIN sys_member m ON cb.member_id = m.id " +
+            "LEFT JOIN biz_course c ON cb.course_id = c.id " +
+            "LEFT JOIN sys_coach co ON c.coach_id = co.id " +
+            "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
+            "WHERE cb.del_flag = 0 AND cb.member_id = #{memberId} AND cb.course_id = #{courseId} AND cb.status IN (1, 2, 3) " +
+            "ORDER BY cb.create_time DESC, cb.id DESC LIMIT 1")
+    CourseBooking findLatestActiveByMemberIdAndCourseId(@Param("memberId") Long memberId, @Param("courseId") Long courseId);
+
     /**
      * 定时任务：查询「已支付」且关联课程已到开始时间的预约ID（用于自动改为进行中）
      * 条件：cb.status=2 且 (course_date &lt; 今日 或 (course_date=今日 且 start_time &lt;= 当前时间))

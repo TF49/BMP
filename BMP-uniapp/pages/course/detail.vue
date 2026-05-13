@@ -138,10 +138,10 @@
       </view>
       <view
         class="book-btn"
-        :class="{ disabled: !detail.canBook }"
+        :class="{ disabled: bottomAction.disabled }"
         @tap="handleBook"
       >
-        <text>{{ detail.canBook ? '立即预订' : '名额已满' }}</text>
+        <text>{{ bottomAction.text }}</text>
       </view>
     </view>
   </view>
@@ -177,7 +177,11 @@ type CourseDetailVm = {
   maxStudents: number
   progress: number
   hotText: string
+  unavailableReason: string
   canBook: boolean
+  hasBookedByCurrentUser: boolean
+  currentUserBookingId: number | null
+  isCurrentCourseCoach: boolean
 }
 
 const userStore = useUserStore()
@@ -258,12 +262,36 @@ const detail = computed<CourseDetailVm | null>(() => {
   const progress = maxStudents > 0 ? Math.min(100, Math.round((currentStudents / maxStudents) * 100)) : 0
   const locationName = course.value.venueName?.trim() || course.value.courtName?.trim() || '场地信息待补充'
   const locationAddress = course.value.location?.trim() || '地址待补充'
-  const canBook = remaining > 0 && Number(course.value.status ?? 1) === 1
+  const hasBookedByCurrentUser = Boolean(course.value.hasBookedByCurrentUser)
+  const currentUserBookingId = course.value.currentUserBookingId != null
+    ? Number(course.value.currentUserBookingId)
+    : null
+  const isCurrentCourseCoach = Boolean(course.value.isCurrentCourseCoach)
+  const courseStatus = Number(course.value.status ?? 1)
+  const canBook = remaining > 0
+    && courseStatus === 1
+    && !hasBookedByCurrentUser
+    && !isCurrentCourseCoach
   const rating = course.value.coachRating
   const reviewCount = Array.isArray(course.value.reviews) ? course.value.reviews.length : 0
 
   let hotText = '热卖中'
-  if (!canBook) hotText = '名额已满'
+  let unavailableReason = '当前课程暂不可预约'
+  if (isCurrentCourseCoach) hotText = '本人授课'
+  else if (hasBookedByCurrentUser) hotText = '已预约'
+  else if (remaining <= 0) {
+    hotText = '名额已满'
+    unavailableReason = '名额已满'
+  } else if (courseStatus === 3) {
+    hotText = '课程已结束'
+    unavailableReason = '课程已结束'
+  } else if (courseStatus === 0) {
+    hotText = '课程已取消'
+    unavailableReason = '课程已取消'
+  } else if (courseStatus !== 1) {
+    hotText = '暂未开放'
+    unavailableReason = '当前课程暂未开放预约'
+  }
   else if (remaining <= 2) hotText = '即将满员'
 
   return {
@@ -283,8 +311,55 @@ const detail = computed<CourseDetailVm | null>(() => {
     maxStudents,
     progress,
     hotText,
-    canBook
+    unavailableReason,
+    canBook,
+    hasBookedByCurrentUser,
+    currentUserBookingId,
+    isCurrentCourseCoach
   }
+})
+
+const bottomAction = computed(() => {
+  if (!detail.value) {
+    return {
+      text: '当前课程暂不可预约',
+      disabled: true,
+      type: 'unavailable'
+    } as const
+  }
+  if (detail.value.isCurrentCourseCoach) {
+    return {
+      text: '查看预约',
+      disabled: false,
+      type: 'coachBookings'
+    } as const
+  }
+  if (detail.value.hasBookedByCurrentUser && detail.value.currentUserBookingId) {
+    return {
+      text: '查看订单',
+      disabled: false,
+      type: 'viewBooking'
+    } as const
+  }
+  if (detail.value.hasBookedByCurrentUser) {
+    return {
+      text: '已预约',
+      disabled: true,
+      type: 'booked'
+    } as const
+  }
+  if (detail.value.canBook) {
+    return {
+      text: '立即预订',
+      disabled: false,
+      type: 'book'
+    } as const
+  }
+  return {
+    text: detail.value.unavailableReason,
+    disabled: true,
+    type: 'unavailable'
+  } as const
 })
 
 async function loadCourseDetail() {
@@ -326,9 +401,24 @@ function openLocation() {
 
 function handleBook() {
   if (!detail.value) return
+
+  if (bottomAction.value.type === 'coachBookings') {
+    uni.navigateTo({
+      url: `/pages/coach/bookings?courseId=${detail.value.id}&courseName=${encodeURIComponent(detail.value.name)}`
+    })
+    return
+  }
+
+  if (bottomAction.value.type === 'viewBooking' && detail.value.currentUserBookingId) {
+    uni.navigateTo({
+      url: `/pages/course/booking-detail?id=${detail.value.currentUserBookingId}`
+    })
+    return
+  }
+
   if (!detail.value.canBook) {
     uni.showToast({
-      title: '当前课程暂不可预约',
+      title: detail.value.unavailableReason,
       icon: 'none'
     })
     return
