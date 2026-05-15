@@ -7,6 +7,15 @@ import com.badminton.bmp.modules.stringing.service.StringingServiceService;
 import com.badminton.bmp.modules.equipment.entity.Equipment;
 import com.badminton.bmp.modules.equipment.service.EquipmentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import com.badminton.bmp.common.util.SecurityUtils;
+import lombok.Data;
 
 @Tag(name = "穿线服务模块", description = "穿线服务 CRUD、统计")
 @RestController
@@ -145,8 +155,10 @@ public class StringingServiceController extends BaseController {
     @Operation(summary = "新增穿线服务")
     @PostMapping("/add")
     @PreAuthorize("isAuthenticated()")
-    public Result<Object> addService(@Valid @RequestBody StringingService service) {
+    public Result<Object> addService(@Valid @RequestBody StringingServiceCreateRequest request) {
         try {
+            StringingService service = request.toEntity();
+
             // 验证线材信息（业务逻辑，非字段级校验）
             if (service.getIsOwnString() == null || service.getIsOwnString() == 0) {
                 if (service.getStringId() == null &&
@@ -177,6 +189,98 @@ public class StringingServiceController extends BaseController {
             return error(e.getMessage());
         } catch (Exception e) {
             return error("添加服务记录时发生错误：" + e.getMessage());
+        }
+    }
+
+    @Data
+    private static class StringingServiceCreateRequest {
+        @Positive(message = "会员ID必须大于0")
+        private Long memberId;
+
+        @Positive(message = "用户ID必须大于0")
+        private Long userId;
+
+        @NotNull(message = "场馆ID不能为空")
+        @Positive(message = "场馆ID必须大于0")
+        private Long venueId;
+
+        @NotBlank(message = "球拍品牌不能为空")
+        @Size(max = 50, message = "球拍品牌不能超过50个字符")
+        private String racketBrand;
+
+        @NotBlank(message = "球拍型号不能为空")
+        @Size(max = 50, message = "球拍型号不能超过50个字符")
+        private String racketModel;
+
+        @Size(max = 200, message = "球拍描述不能超过200个字符")
+        private String racketDescription;
+
+        @Positive(message = "线材ID必须大于0")
+        private Long stringId;
+
+        @Size(max = 100, message = "线材名称不能超过100个字符")
+        private String stringName;
+
+        @Min(value = 0, message = "是否自带线材参数无效")
+        @Max(value = 1, message = "是否自带线材参数无效")
+        private Integer isOwnString;
+
+        @NotNull(message = "磅数不能为空")
+        @DecimalMin(value = "10.0", message = "磅数不能低于10.0")
+        @DecimalMax(value = "40.0", message = "磅数不能高于40.0")
+        private BigDecimal pound;
+
+        @NotBlank(message = "穿线方式不能为空")
+        @Pattern(regexp = "TWO_SECTION|FOUR_SECTION|AUTO", message = "穿线方式参数无效")
+        private String stringingMethod;
+
+        @Min(value = 0, message = "断裂参数无效")
+        @Max(value = 1, message = "断裂参数无效")
+        private Integer hasBreakage;
+
+        @Min(value = 0, message = "塌陷参数无效")
+        @Max(value = 1, message = "塌陷参数无效")
+        private Integer hasCollapse;
+
+        @Min(value = 0, message = "服务状态参数无效")
+        @Max(value = 3, message = "服务状态参数无效")
+        private Integer status;
+
+        @DecimalMin(value = "0.00", message = "服务价格不能小于0")
+        @DecimalMax(value = "9999.99", message = "服务价格不能超过9999.99")
+        private BigDecimal servicePrice;
+
+        @Size(max = 20, message = "支付方式不能超过20个字符")
+        private String paymentMethod;
+
+        @Min(value = 0, message = "支付状态参数无效")
+        @Max(value = 3, message = "支付状态参数无效")
+        private Integer paymentStatus;
+
+        @Size(max = 500, message = "备注不能超过500个字符")
+        private String remark;
+
+        private StringingService toEntity() {
+            StringingService service = new StringingService();
+            service.setMemberId(memberId);
+            service.setUserId(userId);
+            service.setVenueId(venueId);
+            service.setRacketBrand(racketBrand);
+            service.setRacketModel(racketModel);
+            service.setRacketDescription(racketDescription);
+            service.setStringId(stringId);
+            service.setStringName(stringName);
+            service.setIsOwnString(isOwnString);
+            service.setPound(pound);
+            service.setStringingMethod(stringingMethod);
+            service.setHasBreakage(hasBreakage);
+            service.setHasCollapse(hasCollapse);
+            service.setStatus(status);
+            service.setServicePrice(servicePrice);
+            service.setPaymentMethod(paymentMethod);
+            service.setPaymentStatus(paymentStatus);
+            service.setRemark(remark);
+            return service;
         }
     }
 

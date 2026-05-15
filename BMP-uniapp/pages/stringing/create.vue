@@ -443,7 +443,8 @@ async function handleSubmit() {
   } catch (e) {
     console.error(e)
     uni.hideLoading()
-    uni.showToast({ title: '提交失败，请重试', icon: 'none' })
+    const message = e instanceof Error && e.message ? e.message : '提交失败，请重试'
+    uni.showToast({ title: message, icon: 'none' })
   } finally {
     submitting.value = false
   }
