@@ -168,9 +168,11 @@ public interface CourtMapper {
      */
     @Select("SELECT " +
             "b.id AS booking_id, " +
+            "bc.booking_date, " +
             "b.start_time, " +
             "b.end_time, " +
             "b.status, " +
+            "b.payment_status, " +
             "m.member_name, " +
             "m.member_type, " +
             "m.member_level " +

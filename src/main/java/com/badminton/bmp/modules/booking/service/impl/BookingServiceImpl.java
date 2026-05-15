@@ -523,9 +523,25 @@ public class BookingServiceImpl implements BookingService {
         int nextStatus = resolveStatusAfterPayment(booking);
         booking.setStatus(nextStatus);
         booking.setUpdateTime(LocalDateTime.now());
-        bookingMapper.update(booking);
+        int updated = bookingMapper.update(booking);
+        if (updated <= 0) {
+            throw new BusinessException("预约支付成功后更新订单状态失败");
+        }
+        Booking refreshedBooking = bookingMapper.findById(bookingId);
+        if (refreshedBooking == null) {
+            throw new BusinessException("预约支付成功后校验订单状态失败");
+        }
+        Integer refreshedPaymentStatus = refreshedBooking.getPaymentStatus();
+        Integer refreshedStatus = refreshedBooking.getStatus();
+        if (refreshedPaymentStatus == null || refreshedPaymentStatus != 1 || refreshedStatus == null || refreshedStatus == 1) {
+            org.slf4j.LoggerFactory.getLogger(BookingServiceImpl.class).error(
+                    "支付后预约状态异常, bookingId={}, expectedStatus={}, actualPaymentStatus={}, actualStatus={}",
+                    bookingId, nextStatus, refreshedPaymentStatus, refreshedStatus
+            );
+            throw new BusinessException("预约支付成功后状态同步失败，请重试");
+        }
         recomputeCourtStatuses(extractCourtIds(details));
-        notifyStatusChange(booking, nextStatus, nextStatus == 3 ? "进行中" : "已支付");
+        notifyStatusChange(refreshedBooking, refreshedStatus, refreshedStatus == 3 ? "进行中" : "已支付");
         return 1;
     }
 

@@ -499,12 +499,18 @@ public class CourtServiceImpl implements CourtService {
             Object endTimeObj = booking.get("end_time");
             dto.setEndTime(formatTime(endTimeObj));
 
-            // 设置状态（TINYINT(1) 可能被映射为 Boolean）
+            // 支付成功但状态仍停留在待支付时，按时间重新归一化显示口径，兼容历史脏数据
             Object statusObj = booking.get("status");
             if (statusObj != null) {
-                int status = toInt(statusObj);
-                dto.setStatus(status);
-                dto.setStatusText(getBookingStatusText(status));
+                int normalizedStatus = normalizeDisplayedBookingStatus(
+                        toInt(statusObj),
+                        booking.get("payment_status"),
+                        booking.get("booking_date"),
+                        startTimeObj,
+                        endTimeObj
+                );
+                dto.setStatus(normalizedStatus);
+                dto.setStatusText(getBookingStatusText(normalizedStatus));
             }
 
             result.add(dto);
@@ -791,6 +797,86 @@ public class CourtServiceImpl implements CourtService {
             case 3: return "进行中";
             case 4: return "已完成";
             default: return "未知";
+        }
+    }
+
+    private int normalizeDisplayedBookingStatus(int status,
+                                                Object paymentStatusObj,
+                                                Object bookingDateObj,
+                                                Object startTimeObj,
+                                                Object endTimeObj) {
+        if (status == 0 || status == 4) {
+            return status;
+        }
+        Integer paymentStatus = toIntObject(paymentStatusObj);
+        if (paymentStatus != null && paymentStatus == 1) {
+            LocalDate bookingDate = toLocalDate(bookingDateObj);
+            LocalTime startTime = toLocalTime(startTimeObj);
+            LocalTime endTime = toLocalTime(endTimeObj);
+            return resolvePaidBookingDisplayStatus(bookingDate, startTime, endTime);
+        }
+        return status;
+    }
+
+    private int resolvePaidBookingDisplayStatus(LocalDate bookingDate, LocalTime startTime, LocalTime endTime) {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        if (bookingDate == null || startTime == null || endTime == null) {
+            return 2;
+        }
+        if (bookingDate.isBefore(today)) {
+            return 4;
+        }
+        if (bookingDate.isEqual(today)) {
+            if (now.isBefore(startTime)) {
+                return 2;
+            }
+            if (now.isBefore(endTime)) {
+                return 3;
+            }
+            return 4;
+        }
+        return 2;
+    }
+
+    private Integer toIntObject(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        return toInt(obj);
+    }
+
+    private LocalDate toLocalDate(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof LocalDate) {
+            return (LocalDate) obj;
+        }
+        if (obj instanceof java.sql.Date) {
+            return ((java.sql.Date) obj).toLocalDate();
+        }
+        try {
+            return LocalDate.parse(String.valueOf(obj).trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private LocalTime toLocalTime(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof LocalTime) {
+            return (LocalTime) obj;
+        }
+        if (obj instanceof Time) {
+            return ((Time) obj).toLocalTime();
+        }
+        try {
+            return LocalTime.parse(String.valueOf(obj).trim());
+        } catch (Exception e) {
+            return null;
         }
     }
 
