@@ -231,7 +231,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getCourseList, getCoachList, type CourseItem } from '@/api/course'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
@@ -248,6 +248,7 @@ const searchKeyword = ref('')
 const selectedDateIndex = ref(0)
 const showFilterSheet = ref(false)
 const filterCoachId = ref<number | null>(null)
+const hasMounted = ref(false)
 
 const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const
 
@@ -430,7 +431,7 @@ async function loadCourseList() {
   try {
     courseListState.value = 'idle'
     courseLoadError.value = ''
-    const params: Record<string, unknown> = { page: 1, size: 50 }
+    const params: Record<string, unknown> = { page: 1, size: 50, status: 1 }
     const sel = weekDates.value[selectedDateIndex.value]
     if (sel?.iso) {
       params.startTime = `${sel.iso} 00:00:00`
@@ -442,7 +443,9 @@ async function loadCourseList() {
     const page = await getCourseList(params as any)
     const raw = page as any
     const list = Array.isArray(raw) ? raw : raw?.data ?? []
-    rawCourses.value = Array.isArray(list) ? list : []
+    rawCourses.value = Array.isArray(list)
+      ? list.filter((course) => Number(course.status ?? 1) !== 0)
+      : []
     uiCourses.value = rawCourses.value.map(mapCourseToUi)
     courseListState.value = 'success'
   } catch (error: any) {
@@ -551,12 +554,18 @@ onMounted(() => {
   }
   void loadCoachList()
   void loadCourseList()
+  hasMounted.value = true
 })
 
 onPullDownRefresh(() => {
   Promise.all([loadCourseList(), loadCoachList()]).finally(() => {
     uni.stopPullDownRefresh()
   })
+})
+
+onShow(() => {
+  if (!hasMounted.value || !userStore.isLoggedIn) return
+  void loadCourseList()
 })
 </script>
 

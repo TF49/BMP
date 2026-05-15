@@ -104,6 +104,7 @@ public class CourseController extends BaseController {
             if (startTime != null && startTime.trim().isEmpty()) startTime = null;
             if (endTime != null && endTime.trim().isEmpty()) endTime = null;
             List<Course> courses = courseService.findAll(coachId, courtId, status, keyword, startTime, endTime, page, size);
+            courses.forEach(this::enrichCurrentUserView);
             int total = courseService.count(coachId, courtId, status, keyword, startTime, endTime);
             Map<String, Object> result = new HashMap<>();
             result.put("data", courses);

@@ -66,6 +66,8 @@ export const API_PATHS = {
       LIST: '/course/booking/list',
       ADD: '/course/booking/add',
       DETAIL: '/course/booking/info',
+      PAYMENT: '/course/booking/payment',
+      MEMBER_PAYMENT: '/course/booking/member/payment',
       COACH_LIST: '/course/booking/for-coach',
       COACH_DETAIL: '/course/booking/for-coach',
       COACH_STATUS: '/course/booking/for-coach/status'

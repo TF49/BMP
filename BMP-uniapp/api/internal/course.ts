@@ -199,7 +199,7 @@ export function processCourseBookingPayment(
   paymentMethod: 'BALANCE'
 ) {
   return request<null>({
-    url: `/course/booking/payment?bookingId=${bookingId}&paymentMethod=${paymentMethod}`,
+    url: `${API_PATHS.COURSE.BOOKING.MEMBER_PAYMENT}?bookingId=${bookingId}&paymentMethod=${paymentMethod}`,
     method: 'POST'
   })
 }
