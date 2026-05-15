@@ -82,6 +82,8 @@ export function getCourseList(params?: {
   coachId?: number
   courtId?: number
   status?: number
+  startTime?: string
+  endTime?: string
   page?: number
   size?: number
 }) {

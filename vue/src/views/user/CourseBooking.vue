@@ -54,12 +54,12 @@
                 <h4 class="course-name">{{ course.courseName }}</h4>
                 <div class="course-meta">
                   <span class="course-coach">教练：{{ course.coachName || '未分配' }}</span>
-                  <span class="course-duration">时长：{{ course.duration || 60 }}分钟</span>
+                  <span class="course-duration">时长：{{ getCourseDuration(course) }}分钟</span>
                 </div>
                 <div class="course-details">
                   <div class="detail-item">
                     <span class="detail-label">价格</span>
-                    <span class="detail-value price">¥{{ formatCurrency(course.price) }}</span>
+                    <span class="detail-value price">¥{{ formatCurrency(getCoursePrice(course)) }}</span>
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">状态</span>
@@ -269,21 +269,31 @@ const formatCurrency = (val) => {
 }
 
 const formatTimeRange = (start, end) => {
-  if (!start || !end) return '-'
+  if (!start) return '-'
   const startDate = new Date(start)
-  const endDate = new Date(end)
+  if (Number.isNaN(startDate.getTime())) return '-'
   const dateStr = `${startDate.getMonth() + 1}月${startDate.getDate()}日`
   const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`
+  if (!end) return `${dateStr} ${startTime}`
+  const endDate = new Date(end)
+  if (Number.isNaN(endDate.getTime())) return `${dateStr} ${startTime}`
   const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`
   return `${dateStr} ${startTime}-${endTime}`
 }
 
 const getCoursePrice = (course) => course?.coursePrice ?? course?.price ?? 0
 
+const getCourseDuration = (course) => course?.courseDuration ?? course?.duration ?? 60
+
 const formatSelectedCourseSchedule = (course) => {
   if (!course) return '-'
   if (course.courseDate && course.courseStartTime && course.courseEndTime) {
     return `${course.courseDate} ${String(course.courseStartTime).slice(0, 5)}-${String(course.courseEndTime).slice(0, 5)}`
+  }
+  if (course.courseDate && course.startTime) {
+    const start = `${course.courseDate}T${course.startTime}`
+    const end = course.endTime ? `${course.courseDate}T${course.endTime}` : null
+    return formatTimeRange(start, end)
   }
   return formatCourseTime(course)
 }

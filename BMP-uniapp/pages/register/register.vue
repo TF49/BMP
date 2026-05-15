@@ -21,24 +21,24 @@
 
       <!-- Registration Form -->
       <view class="registration-form">
-        <!-- Phone Number -->
+        <!-- Username -->
         <view class="field-group">
-          <text class="field-label">手机号码 MOBILE NUMBER</text>
+          <text class="field-label">用户名 USERNAME</text>
           <view class="input-wrapper">
             <view class="input-container">
-              <text class="input-icon">📱</text>
+              <text class="input-icon">👤</text>
               <input 
                 class="input-field" 
-                v-model="formData.phone" 
-                placeholder="请输入手机号" 
+                v-model="formData.username" 
+                placeholder="请输入用户名" 
                 placeholder-class="input-placeholder"
-                type="number"
-                maxlength="11"
-                @focus="focusPhone = true"
-                @blur="focusPhone = false"
+                type="text"
+                maxlength="32"
+                @focus="focusUsername = true"
+                @blur="focusUsername = false"
               />
             </view>
-            <view class="input-underline" :class="{ 'active': focusPhone }"></view>
+            <view class="input-underline" :class="{ 'active': focusUsername }"></view>
           </view>
         </view>
 
@@ -158,13 +158,13 @@ import { safeNavigateBack } from '@/utils/navigation'
 
 const loading = ref(false)
 const showPassword = ref(false)
-const focusPhone = ref(false)
+const focusUsername = ref(false)
 const focusIdCard = ref(false)
 const focusPassword = ref(false)
 const focusConfirm = ref(false)
 
 const formData = ref({
-  phone: '',
+  username: '',
   idCard: '',
   password: '',
   confirmPassword: '',
@@ -176,7 +176,7 @@ const handleTermsChange = (e: any) => {
 }
 
 const handleRegister = async () => {
-  if (!formData.value.phone || !formData.value.idCard || !formData.value.password) {
+  if (!formData.value.username || !formData.value.idCard || !formData.value.password) {
     uni.showToast({ title: '请填写完整信息', icon: 'none' })
     return
   }
@@ -194,9 +194,8 @@ const handleRegister = async () => {
   loading.value = true
 
   try {
-    // 映射到 API 所需的字段
     await register({
-      username: formData.value.phone, // 使用手机号作为用户名或按后端要求
+      username: formData.value.username.trim(),
       password: formData.value.password,
       confirmPassword: formData.value.confirmPassword,
       idCard: formData.value.idCard,

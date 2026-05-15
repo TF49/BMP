@@ -89,7 +89,7 @@
                 class="date-chip flex-shrink-0 w-16 h-20 flex flex-col items-center justify-center rounded-2xl"
                 :class="selectedDateIndex === i ? 'date-chip-active' : 'date-chip-idle'"
                 hover-class="opacity-90"
-                @tap="selectedDateIndex = i"
+                @tap="handleDateTap(i)"
               >
                 <text class="text-10 font-bold date-chip-dow">{{ d.dow }}</text>
                 <text class="text-xl font-black">{{ d.day }}</text>
@@ -173,8 +173,13 @@
                   <text class="text-10 font-bold text-secondary block">Price</text>
                   <text class="text-xl font-black text-on-surface">¥{{ item.price }}</text>
                 </view>
-                <button class="book-btn bg-on-surface text-white h-12 px-8 rounded-xl font-bold text-sm" hover-class="book-btn-hover" @tap="bookCourse(item)">
-                  立即预约
+                <button
+                  class="book-btn bg-on-surface text-white h-12 px-8 rounded-xl font-bold text-sm"
+                  :class="{ disabled: item.actionDisabled }"
+                  hover-class="book-btn-hover"
+                  @tap="bookCourse(item)"
+                >
+                  {{ item.actionText }}
                 </button>
               </view>
             </view>
@@ -309,6 +314,12 @@ interface UiCourse {
   availSoft: boolean
   badge: string
   courseDate: string
+  status: number
+  hasBookedByCurrentUser: boolean
+  currentUserBookingId: number | null
+  isCurrentCourseCoach: boolean
+  actionText: string
+  actionDisabled: boolean
 }
 
 const uiCourses = ref<UiCourse[]>([])
@@ -327,15 +338,35 @@ function mapCourseToUi(course: CourseItem): UiCourse {
   const remaining = Math.max(0, max - cur)
   const occ = max > 0 ? cur / max : 0
   let availText = '名额充足'
-  if (remaining <= 1 && max > 0) availText = '仅剩 1 名额'
+  if (course.hasBookedByCurrentUser) availText = '已预约'
+  else if (remaining <= 1 && max > 0) availText = '仅剩 1 名额'
   else if (remaining === 2) availText = '仅剩 2 名额'
   else if (remaining <= Math.ceil(max * 0.15) && remaining > 2) availText = `仅剩 ${remaining} 名额`
   else if (occ >= 0.45 && remaining > 2) availText = `仅剩 ${remaining} 名额`
 
   const availPercent = Math.min(100, Math.round(occ * 100))
   const availSoft = occ < 0.45
+  const status = Number(course.status ?? 1)
+  const hasBookedByCurrentUser = Boolean(course.hasBookedByCurrentUser)
+  const currentUserBookingId = course.currentUserBookingId != null ? Number(course.currentUserBookingId) : null
+  const isCurrentCourseCoach = Boolean(course.isCurrentCourseCoach)
+  const canBook = status === 1 && remaining > 0 && !hasBookedByCurrentUser && !isCurrentCourseCoach
   const badge =
-    remaining <= 2 && max > 0 && occ >= 0.7 ? 'Filling Fast' : occ >= 0.85 && remaining > 2 ? 'Filling Fast' : ''
+    hasBookedByCurrentUser ? 'Booked' : remaining <= 2 && max > 0 && occ >= 0.7 ? 'Filling Fast' : occ >= 0.85 && remaining > 2 ? 'Filling Fast' : ''
+  let actionText = '立即预约'
+  let actionDisabled = false
+  if (hasBookedByCurrentUser) {
+    actionText = '查看订单'
+  } else if (isCurrentCourseCoach) {
+    actionText = '本人授课'
+    actionDisabled = true
+  } else if (remaining <= 0) {
+    actionText = '名额已满'
+    actionDisabled = true
+  } else if (status !== 1) {
+    actionText = '暂不可约'
+    actionDisabled = true
+  }
 
   const loc = course.courtName || course.location || course.venueName || '场地待定'
   const priceNum = course.coursePrice ?? 0
@@ -357,15 +388,19 @@ function mapCourseToUi(course: CourseItem): UiCourse {
     availPercent: Math.max(8, availPercent),
     availSoft,
     badge,
-    courseDate: (course.courseDate || '').slice(0, 10)
+    courseDate: (course.courseDate || '').slice(0, 10),
+    status,
+    hasBookedByCurrentUser,
+    currentUserBookingId,
+    isCurrentCourseCoach,
+    actionText,
+    actionDisabled: actionDisabled || (!canBook && !hasBookedByCurrentUser)
   }
 }
 
 const filteredCourses = computed(() => {
-  const sel = weekDates.value[selectedDateIndex.value]
   const kw = searchKeyword.value.trim().toLowerCase()
   return uiCourses.value.filter((c) => {
-    if (sel && c.courseDate && c.courseDate !== sel.iso) return false
     if (!kw) return true
     return (
       c.title.toLowerCase().includes(kw) ||
@@ -385,11 +420,22 @@ function resetFilters() {
   loadCourseList()
 }
 
+function handleDateTap(index: number) {
+  if (selectedDateIndex.value === index) return
+  selectedDateIndex.value = index
+  loadCourseList()
+}
+
 async function loadCourseList() {
   try {
     courseListState.value = 'idle'
     courseLoadError.value = ''
     const params: Record<string, unknown> = { page: 1, size: 50 }
+    const sel = weekDates.value[selectedDateIndex.value]
+    if (sel?.iso) {
+      params.startTime = `${sel.iso} 00:00:00`
+      params.endTime = `${sel.iso} 23:59:59`
+    }
     if (filterCoachId.value != null) params.coachId = filterCoachId.value
     if (searchKeyword.value.trim()) params.keyword = searchKeyword.value.trim()
 
@@ -432,6 +478,20 @@ async function loadCoachList() {
 }
 
 function bookCourse(item: UiCourse) {
+  if (item.hasBookedByCurrentUser) {
+    if (item.currentUserBookingId) {
+      uni.navigateTo({
+        url: `/pages/course/booking-detail?id=${item.currentUserBookingId}`
+      })
+      return
+    }
+    uni.showToast({ title: '已预约该课程，请到订单中心查看', icon: 'none' })
+    return
+  }
+  if (item.actionDisabled) {
+    uni.showToast({ title: item.actionText || '当前课程暂不可预约', icon: 'none' })
+    return
+  }
   uni.navigateTo({
     url: `/pages/course/detail?id=${item.id}`
   })
@@ -917,6 +977,10 @@ onPullDownRefresh(() => {
 }
 .book-btn-hover {
   opacity: 0.92;
+}
+.book-btn.disabled {
+  background-color: #cbd5e1;
+  color: #475569;
 }
 .retry-btn {
   border: none;
