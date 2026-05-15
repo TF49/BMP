@@ -85,7 +85,7 @@ public interface BookingCourtMapper {
                                             @Param("excludeBookingId") Long excludeBookingId);
 
     @Select("<script>" +
-            "SELECT bc.booking_id, bc.start_time, bc.end_time, b.status, b.booking_mode, " +
+            "SELECT bc.booking_id, bc.booking_date, bc.start_time, bc.end_time, b.status, b.payment_status, b.booking_mode, " +
             "m.member_name, m.member_type, m.member_level " +
             "FROM biz_booking_court bc " +
             "LEFT JOIN biz_booking b ON bc.booking_id = b.id " +
@@ -101,7 +101,7 @@ public interface BookingCourtMapper {
                                                        @Param("startTime") LocalTime startTime,
                                                        @Param("endTime") LocalTime endTime);
 
-    @Select("SELECT bc.booking_id, bc.start_time, bc.end_time, b.status, b.booking_mode, " +
+    @Select("SELECT bc.booking_id, bc.booking_date, bc.start_time, bc.end_time, b.status, b.payment_status, b.booking_mode, " +
             "m.member_name, m.member_type, m.member_level " +
             "FROM biz_booking_court bc " +
             "LEFT JOIN biz_booking b ON bc.booking_id = b.id " +

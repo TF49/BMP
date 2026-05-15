@@ -878,6 +878,19 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         registration.setStatus(2); // 已支付
         registration.setUpdateTime(LocalDateTime.now());
         int updated = tournamentRegistrationMapper.update(registration);
+        if (updated <= 0) {
+            throw new RuntimeException("赛事报名支付状态更新失败");
+        }
+        TournamentRegistration refreshedRegistration = tournamentRegistrationMapper.findById(registrationId);
+        Integer refreshedPaymentStatus = refreshedRegistration != null ? refreshedRegistration.getPaymentStatus() : null;
+        Integer refreshedStatus = refreshedRegistration != null ? refreshedRegistration.getStatus() : null;
+        if (refreshedPaymentStatus == null || refreshedPaymentStatus != 1 || refreshedStatus == null || refreshedStatus == 1) {
+            org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class).error(
+                    "支付后赛事报名状态异常, registrationId={}, actualPaymentStatus={}, actualStatus={}",
+                    registrationId, refreshedPaymentStatus, refreshedStatus
+            );
+            throw new RuntimeException("支付成功后赛事报名状态异常，请稍后重试");
+        }
         if (updated > 0) {
             try {
                 Long notifyUserId = null;

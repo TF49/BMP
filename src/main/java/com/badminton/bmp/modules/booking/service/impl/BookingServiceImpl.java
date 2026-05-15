@@ -488,6 +488,14 @@ public class BookingServiceImpl implements BookingService {
         List<BookingCourt> details = bookingCourtMapper.findByBookingId(bookingId);
         ensurePaymentAccess(booking, details, adminMode, userId);
 
+        Integer payStatus = booking.getPaymentStatus();
+        if (payStatus != null && payStatus != 0) {
+            if (payStatus == 1) throw new BusinessException("该预约已支付，无需重复支付");
+            if (payStatus == 2) throw new BusinessException("该预约已退款，无法再次支付");
+            if (payStatus == 3) throw new BusinessException("该预约退款申请处理中，无法再次支付");
+            throw new BusinessException("预约支付状态异常，无法支付");
+        }
+
         Integer status = booking.getStatus();
         if (status == null || status != 1) {
             if (status == null) throw new BusinessException("预约状态异常，无法支付");
@@ -710,6 +718,13 @@ public class BookingServiceImpl implements BookingService {
                         .distinct()
                         .collect(Collectors.joining(",")));
             }
+            booking.setStatus(normalizeDisplayedBookingStatus(
+                    booking.getStatus(),
+                    booking.getPaymentStatus(),
+                    resolveBookingDate(booking, details),
+                    resolveStartTime(booking, details),
+                    resolveEndTime(booking, details)
+            ));
         }
     }
 
@@ -1087,7 +1102,13 @@ public class BookingServiceImpl implements BookingService {
             dto.setEndTime(formatTime(row.get("end_time")));
             Object statusObj = row.get("status");
             if (statusObj != null) {
-                int status = toInt(statusObj);
+                int status = normalizeDisplayedBookingStatus(
+                        toInt(statusObj),
+                        row.get("payment_status"),
+                        row.get("booking_date"),
+                        row.get("start_time"),
+                        row.get("end_time")
+                );
                 dto.setStatus(status);
                 dto.setStatusText(getBookingStatusText(status));
             }
@@ -1144,6 +1165,123 @@ public class BookingServiceImpl implements BookingService {
             case 3: return "进行中";
             case 4: return "已完成";
             default: return "未知";
+        }
+    }
+
+    private int normalizeDisplayedBookingStatus(Integer status,
+                                                Object paymentStatusObj,
+                                                Object bookingDateObj,
+                                                Object startTimeObj,
+                                                Object endTimeObj) {
+        if (status == null) {
+            return 1;
+        }
+        if (status == 0 || status == 4) {
+            return status;
+        }
+        Integer paymentStatus = toIntObject(paymentStatusObj);
+        if (paymentStatus != null && paymentStatus == 1) {
+            return resolvePaidBookingDisplayStatus(
+                    toLocalDate(bookingDateObj),
+                    toLocalTime(startTimeObj),
+                    toLocalTime(endTimeObj)
+            );
+        }
+        return status;
+    }
+
+    private int resolvePaidBookingDisplayStatus(LocalDate bookingDate, LocalTime startTime, LocalTime endTime) {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        if (bookingDate == null || startTime == null || endTime == null) {
+            return 2;
+        }
+        if (bookingDate.isBefore(today)) {
+            return 4;
+        }
+        if (bookingDate.isEqual(today)) {
+            if (now.isBefore(startTime)) {
+                return 2;
+            }
+            if (now.isBefore(endTime)) {
+                return 3;
+            }
+            return 4;
+        }
+        return 2;
+    }
+
+    private LocalDate resolveBookingDate(Booking booking, List<BookingCourt> details) {
+        if (booking.getBookingDate() != null) {
+            return booking.getBookingDate();
+        }
+        return details.stream()
+                .map(BookingCourt::getBookingDate)
+                .filter(date -> date != null)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private LocalTime resolveStartTime(Booking booking, List<BookingCourt> details) {
+        if (booking.getStartTime() != null) {
+            return booking.getStartTime();
+        }
+        return details.stream()
+                .map(BookingCourt::getStartTime)
+                .filter(time -> time != null)
+                .min(LocalTime::compareTo)
+                .orElse(null);
+    }
+
+    private LocalTime resolveEndTime(Booking booking, List<BookingCourt> details) {
+        if (booking.getEndTime() != null) {
+            return booking.getEndTime();
+        }
+        return details.stream()
+                .map(BookingCourt::getEndTime)
+                .filter(time -> time != null)
+                .max(LocalTime::compareTo)
+                .orElse(null);
+    }
+
+    private Integer toIntObject(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        return toInt(obj);
+    }
+
+    private LocalDate toLocalDate(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof LocalDate) {
+            return (LocalDate) obj;
+        }
+        if (obj instanceof java.sql.Date) {
+            return ((java.sql.Date) obj).toLocalDate();
+        }
+        try {
+            return LocalDate.parse(String.valueOf(obj).trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private LocalTime toLocalTime(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof LocalTime) {
+            return (LocalTime) obj;
+        }
+        if (obj instanceof Time) {
+            return ((Time) obj).toLocalTime();
+        }
+        try {
+            return LocalTime.parse(String.valueOf(obj).trim());
+        } catch (Exception e) {
+            return null;
         }
     }
 }

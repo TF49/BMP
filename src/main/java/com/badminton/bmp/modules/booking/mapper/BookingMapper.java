@@ -30,7 +30,8 @@ public interface BookingMapper {
             "LEFT JOIN sys_member m ON b.member_id = m.id " +
             "WHERE b.del_flag = 0 " +
             "<if test='memberId != null'> AND b.member_id = #{memberId} </if>" +
-            "<if test='status != null'> AND b.status = #{status} </if>" +
+            "<if test='status != null and status == 1'> AND b.status = #{status} AND (b.payment_status IS NULL OR b.payment_status = 0) </if>" +
+            "<if test='status != null and status != 1'> AND b.status = #{status} </if>" +
             "<if test='venueId != null'> AND EXISTS (" +
             "SELECT 1 FROM biz_booking_court bc " +
             "LEFT JOIN sys_court c ON bc.court_id = c.id " +
@@ -69,7 +70,8 @@ public interface BookingMapper {
             "LEFT JOIN sys_member m ON b.member_id = m.id " +
             "WHERE b.del_flag = 0 " +
             "<if test='memberId != null'> AND b.member_id = #{memberId} </if>" +
-            "<if test='status != null'> AND b.status = #{status} </if>" +
+            "<if test='status != null and status == 1'> AND b.status = #{status} AND (b.payment_status IS NULL OR b.payment_status = 0) </if>" +
+            "<if test='status != null and status != 1'> AND b.status = #{status} </if>" +
             "<if test='venueId != null'> AND EXISTS (" +
             "SELECT 1 FROM biz_booking_court bc LEFT JOIN sys_court c ON bc.court_id = c.id " +
             "WHERE bc.booking_id = b.id AND c.venue_id = #{venueId}) </if>" +

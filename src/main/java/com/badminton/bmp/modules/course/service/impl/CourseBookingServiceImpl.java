@@ -892,6 +892,19 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         booking.setStatus(2); // 已支付
         booking.setUpdateTime(LocalDateTime.now());
         int updated = courseBookingMapper.update(booking);
+        if (updated <= 0) {
+            throw new RuntimeException("课程预约支付状态更新失败");
+        }
+        CourseBooking refreshedBooking = courseBookingMapper.findById(bookingId);
+        Integer refreshedPaymentStatus = refreshedBooking != null ? refreshedBooking.getPaymentStatus() : null;
+        Integer refreshedStatus = refreshedBooking != null ? refreshedBooking.getStatus() : null;
+        if (refreshedPaymentStatus == null || refreshedPaymentStatus != 1 || refreshedStatus == null || refreshedStatus == 1) {
+            org.slf4j.LoggerFactory.getLogger(CourseBookingServiceImpl.class).error(
+                    "支付后课程预约状态异常, bookingId={}, actualPaymentStatus={}, actualStatus={}",
+                    bookingId, refreshedPaymentStatus, refreshedStatus
+            );
+            throw new RuntimeException("支付成功后课程预约状态异常，请稍后重试");
+        }
         if (updated > 0) {
             evictCourseCache(booking.getCourseId());
             try {
