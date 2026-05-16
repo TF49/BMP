@@ -106,6 +106,7 @@ public class CoachServiceImpl implements CoachService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "coach", key = "#coachId")
     public int updateSelfProfile(Long coachId, String coachName, String phone, String specialty, String experience, String avatar) {
         Long currentId = getCurrentCoachIdOrNull();
         if (currentId == null || !currentId.equals(coachId)) {

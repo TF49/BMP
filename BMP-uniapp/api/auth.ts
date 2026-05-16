@@ -31,6 +31,7 @@ export interface RegisterParams {
 
 export interface UserInfo {
   id: number
+  userId?: number
   username: string
   role: string
   status: number

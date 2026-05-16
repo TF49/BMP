@@ -6,8 +6,6 @@
           :status-bar-height="statusBarHeight"
           :avatar="profileAvatar"
           brand="KINETIC LOGIC"
-          action-icon="notification-filled"
-          @action="handleNotice"
         />
 
         <view v-if="loading" class="state-card">
@@ -133,24 +131,6 @@
           </view>
 
           <view class="menu-card">
-            <view class="menu-item" @tap="handleNotice">
-              <view class="menu-left">
-                <view class="menu-icon-wrap">
-                  <uni-icons type="notification" size="20" color="#5f5e5e" />
-                </view>
-                <text class="menu-label">通知入口暂未开放</text>
-              </view>
-            </view>
-
-            <view class="menu-item" @tap="handleHelp">
-              <view class="menu-left">
-                <view class="menu-icon-wrap">
-                  <uni-icons type="help" size="20" color="#5f5e5e" />
-                </view>
-                <text class="menu-label">帮助中心暂未开放</text>
-              </view>
-            </view>
-
             <view class="menu-item danger" @tap="logout">
               <view class="menu-left">
                 <view class="menu-icon-wrap">
@@ -279,6 +259,7 @@ async function chooseAvatar() {
 
 async function saveProfile() {
   if (saving.value) return
+  const phone = form.value.phone.trim()
   if (!form.value.coachName.trim()) {
     uni.showToast({
       title: '请输入教练姓名',
@@ -286,7 +267,7 @@ async function saveProfile() {
     })
     return
   }
-  if (!PHONE_PATTERN.test(form.value.phone.trim())) {
+  if (phone && !PHONE_PATTERN.test(phone)) {
     uni.showToast({
       title: '请输入有效的11位手机号',
       icon: 'none'
@@ -298,7 +279,7 @@ async function saveProfile() {
   try {
     await updateCurrentCoach({
       coachName: form.value.coachName.trim(),
-      phone: form.value.phone.trim(),
+      phone,
       specialty: form.value.specialty.trim(),
       experience: form.value.experience.trim(),
       avatar: form.value.avatar.trim()
@@ -317,20 +298,6 @@ async function saveProfile() {
   } finally {
     saving.value = false
   }
-}
-
-function handleNotice() {
-  uni.showToast({
-    title: '通知入口暂未开放',
-    icon: 'none'
-  })
-}
-
-function handleHelp() {
-  uni.showToast({
-    title: '帮助中心暂未开放',
-    icon: 'none'
-  })
 }
 
 function logout() {

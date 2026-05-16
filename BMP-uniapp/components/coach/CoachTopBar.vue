@@ -7,7 +7,7 @@
       <text class="brand-name">{{ brand }}</text>
     </view>
 
-    <view class="action-btn" @tap="$emit('action')">
+    <view v-if="actionIcon" class="action-btn" @tap="$emit('action')">
       <uni-icons :type="actionIcon" size="22" color="#ff6600" />
     </view>
   </view>
@@ -18,7 +18,7 @@ defineProps<{
   statusBarHeight: number
   avatar: string
   brand: string
-  actionIcon: string
+  actionIcon?: string
 }>()
 
 defineEmits<{

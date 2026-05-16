@@ -21,13 +21,13 @@
             </view>
             <text class="subtitle">{{ subtitle }}</text>
             <view class="price-row">
-              <text class="price-num">¥{{ formatMoney(hourlyPrice) }}</text>
-              <text class="price-unit">/ 小时</text>
+              <text class="price-num">¥{{ formatMoney(dailyPrice) }}</text>
+              <text class="price-unit">/ 天</text>
             </view>
           </view>
         </view>
 
-        <!-- 数量 + 时段 -->
+        <!-- 数量 + 日期 -->
         <view class="card card-stack">
           <view class="row-between">
             <view>
@@ -49,7 +49,7 @@
 
           <view class="slot-block">
             <view class="row-between">
-              <text class="block-title">租借时段</text>
+              <text class="block-title">租借日期</text>
               <view class="edit-btn" @click="slotEditing = !slotEditing">
                 <text class="edit-text">修改</text>
                 <uni-icons type="compose" size="16" color="#a33e00" />
@@ -64,21 +64,9 @@
                 </picker>
               </view>
               <view class="picker-row">
-                <text class="picker-label">开始时间</text>
-                <picker mode="time" :value="startTime" @change="onStartTime">
-                  <view class="picker-value">{{ startTime }}</view>
-                </picker>
-              </view>
-              <view class="picker-row">
                 <text class="picker-label">结束日期</text>
                 <picker mode="date" :value="endDate" @change="onEndDate">
                   <view class="picker-value">{{ endDate }}</view>
-                </picker>
-              </view>
-              <view class="picker-row">
-                <text class="picker-label">结束时间</text>
-                <picker mode="time" :value="endTime" @change="onEndTime">
-                  <view class="picker-value">{{ endTime }}</view>
                 </picker>
               </view>
             </view>
@@ -86,20 +74,18 @@
             <view class="time-row">
               <view class="time-box time-box-start">
                 <view class="accent-bar" />
-                <text class="time-cap">提取时间 (START)</text>
+                <text class="time-cap">租借日期 (START)</text>
                 <text class="time-date">{{ startDateLabel }}</text>
-                <text class="time-clock start">{{ startTime }}</text>
               </view>
               <view class="arrow-wrap">
                 <uni-icons type="right" size="22" color="#5f5e5e" />
               </view>
               <view class="time-box">
-                <text class="time-cap">归还时间 (END)</text>
+                <text class="time-cap">预计归还 (END)</text>
                 <text class="time-date">{{ endDateLabel }}</text>
-                <text class="time-clock">{{ endTime }}</text>
               </view>
             </view>
-            <text class="duration-hint">总时长: {{ durationHours }} 小时</text>
+            <text class="duration-hint">计费天数: {{ rentalDays }} 天</text>
           </view>
         </view>
 
@@ -107,7 +93,7 @@
         <view class="card card-stack fee-card">
           <text class="block-title fee-title">费用明细</text>
           <view class="fee-line">
-            <text class="fee-label">基础租金 (¥{{ formatMoney(hourlyPrice) }} × {{ durationHours }}小时 × {{ rentQuantity }}件)</text>
+            <text class="fee-label">基础租金 (¥{{ formatMoney(dailyPrice) }} × {{ rentalDays }}天 × {{ rentQuantity }}件)</text>
             <text class="fee-value">¥{{ formatMoney(baseRent) }}</text>
           </view>
           <view class="fee-line">
@@ -117,10 +103,6 @@
             </view>
             <text class="fee-value">¥{{ formatMoney(depositTotal) }}</text>
           </view>
-          <view class="fee-line">
-            <text class="fee-label">平台服务费</text>
-            <text class="fee-value">¥{{ formatMoney(platformFee) }}</text>
-          </view>
         </view>
 
         <view class="scroll-spacer" />
@@ -129,7 +111,7 @@
       <!-- 底部栏 -->
       <view class="footer">
         <view class="footer-left">
-          <text class="total-cap">应付总计 (含押金)</text>
+          <text class="total-cap">预估租金</text>
           <view class="total-row">
             <text class="currency">¥</text>
             <text class="total-num">{{ formatMoney(totalPayable) }}</text>
@@ -174,11 +156,7 @@ const rentQuantity = ref(1)
 const slotEditing = ref(false)
 
 const startDate = ref('')
-const startTime = ref('14:00')
 const endDate = ref('')
-const endTime = ref('16:00')
-
-const platformFee = ref(5)
 
 const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`)
 
@@ -187,7 +165,7 @@ function todayStr() {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 
-const hourlyPrice = computed(() => {
+const dailyPrice = computed(() => {
   const p = equipment.value.rentalPrice ?? equipment.value.price ?? 0
   return Number(p) || 0
 })
@@ -219,16 +197,16 @@ const subtitle = computed(() => {
   return d.length > 36 ? `${d.slice(0, 36)}…` : d
 })
 
-const startMs = computed(() => new Date(`${startDate.value}T${startTime.value}:00`).getTime())
-const endMs = computed(() => new Date(`${endDate.value}T${endTime.value}:00`).getTime())
+const startMs = computed(() => new Date(`${startDate.value}T00:00:00`).getTime())
+const endMs = computed(() => new Date(`${endDate.value}T00:00:00`).getTime())
 
-const durationHours = computed(() => {
-  const diff = (endMs.value - startMs.value) / (1000 * 60 * 60)
-  if (!Number.isFinite(diff) || diff <= 0) return 0
+const rentalDays = computed(() => {
+  const diff = (endMs.value - startMs.value) / (1000 * 60 * 60 * 24)
+  if (!Number.isFinite(diff) || diff < 0) return 0
   return Math.max(1, Math.ceil(diff))
 })
 
-const baseRent = computed(() => hourlyPrice.value * durationHours.value * rentQuantity.value)
+const baseRent = computed(() => dailyPrice.value * rentalDays.value * rentQuantity.value)
 
 const depositPerUnit = computed(() => {
   const d = equipment.value.rentalDeposit
@@ -238,7 +216,7 @@ const depositPerUnit = computed(() => {
 
 const depositTotal = computed(() => depositPerUnit.value * rentQuantity.value)
 
-const totalPayable = computed(() => baseRent.value + depositTotal.value + platformFee.value)
+const totalPayable = computed(() => baseRent.value)
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -261,9 +239,9 @@ function formatMoney(n: number) {
 const canSubmit = computed(() => {
   if (!equipment.value.id) return false
   if (rentQuantity.value < 1 || rentQuantity.value > maxQuantity.value) return false
-  if (durationHours.value < 1) return false
-  if (endMs.value <= startMs.value) return false
-  if (hourlyPrice.value <= 0) return false
+  if (rentalDays.value < 1) return false
+  if (endMs.value < startMs.value) return false
+  if (dailyPrice.value <= 0) return false
   return true
 })
 
@@ -281,14 +259,8 @@ onLoad((options?: Record<string, string | undefined>) => {
 function onStartDate(e: { detail: { value: string } }) {
   startDate.value = e.detail.value
 }
-function onStartTime(e: { detail: { value: string } }) {
-  startTime.value = e.detail.value
-}
 function onEndDate(e: { detail: { value: string } }) {
   endDate.value = e.detail.value
-}
-function onEndTime(e: { detail: { value: string } }) {
-  endTime.value = e.detail.value
 }
 
 function decreaseQuantity() {
@@ -302,7 +274,7 @@ function increaseQuantity() {
 function onDepositInfo() {
   uni.showModal({
     title: '可退还押金',
-    content: '押金在器材完好归还后按原支付路径退回；如有损坏或逾期，将按协议扣减。',
+    content: '押金金额以订单详情为准；器材归还、损坏或逾期处理请按场馆规则执行。',
     showCancel: false
   })
 }
@@ -324,13 +296,12 @@ function handleBack() {
 async function handleSubmit() {
   if (!canSubmit.value) {
     uni.showToast({
-      title: endMs.value <= startMs.value ? '归还时间需晚于提取时间' : '请完善租借信息',
+      title: endMs.value < startMs.value ? '归还日期不能早于租借日期' : '请完善租借信息',
       icon: 'none'
     })
     return
   }
 
-  const rentalAmountNum = baseRent.value + platformFee.value
   const member = await fetchCurrentMember()
   const payload = {
     memberId: member.id,
@@ -338,23 +309,21 @@ async function handleSubmit() {
     quantity: rentQuantity.value,
     rentalDate: startDate.value,
     expectedReturnDate: endDate.value,
-    rentalAmount: rentalAmountNum,
-    unitPrice: hourlyPrice.value,
-    depositAmount: depositTotal.value,
-    durationHours: durationHours.value,
     paymentMethod: 'BALANCE',
-    paymentStatus: 0,
-    status: 1,
-    remark: `按小时计费；平台服务费¥${formatMoney(platformFee.value)}`
+    remark: '按天计费；金额以后端订单详情为准'
   }
 
   try {
     uni.showLoading({ title: '提交中...' })
-    await createEquipmentRental(payload)
+    const result = await createEquipmentRental(payload)
     uni.hideLoading()
-    uni.showToast({ title: '租借成功', icon: 'success' })
+    uni.showToast({ title: '订单已创建', icon: 'success' })
     setTimeout(() => {
-      uni.redirectTo({ url: '/pages/profile/records' })
+      if (result?.id) {
+        uni.redirectTo({ url: `/pages/equipment/rental-detail?id=${result.id}` })
+      } else {
+        uni.redirectTo({ url: '/pages/profile/orders' })
+      }
     }, 1200)
   } catch (error) {
     console.error('租借器材失败:', error)

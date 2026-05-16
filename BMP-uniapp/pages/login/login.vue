@@ -108,7 +108,6 @@
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
-import { login } from '@/api/auth'
 import { checkAndHandleRole, getRoleHomePath } from '@/utils/roleCheck'
 import { safeReLaunch } from '@/utils/safeRoute'
 
@@ -185,35 +184,17 @@ const handleLogin = async () => {
   loading.value = true
 
   try {
-    const res = await login({
+    const res = await userStore.doLogin({
       username: formData.value.username,
       password: formData.value.password
     })
 
     const role = res.user?.role
     if (!checkAndHandleRole(role)) {
+      userStore.logout()
       loading.value = false
       return
     }
-
-    // 保存登录信息
-    uni.setStorageSync('token', res.token)
-    if (res.refreshToken) {
-      uni.setStorageSync('refreshToken', res.refreshToken)
-    }
-
-    const userInfo = {
-      id: res.user.id,
-      userId: res.user.id,
-      username: res.user.username,
-      role: res.user.role,
-      status: res.user.status
-    }
-    uni.setStorageSync('userInfo', userInfo)
-
-    const userStore = useUserStore()
-    userStore.token = res.token
-    userStore.userInfo = userInfo as any
 
     uni.showToast({
       title: '登录成功',

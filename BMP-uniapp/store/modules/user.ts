@@ -24,6 +24,7 @@ export const useUserStore = defineStore('user', () => {
 
     return {
       ...user,
+      userId: user.userId ?? user.id,
       avatar: user.avatar ? resolveImageUrl(user.avatar) : ''
     }
   }

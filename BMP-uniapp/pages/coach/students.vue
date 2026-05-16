@@ -13,8 +13,6 @@
           :status-bar-height="statusBarHeight"
           :avatar="avatar"
           brand="KINETIC LOGIC"
-          action-icon="notification-filled"
-          @action="handleNotice"
         />
 
         <view class="hero-head">
@@ -220,13 +218,6 @@ async function updateStatus(item: CoachBookingItem, status: number) {
       icon: 'none'
     })
   }
-}
-
-function handleNotice() {
-  uni.showToast({
-    title: '学员名单已接入预约数据',
-    icon: 'none'
-  })
 }
 
 function handleRefresh() {

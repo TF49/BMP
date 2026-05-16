@@ -102,13 +102,13 @@ export function mapCourseOrder(item: CourseBookingItem): UnifiedOrderItem {
 
 export function mapEquipmentOrder(item: EquipmentRentalItem): UnifiedOrderItem {
   const status = Number(item.status || 0)
-  const lifecycle: OrderLifecycle = status === 0 ? 'CANCELLED' : status >= 4 ? 'COMPLETED' : 'ACTIVE'
+  const paymentStatusValue = Number(item.paymentStatus || 0)
+  const lifecycle: OrderLifecycle = status === 0 ? 'CANCELLED' : status === 2 ? 'COMPLETED' : 'ACTIVE'
   const statusMap: Record<number, string> = {
     0: '已取消',
-    1: '待支付',
-    2: '已租借',
-    3: '使用中',
-    4: '已归还'
+    1: paymentStatusValue === 1 ? '租借中' : '待支付',
+    2: '已归还',
+    3: '逾期'
   }
   return mapCommon(
     'EQUIPMENT',

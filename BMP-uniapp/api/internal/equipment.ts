@@ -82,6 +82,11 @@ export interface EquipmentRentalItem {
   updateTime?: string
 }
 
+export interface EquipmentRentalCreateResult {
+  id: number
+  rentalNo?: string
+}
+
 /**
  * 获取器材列表
  */
@@ -173,7 +178,7 @@ export function getEquipmentRentalDetail(id: number) {
  * 创建器材租借
  */
 export function createEquipmentRental(params: EquipmentRentalParams) {
-  return request<EquipmentRentalItem>({
+  return request<EquipmentRentalCreateResult>({
     url: API_PATHS.EQUIPMENT.RENTAL.ADD,
     method: 'POST',
     data: params

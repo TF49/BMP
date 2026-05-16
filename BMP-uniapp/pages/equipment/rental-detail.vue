@@ -134,11 +134,11 @@ const rentalAmountText = computed(() => formatAmount(detail.value?.rentalAmount 
 const depositAmountText = computed(() => formatAmount(detail.value?.depositAmount || 0))
 const statusText = computed(() => {
   const status = Number(detail.value?.status ?? 0)
+  const paymentStatus = Number(detail.value?.paymentStatus ?? 0)
   if (status === 0) return '已取消'
-  if (status === 1) return '待支付'
-  if (status === 2) return '已租借'
-  if (status === 3) return '使用中'
-  if (status === 4) return '已归还'
+  if (status === 1) return paymentStatus === 1 ? '租借中' : '待支付'
+  if (status === 2) return '已归还'
+  if (status === 3) return '逾期'
   return '未知状态'
 })
 const paymentStatusText = computed(() => {

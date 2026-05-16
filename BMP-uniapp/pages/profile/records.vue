@@ -145,7 +145,7 @@ const headerOffset = computed(() => statusBarHeight.value + 56)
 
 const records = ref<ConsumeRecord[]>([])
 const currentPage = ref(1)
-const pageSize = 10
+const pageSize = 100
 const total = ref(0)
 const loading = ref(false)
 const loadingMore = ref(false)

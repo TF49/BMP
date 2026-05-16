@@ -38,7 +38,7 @@ describe('orderCenter helpers', () => {
       rentalDate: '2026-04-24',
       expectedReturnDate: '2026-04-25',
       rentalAmount: 60,
-      status: 4,
+      status: 2,
       paymentStatus: 1,
       createTime: '2026-04-24 09:00:00'
     } as any)
