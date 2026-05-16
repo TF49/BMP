@@ -45,11 +45,12 @@ export function getCourseBookingInfo(id) {
 }
 
 // 新增预约
-export function addCourseBooking(data) {
+export function addCourseBooking(data, config = {}) {
   return request({
     url: '/api/course/booking/add',
     method: 'post',
-    data
+    data,
+    ...config
   })
 }
 
@@ -71,11 +72,12 @@ export function deleteCourseBooking(id) {
 }
 
 // 更新状态
-export function updateCourseBookingStatus(id, status) {
+export function updateCourseBookingStatus(id, status, config = {}) {
   return request({
     url: '/api/course/booking/status',
     method: 'put',
-    params: { id, status }
+    params: { id, status },
+    ...config
   })
 }
 
@@ -116,11 +118,12 @@ export function payCourseBooking(params) {
 }
 
 // 普通用户支付本人课程预约
-export function payMemberCourseBooking(params) {
+export function payMemberCourseBooking(params, config = {}) {
   return request({
     url: '/api/course/booking/member/payment',
     method: 'post',
-    params
+    params,
+    ...config
   })
 }
 

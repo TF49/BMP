@@ -509,11 +509,9 @@ function goProfile() {
 }
 
 function onAllCoaches() {
-  if (displayCoaches.value.length > 0) {
-    onCoachTap(displayCoaches.value[0])
-    return
-  }
-  uni.showToast({ title: '暂无可查看教练', icon: 'none' })
+  uni.navigateTo({
+    url: '/pages/coach/list'
+  })
 }
 
 function onCoachTap(c: CoachCard) {

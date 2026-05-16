@@ -629,7 +629,7 @@ onShow(() => {
 }
 
 .bottom-space {
-  height: 170rpx;
+  height: 220rpx; /* 增加底部间距，防止被 tabbar 遮挡 */
 }
 
 @keyframes spin {

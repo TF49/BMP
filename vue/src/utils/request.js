@@ -49,6 +49,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     const res = response.data
+    const skipErrorMessage = Boolean(response.config?.skipErrorMessage)
 
     // 如果返回的状态码不是200，则判断为错误
     if (res.code !== 200) {
@@ -63,7 +64,7 @@ service.interceptors.response.use(
       } else {
         // 统一错误提示：避免页面静默失败（例如统计卡片一直为0）
         const msg = res.message || '请求失败'
-        if (!isNonCriticalAPI) {
+        if (!isNonCriticalAPI && !skipErrorMessage) {
           try {
             ElMessage.error(msg)
           } catch (e) {
@@ -79,6 +80,7 @@ service.interceptors.response.use(
   },
   async error => {
     const originalRequest = error.config
+    const skipErrorMessage = Boolean(error.config?.skipErrorMessage)
 
     // 处理401错误（Token过期）
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
@@ -167,7 +169,7 @@ service.interceptors.response.use(
         case 403:
           // 拒绝访问，可能是token无效或过期，跳转到官网
           console.error('403 Forbidden: 拒绝访问，请重新登录')
-          if (!isNonCriticalAPI) {
+          if (!isNonCriticalAPI && !skipErrorMessage) {
             try { ElMessage.error('拒绝访问，请重新登录') } catch (e) {}
           }
           localStorage.removeItem('token')
@@ -178,20 +180,20 @@ service.interceptors.response.use(
         case 404:
           // 请求资源不存在
           console.error('404 Not Found: 请求的资源不存在', error.config.url)
-          if (!isNonCriticalAPI) {
+          if (!isNonCriticalAPI && !skipErrorMessage) {
             try { ElMessage.error('请求的资源不存在') } catch (e) {}
           }
           break
         case 500:
           // 服务器内部错误
           console.error('500 Server Error: 服务器内部错误')
-          if (!isNonCriticalAPI) {
+          if (!isNonCriticalAPI && !skipErrorMessage) {
             try { ElMessage.error('服务器内部错误') } catch (e) {}
           }
           break
         default:
           console.error(`HTTP 错误: ${error.response.status}`)
-          if (!isNonCriticalAPI) {
+          if (!isNonCriticalAPI && !skipErrorMessage) {
             try { ElMessage.error(`网络错误：${error.response.status}`) } catch (e) {}
           }
       }
@@ -200,7 +202,7 @@ service.interceptors.response.use(
       // 对于某些非关键API（如天气API），静默处理，不显示错误提示
       const isNonCriticalAPI = error.config?.url?.includes('/api/weather')
       
-      if (!isNonCriticalAPI) {
+      if (!isNonCriticalAPI && !skipErrorMessage) {
         console.error('无响应错误：请检查后端服务是否启动', error.message)
         try { ElMessage.error('无响应：请检查后端服务是否启动') } catch (e) {}
       }
@@ -208,7 +210,7 @@ service.interceptors.response.use(
       // 断网等情况
       const isNonCriticalAPI = isGracefulFallbackApi(error.config?.url || '')
       
-      if (!isNonCriticalAPI) {
+      if (!isNonCriticalAPI && !skipErrorMessage) {
         console.error('网络连接异常:', error.message)
         try { ElMessage.error('网络连接异常') } catch (e) {}
       }

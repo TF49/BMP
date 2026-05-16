@@ -693,6 +693,14 @@
       }
     },
     {
+      "path": "pages/coach/list",
+      "style": {
+        "navigationBarTitleText": "教练列表",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/coach/courses",
       "style": {
         "navigationBarTitleText": "我的课程",

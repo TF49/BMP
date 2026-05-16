@@ -42,7 +42,7 @@
               :key="course.id"
               class="course-card"
               :class="{ 
-                unavailable: course.status !== 1,
+                unavailable: !canBookCourse(course) && !hasBookedCourse(course),
                 selected: selectedCourse?.id === course.id
               }"
               @click="selectCourse(course)"
@@ -63,8 +63,8 @@
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">状态</span>
-                    <el-tag :type="course.status === 1 ? 'success' : 'info'" size="small">
-                      {{ course.status === 1 ? '可预约' : '已满员' }}
+                    <el-tag :type="getCourseStatusType(course)" size="small">
+                      {{ getCourseStatusText(course) }}
                     </el-tag>
                   </div>
                 </div>
@@ -235,15 +235,13 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { openActionConfirm } from '@/utils/confirm'
 import { Tickets, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getCourseList } from '@/api/course'
 import { getCourseBookingList, addCourseBooking, payMemberCourseBooking, updateCourseBookingStatus } from '@/api/courseBooking'
 import { getCurrentMember } from '@/api/member'
 
-const router = useRouter()
 const activeTab = ref('book')
 const step = ref(1) // 1-选择课程, 2-选择时间, 3-确认预约
 
@@ -285,6 +283,53 @@ const getCoursePrice = (course) => course?.coursePrice ?? course?.price ?? 0
 
 const getCourseDuration = (course) => course?.courseDuration ?? course?.duration ?? 60
 
+const getCourseRemaining = (course) => {
+  const maxStudents = Number(course?.maxStudents ?? 0)
+  const currentStudents = Number(course?.currentStudents ?? 0)
+  return Math.max(0, maxStudents - currentStudents)
+}
+
+const hasBookedCourse = (course) => Boolean(course?.hasBookedByCurrentUser)
+
+const isOwnCoachedCourse = (course) => Boolean(course?.isCurrentCourseCoach)
+
+const canBookCourse = (course) => {
+  if (!course) return false
+  return Number(course.status) === 1
+    && getCourseRemaining(course) > 0
+    && !hasBookedCourse(course)
+    && !isOwnCoachedCourse(course)
+}
+
+const getCourseStatusText = (course) => {
+  if (hasBookedCourse(course)) return '已预约'
+  if (isOwnCoachedCourse(course)) return '本人授课'
+  if (Number(course?.status) !== 1) return '暂不可约'
+  if (getCourseRemaining(course) <= 0) return '已满员'
+  return '可预约'
+}
+
+const getCourseStatusType = (course) => {
+  if (hasBookedCourse(course)) return 'warning'
+  if (isOwnCoachedCourse(course)) return 'info'
+  if (Number(course?.status) !== 1 || getCourseRemaining(course) <= 0) return 'info'
+  return 'success'
+}
+
+const syncBookedCourseState = (courseId, bookingId = null) => {
+  courseList.value = courseList.value.map((course) => {
+    if (course.id !== courseId) {
+      return course
+    }
+    return {
+      ...course,
+      hasBookedByCurrentUser: true,
+      currentUserBookingId: bookingId ?? course.currentUserBookingId ?? null,
+      currentStudents: Number(course.currentStudents ?? 0) + 1
+    }
+  })
+}
+
 const formatSelectedCourseSchedule = (course) => {
   if (!course) return '-'
   if (course.courseDate && course.courseStartTime && course.courseEndTime) {
@@ -317,6 +362,11 @@ const getStatusType = (status) => {
   return map[status] || 'info'
 }
 
+const getRequestErrorMessage = (error, fallback) => {
+  const message = error?.response?.data?.message || error?.message
+  return typeof message === 'string' && message.trim() ? message : fallback
+}
+
 const loadCourses = async () => {
   try {
     const res = await getCourseList({ page: 1, size: 100, status: 1 })
@@ -330,6 +380,20 @@ const loadCourses = async () => {
 }
 
 const selectCourse = (course) => {
+  if (hasBookedCourse(course)) {
+    filterStatus.value = null
+    ElMessage.info('您已预约该课程，可在“我的课程”中查看')
+    activeTab.value = 'my-courses'
+    return
+  }
+  if (isOwnCoachedCourse(course)) {
+    ElMessage.warning('不能预约自己授课的课程')
+    return
+  }
+  if (getCourseRemaining(course) <= 0) {
+    ElMessage.warning('该课程已满员')
+    return
+  }
   if (course.status !== 1) {
     ElMessage.warning('该课程暂不可预约')
     return
@@ -359,23 +423,27 @@ const submitBooking = async () => {
   
   submitting.value = true
   try {
+    const bookedCourseId = selectedCourse.value.id
     const res = await addCourseBooking({
       courseId: bookingForm.value.courseId,
       remark: bookingForm.value.remark
+    }, {
+      skipErrorMessage: true
     })
     
     if (res.code === 200) {
+      syncBookedCourseState(bookedCourseId, res.data?.id ?? null)
       ElMessage.success('预约成功！')
       resetBookingForm()
-      loadCourses()
+      filterStatus.value = null
       activeTab.value = 'my-courses'
-      loadMyCourses()
+      await Promise.all([loadCourses(), loadMyCourses()])
     } else {
       ElMessage.error(res.message || '预约失败')
     }
   } catch (e) {
     console.error('提交预约失败:', e)
-    ElMessage.error('预约失败，请稍后重试')
+    ElMessage.error(getRequestErrorMessage(e, '预约失败，请稍后重试'))
   } finally {
     submitting.value = false
   }
@@ -423,6 +491,8 @@ const handlePay = (course) => {
       const res = await payMemberCourseBooking({
         bookingId: course.id,
         paymentMethod: 'BALANCE'
+      }, {
+        skipErrorMessage: true
       })
       if (res.code === 200) {
         ElMessage.success('支付成功')
@@ -432,7 +502,7 @@ const handlePay = (course) => {
       }
     } catch (e) {
       console.error('课程支付失败:', e)
-      ElMessage.error(e.response?.data?.message || e.message || '支付失败，请稍后重试')
+      ElMessage.error(getRequestErrorMessage(e, '支付失败，请稍后重试'))
     }
   }).catch(() => {})
 }
@@ -452,17 +522,19 @@ const handleCancel = async (course) => {
       cancelButtonText: '继续保留'
     })
     
-    const res = await updateCourseBookingStatus(course.id, 0)
+    const res = await updateCourseBookingStatus(course.id, 0, {
+      skipErrorMessage: true
+    })
     if (res.code === 200) {
       ElMessage.success(course.status === 2 ? '已取消，退款申请已提交' : '取消成功')
-      loadMyCourses()
+      await Promise.all([loadMyCourses(), loadCourses()])
     } else {
       ElMessage.error(res.message || '取消失败')
     }
   } catch (e) {
     if (e !== 'cancel') {
       console.error('取消预约失败:', e)
-      ElMessage.error('取消失败，请稍后重试')
+      ElMessage.error(getRequestErrorMessage(e, '取消失败，请稍后重试'))
     }
   }
 }
@@ -470,6 +542,10 @@ const handleCancel = async (course) => {
 watch(activeTab, (newTab) => {
   if (newTab === 'my-courses') {
     loadMyCourses()
+    return
+  }
+  if (newTab === 'book') {
+    loadCourses()
   }
 })
 

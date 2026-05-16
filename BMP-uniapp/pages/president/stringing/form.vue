@@ -19,6 +19,31 @@
         <view class="scroll-inner">
           <view class="card">
             <view class="section-head">
+              <uni-icons type="location" size="22" color="#a33e00" />
+              <text class="section-label">服务场馆</text>
+            </view>
+            <view class="field full">
+              <text class="mini-label">所属场馆</text>
+              <picker
+                mode="selector"
+                :range="venueLabels"
+                :value="venuePickerIndex"
+                :disabled="isVenueManager || venueOptions.length === 0"
+                @change="onVenueChange"
+              >
+                <view class="picker-display" :class="{ disabled: isVenueManager || venueOptions.length === 0 }">
+                  <text class="picker-text" :class="{ placeholder: !selectedVenueLabel }">
+                    {{ selectedVenueLabel || (venuesLoading ? '场馆加载中...' : '请选择场馆') }}
+                  </text>
+                  <uni-icons :type="isVenueManager ? 'info' : 'arrowdown'" size="14" color="#5f5e5e" />
+                </view>
+              </picker>
+              <text v-if="isVenueManager" class="field-hint">当前账号为场馆管理员，工单将自动归属所属场馆。</text>
+            </view>
+          </view>
+
+          <view class="card">
+            <view class="section-head">
               <uni-icons type="person" size="22" color="#a33e00" />
               <text class="section-label">客户基本信息</text>
             </view>
@@ -199,6 +224,7 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import { useUserStore } from '@/store/modules/user'
+import { getVenueList, type VenueItem } from '@/api/president/venue'
 import {
   calculatePrice,
   createStringing,
@@ -211,6 +237,7 @@ import {
 } from '@/api/president/stringing'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { isPresidentRole } from '@/utils/roleCheck'
 
 const TENSION_MIN = 18
 const TENSION_MAX = 35
@@ -227,6 +254,9 @@ const userStore = useUserStore()
 const operatorAvatar = '/static/placeholders/hero.svg'
 const workloadBg = '/static/placeholders/hero.svg'
 
+const venueOptions = ref<VenueItem[]>([])
+const venuesLoading = ref(false)
+const selectedVenueId = ref(0)
 const stringOptions = ref<StringOption[]>([
   { label: '加载线材中...', cost: 0 }
 ])
@@ -242,6 +272,19 @@ const paymentStatus = ref<'paid' | 'pending'>('paid')
 const pendingCount = ref(0)
 const submitting = ref(false)
 
+const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
+const isVenueManager = computed(() => userStore.userInfo?.role === 'VENUE_MANAGER')
+const currentVenueId = computed(() => Number(userStore.userInfo?.venueId || 0))
+const venueLabels = computed(() => venueOptions.value.map((item) => item.venueName))
+const venuePickerIndex = computed(() => {
+  if (venueOptions.value.length === 0) return 0
+  const index = venueOptions.value.findIndex((item) => item.id === selectedVenueId.value)
+  return index >= 0 ? index : 0
+})
+const selectedVenueLabel = computed(() => {
+  const item = venueOptions.value.find((option) => option.id === selectedVenueId.value)
+  return item?.venueName || ''
+})
 const stringLabels = computed(() => stringOptions.value.map((o) => o.label))
 const currentString = computed(() => stringOptions.value[stringIndex.value] || stringOptions.value[0])
 const currentStringLabel = computed(() => currentString.value?.label || '请选择线材')
@@ -312,6 +355,32 @@ async function loadStringOptions() {
   }
 }
 
+async function loadVenueOptions() {
+  venuesLoading.value = true
+  try {
+    const result = await getVenueList({ page: 1, size: 1000 })
+    const list = Array.isArray(result?.data) ? result.data.filter((item) => Number(item?.id || 0) > 0) : []
+    venueOptions.value = list
+
+    if (isVenueManager.value && currentVenueId.value > 0) {
+      selectedVenueId.value = currentVenueId.value
+      return
+    }
+
+    if (selectedVenueId.value > 0 && list.some((item) => item.id === selectedVenueId.value)) {
+      return
+    }
+
+    selectedVenueId.value = list[0]?.id || 0
+  } catch (error) {
+    console.error('Failed to load venue options:', error)
+    venueOptions.value = []
+    selectedVenueId.value = isVenueManager.value ? currentVenueId.value : 0
+  } finally {
+    venuesLoading.value = false
+  }
+}
+
 async function loadPendingCount() {
   try {
     const result = await getStringingList({
@@ -329,6 +398,11 @@ async function loadPendingCount() {
 function onStringPick(e: { detail: { value: string } }) {
   stringIndex.value = Number(e.detail.value) || 0
   void syncPrice()
+}
+
+function onVenueChange(e: { detail: { value: string } }) {
+  const index = Number(e.detail.value)
+  selectedVenueId.value = venueOptions.value[index]?.id || 0
 }
 
 function onTensionInput(e: any) {
@@ -378,9 +452,9 @@ async function onConfirm() {
     uni.showToast({ title: '请选择线材', icon: 'none' })
     return
   }
-  const venueId = Number(userStore.userInfo?.venueId || 0)
+  const venueId = Number(selectedVenueId.value || 0)
   if (!userStore.userId || !venueId) {
-    uni.showToast({ title: '当前账号缺少场馆信息', icon: 'none' })
+    uni.showToast({ title: '请选择所属场馆', icon: 'none' })
     return
   }
 
@@ -443,6 +517,7 @@ async function onConfirm() {
 }
 
 onShow(() => {
+  void loadVenueOptions()
   void loadStringOptions()
   void loadPendingCount()
 })
@@ -618,10 +693,26 @@ onShow(() => {
   justify-content: space-between;
 }
 
+.picker-display.disabled {
+  opacity: 0.78;
+}
+
 .picker-text {
   font-size: 28rpx;
   color: #1a1c1c;
   font-weight: 600;
+}
+
+.picker-text.placeholder {
+  color: rgba(95, 94, 94, 0.45);
+}
+
+.field-hint {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: rgba(95, 94, 94, 0.75);
 }
 
 .tension-box {

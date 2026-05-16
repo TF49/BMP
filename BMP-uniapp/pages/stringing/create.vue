@@ -22,11 +22,50 @@
           <text class="sub">选择最适合您的球线与磅数，我们的专业穿线师将为您提供顶级竞技体验。</text>
         </view>
 
-        <!-- 01 球拍型号 -->
+        <!-- 01 场馆 -->
+        <view class="card">
+          <view class="card-head-between">
+            <view class="card-head">
+              <uni-icons type="location" size="16" color="#5a4136" />
+              <text class="card-title">01. Venue Selection 场馆选择</text>
+            </view>
+            <text v-if="selectedVenue" class="stock-pill venue-pill">营业中</text>
+          </view>
+
+          <picker v-if="venueLabels.length > 0" mode="selector" :range="venueLabels" :value="venuePickerIndex" @change="onVenueChange">
+            <view class="selector-box">
+              <view class="selector-copy">
+                <text class="selector-label">选择穿线服务场馆</text>
+                <text class="selector-value">{{ selectedVenue?.venueName || '请选择场馆' }}</text>
+              </view>
+              <uni-icons type="arrowdown" size="18" color="#5f5e5e" />
+            </view>
+          </picker>
+          <view v-else class="selector-box selector-box-disabled">
+            <view class="selector-copy">
+              <text class="selector-label">选择穿线服务场馆</text>
+              <text class="selector-value selector-placeholder">{{ venuesLoading ? '场馆加载中...' : '暂无可选场馆' }}</text>
+            </view>
+            <uni-icons type="info" size="18" color="#9ca3af" />
+          </view>
+
+          <view v-if="selectedVenue" class="venue-brief">
+            <view class="venue-brief-row">
+              <uni-icons type="location" size="14" color="#a33e00" />
+              <text class="venue-brief-text">{{ selectedVenue.address || '暂未设置地址' }}</text>
+            </view>
+            <view class="venue-brief-row">
+              <uni-icons type="calendar" size="14" color="#a33e00" />
+              <text class="venue-brief-text">{{ selectedVenue.businessHours || '营业时间待更新' }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 02 球拍型号 -->
         <view class="card">
           <view class="card-head">
             <uni-icons type="loop" size="16" color="#5a4136" />
-            <text class="card-title">01. Racket Model 球拍型号</text>
+            <text class="card-title">02. Racket Model 球拍型号</text>
           </view>
           <view class="field-wrap">
             <text class="float-label">输入您的球拍型号</text>
@@ -40,12 +79,12 @@
           </view>
         </view>
 
-        <!-- 02 球线 -->
+        <!-- 03 球线 -->
         <view class="card">
           <view class="card-head-between">
             <view class="card-head">
               <uni-icons type="bars" size="16" color="#5a4136" />
-              <text class="card-title">02. String Selection 球线选择</text>
+              <text class="card-title">03. String Selection 球线选择</text>
             </view>
             <text class="stock-pill">库存充足</text>
           </view>
@@ -84,11 +123,11 @@
         </view>
 
         <view class="two-col">
-          <!-- 03 磅数 -->
+          <!-- 04 磅数 -->
           <view class="card half">
             <view class="card-head">
               <uni-icons type="settings" size="16" color="#5a4136" />
-              <text class="card-title">03. Tension 磅数</text>
+              <text class="card-title">04. Tension 磅数</text>
             </view>
             <view class="tension-display">
               <text class="tension-num">{{ tensionDisplay }}</text>
@@ -107,11 +146,11 @@
             </view>
           </view>
 
-          <!-- 04 取拍时间 -->
+          <!-- 05 取拍时间 -->
           <view class="card half">
             <view class="card-head">
               <uni-icons type="calendar" size="16" color="#5a4136" />
-              <text class="card-title">04. Pickup 取拍时间</text>
+              <text class="card-title">05. Pickup 取拍时间</text>
             </view>
             <view class="pick-row">
               <text class="pick-label">期望取拍日期</text>
@@ -202,6 +241,8 @@ import { getVenueList } from '@/api/venue'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { getAvatarImage } from '@/utils/displayImage'
 import { validateRacketBrand, validateRacketModel, validateRemark } from '@/utils/validate'
+import { parsePagedList } from '@/utils/parsePagedList'
+import type { VenueItem } from '@/api/venue'
 import type { MemberInfo } from '@/api/member'
 
 const userStore = useUserStore()
@@ -216,6 +257,8 @@ const stringList = ref<StringInfo[]>([])
 const stringsLoading = ref(false)
 const selectedStringId = ref<number | null>(null)
 const selectedPound = ref(26)
+const venueList = ref<VenueItem[]>([])
+const venuesLoading = ref(false)
 const tensionOptions = [
   { label: '24', value: 24 },
   { label: '26', value: 26 },
@@ -226,13 +269,20 @@ const tensionOptions = [
 const pickupDate = ref('')
 const pickupTime = ref('18:00')
 
-const defaultVenueId = ref<number>(0)
+const selectedVenueId = ref<number>(0)
 const submitting = ref(false)
 const priceHint = ref('')
 const currentMember = ref<MemberInfo | null>(null)
 
 const gridStrings = computed(() => stringList.value.slice(0, 3))
 const hasMoreStrings = computed(() => stringList.value.length > 3)
+const venueLabels = computed(() => venueList.value.map((item) => item.venueName))
+const venuePickerIndex = computed(() => {
+  if (venueList.value.length === 0) return 0
+  const index = venueList.value.findIndex((item) => item.id === selectedVenueId.value)
+  return index >= 0 ? index : 0
+})
+const selectedVenue = computed(() => venueList.value.find((item) => item.id === selectedVenueId.value) || null)
 
 const tensionDisplay = computed(() => (selectedPound.value === 32 ? '30+' : String(selectedPound.value)))
 
@@ -299,6 +349,11 @@ function onPickTime(e: { detail: { value: string } }) {
   pickupTime.value = e.detail.value
 }
 
+function onVenueChange(e: { detail: { value: string | number } }) {
+  const index = Number(e.detail.value)
+  selectedVenueId.value = venueList.value[index]?.id || 0
+}
+
 function goNotice() {
   uni.navigateTo({ url: '/pages/notice/index' })
 }
@@ -311,7 +366,7 @@ const canSubmit = computed(() => {
   const { brand, model } = splitRacketLabel(racketFullLine.value)
   if (!validateRacketBrand(brand) || !validateRacketModel(model)) return false
   if (!selectedStringId.value) return false
-  if (!defaultVenueId.value) return false
+  if (!selectedVenueId.value) return false
   if (!Number(currentMember.value?.id || 0)) return false
   return true
 })
@@ -364,20 +419,27 @@ async function loadStrings() {
   }
 }
 
-async function loadDefaultVenue() {
-  const fromUser = Number((userStore.userInfo as { venueId?: number } | null)?.venueId || 0)
-  if (fromUser > 0) {
-    defaultVenueId.value = fromUser
-    return
-  }
+async function loadVenueOptions() {
+  venuesLoading.value = true
   try {
-    const res = await getVenueList({ status: 1, page: 1, size: 1 })
-    const first = res.data?.[0]
-    if (first?.id) {
-      defaultVenueId.value = first.id
+    const res = await getVenueList({ status: 1, page: 1, size: 200 })
+    const parsed = parsePagedList<VenueItem>(res)
+    const list = parsed.list.filter((item) => Number(item?.id || 0) > 0)
+    venueList.value = list
+
+    const fromUser = Number((userStore.userInfo as { venueId?: number } | null)?.venueId || 0)
+    if (fromUser > 0 && list.some((item) => item.id === fromUser)) {
+      selectedVenueId.value = fromUser
+      return
     }
+
+    selectedVenueId.value = list[0]?.id || 0
   } catch (e) {
-    console.error(e)
+    console.error('加载场馆列表失败:', e)
+    venueList.value = []
+    selectedVenueId.value = 0
+  } finally {
+    venuesLoading.value = false
   }
 }
 
@@ -411,7 +473,7 @@ async function handleSubmit() {
 
   const payload: CreateStringingParams = {
     memberId,
-    venueId: defaultVenueId.value,
+    venueId: selectedVenueId.value,
     racketBrand: brand,
     racketModel: model,
     stringId: sel.id,
@@ -468,8 +530,8 @@ onMounted(async () => {
   if (!currentMember.value?.id) {
     uni.showToast({ title: '当前用户未绑定会员，无法提交穿线服务', icon: 'none' })
   }
-  await loadDefaultVenue()
-  if (!defaultVenueId.value) {
+  await loadVenueOptions()
+  if (!selectedVenueId.value) {
     uni.showToast({ title: '未获取到场馆，请稍后再试', icon: 'none' })
   }
   await loadStrings()
@@ -617,6 +679,75 @@ onMounted(async () => {
   background-color: #ffdbcd;
   padding: 8rpx 16rpx;
   border-radius: 8rpx;
+}
+
+.venue-pill {
+  white-space: nowrap;
+}
+
+.selector-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 28rpx 32rpx;
+  border-radius: 24rpx;
+  background-color: #f3f3f3;
+}
+
+.selector-box-disabled {
+  opacity: 0.7;
+}
+
+.selector-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.selector-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5f5e5e;
+  letter-spacing: 1rpx;
+  text-transform: uppercase;
+}
+
+.selector-value {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+  line-height: 1.4;
+}
+
+.selector-placeholder {
+  color: #9ca3af;
+}
+
+.venue-brief {
+  margin-top: 24rpx;
+  padding: 24rpx 28rpx;
+  border-radius: 20rpx;
+  background: #faf1eb;
+}
+
+.venue-brief-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.venue-brief-row + .venue-brief-row {
+  margin-top: 12rpx;
+}
+
+.venue-brief-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 24rpx;
+  color: #5f5e5e;
+  line-height: 1.5;
 }
 
 .field-wrap {
