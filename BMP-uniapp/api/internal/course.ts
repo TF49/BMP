@@ -1,5 +1,6 @@
 import { request } from '@/utils/request'
 import { API_PATHS } from '@/config/api'
+import { parsePagedList } from '@/utils/parsePagedList'
 
 export interface CourseItem {
   id: number
@@ -219,17 +220,25 @@ export function deleteCourseBooking(id: number) {
 }
 
 /**
- * 获取教练列表（用于课程筛选）
+ * 获取教练列表（统一走教练主列表接口，避免课程页与教练页出现不同源数据）
  */
-export function getCoachList(params?: {
+export async function getCoachList(params?: {
   status?: number
   keyword?: string
   page?: number
   size?: number
 }) {
-  return request<any[]>({
-    url: API_PATHS.COURSE.COACHES,
+  const result = await request<{
+    data: any[]
+    total: number
+    page: number
+    size: number
+    pages: number
+  }>({
+    url: '/coach/list',
     method: 'GET',
     data: params
   })
+
+  return parsePagedList(result).list
 }

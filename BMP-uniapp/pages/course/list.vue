@@ -235,6 +235,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getCourseList, getCoachList, type CourseItem } from '@/api/course'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
+import { resolveImageUrl } from '@/utils/resolveImageUrl'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
@@ -285,6 +286,8 @@ interface CoachCard {
 interface ApiCoach {
   id: number
   name: string
+  title: string
+  avatar: string
 }
 
 const apiCoaches = ref<ApiCoach[]>([])
@@ -296,8 +299,8 @@ const displayCoaches = computed<CoachCard[]>(() => {
   return apiCoaches.value.slice(0, 8).map((c) => ({
     id: c.id,
     name: c.name,
-    title: '专业教练',
-    avatar: ''
+    title: c.title,
+    avatar: c.avatar
   }))
 })
 
@@ -458,23 +461,18 @@ async function loadCourseList() {
 
 async function loadCoachList() {
   try {
-    const result = await getCoachList({ page: 1, size: 50 })
+    const result = await getCoachList({ page: 1, size: 1000 })
     const arr = Array.isArray(result) ? result : []
     apiCoaches.value = arr.map((coach: any) => ({
       id: coach.id,
-      name: coach.coachName || coach.name || '教练'
+      name: coach.coachName || coach.name || '教练',
+      title:
+        String(coach.specialty || '')
+          .split(/[，,、/|；;\s]+/)
+          .map((item) => item.trim())
+          .filter(Boolean)[0] || coach.venueName || '专业教练',
+      avatar: resolveImageUrl(coach.avatar) || ''
     }))
-    if (apiCoaches.value.length === 0) {
-      const cached = uni.getStorageSync('coaches_cache')
-      if (cached && Array.isArray(cached)) {
-        apiCoaches.value = cached.map((coach: any) => ({
-          id: coach.id,
-          name: coach.coachName || coach.name
-        }))
-      }
-    } else {
-      uni.setStorageSync('coaches_cache', arr)
-    }
   } catch {
     apiCoaches.value = []
   }
@@ -564,6 +562,7 @@ onPullDownRefresh(() => {
 onShow(() => {
   if (!hasMounted.value || !userStore.isLoggedIn) return
   void loadCourseList()
+  void loadCoachList()
 })
 </script>
 

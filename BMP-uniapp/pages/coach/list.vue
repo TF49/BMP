@@ -94,7 +94,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { getCoachList, type CoachDto } from '@/api/coach'
 import { parsePagedList } from '@/utils/parsePagedList'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
@@ -217,6 +217,11 @@ onLoad(() => {
     return
   }
 
+  reloadList()
+})
+
+onShow(() => {
+  if (!userStore.isLoggedIn) return
   reloadList()
 })
 

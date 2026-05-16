@@ -226,9 +226,9 @@ import {
   deleteCourse,
   updateCourseStatus,
   getCourseStatistics,
-  getCourseCoaches,
   getCourseCourts
 } from '@/api/course'
+import { getCoachList as getCoachCatalog } from '@/api/coach'
 
 const searchForm = reactive({
   name: '',
@@ -317,9 +317,9 @@ const formatDateTime = (dateTime) => {
 
 const loadCoaches = async () => {
   try {
-    const res = await getCourseCoaches()
+    const res = await getCoachCatalog({ page: 1, size: 500 })
     if (res.code === 200) {
-      coachOptions.value = res.data || []
+      coachOptions.value = res.data?.data || []
     }
   } catch (e) {
     console.error('加载教练下拉失败:', e)
