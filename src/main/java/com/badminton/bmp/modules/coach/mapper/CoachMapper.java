@@ -54,7 +54,7 @@ public interface CoachMapper {
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND (c.coach_name LIKE CONCAT('%', #{keyword}, '%') " +
             "OR c.phone LIKE CONCAT('%', #{keyword}, '%')) </if>" +
-            "ORDER BY c.venue_id, c.create_time DESC " +
+            "ORDER BY c.create_time DESC, c.id DESC " +
             "LIMIT #{offset}, #{limit}" +
             "</script>")
     List<Coach> findAll(@Param("venueId") Long venueId,

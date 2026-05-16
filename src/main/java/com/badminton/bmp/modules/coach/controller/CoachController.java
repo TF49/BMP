@@ -65,7 +65,7 @@ public class CoachController extends BaseController {
             if (page < 1) {
                 page = 1;
             }
-            if (size < 1 || size > 100) {
+            if (size < 1 || size > 1000) {
                 size = 10;
             }
 

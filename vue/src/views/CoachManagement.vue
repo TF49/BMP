@@ -516,6 +516,9 @@ const handleSubmit = async () => {
       if (res.code === 200) {
         ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
         dialogVisible.value = false
+        if (!isEdit.value) {
+          pagination.page = 1
+        }
         loadList()
         loadStatistics()
       } else {

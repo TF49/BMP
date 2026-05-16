@@ -118,7 +118,7 @@ const userStore = useUserStore()
 const statusBarHeight = ref(44)
 const headerOffset = computed(() => statusBarHeight.value + 164)
 const page = ref(1)
-const size = 10
+const size = 100
 const total = ref(0)
 const loading = ref(false)
 const errorText = ref('')
@@ -152,6 +152,25 @@ function mapCoach(item: CoachDto): CoachCard {
   }
 }
 
+function buildQuery(pageNo: number) {
+  return {
+    page: pageNo,
+    size,
+    keyword: keyword.value || undefined,
+    status: statusFilter.value >= 0 ? statusFilter.value : undefined
+  }
+}
+
+async function fetchListPage(pageNo: number) {
+  const result = await getCoachList(buildQuery(pageNo))
+  const parsed = parsePagedList<CoachDto>(result)
+  const mapped = parsed.list.map(mapCoach).filter((item) => item.id > 0)
+  return {
+    list: mapped,
+    total: parsed.total
+  }
+}
+
 async function fetchList(reset = false) {
   if (loading.value) return
   loading.value = true
@@ -162,16 +181,34 @@ async function fetchList(reset = false) {
   }
 
   try {
-    const result = await getCoachList({
-      page: page.value,
-      size,
-      keyword: keyword.value || undefined,
-      status: statusFilter.value >= 0 ? statusFilter.value : undefined
-    })
-    const parsed = parsePagedList<CoachDto>(result)
-    const mapped = parsed.list.map(mapCoach).filter((item) => item.id > 0)
-    total.value = parsed.total
-    coachList.value = reset ? mapped : coachList.value.concat(mapped)
+    if (reset) {
+      const merged = new Map<number, CoachCard>()
+      let currentPage = 1
+      let expectedTotal = 0
+
+      while (true) {
+        const { list, total: currentTotal } = await fetchListPage(currentPage)
+        expectedTotal = currentTotal
+
+        list.forEach((item) => {
+          merged.set(item.id, item)
+        })
+
+        if (merged.size >= expectedTotal || list.length < size || currentPage >= 100) {
+          break
+        }
+        currentPage += 1
+      }
+
+      total.value = expectedTotal
+      coachList.value = Array.from(merged.values())
+      page.value = currentPage
+      return
+    }
+
+    const { list, total: currentTotal } = await fetchListPage(page.value)
+    total.value = currentTotal
+    coachList.value = coachList.value.concat(list)
   } catch (error) {
     if (coachList.value.length === 0) {
       errorText.value = error instanceof Error ? error.message : '加载教练列表失败'
