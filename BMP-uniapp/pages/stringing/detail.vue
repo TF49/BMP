@@ -87,15 +87,12 @@
             </view>
           </view>
 
-          <view class="action-row">
+          <view class="action-row" v-if="showPayButton || showCancelButton">
             <view v-if="showPayButton" class="action-btn pay" @tap="handlePay">
               余额支付
             </view>
             <view v-if="showCancelButton" class="action-btn secondary" @tap="handleCancel">
               取消服务
-            </view>
-            <view class="action-btn primary" @tap="handleReorder">
-              再次预约
             </view>
           </view>
         </template>

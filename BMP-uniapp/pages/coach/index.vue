@@ -497,7 +497,7 @@ onShow(() => {
 
 .time-start {
   display: block;
-  font-size: 28px;
+  font-size: 40rpx;
   line-height: 1;
   font-weight: 900;
 }
@@ -513,14 +513,20 @@ onShow(() => {
 .course-block {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .timeline-course-name {
   display: block;
-  font-size: 22px;
+  font-size: 36rpx;
   line-height: 1.2;
   font-weight: 900;
   color: #1a1c1c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .course-meta-row {
