@@ -102,6 +102,18 @@
                       <text class="amount-text">¥{{ item.amountText }}</text>
                     </view>
                   </view>
+                  <view
+                    v-if="getPaymentCountdownInfo(item).show"
+                    class="payment-countdown"
+                    :class="{ 'payment-countdown--expired': isPaymentExpired(item) }"
+                  >
+                    <uni-icons
+                      type="notification"
+                      size="14"
+                      :color="isPaymentExpired(item) ? '#dc2626' : '#f97316'"
+                    />
+                    <text>{{ getPaymentCountdownInfo(item).text }}</text>
+                  </view>
                 </view>
               </view>
 
@@ -162,6 +174,7 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import {
   getBookingList,
   getBookingStatistics,
@@ -193,6 +206,8 @@ type BookingCard = {
   amountText: string
   statusText: string
   statusKey: Exclude<StatusKey, 'all'>
+  paymentStatus: number
+  createTime: string
 }
 
 const PAGE_SIZE = 10
@@ -207,6 +222,18 @@ const page = ref(1)
 const total = ref(0)
 const stats = ref<BookingStatistics | null>(null)
 const summary = ref<PresidentDashboardSummary | null>(null)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => cards.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await reload()
+  }
+})
 
 const tabs: Array<{ key: StatusKey; label: string }> = [
   { key: 'all', label: '全部' },
@@ -300,8 +327,33 @@ function mapCard(item: BookingItem): BookingCard {
     timeText: `${String(item.startTime || '--:--').slice(0, 5)} - ${String(item.endTime || '--:--').slice(0, 5)}`,
     amountText: formatAmount(Number(item.orderAmount ?? item.amount ?? 0)),
     statusText: statusMeta.text,
-    statusKey: statusMeta.key
+    statusKey: statusMeta.key,
+    paymentStatus: Number(item.paymentStatus ?? 0),
+    createTime: String(item.createTime || '')
   }
+}
+
+function getPaymentCountdownInfo(item: Pick<BookingCard, 'statusKey' | 'paymentStatus' | 'createTime'>) {
+  const statusMap: Record<Exclude<StatusKey, 'all'>, number> = {
+    pending: 1,
+    paid: 2,
+    ongoing: 3,
+    completed: 4,
+    cancelled: 0
+  }
+  return getPaymentAutoCancelInfo({
+    status: statusMap[item.statusKey],
+    paymentStatus: item.paymentStatus,
+    createTime: item.createTime
+  }, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  })
+}
+
+function isPaymentExpired(item: Pick<BookingCard, 'statusKey' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentCountdownInfo(item).expired
 }
 
 async function fetchSummary() {
@@ -391,6 +443,7 @@ function goCourtManagement() {
 
 onLoad(() => {
   statusBarHeight.value = getSafeSystemInfo().statusBarHeight || 20
+  void loadPaymentAutoCancelConfig()
 })
 
 onShow(() => {
@@ -697,6 +750,24 @@ onShow(() => {
   display: inline-flex;
   align-items: center;
   gap: 8rpx;
+}
+
+.payment-countdown {
+  margin-top: 12rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(249, 115, 22, 0.12);
+  color: #c2410c;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.payment-countdown--expired {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
 }
 
 .amount-text {

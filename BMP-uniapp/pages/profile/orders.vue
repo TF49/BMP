@@ -98,8 +98,15 @@
 
             <view class="meta-row">
               <text class="meta-pill">{{ item.orderNo }}</text>
-              <text class="meta-pill">{{ item.statusText }}</text>
+              <text class="meta-pill" :class="{ expired: isPaymentExpired(item) }">{{ getOrderStatusText(item) }}</text>
               <text class="meta-pill">{{ item.paymentText }}</text>
+              <text
+                v-if="getPaymentCountdownInfo(item).show"
+                class="meta-pill"
+                :class="isPaymentExpired(item) ? 'expired' : 'countdown'"
+              >
+                {{ getPaymentCountdownInfo(item).text }}
+              </text>
             </view>
 
             <view class="order-footer">
@@ -122,6 +129,7 @@ import MobileLayout from '@/components/MobileLayout.vue'
 import { safeNavigateBack } from '@/utils/navigation'
 import { useUserStore } from '@/store/modules/user'
 import { useCurrentMember } from '@/composables/useCurrentMember'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import { getBookingList } from '@/api/booking'
 import { getCourseBookingList } from '@/api/course'
 import { getEquipmentRentalList } from '@/api/equipment'
@@ -146,6 +154,18 @@ const loadError = ref('')
 const orders = ref<UnifiedOrderItem[]>([])
 const activeLifecycle = ref<'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'>('ALL')
 const activeBusiness = ref<'ALL' | OrderBusinessType>('ALL')
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => orders.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await reloadAll()
+  }
+})
 
 const lifecycleTabs = [
   { label: '全部', value: 'ALL' },
@@ -173,6 +193,25 @@ const businessTextMap: Record<OrderBusinessType, string> = {
 
 const activeLifecycleLabel = computed(() => lifecycleTabs.find((item) => item.value === activeLifecycle.value)?.label || '全部')
 const filteredOrders = computed(() => filterUnifiedOrders(orders.value, activeLifecycle.value, activeBusiness.value))
+
+const getPaymentCountdownInfo = (item: UnifiedOrderItem) => getPaymentAutoCancelInfo({
+  status: item.businessStatus,
+  paymentStatus: item.paymentStatus,
+  createTime: item.createTime
+}, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+
+const isPaymentExpired = (item: UnifiedOrderItem) => getPaymentCountdownInfo(item).expired
+
+const getOrderStatusText = (item: UnifiedOrderItem) => {
+  if (isPaymentExpired(item)) {
+    return '已超时'
+  }
+  return item.statusText
+}
 
 type PagedListResult<T> = {
   data?: T[]
@@ -227,7 +266,7 @@ const reloadAll = async () => {
       ...equipmentList.map(mapEquipmentOrder),
       ...tournamentList.map(mapTournamentOrder),
       ...stringingList.map(mapStringingOrder)
-    ].sort((a, b) => String(b.timeText).localeCompare(String(a.timeText)))
+    ].sort((a, b) => String(b.createTime || '').localeCompare(String(a.createTime || '')))
   } catch (error) {
     console.error('加载订单中心失败:', error)
     loadError.value = error instanceof Error ? error.message : '订单中心加载失败，请稍后重试'
@@ -253,6 +292,7 @@ onMounted(async () => {
     uni.redirectTo({ url: '/pages/login/login' })
     return
   }
+  await loadPaymentAutoCancelConfig()
   await reloadAll()
 })
 </script>
@@ -556,6 +596,16 @@ onMounted(async () => {
   font-size: 20rpx;
   color: #6b625c;
   font-weight: 700;
+
+  &.countdown {
+    background: rgba(249, 115, 22, 0.12);
+    color: #c2410c;
+  }
+
+  &.expired {
+    background: rgba(220, 38, 38, 0.12);
+    color: #b91c1c;
+  }
 }
 
 .order-footer {

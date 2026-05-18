@@ -57,6 +57,12 @@
               <text class="label">支付方式</text>
               <text class="value">{{ paymentMethodText }}</text>
             </view>
+            <view v-if="paymentCountdownInfo.show" class="row">
+              <text class="label">支付时限</text>
+              <text class="value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
+                {{ paymentCountdownInfo.text }}
+              </text>
+            </view>
           </view>
 
           <view class="card">
@@ -128,6 +134,7 @@ import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PAYMENT_METHOD_TEXT } from '@/utils/constant'
 import { formatAmount, formatDateTime } from '@/utils/format'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 const userStore = useUserStore()
 const { currentMember, fetchCurrentMember } = useCurrentMember()
@@ -139,6 +146,17 @@ const submitting = ref(false)
 const registrationId = ref(0)
 const tournamentId = ref(0)
 const detail = ref<TournamentRegistrationItem | null>(null)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => paymentCountdownInfo.value.expired,
+  refreshOnExpire: async () => {
+    await loadDetail()
+  }
+})
 
 const amountText = computed(() => formatAmount(detail.value?.entryFee || 0))
 const memberBalanceText = computed(() => formatAmount(currentMember.value?.balance || 0))
@@ -165,6 +183,11 @@ const paymentStatusText = computed(() => {
   if (paymentStatus === 2) return '已退款'
   return '待支付'
 })
+const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+}))
 
 const tournamentTimeText = computed(() => {
   const current = detail.value
@@ -178,7 +201,10 @@ const tournamentTimeText = computed(() => {
 const showPayButton = computed(() => {
   if (!detail.value) return false
   const paymentStatus = Number(detail.value.paymentStatus ?? 0)
-  return Number(detail.value.status ?? -1) === 1 && paymentStatus !== 1 && paymentStatus !== 2
+  return Number(detail.value.status ?? -1) === 1
+    && paymentStatus !== 1
+    && paymentStatus !== 2
+    && !paymentCountdownInfo.value.expired
 })
 
 async function loadDetail() {
@@ -214,12 +240,22 @@ function handleBack() {
 
 async function handlePayment() {
   if (!detail.value || submitting.value || !showPayButton.value) return
+  if (paymentCountdownInfo.value.expired) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    await loadDetail()
+    return
+  }
 
   uni.showModal({
     title: '确认本人余额支付',
     content: `将使用本人余额支付赛事报名费用。\n当前余额：¥${memberBalanceText.value}\n支付金额：¥${amountText.value}`,
     success: async (res) => {
       if (!res.confirm || !detail.value) return
+      if (paymentCountdownInfo.value.expired || !showPayButton.value) {
+        uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+        await loadDetail()
+        return
+      }
       try {
         submitting.value = true
         uni.showLoading({ title: '余额支付中...' })
@@ -252,6 +288,7 @@ onLoad((options?: Record<string, string | undefined>) => {
 
   registrationId.value = Number(options?.registrationId || options?.id || 0)
   tournamentId.value = Number(options?.tournamentId || 0)
+  void loadPaymentAutoCancelConfig()
   void loadDetail()
 })
 </script>

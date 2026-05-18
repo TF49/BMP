@@ -395,11 +395,19 @@
                   <p class="booking-time">{{ formatTimeRange(booking.startTime, booking.endTime, booking.bookingDate) }}</p>
                   <!-- 后端金额字段为 orderAmount，这里使用它来展示实际订单金额 -->
                   <p class="booking-amount">¥{{ formatCurrency(booking.orderAmount) }}</p>
+                  <el-tag
+                    v-if="getPaymentCountdownInfo(booking).show"
+                    :type="isPaymentExpired(booking) ? 'danger' : 'warning'"
+                    effect="plain"
+                    size="small"
+                  >
+                    {{ getPaymentCountdownInfo(booking).text }}
+                  </el-tag>
                 </div>
               </div>
               <div class="booking-actions">
                 <el-button
-                  v-if="booking.status === 1"
+                  v-if="booking.status === 1 && !isPaymentExpired(booking)"
                   type="primary"
                   size="small"
                   @click="handlePay(booking)"
@@ -441,6 +449,7 @@ import { ArrowLeft, OfficeBuilding, Location, Coin, InfoFilled } from '@element-
 import { CircleCheck } from '@element-plus/icons-vue'
 import { getVenueList } from '@/api/venue'
 import { getCourtList, getTodayBookingCounts } from '@/api/court'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import {
   getBookingList,
   addBooking,
@@ -473,6 +482,28 @@ const pricingMode = ref('SHARED_HOUR')
 const myBookings = ref([])
 const filterStatus = ref(null)
 const currentMember = ref(null)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => myBookings.value.some((item) => getPaymentAutoCancelInfo(item, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  }).expired),
+  refreshOnExpire: async () => {
+    await loadMyBookings()
+  }
+})
+const getPaymentCountdownInfo = (booking) => getPaymentAutoCancelInfo(booking, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+const isPaymentExpired = (booking) => getPaymentCountdownInfo(booking).expired
 
 // 选择场地步骤使用的日期（与管理员端一致：按日期显示场地状态）
 const getLocalTodayDateStr = () => {
@@ -1079,6 +1110,11 @@ const loadMyBookings = async () => {
 }
 
 const handlePay = (booking) => {
+  if (isPaymentExpired(booking)) {
+    ElMessage.warning('该预约订单已超过支付时限，系统正在自动取消，请稍后刷新')
+    loadMyBookings()
+    return
+  }
   openActionConfirm({
     title: '预约支付确认',
     eyebrow: 'BALANCE PAYMENT',
@@ -1090,6 +1126,11 @@ const handlePay = (booking) => {
     confirmButtonText: '确认支付',
     cancelButtonText: '稍后支付'
   }).then(async () => {
+    if (isPaymentExpired(booking)) {
+      ElMessage.warning('该预约订单已超过支付时限，系统正在自动取消，请稍后刷新')
+      await loadMyBookings()
+      return
+    }
     try {
       const res = await payMemberBooking({
         bookingId: booking.id,
@@ -1175,6 +1216,7 @@ const loadCurrentMember = async () => {
 }
 
 onMounted(() => {
+  loadPaymentAutoCancelConfig()
   loadCurrentMember()
   loadVenues()
   if (activeTab.value === 'my-bookings') {

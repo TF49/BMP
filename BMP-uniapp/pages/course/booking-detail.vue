@@ -77,6 +77,12 @@
                 <text class="label">支付方式</text>
                 <text class="value">{{ paymentMethodText }}</text>
               </view>
+              <view v-if="paymentCountdownInfo.show" class="row">
+                <text class="label">支付时限</text>
+                <text class="value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
+                  {{ paymentCountdownInfo.text }}
+                </text>
+              </view>
               <view class="row">
                 <text class="label">创建时间</text>
                 <text class="value">{{ formatDateTime(detail.createTime) || '未知时间' }}</text>
@@ -116,6 +122,7 @@ import { safeNavigateBack } from '@/utils/navigation'
 import { useUserStore } from '@/store/modules/user'
 import { PAYMENT_METHOD_TEXT, BOOKING_STATUS, BOOKING_STATUS_TEXT } from '@/utils/constant'
 import { formatAmount, formatDateTime } from '@/utils/format'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 const userStore = useUserStore()
 
@@ -125,6 +132,17 @@ const detail = ref<CourseBookingItem | null>(null)
 const loading = ref(true)
 const submitting = ref(false)
 const errorText = ref('')
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => paymentCountdownInfo.value.expired,
+  refreshOnExpire: async () => {
+    await loadDetail()
+  }
+})
 
 const bookingStatusText = BOOKING_STATUS_TEXT as Record<number, string>
 const amountText = computed(() => formatAmount(detail.value?.orderAmount || 0))
@@ -143,9 +161,16 @@ const paymentMethodText = computed(() => {
   const method = detail.value?.paymentMethod as keyof typeof PAYMENT_METHOD_TEXT | undefined
   return method ? PAYMENT_METHOD_TEXT[method] || method : '余额'
 })
+const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+}))
 const showPayButton = computed(() => {
   if (!detail.value) return false
-  return Number(detail.value.status ?? -1) === BOOKING_STATUS.PENDING_PAYMENT && Number(detail.value.paymentStatus ?? 0) !== 1
+  return Number(detail.value.status ?? -1) === BOOKING_STATUS.PENDING_PAYMENT
+    && Number(detail.value.paymentStatus ?? 0) !== 1
+    && !paymentCountdownInfo.value.expired
 })
 
 async function loadDetail() {
@@ -178,12 +203,22 @@ function openCourseDetail() {
 
 async function handlePay() {
   if (!detail.value || submitting.value || !showPayButton.value) return
+  if (paymentCountdownInfo.value.expired) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    await loadDetail()
+    return
+  }
 
   uni.showModal({
     title: '确认余额支付',
     content: `将使用本人余额支付课程预约费用。\n支付金额：¥${amountText.value}`,
     success: async (res) => {
       if (!res.confirm || !detail.value) return
+      if (paymentCountdownInfo.value.expired || !showPayButton.value) {
+        uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+        await loadDetail()
+        return
+      }
       try {
         submitting.value = true
         uni.showLoading({ title: '余额支付中...' })
@@ -215,6 +250,7 @@ onLoad((options?: Record<string, string | undefined>) => {
   }
 
   bookingId.value = Number(options?.id || options?.bookingId || 0)
+  void loadPaymentAutoCancelConfig()
   void loadDetail()
 })
 </script>

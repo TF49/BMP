@@ -4,6 +4,7 @@ import com.badminton.bmp.modules.booking.entity.Booking;
 import com.badminton.bmp.modules.court.dto.CourtBookingUserDTO;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -131,6 +132,11 @@ public interface BookingService {
      * 将已过结束时间的“进行中”预约批量改为已完成，并重算涉及场地的状态（定时任务调用）
      */
     void completeOverdueInProgressBookings();
+
+    /**
+     * 定时任务：自动取消创建时间早于截止时间且仍未支付的预约订单
+     */
+    int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff);
 
     /**
      * 运营待办数量（与 operation-todo 接口返回结构一致，用于 WebSocket 推送）

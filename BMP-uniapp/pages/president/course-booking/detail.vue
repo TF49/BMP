@@ -67,6 +67,12 @@
                 <text class="field-label">支付状态</text>
                 <text class="field-value">{{ paymentStatusLabel }}</text>
               </view>
+              <view v-if="paymentCountdownInfo.show" class="field-row">
+                <text class="field-label">支付时限</text>
+                <text class="field-value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
+                  {{ paymentCountdownInfo.text }}
+                </text>
+              </view>
             </view>
 
             <view class="card">
@@ -115,6 +121,7 @@ import { formatAmount, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { BOOKING_STATUS, BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 type CourseBookingDetail = CourseBookingItem & {
   coachName?: string
@@ -129,6 +136,19 @@ type CourseBookingDetail = CourseBookingItem & {
 const detail = ref<CourseBookingDetail | null>(null)
 const loading = ref(false)
 const loadError = ref('')
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => paymentCountdownInfo.value.expired,
+  refreshOnExpire: async () => {
+    if (detail.value?.id) {
+      await loadDetail(detail.value.id)
+    }
+  }
+})
 
 const statusLabel = computed(() => {
   const status = detail.value?.status
@@ -149,6 +169,11 @@ const paymentStatusLabel = computed(() => {
   if (status === 2) return '已退款'
   return '支付状态未知'
 })
+const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+}))
 
 const timeRangeLabel = computed(() => {
   const current = detail.value
@@ -185,14 +210,21 @@ async function openActions() {
   const currentStatus = Number(detail.value.status ?? -1)
 
   if (currentStatus === BOOKING_STATUS.PENDING_PAYMENT) {
-    actions.push({
-      label: '确认收款',
-      handler: async () => {
-        await processCourseBookingPayment(detail.value!.id, BUSINESS_PAYMENT_METHOD)
-        uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
-        await refreshDetail()
-      }
-    })
+    if (!paymentCountdownInfo.value.expired) {
+      actions.push({
+        label: '确认收款',
+        handler: async () => {
+          if (paymentCountdownInfo.value.expired) {
+            uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+            await refreshDetail()
+            return
+          }
+          await processCourseBookingPayment(detail.value!.id, BUSINESS_PAYMENT_METHOD)
+          uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
+          await refreshDetail()
+        }
+      })
+    }
     actions.push({
       label: '取消预约',
       handler: async () => {
@@ -260,6 +292,7 @@ onLoad((options) => {
     loadError.value = '缺少有效的预约 ID'
     return
   }
+  void loadPaymentAutoCancelConfig()
   loadDetail(rawId)
 })
 </script>

@@ -203,11 +203,19 @@
                   <p class="course-item-coach">教练：{{ course.coachName || '未分配' }}</p>
                   <p class="course-item-time">时间：{{ formatCourseTime(course) }}</p>
                   <p class="course-item-amount">¥{{ formatCurrency(course.orderAmount) }}</p>
+                  <el-tag
+                    v-if="getPaymentCountdownInfo(course).show"
+                    :type="isPaymentExpired(course) ? 'danger' : 'warning'"
+                    effect="plain"
+                    size="small"
+                  >
+                    {{ getPaymentCountdownInfo(course).text }}
+                  </el-tag>
                 </div>
               </div>
               <div class="course-item-actions">
                 <el-button
-                  v-if="course.status === 1"
+                  v-if="course.status === 1 && !isPaymentExpired(course)"
                   type="primary"
                   size="small"
                   @click="handlePay(course)"
@@ -241,6 +249,7 @@ import { Tickets, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getCourseList } from '@/api/course'
 import { getCourseBookingList, addCourseBooking, payMemberCourseBooking, updateCourseBookingStatus } from '@/api/courseBooking'
 import { getCurrentMember } from '@/api/member'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 const activeTab = ref('book')
 const step = ref(1) // 1-选择课程, 2-选择时间, 3-确认预约
@@ -254,6 +263,28 @@ const myCourses = ref([])
 const selectedCourse = ref(null)
 const submitting = ref(false)
 const currentMember = ref(null)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => myCourses.value.some((item) => getPaymentAutoCancelInfo(item, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  }).expired),
+  refreshOnExpire: async () => {
+    await loadMyCourses()
+  }
+})
+const getPaymentCountdownInfo = (course) => getPaymentAutoCancelInfo(course, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+const isPaymentExpired = (course) => getPaymentCountdownInfo(course).expired
 
 const bookingForm = ref({
   courseId: null,
@@ -476,6 +507,11 @@ const loadMyCourses = async () => {
 }
 
 const handlePay = (course) => {
+  if (isPaymentExpired(course)) {
+    ElMessage.warning('该课程订单已超过支付时限，系统正在自动取消，请稍后刷新')
+    loadMyCourses()
+    return
+  }
   openActionConfirm({
     title: '课程支付确认',
     eyebrow: 'BALANCE PAYMENT',
@@ -487,6 +523,11 @@ const handlePay = (course) => {
     confirmButtonText: '确认支付',
     cancelButtonText: '稍后支付'
   }).then(async () => {
+    if (isPaymentExpired(course)) {
+      ElMessage.warning('该课程订单已超过支付时限，系统正在自动取消，请稍后刷新')
+      await loadMyCourses()
+      return
+    }
     try {
       const res = await payMemberCourseBooking({
         bookingId: course.id,
@@ -550,6 +591,7 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(() => {
+  loadPaymentAutoCancelConfig()
   loadCurrentMember()
   loadCourses()
   if (activeTab.value === 'my-courses') {

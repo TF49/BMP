@@ -233,4 +233,37 @@ public interface StringingServiceMapper {
             "WHERE service_no LIKE CONCAT(#{prefix}, '%') " +
             "ORDER BY service_no DESC")
     List<StringingService> findByServiceNoPrefix(@Param("prefix") String prefix);
+
+    /**
+     * 查询已超时且仍未支付的穿线服务ID（创建时间早于等于 cutoff）
+     */
+    @Select("SELECT id FROM biz_stringing_service WHERE del_flag = 0 AND status = 1 " +
+            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
+    List<Long> findExpiredUnpaidServiceIds(@Param("cutoff") java.time.LocalDateTime cutoff);
+
+    /**
+     * 条件支付更新：仅等待穿线且未支付的订单允许标记为已支付
+     */
+    @Update({
+            "<script>",
+            "UPDATE biz_stringing_service SET payment_method = #{paymentMethod}, payment_status = 1,",
+            "update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0 AND status = 1",
+            "AND (payment_status IS NULL OR payment_status = 0)",
+            "<if test='expireBefore != null'>",
+            "AND create_time &gt; #{expireBefore}",
+            "</if>",
+            "</script>"
+    })
+    int markPaidIfPending(@Param("id") Long id,
+                          @Param("paymentMethod") String paymentMethod,
+                          @Param("updateTime") java.time.LocalDateTime updateTime,
+                          @Param("expireBefore") java.time.LocalDateTime expireBefore);
+
+    /**
+     * 条件取消更新：仅等待穿线且未支付的订单允许自动取消
+     */
+    @Update("UPDATE biz_stringing_service SET status = 0, update_time = #{updateTime} WHERE id = #{id} " +
+            "AND del_flag = 0 AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
+    int cancelExpiredUnpaidService(@Param("id") Long id,
+                                   @Param("updateTime") java.time.LocalDateTime updateTime);
 }

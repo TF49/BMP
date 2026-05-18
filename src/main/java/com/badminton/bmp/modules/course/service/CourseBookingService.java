@@ -1,6 +1,7 @@
 package com.badminton.bmp.modules.course.service;
 
 import com.badminton.bmp.modules.course.entity.CourseBooking;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -51,4 +52,9 @@ public interface CourseBookingService {
      * 已支付→进行中（课程已到开始时间）、进行中→已完成（课程已到结束时间）
      */
     void autoUpdateCourseBookingStatusByTime();
+
+    /**
+     * 定时任务：自动取消创建时间早于截止时间且仍未支付的课程预约
+     */
+    int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff);
 }

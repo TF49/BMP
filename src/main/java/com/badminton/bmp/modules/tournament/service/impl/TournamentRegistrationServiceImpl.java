@@ -1,5 +1,6 @@
 package com.badminton.bmp.modules.tournament.service.impl;
 
+import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
@@ -44,6 +45,8 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
     private FinanceService financeService;
     @Autowired
     private WebSocketPushService webSocketPushService;
+    @Autowired
+    private PaymentAutoCancelProperties paymentAutoCancelProperties;
 
     /**
      * 根据ID查找赛事报名记录
@@ -849,6 +852,16 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             throw new RuntimeException(msg);
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        if (isPendingPaymentExpired(registration.getCreateTime(), now)) {
+            throw new RuntimeException("该赛事报名已超出支付时限，系统已自动取消或正在取消，无法支付");
+        }
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        int updated = tournamentRegistrationMapper.markPaidIfPending(registrationId, paymentMethod, now, expireBefore);
+        if (updated <= 0) {
+            throw new RuntimeException(resolvePendingPaymentConflictMessage(tournamentRegistrationMapper.findById(registrationId), "赛事报名"));
+        }
+
         memberConsumeRecordService.createConsumeRecord(
             registration.getMemberId(),
             registration.getEntryFee(),
@@ -871,16 +884,6 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             venueIdForFinance,
             "赛事报名支付：" + registration.getRegistrationNo()
         );
-
-        // 更新报名支付状态和状态
-        registration.setPaymentMethod(paymentMethod);
-        registration.setPaymentStatus(1); // 已支付
-        registration.setStatus(2); // 已支付
-        registration.setUpdateTime(LocalDateTime.now());
-        int updated = tournamentRegistrationMapper.update(registration);
-        if (updated <= 0) {
-            throw new RuntimeException("赛事报名支付状态更新失败");
-        }
         TournamentRegistration refreshedRegistration = tournamentRegistrationMapper.findById(registrationId);
         Integer refreshedPaymentStatus = refreshedRegistration != null ? refreshedRegistration.getPaymentStatus() : null;
         Integer refreshedStatus = refreshedRegistration != null ? refreshedRegistration.getStatus() : null;
@@ -910,6 +913,18 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
      * @param registrationId 报名ID
      * @return 处理结果
      */
+    private LocalDateTime resolvePendingPaymentExpireBefore(LocalDateTime now) {
+        if (paymentAutoCancelProperties == null || !paymentAutoCancelProperties.isEnabled()) {
+            return null;
+        }
+        return now.minus(paymentAutoCancelProperties.getTimeoutDuration());
+    }
+
+    private boolean isPendingPaymentExpired(LocalDateTime createTime, LocalDateTime now) {
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        return expireBefore != null && createTime != null && !createTime.isAfter(expireBefore);
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processRefund(Long registrationId) {
@@ -998,6 +1013,41 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         return result;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
+        if (cutoff == null) {
+            return 0;
+        }
+        List<Long> registrationIds = tournamentRegistrationMapper.findExpiredUnpaidRegistrationIds(cutoff);
+        if (registrationIds == null || registrationIds.isEmpty()) {
+            return 0;
+        }
+        int cancelled = 0;
+        for (Long registrationId : registrationIds) {
+            TournamentRegistration registration = tournamentRegistrationMapper.findById(registrationId);
+            if (registration == null) {
+                continue;
+            }
+            int updated = tournamentRegistrationMapper.cancelExpiredUnpaidRegistration(registrationId, LocalDateTime.now());
+            if (updated <= 0) {
+                continue;
+            }
+            cancelled += updated;
+            syncTournamentCurrentParticipants(registration.getTournamentId());
+            try {
+                Long userId = null;
+                Member m = memberMapper.findById(registration.getMemberId());
+                if (m != null && m.getUserId() != null) userId = m.getUserId();
+                webSocketPushService.pushOrderStatusToUser(userId, "tournamentRegistration", registrationId, 0, "已取消", "赛事报名");
+                webSocketPushService.pushDashboardRefresh();
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+            }
+        }
+        return cancelled;
+    }
+
     /**
      * 定时任务：将「已支付」且关联赛事已到开始时间的报名改为「已参赛」
      * 与课程预约定时任务（已支付→进行中、进行中→已完成）保持一致思路
@@ -1017,5 +1067,31 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
                 org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
             }
         }
+    }
+
+    private String resolvePendingPaymentConflictMessage(TournamentRegistration latestRegistration, String orderLabel) {
+        if (latestRegistration == null) {
+            return orderLabel + "记录不存在";
+        }
+        Integer payStatus = latestRegistration.getPaymentStatus();
+        if (payStatus != null) {
+            if (payStatus == 1) {
+                return "该" + orderLabel + "已支付，无需重复支付";
+            }
+            if (payStatus == 2) {
+                return "该" + orderLabel + "已退款，无法再次支付";
+            }
+            if (payStatus == 3) {
+                return "该" + orderLabel + "退款申请处理中，无法再次支付";
+            }
+        }
+        if (isPendingPaymentExpired(latestRegistration.getCreateTime(), LocalDateTime.now())) {
+            return "该" + orderLabel + "已超出支付时限，系统已自动取消或正在取消，无法支付";
+        }
+        Integer status = latestRegistration.getStatus();
+        if (status != null && status == 0) {
+            return "该" + orderLabel + "已超时取消，无法支付";
+        }
+        return orderLabel + "状态已变化，请刷新后重试";
     }
 }

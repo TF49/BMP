@@ -1,17 +1,19 @@
 package com.badminton.bmp.modules.equipment.service.impl;
 
+import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.equipment.entity.Equipment;
 import com.badminton.bmp.modules.equipment.entity.EquipmentRental;
 import com.badminton.bmp.modules.equipment.mapper.EquipmentMapper;
 import com.badminton.bmp.modules.equipment.mapper.EquipmentRentalMapper;
 import com.badminton.bmp.modules.equipment.service.EquipmentRentalService;
-import com.badminton.bmp.modules.equipment.service.EquipmentService;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
 import com.badminton.bmp.modules.finance.entity.Finance;
 import com.badminton.bmp.modules.finance.service.FinanceService;
 import com.badminton.bmp.websocket.WebSocketPushService;
+import com.badminton.bmp.common.exception.BusinessException;
+import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,9 +50,11 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
     private FinanceService financeService;
 
     @Autowired
-    private EquipmentService equipmentService;
-    @Autowired
     private WebSocketPushService webSocketPushService;
+    @Autowired
+    private PaymentAutoCancelProperties paymentAutoCancelProperties;
+
+    private static final int INVENTORY_UPDATE_MAX_RETRIES = 5;
 
     @Override
     public EquipmentRental findById(Long id) {
@@ -273,10 +277,9 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
 
         // 更新器材可用数量（仅当状态为租借中时扣减，与 update/updateStatus 语义一致）
         if (result > 0 && rental.getStatus() != null && rental.getStatus() == 1) {
-            int avail = equipment.getAvailableQuantity() != null ? equipment.getAvailableQuantity() : 0;
             int qty = rental.getQuantity() != null ? rental.getQuantity() : 0;
             if (qty > 0) {
-                equipmentService.updateAvailableQuantity(rental.getEquipmentId(), avail - qty);
+                adjustEquipmentAvailableQuantity(rental.getEquipmentId(), -qty, "租借数量超过可用数量");
             }
         }
 
@@ -334,21 +337,12 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
                 Integer oldQty = existingRental.getQuantity();
                 int oldQtyVal = oldQty != null ? oldQty : 0;
                 if (existingRental.getStatus() != null && existingRental.getStatus() == 1 && oldQtyVal > 0) {
-                    Equipment oldEquipment = equipmentMapper.findById(existingRental.getEquipmentId());
-                    if (oldEquipment != null) {
-                        int oldAvailableQuantity = (oldEquipment.getAvailableQuantity() != null ? oldEquipment.getAvailableQuantity() : 0) + oldQtyVal;
-                        equipmentService.updateAvailableQuantity(existingRental.getEquipmentId(), oldAvailableQuantity);
-                    }
+                    adjustEquipmentAvailableQuantity(existingRental.getEquipmentId(), oldQtyVal, null);
                 }
                 Integer newQty = rental.getQuantity() != null ? rental.getQuantity() : existingRental.getQuantity();
                 int newQtyVal = newQty != null ? newQty : 0;
                 if (newStatusRenting && newQtyVal > 0) {
-                    int currentNew = equipment.getAvailableQuantity() != null ? equipment.getAvailableQuantity() : 0;
-                    if (currentNew < newQtyVal) {
-                        throw new RuntimeException("新器材的可用数量不足");
-                    }
-                    int newAvailableQuantity = currentNew - newQtyVal;
-                    equipmentService.updateAvailableQuantity(equipment.getId(), newAvailableQuantity);
+                    adjustEquipmentAvailableQuantity(equipment.getId(), -newQtyVal, "新器材的可用数量不足");
                 }
             } else if (rental.getQuantity() != null && !rental.getQuantity().equals(existingRental.getQuantity())
                     && existingRental.getStatus() != null && existingRental.getStatus() == 1 && newStatusRenting) {
@@ -356,12 +350,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
                 int oldQ = existingRental.getQuantity() != null ? existingRental.getQuantity() : 0;
                 int newQ = rental.getQuantity() != null ? rental.getQuantity() : 0;
                 int quantityDiff = newQ - oldQ;
-                int currentAvail = equipment.getAvailableQuantity() != null ? equipment.getAvailableQuantity() : 0;
-                int newAvailableQuantity = currentAvail - quantityDiff;
-                if (newAvailableQuantity < 0) {
-                    throw new RuntimeException("可用数量不足");
-                }
-                equipmentService.updateAvailableQuantity(equipment.getId(), newAvailableQuantity);
+                adjustEquipmentAvailableQuantity(equipment.getId(), -quantityDiff, "可用数量不足");
             }
         }
 
@@ -423,12 +412,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
                     Long equipmentIdToRestore = equipmentChanged ? rental.getEquipmentId() : existingRental.getEquipmentId();
                     int qtyToRestore = equipmentChanged ? (rental.getQuantity() != null ? rental.getQuantity() : existingRental.getQuantity()) : qty;
                     if (equipmentIdToRestore != null && qtyToRestore > 0) {
-                        Equipment equipmentToRestore = equipmentMapper.findById(equipmentIdToRestore);
-                        if (equipmentToRestore != null) {
-                            int currentAvailable = equipmentToRestore.getAvailableQuantity() != null ? equipmentToRestore.getAvailableQuantity() : 0;
-                            int newAvailableQuantity = currentAvailable + qtyToRestore;
-                            equipmentService.updateAvailableQuantity(equipmentIdToRestore, newAvailableQuantity);
-                        }
+                        adjustEquipmentAvailableQuantity(equipmentIdToRestore, qtyToRestore, null);
                     }
                     if (newStatus != null && newStatus == 2 && existingRental.getReturnDate() == null) {
                         rental.setReturnDate(LocalDateTime.now());
@@ -437,15 +421,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
                     // 从非租借中→租借中：扣减当前记录对应的器材（保留原有值后即为 rental.getEquipmentId()）
                     Long equipmentIdToDeduct = rental.getEquipmentId() != null ? rental.getEquipmentId() : existingRental.getEquipmentId();
                     if (equipmentIdToDeduct != null) {
-                        Equipment equipmentForStatus = equipmentMapper.findById(equipmentIdToDeduct);
-                        if (equipmentForStatus != null) {
-                            int currentAvailable = equipmentForStatus.getAvailableQuantity() != null ? equipmentForStatus.getAvailableQuantity() : 0;
-                            if (currentAvailable < qty) {
-                                throw new RuntimeException("器材可用数量不足");
-                            }
-                            int newAvailableQuantity = currentAvailable - qty;
-                            equipmentService.updateAvailableQuantity(equipmentIdToDeduct, newAvailableQuantity);
-                        }
+                        adjustEquipmentAvailableQuantity(equipmentIdToDeduct, -qty, "器材可用数量不足");
                     }
                 }
             }
@@ -484,11 +460,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
         if (rental.getStatus() != null && rental.getStatus() == 1) {
             Integer qty = rental.getQuantity();
             if (qty != null && qty > 0) {
-                Equipment equipment = equipmentMapper.findById(rental.getEquipmentId());
-                if (equipment != null) {
-                    int current = equipment.getAvailableQuantity() != null ? equipment.getAvailableQuantity() : 0;
-                    equipmentService.updateAvailableQuantity(rental.getEquipmentId(), current + qty);
-                }
+                adjustEquipmentAvailableQuantity(rental.getEquipmentId(), qty, null);
             }
         }
 
@@ -549,8 +521,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
                     // 从"租借中"变为"已归还"或"已取消"，恢复器材可用数量
                     int qty = rental.getQuantity() != null ? rental.getQuantity() : 0;
                     if (qty > 0) {
-                        int current = equipment.getAvailableQuantity() != null ? equipment.getAvailableQuantity() : 0;
-                        equipmentService.updateAvailableQuantity(rental.getEquipmentId(), current + qty);
+                        adjustEquipmentAvailableQuantity(rental.getEquipmentId(), qty, null);
                     }
                     
                     // 如果状态变更为已归还，更新归还时间（使用完整 rental 避免 update 把 member_id 等置为 null）
@@ -563,11 +534,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
                     // 从其他状态变为"租借中"，扣减器材可用数量
                     int qty = rental.getQuantity() != null ? rental.getQuantity() : 0;
                     if (qty > 0) {
-                        int current = equipment.getAvailableQuantity() != null ? equipment.getAvailableQuantity() : 0;
-                        if (current < qty) {
-                            throw new RuntimeException("器材可用数量不足");
-                        }
-                        equipmentService.updateAvailableQuantity(rental.getEquipmentId(), current - qty);
+                        adjustEquipmentAvailableQuantity(rental.getEquipmentId(), -qty, "器材可用数量不足");
                     }
                 } else if (newStatusReturned && rental.getReturnDate() == null) {
                     // 如果状态变更为已归还（且之前不是租借中），更新归还时间（使用完整 rental 避免 member_id 置空）
@@ -776,6 +743,16 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             throw new RuntimeException(msg);
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        if (isPendingPaymentExpired(rental.getCreateTime(), now)) {
+            throw new RuntimeException("该器材租借已超出支付时限，系统已自动取消或正在取消，无法支付");
+        }
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        int updated = equipmentRentalMapper.markPaidIfPending(rentalId, paymentMethod, now, expireBefore);
+        if (updated <= 0) {
+            throw new RuntimeException(resolvePendingPaymentConflictMessage(equipmentRentalMapper.findById(rentalId), "器材租借"));
+        }
+
         memberConsumeRecordService.createConsumeRecord(
             rental.getMemberId(),
             rental.getRentalAmount(),
@@ -799,12 +776,26 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             venueIdForFinance,
             "器材租借支付：" + rental.getRentalNo()
         );
-
-        // 更新租借支付状态
-        rental.setPaymentMethod(paymentMethod);
-        rental.setPaymentStatus(1); // 已支付
-        rental.setUpdateTime(LocalDateTime.now());
-        return equipmentRentalMapper.update(rental);
+        EquipmentRental refreshedRental = equipmentRentalMapper.findById(rentalId);
+        Integer refreshedPaymentStatus = refreshedRental != null ? refreshedRental.getPaymentStatus() : null;
+        Integer refreshedStatus = refreshedRental != null ? refreshedRental.getStatus() : null;
+        if (refreshedPaymentStatus == null || refreshedPaymentStatus != 1 || refreshedStatus == null || refreshedStatus != 1) {
+            org.slf4j.LoggerFactory.getLogger(EquipmentRentalServiceImpl.class).error(
+                "支付后器材租借状态异常, rentalId={}, actualPaymentStatus={}, actualStatus={}",
+                rentalId, refreshedPaymentStatus, refreshedStatus
+            );
+            throw new RuntimeException("支付成功后器材租借状态异常，请稍后重试");
+        }
+        try {
+            Long userId = null;
+            Member m = memberMapper.findById(rental.getMemberId());
+            if (m != null && m.getUserId() != null) userId = m.getUserId();
+            webSocketPushService.pushOrderStatusToUser(userId, "equipmentRental", rentalId, 1, "租借中", "器材租借");
+            webSocketPushService.pushDashboardRefresh();
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(EquipmentRentalServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+        }
+        return updated;
     }
 
     /**
@@ -812,6 +803,18 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
      * @param rentalId 租借ID
      * @return 处理结果
      */
+    private LocalDateTime resolvePendingPaymentExpireBefore(LocalDateTime now) {
+        if (paymentAutoCancelProperties == null || !paymentAutoCancelProperties.isEnabled()) {
+            return null;
+        }
+        return now.minus(paymentAutoCancelProperties.getTimeoutDuration());
+    }
+
+    private boolean isPendingPaymentExpired(LocalDateTime createTime, LocalDateTime now) {
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        return expireBefore != null && createTime != null && !createTime.isAfter(expireBefore);
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processRefund(Long rentalId) {
@@ -887,11 +890,7 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
         if (oldStatus != null && oldStatus == 1) {
             int qty = rental.getQuantity() != null ? rental.getQuantity() : 0;
             if (qty > 0) {
-                Equipment equipment = equipmentMapper.findById(rental.getEquipmentId());
-                if (equipment != null) {
-                    int current = equipment.getAvailableQuantity() != null ? equipment.getAvailableQuantity() : 0;
-                    equipmentService.updateAvailableQuantity(rental.getEquipmentId(), current + qty);
-                }
+                adjustEquipmentAvailableQuantity(rental.getEquipmentId(), qty, null);
             }
         }
         if (result > 0) {
@@ -922,5 +921,96 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
                 org.slf4j.LoggerFactory.getLogger(EquipmentRentalServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
             }
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
+        if (cutoff == null) {
+            return 0;
+        }
+        List<Long> rentalIds = equipmentRentalMapper.findExpiredUnpaidRentalIds(cutoff);
+        if (rentalIds == null || rentalIds.isEmpty()) {
+            return 0;
+        }
+        int cancelled = 0;
+        for (Long rentalId : rentalIds) {
+            EquipmentRental rental = equipmentRentalMapper.findById(rentalId);
+            if (rental == null) {
+                continue;
+            }
+            int updated = equipmentRentalMapper.cancelExpiredUnpaidRental(rentalId, LocalDateTime.now());
+            if (updated <= 0) {
+                continue;
+            }
+            cancelled += updated;
+            int qty = rental.getQuantity() != null ? rental.getQuantity() : 0;
+            if (qty > 0) {
+                adjustEquipmentAvailableQuantity(rental.getEquipmentId(), qty, null);
+            }
+            try {
+                Long userId = null;
+                Member m = memberMapper.findById(rental.getMemberId());
+                if (m != null && m.getUserId() != null) userId = m.getUserId();
+                webSocketPushService.pushOrderStatusToUser(userId, "equipmentRental", rentalId, 0, "已取消", "器材租借");
+                webSocketPushService.pushDashboardRefresh();
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(EquipmentRentalServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+            }
+        }
+        return cancelled;
+    }
+
+    private void adjustEquipmentAvailableQuantity(Long equipmentId, int delta, String insufficientMessage) {
+        if (equipmentId == null || delta == 0) {
+            return;
+        }
+        for (int attempt = 0; attempt < INVENTORY_UPDATE_MAX_RETRIES; attempt++) {
+            Equipment equipment = equipmentMapper.findById(equipmentId);
+            if (equipment == null) {
+                throw new ResourceNotFoundException("器材不存在");
+            }
+            int currentAvailable = equipment.getAvailableQuantity() != null ? equipment.getAvailableQuantity() : 0;
+            int totalQuantity = equipment.getTotalQuantity() != null ? equipment.getTotalQuantity() : 0;
+            long targetAvailable = (long) currentAvailable + delta;
+            if (targetAvailable < 0) {
+                throw new BusinessException(insufficientMessage != null ? insufficientMessage : "器材可用数量不足");
+            }
+            if (targetAvailable > totalQuantity) {
+                throw new BusinessException("可用数量不能超过总数量");
+            }
+            Integer version = equipment.getVersion() != null ? equipment.getVersion() : 0;
+            int updated = equipmentMapper.updateAvailableQuantity(equipmentId, (int) targetAvailable, version);
+            if (updated > 0) {
+                return;
+            }
+        }
+        throw new BusinessException("库存更新失败，数据已被其他操作修改，请重试");
+    }
+
+    private String resolvePendingPaymentConflictMessage(EquipmentRental latestRental, String orderLabel) {
+        if (latestRental == null) {
+            return orderLabel + "记录不存在";
+        }
+        Integer payStatus = latestRental.getPaymentStatus();
+        if (payStatus != null) {
+            if (payStatus == 1) {
+                return "该" + orderLabel + "已支付，无需重复支付";
+            }
+            if (payStatus == 2) {
+                return "该" + orderLabel + "已退款，无法再次支付";
+            }
+            if (payStatus == 3) {
+                return "该" + orderLabel + "退款申请处理中，无法再次支付";
+            }
+        }
+        if (isPendingPaymentExpired(latestRental.getCreateTime(), LocalDateTime.now())) {
+            return "该" + orderLabel + "已超出支付时限，系统已自动取消或正在取消，无法支付";
+        }
+        Integer status = latestRental.getStatus();
+        if (status != null && status == 0) {
+            return "该" + orderLabel + "已超时取消，无法支付";
+        }
+        return orderLabel + "状态已变化，请刷新后重试";
     }
 }

@@ -103,6 +103,7 @@ import {
 } from '@/api/president/equipment'
 import { formatDate } from '@/utils/format'
 import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 const stats = ref({
   totalRentals: 0,
@@ -118,6 +119,19 @@ const page = ref(1)
 const size = 20
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => list.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    page.value = 1
+    await Promise.all([loadStatistics(), loadList(false)])
+  }
+})
 
 const hasMore = computed(() => list.value.length < total.value)
 
@@ -179,6 +193,24 @@ function getStatus(item: EquipmentRentalItem): RentalListStatus {
   if (item.status === 3) return 'overdue'
   if (item.status === 2) return 'returned'
   return 'on_rent'
+}
+
+function getPaymentCountdownInfo(item: Pick<EquipmentRentalItem, 'status' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentAutoCancelInfo(item, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  })
+}
+
+function isPaymentExpired(item: Pick<EquipmentRentalItem, 'status' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentCountdownInfo(item).expired
+}
+
+function canCollectRentalPayment(item: EquipmentRentalItem) {
+  return Number(item.status ?? -1) === 1
+    && Number(item.paymentStatus ?? 0) === 0
+    && !isPaymentExpired(item)
 }
 
 async function loadStatistics() {
@@ -280,6 +312,12 @@ async function updateRentalStatusAction(id: number, status: number, title: strin
 }
 
 async function payRental(row: EquipmentRentalItem) {
+  if (!canCollectRentalPayment(row)) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    page.value = 1
+    await Promise.all([loadStatistics(), loadList(false)])
+    return
+  }
   try {
     await processEquipmentRentalPayment(row.id, BUSINESS_PAYMENT_METHOD)
     uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
@@ -328,7 +366,7 @@ function openActions(row: EquipmentRentalItem) {
   const actions: Array<{ label: string; handler: () => void }> = [{ label: '查看详情', handler: () => openDetail(row) }]
 
   if (row.status === 1 || row.status === 3) {
-    if (Number(row.paymentStatus ?? 0) !== 1) {
+    if (canCollectRentalPayment(row)) {
       actions.push({ label: '确认收款', handler: () => void payRental(row) })
     }
     actions.push({ label: '标记归还', handler: () => void updateRentalStatusAction(row.id, 2, '已标记归还') })
@@ -347,6 +385,7 @@ function openActions(row: EquipmentRentalItem) {
 }
 
 onMounted(() => {
+  void loadPaymentAutoCancelConfig()
   loadStatistics()
   loadList(false)
 })

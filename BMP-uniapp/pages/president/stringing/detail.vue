@@ -67,6 +67,12 @@
                 <text class="field-label">服务费用</text>
                 <text class="field-value amount">￥{{ formatAmount(detail.totalPrice || detail.servicePrice || 0) }}</text>
               </view>
+              <view v-if="paymentCountdownInfo.show" class="field-row">
+                <text class="field-label">支付时限</text>
+                <text class="field-value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
+                  {{ paymentCountdownInfo.text }}
+                </text>
+              </view>
               <view class="field-row multiline">
                 <text class="field-label">备注</text>
                 <text class="field-value remark">{{ detail.remark || '无特殊备注' }}</text>
@@ -98,10 +104,22 @@ import { formatAmount, formatDateTime, formatPhone } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 const detail = ref<StringingService | null>(null)
 const loading = ref(false)
 const loadError = ref('')
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => paymentCountdownInfo.value.expired,
+  refreshOnExpire: async () => {
+    await refreshDetail()
+  }
+})
 
 const statusLabel = computed(() => {
   const status = detail.value?.status
@@ -111,6 +129,11 @@ const statusLabel = computed(() => {
   if (status === STRINGING_STATUS.COMPLETED) return '已完成'
   return '未知状态'
 })
+const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+}))
 
 const racketLabel = computed(() => {
   const current = detail.value
@@ -169,14 +192,31 @@ async function openActions() {
   const currentPaymentStatus = Number(detail.value.paymentStatus ?? 0)
 
   if (currentStatus === STRINGING_STATUS.WAITING) {
-    actions.push({
-      label: '开始穿线',
-      handler: async () => {
-        await updateStringingStatus(detail.value!.id, STRINGING_STATUS.IN_PROGRESS)
-        uni.showToast({ title: '已开始穿线', icon: 'success' })
-        await refreshDetail()
-      }
-    })
+    if (currentPaymentStatus === 0 && !paymentCountdownInfo.value.expired) {
+      actions.push({
+        label: '确认收款',
+        handler: async () => {
+          if (paymentCountdownInfo.value.expired) {
+            uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+            await refreshDetail()
+            return
+          }
+          await processStringingPayment(detail.value!.id, BUSINESS_PAYMENT_METHOD)
+          uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
+          await refreshDetail()
+        }
+      })
+    }
+    if (currentPaymentStatus === 1) {
+      actions.push({
+        label: '开始穿线',
+        handler: async () => {
+          await updateStringingStatus(detail.value!.id, STRINGING_STATUS.IN_PROGRESS)
+          uni.showToast({ title: '已开始穿线', icon: 'success' })
+          await refreshDetail()
+        }
+      })
+    }
     actions.push({
       label: '取消工单',
       handler: async () => {
@@ -203,16 +243,7 @@ async function openActions() {
       }
     })
   } else if (currentStatus === STRINGING_STATUS.COMPLETED) {
-    if (currentPaymentStatus !== 1) {
-      actions.push({
-        label: '确认收款',
-        handler: async () => {
-          await processStringingPayment(detail.value!.id, BUSINESS_PAYMENT_METHOD)
-          uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
-          await refreshDetail()
-        }
-      })
-    } else {
+    if (currentPaymentStatus === 1) {
       actions.push({
         label: '退款',
         handler: async () => {
@@ -246,6 +277,7 @@ onLoad((options) => {
     loadError.value = '缺少有效的工单 ID'
     return
   }
+  void loadPaymentAutoCancelConfig()
   void loadDetail(rawId)
 })
 </script>

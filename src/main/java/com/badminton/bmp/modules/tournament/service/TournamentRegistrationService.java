@@ -49,4 +49,9 @@ public interface TournamentRegistrationService {
      * 定时任务：按赛事开始时间将「已支付」的报名自动改为「已参赛」
      */
     void autoUpdateTournamentRegistrationStatusByTime();
+
+    /**
+     * 定时任务：自动取消创建时间早于截止时间且仍未支付的赛事报名
+     */
+    int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff);
 }

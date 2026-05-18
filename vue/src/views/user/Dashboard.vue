@@ -81,11 +81,19 @@
               <p class="booking-venue">{{ booking.venueName }} · {{ booking.courtName }}</p>
               <p class="booking-time">{{ formatTimeRange(booking.startTime, booking.endTime, booking.bookingDate) }}</p>
               <p class="booking-amount">¥{{ formatCurrency(booking.orderAmount) }}</p>
+              <el-tag
+                v-if="getPaymentCountdownInfo(booking).show"
+                :type="isPaymentExpired(booking) ? 'danger' : 'warning'"
+                effect="plain"
+                size="small"
+              >
+                {{ getPaymentCountdownInfo(booking).text }}
+              </el-tag>
             </div>
           </div>
           <div class="booking-actions">
             <el-button
-              v-if="booking.status === 1"
+              v-if="booking.status === 1 && !isPaymentExpired(booking)"
               type="primary"
               size="small"
               @click="handlePay(booking)"
@@ -163,6 +171,7 @@ import { getBookingList, getBookingStatistics, payMemberBooking, updateBookingSt
 import { getCurrentMember } from '@/api/member'
 import { getUserInfo, resolveAvatarUrl } from '@/utils/auth'
 import { getRoleName } from '@/utils/roleHelper'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 const router = useRouter()
 
@@ -177,6 +186,18 @@ const orderStats = ref({
   pending: 0,
   processing: 0,
   finished: 0
+})
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => recentBookings.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await loadBookings()
+  }
 })
 
 const greeting = computed(() => {
@@ -305,6 +326,14 @@ const getStatusType = (status) => {
   return map[status] || 'info'
 }
 
+const getPaymentCountdownInfo = (booking) => getPaymentAutoCancelInfo(booking, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+
+const isPaymentExpired = (booking) => getPaymentCountdownInfo(booking).expired
+
 const loadUserInfo = async () => {
   try {
     const userInfo = getUserInfo()
@@ -359,6 +388,11 @@ const loadBookings = async () => {
 }
 
 const handlePay = (booking) => {
+  if (isPaymentExpired(booking)) {
+    ElMessage.warning('该预约订单已超过支付时限，系统正在自动取消，请稍后刷新')
+    loadBookings()
+    return
+  }
   openActionConfirm({
     title: '预约支付确认',
     eyebrow: 'BALANCE PAYMENT',
@@ -370,6 +404,11 @@ const handlePay = (booking) => {
     confirmButtonText: '确认支付',
     cancelButtonText: '稍后支付'
   }).then(async () => {
+    if (isPaymentExpired(booking)) {
+      ElMessage.warning('该预约订单已超过支付时限，系统正在自动取消，请稍后刷新')
+      await loadBookings()
+      return
+    }
     try {
       const res = await payMemberBooking({
         bookingId: booking.id,
@@ -419,6 +458,7 @@ const handleCancel = async (booking) => {
 }
 
 onMounted(() => {
+  loadPaymentAutoCancelConfig()
   loadUserInfo()
   loadBalance()
   loadBookings()

@@ -88,9 +88,12 @@
           <view class="card-head">
             <view>
               <text class="booking-no">{{ item.bookingNo }}</text>
-              <text class="status" :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</text>
+              <text class="status" :class="getStatusClass(item.status, item)">{{ getStatusText(item.status, item) }}</text>
             </view>
             <text class="amount" :class="{ strike: item.status === 0 }">¥{{ formatAmount(item.amount) }}</text>
+          </view>
+          <view v-if="getPaymentCountdownInfo(item).show" class="pending-payment-note" :class="{ expired: isPaymentExpired(item) }">
+            {{ getPaymentCountdownInfo(item).text }}
           </view>
           <text class="venue" :class="{ muted: item.status === 0 }">{{ item.venueName }}</text>
           <view class="line"><uni-icons type="location" size="14" color="#666" /><text>{{ getCourtSummary(item) }}</text></view>
@@ -122,6 +125,7 @@ import { getBookingList, type BookingItem } from '@/api/booking'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getAvatarImage } from '@/utils/displayImage'
 import { useCurrentMember } from '@/composables/useCurrentMember'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 type BookingCard = {
   id: number
@@ -142,6 +146,7 @@ type BookingCard = {
   status: number
   paymentStatus: number
   refundHint: string
+  createTime: string
 }
 
 const userStore = useUserStore()
@@ -154,6 +159,18 @@ const loading = ref(false)
 const refreshing = ref(false)
 const topOffset = computed(() => statusBarHeight.value + 54)
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await loadBookingList()
+  }
+})
 
 // 统计数据
 const stats = computed(() => {
@@ -200,6 +217,18 @@ const filteredList = computed(() => {
   return list
 })
 
+const getPaymentCountdownInfo = (item: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => getPaymentAutoCancelInfo({
+  status: item.status,
+  paymentStatus: item.paymentStatus,
+  createTime: item.createTime
+}, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+
+const isPaymentExpired = (item: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => getPaymentCountdownInfo(item).expired
+
 const loadBookingList = async () => {
   if (loading.value) return
   loading.value = true
@@ -225,6 +254,7 @@ const loadBookingList = async () => {
       bookingMode: booking.bookingMode || 'SHARED',
       pricingModeSummary: booking.pricingModeSummary || '',
       date: booking.bookingDate,
+      createTime: booking.createTime || '',
       startTime: booking.startTime,
       endTime: booking.endTime,
       amount: Number(booking.orderAmount || 0),
@@ -251,7 +281,10 @@ const switchTab = (index: number) => {
   currentTab.value = index
 }
 
-const getStatusText = (status: number) => {
+const getStatusText = (status: number, item?: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => {
+  if (status === 1 && item && isPaymentExpired(item)) {
+    return '已超时'
+  }
   const statusMap: Record<number, string> = {
     0: '已取消',
     1: '待支付',
@@ -262,7 +295,10 @@ const getStatusText = (status: number) => {
   return statusMap[status] || '未知'
 }
 
-const getStatusClass = (status: number) => {
+const getStatusClass = (status: number, item?: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => {
+  if (status === 1 && item && isPaymentExpired(item)) {
+    return 'cancelled'
+  }
   const classMap: Record<number, string> = {
     0: 'cancelled',
     1: 'pending',
@@ -322,11 +358,12 @@ const handleProfile = () => {
   uni.navigateTo({ url: '/pages/profile/index' })
 }
 
-onMounted(() => {
+onMounted(async () => {
   const system = uni.getSystemInfoSync()
   statusBarHeight.value = system.statusBarHeight || 20
   if (userStore.isLoggedIn) {
-    loadBookingList()
+    await loadPaymentAutoCancelConfig()
+    await loadBookingList()
   } else {
     uni.redirectTo({ url: '/pages/login/login' })
   }
@@ -598,6 +635,23 @@ onMounted(() => {
 .amount.strike {
   color: #bbb;
   text-decoration: line-through;
+}
+
+.pending-payment-note {
+  margin-top: 12rpx;
+  display: inline-flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #fff4ea;
+  color: #b45309;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.pending-payment-note.expired {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .venue {

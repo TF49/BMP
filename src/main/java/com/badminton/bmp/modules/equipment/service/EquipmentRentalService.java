@@ -3,6 +3,7 @@ package com.badminton.bmp.modules.equipment.service;
 import com.badminton.bmp.modules.equipment.entity.EquipmentRental;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -108,4 +109,9 @@ public interface EquipmentRentalService {
      * 定时任务：将应还时间已过且仍为「租借中」的记录自动标记为「逾期」
      */
     void autoMarkOverdueRentals();
+
+    /**
+     * 定时任务：自动取消创建时间早于截止时间且仍未支付的器材租借订单
+     */
+    int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff);
 }

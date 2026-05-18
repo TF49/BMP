@@ -318,11 +318,19 @@
                     支付状态：<el-tag :type="rental.paymentStatus === 1 ? 'success' : rental.paymentStatus === 3 ? 'danger' : 'warning'" size="small">{{ getPaymentStatusText(rental.paymentStatus) }}</el-tag>
                     <span v-if="rental.paymentStatus === 1 || rental.paymentStatus === 3" style="margin-left: 8px">支付方式：{{ getPaymentMethodText(rental.paymentMethod) }}</span>
                   </p>
+                  <el-tag
+                    v-if="getPaymentCountdownInfo(rental).show"
+                    :type="isPaymentExpired(rental) ? 'danger' : 'warning'"
+                    effect="plain"
+                    size="small"
+                  >
+                    {{ getPaymentCountdownInfo(rental).text }}
+                  </el-tag>
                 </div>
               </div>
               <div class="rental-actions">
                 <el-button
-                  v-if="rental.paymentStatus === 0 && rental.status === 1"
+                  v-if="rental.paymentStatus === 0 && rental.status === 1 && !isPaymentExpired(rental)"
                   type="primary"
                   size="small"
                   @click="handleOpenPay(rental)"
@@ -384,6 +392,7 @@ import { ShoppingBag, CircleCheck, ArrowLeft, Wallet } from '@element-plus/icons
 import { getEquipmentList, getEquipmentTypes } from '@/api/equipment'
 import { getEquipmentRentalList, addEquipmentRental, updateEquipmentRentalStatus, processEquipmentRentalPayment } from '@/api/equipmentRental'
 import { getCurrentMember } from '@/api/member'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 const activeTab = ref('rent')
 const step = ref(1) // 1-选择器材, 2-选择数量, 3-选择时间, 4-确认租借
@@ -399,6 +408,28 @@ const myRentals = ref([])
 const selectedEquipment = ref(null)
 const submitting = ref(false)
 const currentMember = ref(null)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => myRentals.value.some((item) => getPaymentAutoCancelInfo(item, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  }).expired),
+  refreshOnExpire: async () => {
+    await loadMyRentals()
+  }
+})
+const getPaymentCountdownInfo = (rental) => getPaymentAutoCancelInfo(rental, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+const isPaymentExpired = (rental) => getPaymentCountdownInfo(rental).expired
 
 const payDialogVisible = ref(false)
 const payLoading = ref(false)
@@ -648,6 +679,11 @@ const handleReturn = async (rental) => {
 }
 
 const handleOpenPay = (rental) => {
+  if (isPaymentExpired(rental)) {
+    ElMessage.warning('该租借订单已超过支付时限，系统正在自动取消，请稍后刷新')
+    loadMyRentals()
+    return
+  }
   currentPayRental.value = rental
   payForm.value.amount = Number(rental.rentalAmount) || 0
   payForm.value.method = rental.paymentMethod || 'BALANCE'
@@ -656,6 +692,12 @@ const handleOpenPay = (rental) => {
 
 const submitPay = async () => {
   if (!currentPayRental.value?.id) return
+  if (isPaymentExpired(currentPayRental.value)) {
+    ElMessage.warning('该租借订单已超过支付时限，系统正在自动取消，请稍后刷新')
+    payDialogVisible.value = false
+    await loadMyRentals()
+    return
+  }
   payLoading.value = true
   try {
     const res = await processEquipmentRentalPayment(currentPayRental.value.id, payForm.value.method)
@@ -709,6 +751,7 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(() => {
+  loadPaymentAutoCancelConfig()
   loadCurrentMember()
   loadEquipmentTypes()
   loadEquipment()

@@ -22,6 +22,9 @@ export interface UnifiedOrderItem {
   paymentText: string
   timeText: string
   detailUrl: string
+  businessStatus: number
+  paymentStatus: number
+  createTime: string
 }
 
 function mapCommon(
@@ -35,7 +38,10 @@ function mapCommon(
   statusText: string,
   paymentText: string,
   timeText: string,
-  detailUrl: string
+  detailUrl: string,
+  businessStatus: number,
+  paymentStatusValue: number,
+  createTime: string
 ): UnifiedOrderItem {
   return {
     businessType,
@@ -49,7 +55,10 @@ function mapCommon(
     statusText,
     paymentText,
     timeText,
-    detailUrl
+    detailUrl,
+    businessStatus,
+    paymentStatus: paymentStatusValue,
+    createTime
   }
 }
 
@@ -78,7 +87,10 @@ export function mapBookingOrder(item: BookingItem): UnifiedOrderItem {
     bookingStatusText[Number(item.status || 0)] || '未知状态',
     paymentText(item.paymentStatus),
     formatDateTime(item.createTime),
-    `/pages/booking/detail?id=${item.id}`
+    `/pages/booking/detail?id=${item.id}`,
+    Number(item.status || 0),
+    Number(item.paymentStatus || 0),
+    item.createTime || ''
   )
 }
 
@@ -96,7 +108,10 @@ export function mapCourseOrder(item: CourseBookingItem): UnifiedOrderItem {
     bookingStatusText[status] || '未知状态',
     paymentText(item.paymentStatus),
     formatDateTime(item.createTime),
-    `/pages/course/booking-detail?id=${item.id}`
+    `/pages/course/booking-detail?id=${item.id}`,
+    status,
+    Number(item.paymentStatus || 0),
+    item.createTime || ''
   )
 }
 
@@ -121,7 +136,10 @@ export function mapEquipmentOrder(item: EquipmentRentalItem): UnifiedOrderItem {
     statusMap[status] || '未知状态',
     paymentText(item.paymentStatus),
     formatDateTime(item.createTime),
-    `/pages/equipment/rental-detail?id=${item.id}`
+    `/pages/equipment/rental-detail?id=${item.id}`,
+    status,
+    paymentStatusValue,
+    item.createTime || ''
   )
 }
 
@@ -146,7 +164,10 @@ export function mapTournamentOrder(item: TournamentRegistrationItem): UnifiedOrd
     statusMap[status] || '未知状态',
     paymentText(item.paymentStatus),
     formatDateTime(item.createTime),
-    `/pages/tournament/registration-detail?id=${item.id}&tournamentId=${item.tournamentId}`
+    `/pages/tournament/registration-detail?id=${item.id}&tournamentId=${item.tournamentId}`,
+    status,
+    Number(item.paymentStatus || 0),
+    item.createTime || ''
   )
 }
 
@@ -165,7 +186,10 @@ export function mapStringingOrder(item: StringingService): UnifiedOrderItem {
     stringingStatusText[status] || '未知状态',
     paymentText(item.paymentStatus),
     formatDateTime(item.createTime),
-    `/pages/stringing/detail?id=${item.id}`
+    `/pages/stringing/detail?id=${item.id}`,
+    status,
+    Number(item.paymentStatus || 0),
+    item.createTime || ''
   )
 }
 

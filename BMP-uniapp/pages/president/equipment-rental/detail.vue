@@ -80,6 +80,12 @@
                 <text class="field-label">支付状态</text>
                 <text class="field-value">{{ paymentStatusLabel }}</text>
               </view>
+              <view v-if="paymentCountdownInfo.show" class="field-row">
+                <text class="field-label">支付时限</text>
+                <text class="field-value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
+                  {{ paymentCountdownInfo.text }}
+                </text>
+              </view>
               <view class="field-row multiline">
                 <text class="field-label">备注</text>
                 <text class="field-value remark">{{ detail.remark || '无' }}</text>
@@ -112,6 +118,7 @@ import { formatAmount, formatDate, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 type EquipmentRentalDetail = EquipmentRentalItem & {
   expectedReturnDate?: string
@@ -125,6 +132,17 @@ type EquipmentRentalDetail = EquipmentRentalItem & {
 const detail = ref<EquipmentRentalDetail | null>(null)
 const loading = ref(false)
 const loadError = ref('')
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => paymentCountdownInfo.value.expired,
+  refreshOnExpire: async () => {
+    await refreshDetail()
+  }
+})
 
 const statusLabel = computed(() => {
   const status = detail.value?.status
@@ -142,6 +160,11 @@ const paymentStatusLabel = computed(() => {
   if (status === 2) return '已退款'
   return '支付状态未知'
 })
+const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+}))
 
 const expectedReturnLabel = computed(() => {
   if (!detail.value) return '未知时间'
@@ -178,10 +201,15 @@ async function openActions() {
   const currentPaymentStatus = Number(detail.value.paymentStatus ?? 0)
 
   if (currentStatus === 1 || currentStatus === 3) {
-    if (currentPaymentStatus !== 1) {
+    if (currentStatus === 1 && currentPaymentStatus === 0 && !paymentCountdownInfo.value.expired) {
       actions.push({
         label: '确认收款',
         handler: async () => {
+          if (paymentCountdownInfo.value.expired) {
+            uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+            await refreshDetail()
+            return
+          }
           await processEquipmentRentalPayment(detail.value!.id, BUSINESS_PAYMENT_METHOD)
           uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
           await refreshDetail()
@@ -247,6 +275,7 @@ onLoad((options) => {
     loadError.value = '缺少有效的租借 ID'
     return
   }
+  void loadPaymentAutoCancelConfig()
   loadDetail(rawId)
 })
 </script>

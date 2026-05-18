@@ -71,8 +71,17 @@
                 <text class="td td-event">{{ row.tournament }}</text>
                 <text class="td td-date">{{ row.date }}</text>
                 <view class="td td-status">
-                  <view class="status-pill" :class="`pill-${row.status}`">
-                    <text class="pill-txt">{{ statusLabel(row) }}</text>
+                  <view class="status-stack">
+                    <view class="status-pill" :class="`pill-${row.status}`">
+                      <text class="pill-txt">{{ statusLabel(row) }}</text>
+                    </view>
+                    <text
+                      v-if="getPaymentCountdownInfo(row).show"
+                      class="status-note"
+                      :class="{ 'status-note--expired': isPaymentExpired(row) }"
+                    >
+                      {{ getPaymentCountdownInfo(row).text }}
+                    </text>
                   </view>
                 </view>
                 <view class="td td-actions" @click.stop>
@@ -123,6 +132,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import {
@@ -144,6 +154,8 @@ type RegRow = {
   date: string
   status: RegStatus
   rawStatus: number
+  paymentStatus: number
+  createTime: string
 }
 
 const loading = ref(false)
@@ -152,6 +164,18 @@ const activeFilter = ref<FilterKey>('pending')
 const currentPage = ref(1)
 const pageSize = 10
 const allRows = ref<RegRow[]>([])
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => allRows.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await loadRegistrations()
+  }
+})
 
 function getInitials(name?: string): string {
   if (!name) return 'U'
@@ -190,8 +214,26 @@ function transformRegistration(item: TournamentRegistrationItem): RegRow {
     tournament: item.tournamentName || '未知赛事',
     date: formatDate(item.createTime),
     status: mapRegistrationStatus(rawStatus),
-    rawStatus
+    rawStatus,
+    paymentStatus: Number(item.paymentStatus ?? 0),
+    createTime: String(item.createTime || '')
   }
+}
+
+function getPaymentCountdownInfo(row: Pick<RegRow, 'rawStatus' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentAutoCancelInfo({
+    status: row.rawStatus,
+    paymentStatus: row.paymentStatus,
+    createTime: row.createTime
+  }, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  })
+}
+
+function isPaymentExpired(row: Pick<RegRow, 'rawStatus' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentCountdownInfo(row).expired
 }
 
 async function loadRegistrations() {
@@ -314,10 +356,20 @@ async function updateStatus(row: RegRow, status: number, title: string) {
 }
 
 function onApprove(row: RegRow) {
+  if (isPaymentExpired(row)) {
+    uni.showToast({ title: '报名已超时，正在刷新', icon: 'none' })
+    void loadRegistrations()
+    return
+  }
   void updateStatus(row, 2, '已通过')
 }
 
 function onReject(row: RegRow) {
+  if (isPaymentExpired(row)) {
+    uni.showToast({ title: '报名已超时，正在刷新', icon: 'none' })
+    void loadRegistrations()
+    return
+  }
   void updateStatus(row, 0, '已拒绝')
 }
 
@@ -335,6 +387,7 @@ function nextPage() {
 }
 
 onMounted(() => {
+  void loadPaymentAutoCancelConfig()
   void loadRegistrations()
 })
 </script>
@@ -560,6 +613,12 @@ onMounted(() => {
 .td-status {
   margin-top: 20rpx;
 }
+.status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8rpx;
+}
 .status-pill {
   align-self: flex-start;
   padding: 10rpx 20rpx;
@@ -594,6 +653,15 @@ onMounted(() => {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+.status-note {
+  max-width: 180rpx;
+  font-size: 20rpx;
+  line-height: 1.4;
+  color: #c2410c;
+}
+.status-note--expired {
+  color: #b91c1c;
 }
 .td-actions {
   margin-top: 20rpx;

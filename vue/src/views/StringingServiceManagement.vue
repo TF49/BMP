@@ -153,9 +153,20 @@
           </el-table-column>
           <el-table-column prop="paymentStatus" label="支付状态" min-width="100">
             <template #default="scope">
-              <el-tag :type="getPaymentStatusType(scope.row.paymentStatus)" size="small">
-                {{ getPaymentStatusText(scope.row.paymentStatus) }}
-              </el-tag>
+              <div class="payment-status-stack">
+                <el-tag :type="getPaymentStatusType(scope.row.paymentStatus)" size="small">
+                  {{ getPaymentStatusText(scope.row.paymentStatus) }}
+                </el-tag>
+                <el-tag
+                  v-if="getPaymentCountdownInfo(scope.row).show"
+                  :type="isPaymentExpired(scope.row) ? 'danger' : 'warning'"
+                  effect="plain"
+                  size="small"
+                  class="payment-countdown-tag"
+                >
+                  {{ getPaymentCountdownInfo(scope.row).text }}
+                </el-tag>
+              </div>
             </template>
           </el-table-column>
           <el-table-column prop="createTime" label="创建时间" min-width="160">
@@ -169,13 +180,22 @@
                 <el-button type="primary" size="small" plain @click="handleView(scope.row)">查看</el-button>
                 <!-- 待支付显示支付，已支付显示退款（同一位置互斥，与赛事报名/场地预约一致） -->
                 <el-button
-                  v-if="isAdmin && scope.row.paymentStatus === 0 && scope.row.memberId && scope.row.servicePrice != null && Number(scope.row.servicePrice) > 0"
+                  v-if="isAdmin && canCollectStringingPayment(scope.row)"
                   type="warning"
                   size="small"
                   plain
                   @click="openPay(scope.row)"
                 >
                   支付
+                </el-button>
+                <el-button
+                  v-else-if="isAdmin && Number(scope.row.paymentStatus ?? 0) === 0 && Number(scope.row.status ?? -1) === 1 && scope.row.memberId && scope.row.servicePrice != null && Number(scope.row.servicePrice) > 0 && isPaymentExpired(scope.row)"
+                  type="info"
+                  size="small"
+                  plain
+                  disabled
+                >
+                  已超时
                 </el-button>
                 <el-button
                   v-else-if="isAdmin && (scope.row.paymentStatus === 1 || scope.row.paymentStatus === 3)"
@@ -187,7 +207,7 @@
                   {{ scope.row.paymentStatus === 3 ? '处理退款' : '退款' }}
                 </el-button>
                 <el-button
-                  v-if="scope.row.status === 1 && isAdmin"
+                  v-if="scope.row.status === 1 && scope.row.paymentStatus === 1 && isAdmin"
                   type="success"
                   size="small"
                   plain
@@ -489,6 +509,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Tools } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import {
   getStringingList,
   getStringingInfo,
@@ -517,6 +538,18 @@ const searchForm = reactive({
 
 const serviceList = ref([])
 const loading = ref(false)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => serviceList.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await Promise.all([loadList(), loadStatistics()])
+  }
+})
 const pagination = reactive({ page: 1, size: 10, total: 0 })
 const statistics = reactive({ total: 0, waiting: 0, inProgress: 0, completed: 0, cancelled: 0 })
 const venueOptions = ref([])
@@ -628,6 +661,23 @@ const getPaymentStatusText = (status) => {
 const getPaymentStatusType = (status) => {
   const map = { 0: 'warning', 1: 'success', 2: 'info', 3: 'danger' }
   return map[status] || 'info'
+}
+
+const getPaymentCountdownInfo = (service) => getPaymentAutoCancelInfo(service, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+
+const isPaymentExpired = (service) => getPaymentCountdownInfo(service).expired
+
+const canCollectStringingPayment = (service) => {
+  return Number(service?.status ?? -1) === 1
+    && Number(service?.paymentStatus ?? 0) === 0
+    && !isPaymentExpired(service)
+    && Boolean(service?.memberId)
+    && service?.servicePrice != null
+    && Number(service.servicePrice) > 0
 }
 
 const formatCurrency = (value) => {
@@ -854,6 +904,13 @@ const handleView = async (row) => {
 
 // 打开支付弹窗（与预约管理/器材租借一致）
 const openPay = (row) => {
+  if (!canCollectStringingPayment(row)) {
+    ElMessage.warning(isPaymentExpired(row) ? '订单已超时，正在刷新状态' : '当前订单状态不可支付')
+    if (isPaymentExpired(row)) {
+      Promise.all([loadList(), loadStatistics()])
+    }
+    return
+  }
   currentPay.value = row
   payForm.amount = Number(row.servicePrice) || 0
   payForm.method = 'BALANCE'
@@ -862,6 +919,12 @@ const openPay = (row) => {
 
 const submitPay = async () => {
   if (!currentPay.value) return
+  if (isPaymentExpired(currentPay.value)) {
+    ElMessage.warning('该穿线服务已超过支付时限，系统正在自动取消，请稍后刷新')
+    payDialogVisible.value = false
+    await Promise.all([loadList(), loadStatistics()])
+    return
+  }
   payLoading.value = true
   try {
     const res = await processStringingPayment(currentPay.value.id, payForm.method)
@@ -910,6 +973,10 @@ const handleRefund = async (row) => {
 }
 
 const handleStartStringing = async (row) => {
+  if (Number(row?.paymentStatus ?? 0) !== 1) {
+    ElMessage.warning('请先完成收款后再开始穿线')
+    return
+  }
   try {
     await openActionConfirm({
       title: '开始穿线',
@@ -1130,6 +1197,7 @@ const calculateTableHeight = () => {
 onMounted(() => {
   calculateTableHeight()
   window.addEventListener('resize', calculateTableHeight)
+  loadPaymentAutoCancelConfig()
   loadVenueOptions()
   loadStringOptions()
   loadStatistics()
@@ -1184,6 +1252,19 @@ onUnmounted(() => {
   border-color: var(--color-border-hover, #CBD5E1);
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(37, 99, 235, 0.18);
+}
+
+.payment-status-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.payment-countdown-tag {
+  max-width: 180px;
+  white-space: normal;
+  line-height: 1.4;
 }
 
 .page-header {

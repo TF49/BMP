@@ -3,6 +3,7 @@ package com.badminton.bmp.modules.booking.service.impl;
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import com.badminton.bmp.common.util.SecurityUtils;
+import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.booking.entity.Booking;
 import com.badminton.bmp.modules.booking.entity.BookingCourt;
 import com.badminton.bmp.modules.booking.mapper.BookingCourtMapper;
@@ -72,6 +73,8 @@ public class BookingServiceImpl implements BookingService {
     private StringingServiceMapper stringingServiceMapper;
     @Autowired
     private WebSocketPushService webSocketPushService;
+    @Autowired
+    private PaymentAutoCancelProperties paymentAutoCancelProperties;
 
     @Override
     public Booking findById(Long id) {
@@ -506,6 +509,17 @@ public class BookingServiceImpl implements BookingService {
             throw new BusinessException("预约状态不正确，只能对待支付状态的预约进行支付");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        if (isPendingPaymentExpired(booking.getCreateTime(), now)) {
+            throw new BusinessException("该预约已超出支付时限，系统已自动取消或正在取消，无法支付");
+        }
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        int nextStatus = resolveStatusAfterPayment(booking);
+        int updated = bookingMapper.markPaidIfPending(bookingId, paymentMethod, 1, nextStatus, now, expireBefore);
+        if (updated <= 0) {
+            throw new BusinessException(resolvePendingPaymentConflictMessage(bookingMapper.findById(bookingId), "预约"));
+        }
+
         memberConsumeRecordService.createConsumeRecord(
                 booking.getMemberId(),
                 booking.getOrderAmount(),
@@ -525,16 +539,6 @@ public class BookingServiceImpl implements BookingService {
                 venueId,
                 buildConsumeRemark(booking)
         );
-
-        booking.setPaymentMethod(paymentMethod);
-        booking.setPaymentStatus(1);
-        int nextStatus = resolveStatusAfterPayment(booking);
-        booking.setStatus(nextStatus);
-        booking.setUpdateTime(LocalDateTime.now());
-        int updated = bookingMapper.update(booking);
-        if (updated <= 0) {
-            throw new BusinessException("预约支付成功后更新订单状态失败");
-        }
         Booking refreshedBooking = bookingMapper.findById(bookingId);
         if (refreshedBooking == null) {
             throw new BusinessException("预约支付成功后校验订单状态失败");
@@ -625,6 +629,39 @@ public class BookingServiceImpl implements BookingService {
         }
         recomputeCourtStatuses(affectedCourtIds);
         pushBookingUpdates();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
+        if (cutoff == null) {
+            return 0;
+        }
+        List<Long> bookingIds = bookingMapper.findExpiredUnpaidBookingIds(cutoff);
+        if (bookingIds == null || bookingIds.isEmpty()) {
+            return 0;
+        }
+        int cancelled = 0;
+        for (Long bookingId : bookingIds) {
+            Booking booking = bookingMapper.findById(bookingId);
+            if (booking == null) {
+                continue;
+            }
+            List<BookingCourt> details = bookingCourtMapper.findByBookingId(bookingId);
+            int updated = bookingMapper.cancelExpiredUnpaidBooking(bookingId, LocalDateTime.now());
+            if (updated <= 0) {
+                continue;
+            }
+            cancelled += updated;
+            Set<Long> courtIds = extractCourtIds(details);
+            if (!courtIds.isEmpty()) {
+                recomputeCourtStatuses(courtIds);
+            }
+            booking.setStatus(0);
+            booking.setUpdateTime(LocalDateTime.now());
+            notifyStatusChange(booking, 0, "已取消");
+        }
+        return cancelled;
     }
 
     @Override
@@ -1072,6 +1109,44 @@ public class BookingServiceImpl implements BookingService {
             org.slf4j.LoggerFactory.getLogger(BookingServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
         }
         pushBookingUpdates();
+    }
+
+    private String resolvePendingPaymentConflictMessage(Booking latestBooking, String orderLabel) {
+        if (latestBooking == null) {
+            return orderLabel + "记录不存在";
+        }
+        Integer payStatus = latestBooking.getPaymentStatus();
+        if (payStatus != null) {
+            if (payStatus == 1) {
+                return "该" + orderLabel + "已支付，无需重复支付";
+            }
+            if (payStatus == 2) {
+                return "该" + orderLabel + "已退款，无法再次支付";
+            }
+            if (payStatus == 3) {
+                return "该" + orderLabel + "退款申请处理中，无法再次支付";
+            }
+        }
+        if (isPendingPaymentExpired(latestBooking.getCreateTime(), LocalDateTime.now())) {
+            return "该" + orderLabel + "已超出支付时限，系统已自动取消或正在取消，无法支付";
+        }
+        Integer status = latestBooking.getStatus();
+        if (status != null && status == 0) {
+            return "该" + orderLabel + "已超时取消，无法支付";
+        }
+        return orderLabel + "状态已变化，请刷新后重试";
+    }
+
+    private LocalDateTime resolvePendingPaymentExpireBefore(LocalDateTime now) {
+        if (paymentAutoCancelProperties == null || !paymentAutoCancelProperties.isEnabled()) {
+            return null;
+        }
+        return now.minus(paymentAutoCancelProperties.getTimeoutDuration());
+    }
+
+    private boolean isPendingPaymentExpired(LocalDateTime createTime, LocalDateTime now) {
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        return expireBefore != null && createTime != null && !createTime.isAfter(expireBefore);
     }
 
     private String buildConsumeRemark(Booking booking) {

@@ -1,5 +1,6 @@
 package com.badminton.bmp.modules.stringing.service.impl;
 
+import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.stringing.entity.StringingService;
 import com.badminton.bmp.modules.stringing.mapper.StringingServiceMapper;
 import com.badminton.bmp.modules.stringing.service.StringingServiceService;
@@ -48,6 +49,8 @@ public class StringingServiceServiceImpl implements StringingServiceService {
     private FinanceService financeService;
     @Autowired
     private WebSocketPushService webSocketPushService;
+    @Autowired
+    private PaymentAutoCancelProperties paymentAutoCancelProperties;
 
     // 手工费固定为20元
     private static final BigDecimal HANDLING_FEE = new BigDecimal("20.00");
@@ -348,6 +351,23 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             }
         }
 
+        if (status == null || status < 0 || status > 3) {
+            throw new BusinessException("无效的状态值，必须在0-3之间");
+        }
+
+        Integer paymentStatus = existing.getPaymentStatus();
+        if ((status == 2 || status == 3) && (paymentStatus == null || paymentStatus != 1)) {
+            if (paymentStatus != null) {
+                if (paymentStatus == 2) {
+                    throw new BusinessException("该穿线服务已退款，无法继续处理");
+                }
+                if (paymentStatus == 3) {
+                    throw new BusinessException("该穿线服务退款申请处理中，无法继续处理");
+                }
+            }
+            throw new BusinessException(status == 2 ? "该穿线服务未支付，无法开始穿线" : "该穿线服务未支付，无法标记完成");
+        }
+
         // 状态流转验证
         int result;
         if (status == 2) {
@@ -590,12 +610,38 @@ public class StringingServiceServiceImpl implements StringingServiceService {
                 : "该穿线服务已退款，无法再次支付";
             throw new BusinessException(msg);
         }
+        Integer status = service.getStatus();
+        if (status == null || status != 1) {
+            if (status == null) {
+                throw new BusinessException("穿线服务状态异常，无法支付");
+            }
+            if (status == 0) {
+                throw new BusinessException("该穿线服务已取消，无法支付");
+            }
+            if (status == 2) {
+                throw new BusinessException("该穿线服务已开始处理，无法支付");
+            }
+            if (status == 3) {
+                throw new BusinessException("该穿线服务已完成，无法支付");
+            }
+            throw new BusinessException("穿线服务状态不正确，只能对待支付订单进行支付");
+        }
         if (service.getMemberId() == null) {
             throw new BusinessException("穿线服务未关联会员，无法使用会员支付");
         }
         BigDecimal amount = service.getServicePrice() != null ? service.getServicePrice() : BigDecimal.ZERO;
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("服务金额无效，无法支付");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (isPendingPaymentExpired(service.getCreateTime(), now)) {
+            throw new BusinessException("该穿线服务已超出支付时限，系统已自动取消或正在取消，无法支付");
+        }
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        int updated = stringingServiceMapper.markPaidIfPending(serviceId, paymentMethod, now, expireBefore);
+        if (updated <= 0) {
+            throw new BusinessException(resolvePendingPaymentConflictMessage(stringingServiceMapper.findById(serviceId), "穿线服务"));
         }
 
         memberConsumeRecordService.createConsumeRecord(
@@ -616,11 +662,16 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             service.getVenueId(),
             "穿线服务支付：" + service.getServiceNo()
         );
-
-        service.setPaymentMethod(paymentMethod);
-        service.setPaymentStatus(1);
-        service.setUpdateTime(LocalDateTime.now());
-        int updated = stringingServiceMapper.update(service);
+        StringingService refreshedService = stringingServiceMapper.findById(serviceId);
+        Integer refreshedPaymentStatus = refreshedService != null ? refreshedService.getPaymentStatus() : null;
+        Integer refreshedStatus = refreshedService != null ? refreshedService.getStatus() : null;
+        if (refreshedPaymentStatus == null || refreshedPaymentStatus != 1 || refreshedStatus == null || refreshedStatus != 1) {
+            org.slf4j.LoggerFactory.getLogger(StringingServiceServiceImpl.class).error(
+                "支付后穿线服务状态异常, serviceId={}, actualPaymentStatus={}, actualStatus={}",
+                serviceId, refreshedPaymentStatus, refreshedStatus
+            );
+            throw new BusinessException("支付成功后穿线服务状态异常，请稍后重试");
+        }
         if (updated > 0) {
             try {
                 Long notifyUserId = service.getUserId();
@@ -635,6 +686,18 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             }
         }
         return updated;
+    }
+
+    private LocalDateTime resolvePendingPaymentExpireBefore(LocalDateTime now) {
+        if (paymentAutoCancelProperties == null || !paymentAutoCancelProperties.isEnabled()) {
+            return null;
+        }
+        return now.minus(paymentAutoCancelProperties.getTimeoutDuration());
+    }
+
+    private boolean isPendingPaymentExpired(LocalDateTime createTime, LocalDateTime now) {
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        return expireBefore != null && createTime != null && !createTime.isAfter(expireBefore);
     }
 
     @Override
@@ -714,5 +777,67 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             }
         }
         return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
+        if (cutoff == null) {
+            return 0;
+        }
+        List<Long> serviceIds = stringingServiceMapper.findExpiredUnpaidServiceIds(cutoff);
+        if (serviceIds == null || serviceIds.isEmpty()) {
+            return 0;
+        }
+        int cancelled = 0;
+        for (Long serviceId : serviceIds) {
+            StringingService service = stringingServiceMapper.findById(serviceId);
+            if (service == null) {
+                continue;
+            }
+            int updated = stringingServiceMapper.cancelExpiredUnpaidService(serviceId, LocalDateTime.now());
+            if (updated <= 0) {
+                continue;
+            }
+            cancelled += updated;
+            try {
+                Long userId = service.getUserId();
+                if (userId == null && service.getMemberId() != null) {
+                    Member m = memberMapper.findById(service.getMemberId());
+                    if (m != null && m.getUserId() != null) userId = m.getUserId();
+                }
+                webSocketPushService.pushOrderStatusToUser(userId, "stringingService", serviceId, 0, "已取消", "穿线服务");
+                webSocketPushService.pushDashboardRefresh();
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(StringingServiceServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+            }
+        }
+        return cancelled;
+    }
+
+    private String resolvePendingPaymentConflictMessage(StringingService latestService, String orderLabel) {
+        if (latestService == null) {
+            return orderLabel + "记录不存在";
+        }
+        Integer payStatus = latestService.getPaymentStatus();
+        if (payStatus != null) {
+            if (payStatus == 1) {
+                return "该" + orderLabel + "已支付，无需重复支付";
+            }
+            if (payStatus == 2) {
+                return "该" + orderLabel + "已退款，无法再次支付";
+            }
+            if (payStatus == 3) {
+                return "该" + orderLabel + "退款申请处理中，无法再次支付";
+            }
+        }
+        if (isPendingPaymentExpired(latestService.getCreateTime(), LocalDateTime.now())) {
+            return "该" + orderLabel + "已超出支付时限，系统已自动取消或正在取消，无法支付";
+        }
+        Integer status = latestService.getStatus();
+        if (status != null && status == 0) {
+            return "该" + orderLabel + "已超时取消，无法支付";
+        }
+        return orderLabel + "状态已变化，请刷新后重试";
     }
 }

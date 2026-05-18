@@ -105,9 +105,20 @@
           </el-table-column>
           <el-table-column prop="status" label="状态" min-width="110">
             <template #default="scope">
-              <el-tag :type="getStatusType(scope.row.status)" size="small">
-                {{ getStatusText(scope.row.status) }}
-              </el-tag>
+              <div class="payment-status-stack">
+                <el-tag :type="getStatusType(scope.row.status)" size="small">
+                  {{ getStatusText(scope.row.status) }}
+                </el-tag>
+                <el-tag
+                  v-if="getPaymentCountdownInfo(scope.row).show"
+                  :type="isPaymentExpired(scope.row) ? 'danger' : 'warning'"
+                  effect="plain"
+                  size="small"
+                  class="payment-countdown-tag"
+                >
+                  {{ getPaymentCountdownInfo(scope.row).text }}
+                </el-tag>
+              </div>
             </template>
           </el-table-column>
           <el-table-column prop="createTime" label="创建时间" min-width="160">
@@ -118,7 +129,24 @@
               <div class="operation-buttons">
                 <el-button v-if="isAdmin" type="success" size="small" :icon="Edit" plain @click="handleEdit(scope.row)">编辑</el-button>
                 <!-- 待支付显示支付，已支付显示退款（同一位置互斥） -->
-                <el-button v-if="isAdmin && scope.row.status === 1" type="primary" size="small" plain @click="handlePayment(scope.row)">支付</el-button>
+                <el-button
+                  v-if="isAdmin && canCollectRegistrationPayment(scope.row)"
+                  type="primary"
+                  size="small"
+                  plain
+                  @click="handlePayment(scope.row)"
+                >
+                  支付
+                </el-button>
+                <el-button
+                  v-else-if="isAdmin && Number(scope.row.status) === 1 && Number(scope.row.paymentStatus ?? 0) === 0 && isPaymentExpired(scope.row)"
+                  type="info"
+                  size="small"
+                  plain
+                  disabled
+                >
+                  已超时
+                </el-button>
                 <el-button
                   v-else-if="isAdmin && (scope.row.paymentStatus === 1 || scope.row.paymentStatus === 3)"
                   type="warning"
@@ -284,6 +312,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Medal } from '@element-plus/icons-vue'
@@ -315,6 +344,18 @@ const searchForm = reactive({
 
 const registrationList = ref([])
 const loading = ref(false)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => registrationList.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await Promise.all([loadList(), loadStatistics()])
+  }
+})
 const pagination = reactive({ page: 1, size: 10, total: 0 })
 const statistics = reactive({ total: 0, pending: 0, paid: 0, participated: 0, cancelled: 0 })
 const tournamentOptions = ref([])
@@ -407,6 +448,20 @@ const getStatusText = (status) => {
 const getStatusType = (status) => {
   const map = { 0: 'info', 1: 'warning', 2: 'success', 3: 'primary', 4: 'warning' }
   return map[status] || 'info'
+}
+
+const getPaymentCountdownInfo = (registration) => getPaymentAutoCancelInfo(registration, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+
+const isPaymentExpired = (registration) => getPaymentCountdownInfo(registration).expired
+
+const canCollectRegistrationPayment = (registration) => {
+  return Number(registration?.status ?? -1) === 1
+    && Number(registration?.paymentStatus ?? 0) === 0
+    && !isPaymentExpired(registration)
 }
 
 const formatCurrency = (value) => {
@@ -711,6 +766,13 @@ const changeStatus = async (row, status) => {
 }
 
 const handlePayment = (row) => {
+  if (!canCollectRegistrationPayment(row)) {
+    ElMessage.warning(isPaymentExpired(row) ? '订单已超时，正在刷新状态' : '当前订单状态不可支付')
+    if (isPaymentExpired(row)) {
+      Promise.all([loadList(), loadStatistics()])
+    }
+    return
+  }
   Object.assign(paymentForm, {
     registrationId: row.id,
     registrationNo: row.registrationNo,
@@ -724,6 +786,13 @@ const handlePayment = (row) => {
 const handlePaymentSubmit = async () => {
   if (!paymentForm.paymentMethod) {
     ElMessage.warning('请确认余额支付')
+    return
+  }
+  const currentRegistration = registrationList.value.find((item) => Number(item.id) === Number(paymentForm.registrationId))
+  if (currentRegistration && isPaymentExpired(currentRegistration)) {
+    ElMessage.warning('订单已超时，正在刷新状态')
+    paymentDialogVisible.value = false
+    await Promise.all([loadList(), loadStatistics()])
     return
   }
   paymentLoading.value = true
@@ -815,6 +884,7 @@ const calculateTableHeight = () => {
 onMounted(() => {
   calculateTableHeight()
   window.addEventListener('resize', calculateTableHeight)
+  loadPaymentAutoCancelConfig()
   loadTournaments()
   loadStatistics()
   loadList()
@@ -868,6 +938,19 @@ onUnmounted(() => {
   border-color: var(--color-border-hover, #CBD5E1);
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(37, 99, 235, 0.18);
+}
+
+.payment-status-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.payment-countdown-tag {
+  max-width: 180px;
+  white-space: normal;
+  line-height: 1.4;
 }
 
 .page-header {

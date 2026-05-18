@@ -183,4 +183,37 @@ public interface TournamentRegistrationMapper {
     @Select("SELECT tr.id FROM biz_tournament_registration tr INNER JOIN biz_tournament t ON tr.tournament_id = t.id " +
             "WHERE tr.del_flag = 0 AND tr.status = 2 AND t.tournament_start <= #{now}")
     List<Long> findRegistrationIdsToParticipate(@Param("now") LocalDateTime now);
+
+    /**
+     * 查询已超时且仍未支付的赛事报名ID（创建时间早于等于 cutoff）
+     */
+    @Select("SELECT id FROM biz_tournament_registration WHERE del_flag = 0 AND status = 1 " +
+            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
+    List<Long> findExpiredUnpaidRegistrationIds(@Param("cutoff") LocalDateTime cutoff);
+
+    /**
+     * 条件支付更新：仅待支付且未支付的报名允许更新为已支付
+     */
+    @Update({
+            "<script>",
+            "UPDATE biz_tournament_registration SET payment_method = #{paymentMethod}, payment_status = 1,",
+            "status = 2, update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0 AND status = 1",
+            "AND (payment_status IS NULL OR payment_status = 0)",
+            "<if test='expireBefore != null'>",
+            "AND create_time &gt; #{expireBefore}",
+            "</if>",
+            "</script>"
+    })
+    int markPaidIfPending(@Param("id") Long id,
+                          @Param("paymentMethod") String paymentMethod,
+                          @Param("updateTime") LocalDateTime updateTime,
+                          @Param("expireBefore") LocalDateTime expireBefore);
+
+    /**
+     * 条件取消更新：仅待支付且未支付的报名允许自动取消
+     */
+    @Update("UPDATE biz_tournament_registration SET status = 0, update_time = #{updateTime} WHERE id = #{id} " +
+            "AND del_flag = 0 AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
+    int cancelExpiredUnpaidRegistration(@Param("id") Long id,
+                                        @Param("updateTime") LocalDateTime updateTime);
 }

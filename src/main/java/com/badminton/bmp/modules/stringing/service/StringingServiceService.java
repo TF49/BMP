@@ -3,6 +3,7 @@ package com.badminton.bmp.modules.stringing.service;
 import com.badminton.bmp.modules.stringing.entity.StringingService;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -135,4 +136,9 @@ public interface StringingServiceService {
      * @return 影响的行数
      */
     int processRefund(Long serviceId);
+
+    /**
+     * 定时任务：自动取消创建时间早于截止时间且仍未支付的穿线服务订单
+     */
+    int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff);
 }

@@ -5,12 +5,16 @@ import com.badminton.bmp.modules.booking.service.BookingService;
 import com.badminton.bmp.modules.course.service.CourseBookingService;
 import com.badminton.bmp.modules.course.service.CourseService;
 import com.badminton.bmp.modules.equipment.service.EquipmentRentalService;
+import com.badminton.bmp.modules.stringing.service.StringingServiceService;
 import com.badminton.bmp.modules.tournament.service.TournamentRegistrationService;
 import com.badminton.bmp.modules.tournament.service.TournamentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+
+import java.time.LocalDateTime;
+import java.util.function.IntSupplier;
 
 /**
      * 定时任务配置
@@ -20,9 +24,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 @Configuration
 @EnableScheduling
 public class ScheduleConfig {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class);
 
     @Autowired
     private LoginRateLimiter loginRateLimiter;
+
+    @Autowired
+    private PaymentAutoCancelProperties paymentAutoCancelProperties;
 
     @Autowired
     private BookingService bookingService;
@@ -42,6 +50,9 @@ public class ScheduleConfig {
     @Autowired
     private TournamentRegistrationService tournamentRegistrationService;
 
+    @Autowired
+    private StringingServiceService stringingServiceService;
+
     /**
      * 每5分钟清理一次过期的登录记录
      * 防止内存泄漏
@@ -49,6 +60,22 @@ public class ScheduleConfig {
     @Scheduled(fixedRate = 300000)  // 300000毫秒 = 5分钟
     public void cleanupExpiredLoginRecords() {
         loginRateLimiter.cleanupExpiredRecords();
+    }
+
+    /**
+     * 按配置频率自动取消超时未支付业务订单
+     */
+    @Scheduled(fixedRateString = "#{@paymentAutoCancelProperties.scanIntervalMs}")
+    public void autoCancelExpiredUnpaidOrders() {
+        if (!paymentAutoCancelProperties.isEnabled()) {
+            return;
+        }
+        LocalDateTime cutoff = LocalDateTime.now().minus(paymentAutoCancelProperties.getTimeoutDuration());
+        runAutoCancel("场地预约", () -> bookingService.autoCancelExpiredUnpaidOrders(cutoff));
+        runAutoCancel("课程预约", () -> courseBookingService.autoCancelExpiredUnpaidOrders(cutoff));
+        runAutoCancel("器材租借", () -> equipmentRentalService.autoCancelExpiredUnpaidOrders(cutoff));
+        runAutoCancel("赛事报名", () -> tournamentRegistrationService.autoCancelExpiredUnpaidOrders(cutoff));
+        runAutoCancel("穿线服务", () -> stringingServiceService.autoCancelExpiredUnpaidOrders(cutoff));
     }
 
     /**
@@ -120,6 +147,17 @@ public class ScheduleConfig {
             equipmentRentalService.autoMarkOverdueRentals();
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class).warn("器材租借逾期自动标记失败: {}", e.getMessage());
+        }
+    }
+
+    private void runAutoCancel(String moduleName, IntSupplier supplier) {
+        try {
+            int cancelled = supplier.getAsInt();
+            if (cancelled > 0) {
+                log.info("{}自动取消超时未支付订单 {} 笔", moduleName, cancelled);
+            }
+        } catch (Exception e) {
+            log.warn("{}自动取消超时未支付订单失败: {}", moduleName, e.getMessage());
         }
     }
 }

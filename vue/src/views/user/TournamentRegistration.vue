@@ -222,11 +222,19 @@
                   <p class="registration-tournament">{{ registration.tournamentName }}</p>
                   <p class="registration-time">赛事时间：{{ formatTimeRange(registration.tournamentStartTime, registration.tournamentEndTime) }}</p>
                   <p class="registration-amount">报名费：¥{{ formatCurrency(registration.registrationFee ?? registration.entryFee) }}</p>
+                  <el-tag
+                    v-if="getPaymentCountdownInfo(registration).show"
+                    :type="isPaymentExpired(registration) ? 'danger' : 'warning'"
+                    effect="plain"
+                    size="small"
+                  >
+                    {{ getPaymentCountdownInfo(registration).text }}
+                  </el-tag>
                 </div>
               </div>
               <div class="registration-actions">
                 <el-button
-                  v-if="registration.status === 1"
+                  v-if="registration.status === 1 && !isPaymentExpired(registration)"
                   type="primary"
                   size="small"
                   @click="handlePay(registration)"
@@ -259,6 +267,7 @@ import { openActionConfirm } from '@/utils/confirm'
 import { Trophy, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getTournamentList } from '@/api/tournament'
 import { getCurrentMember } from '@/api/member'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import {
   getTournamentRegistrationList,
   addTournamentRegistration,
@@ -285,6 +294,28 @@ const selectedTournament = ref(null)
 const submitting = ref(false)
 const currentBalance = ref(0)
 const currentMember = ref(null)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => myRegistrations.value.some((item) => getPaymentAutoCancelInfo(item, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  }).expired),
+  refreshOnExpire: async () => {
+    await loadMyRegistrations()
+  }
+})
+const getPaymentCountdownInfo = (registration) => getPaymentAutoCancelInfo(registration, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+const isPaymentExpired = (registration) => getPaymentCountdownInfo(registration).expired
 const partnerOptions = ref([])
 const registeredTournamentIds = ref(new Set())
 
@@ -519,6 +550,11 @@ const getPartnerName = (partnerId) => {
 }
 
 const handlePay = (registration) => {
+  if (isPaymentExpired(registration)) {
+    ElMessage.warning('该赛事报名已超过支付时限，系统正在自动取消，请稍后刷新')
+    loadMyRegistrations()
+    return
+  }
   const fee = Number(registration.registrationFee ?? registration.entryFee ?? 0)
   openActionConfirm({
     title: '赛事报名支付确认',
@@ -531,6 +567,11 @@ const handlePay = (registration) => {
     confirmButtonText: '确认支付',
     cancelButtonText: '稍后支付'
   }).then(async () => {
+      if (isPaymentExpired(registration)) {
+        ElMessage.warning('该赛事报名已超过支付时限，系统正在自动取消，请稍后刷新')
+        await loadMyRegistrations()
+        return
+      }
       try {
         const res = await processMemberTournamentRegistrationPayment(registration.id, 'BALANCE')
         if (res.code === 200) {
@@ -588,6 +629,7 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(() => {
+  loadPaymentAutoCancelConfig()
   Promise.all([loadTournaments(), syncRegisteredTournamentIds()])
   loadCurrentMemberInfo()
   if (activeTab.value === 'my-registrations') {

@@ -299,6 +299,14 @@
                   <p class="service-params">磅数：{{ service.pound }}磅 | 穿线法：{{ getStringingMethodText(service.stringingMethod) }}</p>
                   <p class="service-price">价格：¥{{ formatCurrency(service.servicePrice) }}</p>
                   <p class="service-price">支付状态：{{ getPaymentStatusText(service.paymentStatus) }}</p>
+                  <el-tag
+                    v-if="getPaymentCountdownInfo(service).show"
+                    :type="isPaymentExpired(service) ? 'danger' : 'warning'"
+                    effect="plain"
+                    size="small"
+                  >
+                    {{ getPaymentCountdownInfo(service).text }}
+                  </el-tag>
                   <p class="service-time">申请时间：{{ formatDateTime(service.createTime) }}</p>
                 </div>
               </div>
@@ -335,6 +343,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { openActionConfirm } from '@/utils/confirm'
 import { Location, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getVenueList } from '@/api/venue'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import {
   getStringOptions,
   calculateStringingPrice,
@@ -359,6 +368,28 @@ const filterStatus = ref(null)
 const submitting = ref(false)
 const currentMember = ref(null)
 const currentBalance = ref(0)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => myServices.value.some((item) => getPaymentAutoCancelInfo(item, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  }).expired),
+  refreshOnExpire: async () => {
+    await loadMyServices()
+  }
+})
+const getPaymentCountdownInfo = (service) => getPaymentAutoCancelInfo(service, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+const isPaymentExpired = (service) => getPaymentCountdownInfo(service).expired
 
 const serviceForm = ref({
   venueId: null,
@@ -448,7 +479,7 @@ const canCancelService = (service) => {
 const canPayService = (service) => {
   const status = Number(service?.status ?? -1)
   const paymentStatus = Number(service?.paymentStatus ?? 0)
-  return status === 1 && paymentStatus === 0
+  return status === 1 && paymentStatus === 0 && !isPaymentExpired(service)
 }
 
 const getStringingMethodText = (method) => {
@@ -639,6 +670,11 @@ const handleCancelService = async (service) => {
 }
 
 const handlePayService = (service) => {
+  if (isPaymentExpired(service)) {
+    ElMessage.warning('该穿线服务已超过支付时限，系统正在自动取消，请稍后刷新')
+    loadMyServices()
+    return
+  }
   const amount = Number(service?.servicePrice) || 0
   openActionConfirm({
     title: '穿线服务支付确认',
@@ -651,6 +687,11 @@ const handlePayService = (service) => {
     confirmButtonText: '确认支付',
     cancelButtonText: '稍后支付'
   }).then(async () => {
+    if (isPaymentExpired(service)) {
+      ElMessage.warning('该穿线服务已超过支付时限，系统正在自动取消，请稍后刷新')
+      await loadMyServices()
+      return
+    }
     try {
       const res = await processMemberStringingPayment(service.id, 'BALANCE')
       if (res.code === 200) {
@@ -673,6 +714,7 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(() => {
+  loadPaymentAutoCancelConfig()
   loadVenues()
   loadStringOptions()
   loadCurrentMemberInfo()

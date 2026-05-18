@@ -221,6 +221,42 @@ public interface BookingMapper {
                                       @Param("nowTime") LocalTime nowTime);
 
     /**
+     * 查询已超时且仍未支付的预约ID（创建时间早于等于 cutoff）
+     */
+    @Select("SELECT id FROM biz_booking WHERE del_flag = 0 AND status = 1 " +
+            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
+    List<Long> findExpiredUnpaidBookingIds(@Param("cutoff") java.time.LocalDateTime cutoff);
+
+    /**
+     * 条件支付更新：仅待支付且未支付的订单允许更新为已支付/进行中
+     */
+    @Update({
+            "<script>",
+            "UPDATE biz_booking SET payment_method = #{paymentMethod}, payment_status = #{paymentStatus},",
+            "status = #{status}, update_time = #{updateTime}",
+            "WHERE id = #{id} AND del_flag = 0 AND status = 1",
+            "AND (payment_status IS NULL OR payment_status = 0)",
+            "<if test='expireBefore != null'>",
+            "AND create_time &gt; #{expireBefore}",
+            "</if>",
+            "</script>"
+    })
+    int markPaidIfPending(@Param("id") Long id,
+                          @Param("paymentMethod") String paymentMethod,
+                          @Param("paymentStatus") Integer paymentStatus,
+                          @Param("status") Integer status,
+                          @Param("updateTime") java.time.LocalDateTime updateTime,
+                          @Param("expireBefore") java.time.LocalDateTime expireBefore);
+
+    /**
+     * 条件取消更新：仅待支付且未支付的订单允许自动取消
+     */
+    @Update("UPDATE biz_booking SET status = 0, update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0 " +
+            "AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
+    int cancelExpiredUnpaidBooking(@Param("id") Long id,
+                                   @Param("updateTime") java.time.LocalDateTime updateTime);
+
+    /**
      * 按日期统计预订量（用于趋势图）
      */
     @Select("<script>" +

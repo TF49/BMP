@@ -155,9 +155,20 @@
           </el-table-column>
           <el-table-column prop="paymentStatus" label="支付状态" min-width="100">
             <template #default="scope">
-              <el-tag :type="getPaymentStatusType(scope.row.paymentStatus)" size="small">
-                {{ getPaymentStatusText(scope.row.paymentStatus) }}
-              </el-tag>
+              <div class="payment-status-stack">
+                <el-tag :type="getPaymentStatusType(scope.row.paymentStatus)" size="small">
+                  {{ getPaymentStatusText(scope.row.paymentStatus) }}
+                </el-tag>
+                <el-tag
+                  v-if="getPaymentCountdownInfo(scope.row).show"
+                  :type="isPaymentExpired(scope.row) ? 'danger' : 'warning'"
+                  effect="plain"
+                  size="small"
+                  class="payment-countdown-tag"
+                >
+                  {{ getPaymentCountdownInfo(scope.row).text }}
+                </el-tag>
+              </div>
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" min-width="110">
@@ -177,7 +188,24 @@
               <div class="operation-buttons">
                 <el-button v-if="isAdmin" type="primary" size="small" :icon="Edit" plain @click="handleEdit(scope.row)">编辑</el-button>
                 <!-- 待支付显示支付，已支付显示退款（同一位置互斥，与赛事报名/课程预约一致） -->
-                <el-button v-if="isAdmin && scope.row.status === 1" type="success" size="small" plain @click="openPay(scope.row)">支付</el-button>
+                <el-button
+                  v-if="isAdmin && canCollectBookingPayment(scope.row)"
+                  type="success"
+                  size="small"
+                  plain
+                  @click="openPay(scope.row)"
+                >
+                  支付
+                </el-button>
+                <el-button
+                  v-else-if="isAdmin && Number(scope.row.status) === 1 && Number(scope.row.paymentStatus ?? 0) === 0 && isPaymentExpired(scope.row)"
+                  type="info"
+                  size="small"
+                  plain
+                  disabled
+                >
+                  已超时
+                </el-button>
                 <el-button
                   v-else-if="isAdmin && (scope.row.paymentStatus === 1 || scope.row.paymentStatus === 3)"
                   type="warning"
@@ -256,7 +284,7 @@
           </el-form-item>
           <el-form-item label="场地" prop="courtIds" class="modern-form-item">
             <el-select
-              v-model="form.courtIds"
+              v-model="formCourtIdsModel"
               :multiple="form.bookingMode === 'PACKAGE'"
               collapse-tags
               collapse-tags-tooltip
@@ -401,6 +429,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, DataLine, WarningFilled } from '@element-plus/icons-vue'
@@ -435,6 +464,18 @@ const courtOptions = ref([])
 // 列表数据
 const bookingList = ref([])
 const loading = ref(false)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await Promise.all([loadList(), loadStatistics()])
+  }
+})
 
 // 分页
 const pagination = reactive({
@@ -551,8 +592,29 @@ const getAvailableFormSharedPricingModes = (court) => {
   if (court.enableSharedTime) modes.push('SHARED_TIME')
   return modes
 }
+const normalizeCourtIds = (value) => {
+  if (Array.isArray(value)) {
+    return value.filter(id => id !== null && id !== undefined && id !== '')
+  }
+  if (value === null || value === undefined || value === '') {
+    return []
+  }
+  return [value]
+}
+const normalizedFormCourtIds = computed(() => normalizeCourtIds(form.courtIds))
+const formCourtIdsModel = computed({
+  get() {
+    const ids = normalizedFormCourtIds.value
+    return form.bookingMode === 'PACKAGE' ? ids : (ids[0] ?? null)
+  },
+  set(value) {
+    const ids = normalizeCourtIds(value)
+    form.courtIds = form.bookingMode === 'PACKAGE' ? ids : ids.slice(0, 1)
+    form.courtId = form.courtIds[0] ?? null
+  }
+})
 const availableFormSharedPricingModes = computed(() => {
-  const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+  const selected = formCourtOptions.value.find(item => normalizedFormCourtIds.value.includes(item.id))
   const modes = getAvailableFormSharedPricingModes(selected)
   if (isEdit.value && form.bookingMode === 'SHARED' && form.pricingMode && !modes.includes(form.pricingMode)) {
     modes.push(form.pricingMode)
@@ -560,13 +622,13 @@ const availableFormSharedPricingModes = computed(() => {
   return modes
 })
 
-const sortIds = (ids) => [...(ids || [])].map(Number).filter(Boolean).sort((a, b) => a - b)
+const sortIds = (ids) => normalizeCourtIds(ids).map(Number).filter(Boolean).sort((a, b) => a - b)
 const isEditStructuralChange = computed(() => {
   if (!isEdit.value) return false
   return form.venueId !== editBaseline.venueId
     || form.bookingMode !== editBaseline.bookingMode
     || form.pricingMode !== editBaseline.pricingMode
-    || JSON.stringify(sortIds(form.courtIds)) !== JSON.stringify(sortIds(editBaseline.courtIds))
+    || JSON.stringify(sortIds(normalizedFormCourtIds.value)) !== JSON.stringify(sortIds(editBaseline.courtIds))
     || JSON.stringify(form.timeRange || []) !== JSON.stringify(editBaseline.timeRange || [])
 })
 
@@ -651,6 +713,20 @@ const getPaymentStatusText = (status) => {
 const getPaymentStatusType = (status) => {
   const map = { 0: 'warning', 1: 'success', 2: 'info', 3: 'danger' }
   return map[status] || 'info'
+}
+
+const getPaymentCountdownInfo = (booking) => getPaymentAutoCancelInfo(booking, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+})
+
+const isPaymentExpired = (booking) => getPaymentCountdownInfo(booking).expired
+
+const canCollectBookingPayment = (booking) => {
+  return Number(booking?.status ?? -1) === 1
+    && Number(booking?.paymentStatus ?? 0) === 0
+    && !isPaymentExpired(booking)
 }
 
 const formatCurrency = (val) => {
@@ -779,14 +855,14 @@ const syncFormModeAndPricing = () => {
   }
   if (form.bookingMode === 'PACKAGE') {
     form.pricingMode = 'PACKAGE_HOUR'
-    form.courtIds = form.courtIds.filter(id => {
+    form.courtIds = normalizedFormCourtIds.value.filter(id => {
       const court = formCourtOptions.value.find(item => item.id === id)
       return court && court.enablePackageHour && Number(court.status) !== 0
     })
-    form.courtId = form.courtIds[0] || null
+    form.courtId = normalizedFormCourtIds.value[0] || null
     return
   }
-  const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+  const selected = formCourtOptions.value.find(item => normalizedFormCourtIds.value.includes(item.id))
   const sharedModes = getAvailableFormSharedPricingModes(selected)
   if (sharedModes.length && !sharedModes.includes(form.pricingMode)) {
     form.pricingMode = sharedModes[0]
@@ -816,7 +892,7 @@ const extractFormRangePayload = () => {
 
 const computeFormAmount = () => {
   const { startTime, endTime } = extractFormRangePayload()
-  const selectedCourts = formCourtOptions.value.filter(item => form.courtIds.includes(item.id))
+  const selectedCourts = formCourtOptions.value.filter(item => normalizedFormCourtIds.value.includes(item.id))
   if (!selectedCourts.length || !startTime || !endTime) {
     form.amount = 0
     return
@@ -837,13 +913,14 @@ const computeFormAmount = () => {
 
 const handleBookingModeChange = () => {
   if (form.bookingMode === 'SHARED') {
-    form.courtIds = form.courtIds.length ? [form.courtIds[0]] : []
-    const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+    form.courtIds = normalizedFormCourtIds.value.length ? [normalizedFormCourtIds.value[0]] : []
+    const selected = formCourtOptions.value.find(item => normalizedFormCourtIds.value.includes(item.id))
     const sharedModes = getAvailableFormSharedPricingModes(selected)
     form.pricingMode = sharedModes.includes(form.pricingMode) ? form.pricingMode : (sharedModes[0] || 'SHARED_HOUR')
   } else {
     form.pricingMode = 'PACKAGE_HOUR'
   }
+  form.courtId = normalizedFormCourtIds.value[0] || null
   computeFormAmount()
   checkFormOccupancy()
 }
@@ -863,7 +940,7 @@ const getFormCourtLabel = (item) => {
 }
 
 const isCourtBlocked = (item) => {
-  if (isEdit.value && form.courtIds.includes(item.id) && !isEditStructuralChange.value) return false
+  if (isEdit.value && normalizedFormCourtIds.value.includes(item.id) && !isEditStructuralChange.value) return false
   if (Number(item.status) === 0) return true
   if (form.bookingMode === 'PACKAGE') return item.enablePackageHour !== true
   return !getAvailableFormSharedPricingModes(item).includes(form.pricingMode)
@@ -872,7 +949,7 @@ const isCourtBlocked = (item) => {
 const checkFormOccupancy = async () => {
   resetFormOccupancy()
   if (form.bookingMode === 'SHARED') {
-    const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+    const selected = formCourtOptions.value.find(item => normalizedFormCourtIds.value.includes(item.id))
     const sharedModes = getAvailableFormSharedPricingModes(selected)
     if (sharedModes.length && !sharedModes.includes(form.pricingMode)) {
       form.pricingMode = sharedModes[0]
@@ -880,14 +957,14 @@ const checkFormOccupancy = async () => {
   }
   const { bookingDate, startTime, endTime } = extractFormRangePayload()
   computeFormAmount()
-  if (!form.courtIds.length || !bookingDate || !startTime || !endTime) return
+  if (!normalizedFormCourtIds.value.length || !bookingDate || !startTime || !endTime) return
   if (endTime <= startTime) return
 
   const requestId = ++formOccupancyRequestId
   formOccupancyLoading.value = true
   try {
     const results = await Promise.all(
-      form.courtIds.map(async (courtId) => {
+      normalizedFormCourtIds.value.map(async (courtId) => {
         const res = await getBookingRangeOccupancy({ courtId, bookingDate, startTime, endTime })
         return { courtId, res }
       })
@@ -988,10 +1065,11 @@ const handleEdit = async (row) => {
     const res = await getBookingInfo(row.id)
     if (res.code === 200) {
       const data = res.data || {}
+      const courtIds = normalizeCourtIds(data.courtIds)
       Object.assign(form, {
         id: data.id,
-        courtId: data.courtId,
-        courtIds: Array.isArray(data.courtIds) && data.courtIds.length ? data.courtIds : (data.courtId ? [data.courtId] : []),
+        courtId: data.courtId ?? courtIds[0] ?? null,
+        courtIds: courtIds.length ? courtIds : normalizeCourtIds(data.courtId),
         memberId: data.memberId,
         bookingMode: data.bookingMode || 'SHARED',
         pricingMode: data.pricingMode || 'SHARED_HOUR',
@@ -1012,7 +1090,7 @@ const handleEdit = async (row) => {
         venueId: data.venueId ?? row.venueId ?? null,
         bookingMode: data.bookingMode || 'SHARED',
         pricingMode: data.pricingMode || 'SHARED_HOUR',
-        courtIds: Array.isArray(data.courtIds) && data.courtIds.length ? [...data.courtIds] : (data.courtId ? [data.courtId] : []),
+        courtIds: courtIds.length ? [...courtIds] : normalizeCourtIds(data.courtId),
         timeRange: data.bookingDate && data.startTime && data.endTime
           ? [
               `${data.bookingDate} ${data.startTime}`,
@@ -1090,14 +1168,14 @@ const handleSubmit = async () => {
         return
       }
       if (form.bookingMode === 'PACKAGE' && !(isEdit.value && !isEditStructuralChange.value)) {
-        const invalidCourt = formCourtOptions.value.find(item => form.courtIds.includes(item.id) && item.enablePackageHour !== true)
+        const invalidCourt = formCourtOptions.value.find(item => normalizedFormCourtIds.value.includes(item.id) && item.enablePackageHour !== true)
         if (invalidCourt) {
           ElMessage.warning(`场地 ${invalidCourt.courtName || invalidCourt.courtCode} 未开放包场按小时`)
           submitLoading.value = false
           return
         }
       } else if (form.bookingMode === 'SHARED' && !(isEdit.value && !isEditStructuralChange.value)) {
-        const selected = formCourtOptions.value.find(item => form.courtIds.includes(item.id))
+        const selected = formCourtOptions.value.find(item => normalizedFormCourtIds.value.includes(item.id))
         if (selected && !getAvailableFormSharedPricingModes(selected).includes(form.pricingMode)) {
           ElMessage.warning(`场地 ${selected.courtName || selected.courtCode} 未开放当前拼场计费方式`)
           submitLoading.value = false
@@ -1107,8 +1185,8 @@ const handleSubmit = async () => {
 
       const payload = {
         id: form.id,
-        courtId: form.courtIds[0],
-        courtIds: form.courtIds,
+        courtId: normalizedFormCourtIds.value[0],
+        courtIds: normalizedFormCourtIds.value,
         memberId: form.memberId,
         bookingMode: form.bookingMode,
         pricingMode: form.bookingMode === 'PACKAGE' ? 'PACKAGE_HOUR' : form.pricingMode,
@@ -1192,6 +1270,13 @@ const calculateTableHeight = () => {
 
 // 支付
 const openPay = (row) => {
+  if (!canCollectBookingPayment(row)) {
+    ElMessage.warning(isPaymentExpired(row) ? '订单已超时，正在刷新状态' : '当前订单状态不可支付')
+    if (isPaymentExpired(row)) {
+      Promise.all([loadList(), loadStatistics()])
+    }
+    return
+  }
   currentPay.value = row
   // 显示后端计算好的订单金额
   payForm.amount = row.orderAmount || 0
@@ -1201,6 +1286,12 @@ const openPay = (row) => {
 
 const submitPay = async () => {
   if (!currentPay.value?.id) return
+  if (isPaymentExpired(currentPay.value)) {
+    ElMessage.warning('订单已超时，正在刷新状态')
+    payDialogVisible.value = false
+    await Promise.all([loadList(), loadStatistics()])
+    return
+  }
   payLoading.value = true
   try {
     const res = await payBooking({
@@ -1257,6 +1348,7 @@ const submitRefund = async () => {
 onMounted(() => {
   calculateTableHeight()
   window.addEventListener('resize', calculateTableHeight)
+  loadPaymentAutoCancelConfig()
   loadVenues()
   loadList()
   loadStatistics()
@@ -1322,6 +1414,19 @@ onUnmounted(() => {
   border-color: var(--color-border-hover, #CBD5E1);
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(37, 99, 235, 0.18);
+}
+
+.payment-status-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.payment-countdown-tag {
+  max-width: 180px;
+  white-space: normal;
+  line-height: 1.4;
 }
 
 .page-header {

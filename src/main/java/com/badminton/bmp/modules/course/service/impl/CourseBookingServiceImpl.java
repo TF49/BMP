@@ -1,5 +1,6 @@
 package com.badminton.bmp.modules.course.service.impl;
 
+import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.course.entity.Course;
 import com.badminton.bmp.modules.course.entity.CourseBooking;
 import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
@@ -55,6 +56,8 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     private CoachMapper coachMapper;
     @Autowired
     private CacheManager cacheManager;
+    @Autowired
+    private PaymentAutoCancelProperties paymentAutoCancelProperties;
 
     /**
      * 根据ID查找课程预约记录
@@ -253,11 +256,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         int result = courseBookingMapper.updateStatusAndRemark(id, status, nextRemark);
         if (result > 0) {
             if ((oldStatus >= 1 && oldStatus <= 3) && !(status >= 1 && status <= 3)) {
-                Course course = courseMapper.findById(booking.getCourseId());
-                if (course != null) {
-                    int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
-                    courseMapper.updateCurrentStudents(booking.getCourseId(), Math.max(0, current - 1));
-                }
+                decrementCourseCurrentStudents(booking.getCourseId());
             }
             evictCourseCache(booking.getCourseId());
             try {
@@ -363,8 +362,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         
         // 如果插入成功，更新课程的当前报名人数
         if (result > 0) {
-            int newCurrent = currentStudents + 1;
-            courseMapper.updateCurrentStudents(booking.getCourseId(), newCurrent);
+            incrementCourseCurrentStudents(booking.getCourseId());
             evictCourseCache(booking.getCourseId());
         }
         
@@ -422,12 +420,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (booking.getCourseId() != null && !booking.getCourseId().equals(existing.getCourseId())) {
             // 从旧课程减少报名人数（如果旧状态是有效状态）
             if (oldStatus != null && oldStatus >= 1 && oldStatus <= 3) {
-                Course oldCourse = courseMapper.findById(existing.getCourseId());
-                if (oldCourse != null) {
-                    int oldCurrent = oldCourse.getCurrentStudents() != null ? oldCourse.getCurrentStudents() : 0;
-                    courseMapper.updateCurrentStudents(existing.getCourseId(),
-                        Math.max(0, oldCurrent - 1));
-                }
+                decrementCourseCurrentStudents(existing.getCourseId());
             }
             
             // 向新课程增加报名人数（需要验证新课程是否还有名额）
@@ -436,32 +429,21 @@ public class CourseBookingServiceImpl implements CourseBookingService {
                 throw new RuntimeException("新课程不存在");
             }
             if (newStatus != null && newStatus >= 1 && newStatus <= 3) {
-                int newCurrent = newCourse.getCurrentStudents() != null ? newCourse.getCurrentStudents() : 0;
-                if (newCurrent >= newCourse.getMaxStudents()) {
-                    throw new RuntimeException("新课程报名人数已满");
-                }
-                courseMapper.updateCurrentStudents(booking.getCourseId(),
-                    newCurrent + 1);
+                incrementCourseCurrentStudents(booking.getCourseId(), "新课程报名人数已满");
             }
         } else if (newStatus != null && !newStatus.equals(oldStatus)) {
             // 如果只修改了状态（未修改课程），需要处理报名人数的变化
             Course course = courseMapper.findById(courseId);
             if (course != null) {
-                int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
                 boolean oldStatusValid = oldStatus != null && oldStatus >= 1 && oldStatus <= 3;
                 boolean newStatusValid = newStatus >= 1 && newStatus <= 3;
                 
                 if (oldStatusValid && !newStatusValid) {
                     // 从有效状态变为无效状态（如已取消），减少报名人数
-                    courseMapper.updateCurrentStudents(courseId,
-                        Math.max(0, current - 1));
+                    decrementCourseCurrentStudents(courseId);
                 } else if (!oldStatusValid && newStatusValid) {
                     // 从无效状态变为有效状态，增加报名人数
-                    if (current >= course.getMaxStudents()) {
-                        throw new RuntimeException("课程报名人数已满");
-                    }
-                    courseMapper.updateCurrentStudents(courseId,
-                        current + 1);
+                    incrementCourseCurrentStudents(courseId);
                 }
             }
         }
@@ -520,12 +502,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         
         // 如果状态是有效状态（1-待支付，2-已支付，3-进行中），都需要减少课程的当前报名人数
         if (booking.getStatus() != null && booking.getStatus() >= 1 && booking.getStatus() <= 3) {
-            Course course = courseMapper.findById(booking.getCourseId());
-            if (course != null) {
-                int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
-                courseMapper.updateCurrentStudents(booking.getCourseId(),
-                    Math.max(0, current - 1));
-            }
+            decrementCourseCurrentStudents(booking.getCourseId());
         }
         
         int result = courseBookingMapper.deleteById(id);
@@ -592,21 +569,15 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (oldStatus != null && !oldStatus.equals(status)) {
             Course course = courseMapper.findById(booking.getCourseId());
             if (course != null) {
-                int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
                 boolean oldStatusValid = oldStatus >= 1 && oldStatus <= 3;
                 boolean newStatusValid = status >= 1 && status <= 3;
                 
                 if (oldStatusValid && !newStatusValid) {
                     // 从有效状态变为无效状态（如已取消），减少报名人数
-                    courseMapper.updateCurrentStudents(booking.getCourseId(),
-                        Math.max(0, current - 1));
+                    decrementCourseCurrentStudents(booking.getCourseId());
                 } else if (!oldStatusValid && newStatusValid) {
                     // 从无效状态变为有效状态，增加报名人数
-                    if (current >= course.getMaxStudents()) {
-                        throw new RuntimeException("课程报名人数已满");
-                    }
-                    courseMapper.updateCurrentStudents(booking.getCourseId(),
-                        current + 1);
+                    incrementCourseCurrentStudents(booking.getCourseId());
                 }
             }
         }
@@ -860,6 +831,16 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             throw new RuntimeException(msg);
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        if (isPendingPaymentExpired(booking.getCreateTime(), now)) {
+            throw new RuntimeException("该课程预约已超出支付时限，系统已自动取消或正在取消，无法支付");
+        }
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        int updated = courseBookingMapper.markPaidIfPending(bookingId, paymentMethod, now, expireBefore);
+        if (updated <= 0) {
+            throw new RuntimeException(resolvePendingPaymentConflictMessage(courseBookingMapper.findById(bookingId), "课程预约"));
+        }
+
         memberConsumeRecordService.createConsumeRecord(
             booking.getMemberId(),
             booking.getOrderAmount(),
@@ -885,16 +866,6 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             venueIdForFinance,
             "课程预约支付：" + booking.getBookingNo()
         );
-
-        // 更新预约支付状态和状态
-        booking.setPaymentMethod(paymentMethod);
-        booking.setPaymentStatus(1); // 已支付
-        booking.setStatus(2); // 已支付
-        booking.setUpdateTime(LocalDateTime.now());
-        int updated = courseBookingMapper.update(booking);
-        if (updated <= 0) {
-            throw new RuntimeException("课程预约支付状态更新失败");
-        }
         CourseBooking refreshedBooking = courseBookingMapper.findById(bookingId);
         Integer refreshedPaymentStatus = refreshedBooking != null ? refreshedBooking.getPaymentStatus() : null;
         Integer refreshedStatus = refreshedBooking != null ? refreshedBooking.getStatus() : null;
@@ -925,6 +896,18 @@ public class CourseBookingServiceImpl implements CourseBookingService {
      * @param bookingId 预约ID
      * @return 处理结果
      */
+    private LocalDateTime resolvePendingPaymentExpireBefore(LocalDateTime now) {
+        if (paymentAutoCancelProperties == null || !paymentAutoCancelProperties.isEnabled()) {
+            return null;
+        }
+        return now.minus(paymentAutoCancelProperties.getTimeoutDuration());
+    }
+
+    private boolean isPendingPaymentExpired(LocalDateTime createTime, LocalDateTime now) {
+        LocalDateTime expireBefore = resolvePendingPaymentExpireBefore(now);
+        return expireBefore != null && createTime != null && !createTime.isAfter(expireBefore);
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int processRefund(Long bookingId) {
@@ -998,12 +981,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         int result = courseBookingMapper.update(booking);
 
         // 减少课程的当前报名人数
-        Course course = courseMapper.findById(booking.getCourseId());
-        if (course != null) {
-            int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
-            courseMapper.updateCurrentStudents(booking.getCourseId(),
-                Math.max(0, current - 1));
-        }
+        decrementCourseCurrentStudents(booking.getCourseId());
         if (result > 0) {
             evictCourseCache(booking.getCourseId());
             try {
@@ -1017,6 +995,42 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             }
         }
         return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
+        if (cutoff == null) {
+            return 0;
+        }
+        List<Long> bookingIds = courseBookingMapper.findExpiredUnpaidBookingIds(cutoff);
+        if (bookingIds == null || bookingIds.isEmpty()) {
+            return 0;
+        }
+        int cancelled = 0;
+        for (Long bookingId : bookingIds) {
+            CourseBooking booking = courseBookingMapper.findById(bookingId);
+            if (booking == null) {
+                continue;
+            }
+            int updated = courseBookingMapper.cancelExpiredUnpaidBooking(bookingId, LocalDateTime.now());
+            if (updated <= 0) {
+                continue;
+            }
+            cancelled += updated;
+            decrementCourseCurrentStudents(booking.getCourseId());
+            evictCourseCache(booking.getCourseId());
+            try {
+                Long userId = null;
+                Member m = memberMapper.findById(booking.getMemberId());
+                if (m != null && m.getUserId() != null) userId = m.getUserId();
+                webSocketPushService.pushOrderStatusToUser(userId, "courseBooking", bookingId, 0, "已取消", "课程预约");
+                webSocketPushService.pushDashboardRefresh();
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(CourseBookingServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+            }
+        }
+        return cancelled;
     }
 
     @Override
@@ -1036,11 +1050,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
                 CourseBooking booking = courseBookingMapper.findById(id);
                 courseBookingMapper.updateStatus(id, 4); // 已完成
                 if (booking != null) {
-                    Course course = courseMapper.findById(booking.getCourseId());
-                    if (course != null) {
-                        int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
-                        courseMapper.updateCurrentStudents(booking.getCourseId(), Math.max(0, current - 1));
-                    }
+                    decrementCourseCurrentStudents(booking.getCourseId());
                     evictCourseCache(booking.getCourseId());
                 }
             }
@@ -1052,5 +1062,72 @@ public class CourseBookingServiceImpl implements CourseBookingService {
                 org.slf4j.LoggerFactory.getLogger(CourseBookingServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
             }
         }
+    }
+
+    private void incrementCourseCurrentStudents(Long courseId) {
+        incrementCourseCurrentStudents(courseId, "课程报名人数已满");
+    }
+
+    private void incrementCourseCurrentStudents(Long courseId, String fullMessage) {
+        adjustCourseCurrentStudents(courseId, 1, fullMessage, false);
+    }
+
+    private void decrementCourseCurrentStudents(Long courseId) {
+        adjustCourseCurrentStudents(courseId, -1, null, true);
+    }
+
+    private void adjustCourseCurrentStudents(Long courseId, int delta, String fullMessage, boolean allowMissingCourse) {
+        if (courseId == null || delta == 0) {
+            return;
+        }
+        for (int attempt = 0; attempt < 3; attempt++) {
+            Course course = courseMapper.findById(courseId);
+            if (course == null) {
+                if (allowMissingCourse) {
+                    return;
+                }
+                throw new RuntimeException("课程不存在");
+            }
+            int current = course.getCurrentStudents() != null ? course.getCurrentStudents() : 0;
+            int target = Math.max(0, current + delta);
+            if (delta > 0) {
+                Integer maxStudents = course.getMaxStudents();
+                if (maxStudents != null && target > maxStudents) {
+                    throw new RuntimeException(fullMessage != null ? fullMessage : "课程报名人数已满");
+                }
+            }
+            Integer version = course.getVersion() != null ? course.getVersion() : 0;
+            int updated = courseMapper.updateCurrentStudentsWithVersion(courseId, target, version);
+            if (updated > 0) {
+                return;
+            }
+        }
+        throw new RuntimeException("课程报名人数更新失败，请稍后重试");
+    }
+
+    private String resolvePendingPaymentConflictMessage(CourseBooking latestBooking, String orderLabel) {
+        if (latestBooking == null) {
+            return orderLabel + "记录不存在";
+        }
+        Integer payStatus = latestBooking.getPaymentStatus();
+        if (payStatus != null) {
+            if (payStatus == 1) {
+                return "该" + orderLabel + "已支付，无需重复支付";
+            }
+            if (payStatus == 2) {
+                return "该" + orderLabel + "已退款，无法再次支付";
+            }
+            if (payStatus == 3) {
+                return "该" + orderLabel + "退款申请处理中，无法再次支付";
+            }
+        }
+        if (isPendingPaymentExpired(latestBooking.getCreateTime(), LocalDateTime.now())) {
+            return "该" + orderLabel + "已超出支付时限，系统已自动取消或正在取消，无法支付";
+        }
+        Integer status = latestBooking.getStatus();
+        if (status != null && status == 0) {
+            return "该" + orderLabel + "已超时取消，无法支付";
+        }
+        return orderLabel + "状态已变化，请刷新后重试";
     }
 }

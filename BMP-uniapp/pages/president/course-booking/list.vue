@@ -117,6 +117,7 @@ import { parsePagedList } from '@/utils/parsePagedList'
 import { formatDate, formatDateTime, formatTime } from '@/utils/format'
 import { getCourseBookingStatusMeta } from '@/utils/presidentStatus'
 import { BOOKING_STATUS, BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 type BookingCard = {
   id: number
@@ -126,6 +127,7 @@ type BookingCard = {
   scheduleText: string
   amountText: string
   createTimeText: string
+  createTime: string
   statusMeta: ReturnType<typeof getCourseBookingStatusMeta>
   rawStatus: number
   paymentStatus: number
@@ -140,6 +142,18 @@ const keyword = ref('')
 const statusFilter = ref(-1)
 const courseId = ref<number | undefined>(undefined)
 const bookingList = ref<BookingCard[]>([])
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    reloadList()
+  }
+})
 
 const hasMore = computed(() => bookingList.value.length < total.value)
 
@@ -156,10 +170,33 @@ function mapBooking(item: CourseBookingItem): BookingCard {
     scheduleText: date && start && end ? `${date} ${start}-${end}` : '未设置排期',
     amountText: Number(item.orderAmount || 0).toFixed(2),
     createTimeText: formatDateTime(item.createTime, 'YYYY-MM-DD HH:mm') || '-',
+    createTime: item.createTime || '',
     statusMeta: getCourseBookingStatusMeta(item.status),
     rawStatus: Number(item.status ?? -1),
     paymentStatus: Number(item.paymentStatus ?? 0)
   }
+}
+
+function getPaymentCountdownInfo(item: Pick<BookingCard, 'rawStatus' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentAutoCancelInfo({
+    status: item.rawStatus,
+    paymentStatus: item.paymentStatus,
+    createTime: item.createTime
+  }, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  })
+}
+
+function isPaymentExpired(item: Pick<BookingCard, 'rawStatus' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentCountdownInfo(item).expired
+}
+
+function canCollectBookingPayment(item: BookingCard) {
+  return item.rawStatus === BOOKING_STATUS.PENDING_PAYMENT
+    && Number(item.paymentStatus ?? 0) === 0
+    && !isPaymentExpired(item)
 }
 
 async function fetchList(reset = false) {
@@ -232,6 +269,11 @@ async function updateBookingStatusAction(item: BookingCard, status: number, titl
 }
 
 async function payBooking(item: BookingCard) {
+  if (!canCollectBookingPayment(item)) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    reloadList()
+    return
+  }
   try {
     await processCourseBookingPayment(item.id, BUSINESS_PAYMENT_METHOD)
     uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
@@ -277,7 +319,9 @@ function openActions(item: BookingCard) {
   const actions: Array<{ label: string; handler: () => void }> = [{ label: '查看详情', handler: () => goDetail(item.id) }]
 
   if (item.rawStatus === BOOKING_STATUS.PENDING_PAYMENT) {
-    actions.push({ label: '确认收款', handler: () => void payBooking(item) })
+    if (canCollectBookingPayment(item)) {
+      actions.push({ label: '确认收款', handler: () => void payBooking(item) })
+    }
     actions.push({
       label: '取消预约',
       handler: () => void updateBookingStatusAction(item, BOOKING_STATUS.CANCELLED, '已取消预约')
@@ -306,6 +350,7 @@ function openActions(item: BookingCard) {
 onLoad((query?: Record<string, string | undefined>) => {
   const id = Number(query?.courseId || 0)
   courseId.value = id > 0 ? id : undefined
+  void loadPaymentAutoCancelConfig()
 })
 
 onShow(() => {

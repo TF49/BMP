@@ -57,6 +57,12 @@
               <text class="label">支付状态</text>
               <text class="value">{{ paymentStatusText }}</text>
             </view>
+            <view v-if="paymentCountdownInfo.show" class="row">
+              <text class="label">支付时限</text>
+              <text class="value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
+                {{ paymentCountdownInfo.text }}
+              </text>
+            </view>
             <view class="row">
               <text class="label">会员余额</text>
               <text class="value">¥{{ memberBalanceText }}</text>
@@ -140,6 +146,7 @@ import { getBookingDetail, processMemberBookingPayment, processPayment, type Boo
 import { safeNavigateBack } from '@/utils/navigation'
 import { useCurrentMember } from '@/composables/useCurrentMember'
 import { useUserStore } from '@/store/modules/user'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 type FallbackSummary = {
   venueName?: string
@@ -172,6 +179,17 @@ const booking = ref<BookingItem | null>(null)
 const returnUrl = ref('/pages/booking/list')
 const fallbackSummary = ref<FallbackSummary>({})
 const selectedPayment = ref<'BALANCE'>('BALANCE')
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => paymentCountdownInfo.value.expired,
+  refreshOnExpire: async () => {
+    await loadBooking()
+  }
+})
 
 const isPresidentFlow = computed(() => {
   const role = userStore.userInfo?.role || ''
@@ -241,6 +259,11 @@ const paymentStatusText = computed(() => {
   }
   return statusMap[Number(booking.value?.paymentStatus ?? 0)] || '未知'
 })
+const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(booking.value, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+}))
 
 const statusClass = computed(() => {
   const status = Number(booking.value?.status ?? 1)
@@ -253,11 +276,12 @@ const statusClass = computed(() => {
 
 const submitDisabled = computed(() => {
   if (submitting.value || !booking.value) return true
-  return Number(booking.value.status ?? 1) !== 1
+  return Number(booking.value.status ?? 1) !== 1 || paymentCountdownInfo.value.expired
 })
 
 const submitText = computed(() => {
   if (submitting.value) return '处理中...'
+  if (paymentCountdownInfo.value.expired) return '支付已超时'
   if (Number(booking.value?.status ?? 1) !== 1) return '订单已处理'
   return isPresidentFlow.value ? '确认收款并完成支付' : '确认支付'
 })
@@ -307,6 +331,11 @@ function openFeeDetail() {
 
 async function handlePayment() {
   if (submitDisabled.value || !booking.value) return
+  if (paymentCountdownInfo.value.expired) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    await loadBooking()
+    return
+  }
 
   try {
     submitting.value = true
@@ -362,6 +391,7 @@ onLoad((options?: Record<string, string | undefined>) => {
     }
   }
 
+  void loadPaymentAutoCancelConfig()
   void loadBooking()
 })
 </script>

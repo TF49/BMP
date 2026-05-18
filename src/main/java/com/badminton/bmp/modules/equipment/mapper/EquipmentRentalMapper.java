@@ -210,6 +210,39 @@ public interface EquipmentRentalMapper {
     List<Long> findOverdueRentalIds();
 
     /**
+     * 查询已超时且仍未支付的器材租借ID（创建时间早于等于 cutoff）
+     */
+    @Select("SELECT id FROM biz_equipment_rental WHERE del_flag = 0 AND status = 1 " +
+            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
+    List<Long> findExpiredUnpaidRentalIds(@Param("cutoff") java.time.LocalDateTime cutoff);
+
+    /**
+     * 条件支付更新：仅租借中且未支付的订单允许标记为已支付
+     */
+    @Update({
+            "<script>",
+            "UPDATE biz_equipment_rental SET payment_method = #{paymentMethod}, payment_status = 1,",
+            "update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0 AND status = 1",
+            "AND (payment_status IS NULL OR payment_status = 0)",
+            "<if test='expireBefore != null'>",
+            "AND create_time &gt; #{expireBefore}",
+            "</if>",
+            "</script>"
+    })
+    int markPaidIfPending(@Param("id") Long id,
+                          @Param("paymentMethod") String paymentMethod,
+                          @Param("updateTime") java.time.LocalDateTime updateTime,
+                          @Param("expireBefore") java.time.LocalDateTime expireBefore);
+
+    /**
+     * 条件取消更新：仅租借中且未支付的订单允许自动取消
+     */
+    @Update("UPDATE biz_equipment_rental SET status = 0, update_time = #{updateTime} WHERE id = #{id} " +
+            "AND del_flag = 0 AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
+    int cancelExpiredUnpaidRental(@Param("id") Long id,
+                                  @Param("updateTime") java.time.LocalDateTime updateTime);
+
+    /**
      * 按器材统计租借次数（按 quantity 汇总，用于 Dashboard 饼图）
      */
     @Select("<script>" +

@@ -119,6 +119,12 @@
                   <text class="payment-method-value">{{ paymentMethodText }}</text>
                 </view>
               </view>
+              <view v-if="paymentCountdownInfo.show" class="payment-row">
+                <text class="payment-label">支付时限</text>
+                <text class="payment-value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
+                  {{ paymentCountdownInfo.text }}
+                </text>
+              </view>
             </view>
           </view>
 
@@ -170,6 +176,7 @@ import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { BOOKING_STATUS, PAYMENT_METHOD_TEXT } from '@/utils/constant'
 import { useUserStore } from '@/store/modules/user'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 const userStore = useUserStore()
 const statusBarHeight = ref(getSafeSystemInfo().statusBarHeight || 20)
@@ -177,6 +184,19 @@ const loading = ref(false)
 const errorText = ref('')
 const detail = ref<BookingItem | null>(null)
 const bookingId = ref(0)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => paymentCountdownInfo.value.expired,
+  refreshOnExpire: async () => {
+    if (bookingId.value > 0) {
+      await loadDetail()
+    }
+  }
+})
 
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 const scrollHeight = computed(() => `calc(100vh - ${statusBarHeight.value}px - 96rpx)`)
@@ -211,6 +231,11 @@ const paymentMethodText = computed(() => {
   const method = detail.value?.paymentMethod as keyof typeof PAYMENT_METHOD_TEXT | undefined
   return method ? PAYMENT_METHOD_TEXT[method] || '未知' : '未支付'
 })
+const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value
+}))
 
 const discountAmount = computed(() => {
   if (!detail.value) return 0
@@ -294,6 +319,7 @@ onLoad((query?: Record<string, string | undefined>) => {
   const id = Number(query?.id || 0)
   if (id > 0) {
     bookingId.value = id
+    void loadPaymentAutoCancelConfig()
     loadDetail()
   } else {
     errorText.value = '无效的预约ID'

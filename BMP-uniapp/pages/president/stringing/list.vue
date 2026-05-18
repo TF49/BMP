@@ -144,7 +144,7 @@
                 <view v-if="job.status === 'in_progress'" class="act-btn" @click="onComplete(job)">
                   <uni-icons type="compose" size="20" color="#5f5e5e" />
                 </view>
-                <view v-if="job.status === 'pending'" class="act-btn" @click="onStart(job)">
+                <view v-if="job.status === 'pending' && canStartJob(job)" class="act-btn" @click="onStart(job)">
                   <uni-icons type="right" size="20" color="#5f5e5e" />
                 </view>
                 <view class="act-btn" @click="onMore(job)">
@@ -193,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
 import {
@@ -208,6 +208,7 @@ import { safeNavigateBack } from '@/utils/navigation'
 import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { getRoleName, isPresidentRole } from '@/utils/roleCheck'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 type JobStatus = 'in_progress' | 'pending' | 'ready' | 'cancelled'
 
@@ -234,6 +235,19 @@ const records = ref<StringingService[]>([])
 const keyword = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const userStore = useUserStore()
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  configLoaded,
+  loadPaymentAutoCancelConfig
+} = usePaymentAutoCancel({
+  countdownTickMs: 5000,
+  hasExpiredPending: () => records.value.some((item) => isPaymentExpired(item)),
+  refreshOnExpire: async () => {
+    await loadRecords()
+  }
+})
 const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
 const drawerRoleLabel = computed(() => getRoleName(userStore.userInfo?.role))
 
@@ -319,6 +333,42 @@ function statusLabel(status: JobStatus) {
   if (status === 'pending') return '待处理'
   if (status === 'cancelled') return '已取消'
   return '已完成'
+}
+
+function getPaymentCountdownInfo(item: Pick<StringingService, 'status' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentAutoCancelInfo(item, {
+    enabled: autoCancelEnabled.value,
+    timeoutMinutes: autoCancelTimeoutMinutes.value,
+    nowMs: countdownNowMs.value
+  })
+}
+
+function isPaymentExpired(item: Pick<StringingService, 'status' | 'paymentStatus' | 'createTime'>) {
+  return getPaymentCountdownInfo(item).expired
+}
+
+function findJobRecord(job: Job) {
+  return records.value.find((item) => Number(item.id || 0) === job.id) || null
+}
+
+function canCollectJobPayment(job: Job) {
+  const record = findJobRecord(job)
+  return Boolean(record)
+    && Number(record?.status ?? -1) === STRINGING_STATUS.WAITING
+    && Number(record?.paymentStatus ?? 0) === 0
+    && !isPaymentExpired(record!)
+}
+
+function canStartJob(job: Job) {
+  const record = findJobRecord(job)
+  return Boolean(record)
+    && Number(record?.status ?? -1) === STRINGING_STATUS.WAITING
+    && Number(record?.paymentStatus ?? 0) === 1
+}
+
+function isJobExpired(job: Job) {
+  const record = findJobRecord(job)
+  return Boolean(record) && isPaymentExpired(record!)
 }
 
 async function loadRecords() {
@@ -417,6 +467,11 @@ async function refundJob(job: Job) {
 }
 
 async function payForJob(job: Job) {
+  if (!canCollectJobPayment(job)) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    await loadRecords()
+    return
+  }
   try {
     await processStringingPayment(job.id, BUSINESS_PAYMENT_METHOD)
     uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
@@ -431,6 +486,15 @@ function onCancel(job: Job) {
 }
 
 function onStart(job: Job) {
+  if (!canStartJob(job)) {
+    uni.showToast({ title: '请先完成收款后再开始穿线', icon: 'none' })
+    return
+  }
+  if (isJobExpired(job)) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    void loadRecords()
+    return
+  }
   void updateJobStatus(job.id, STRINGING_STATUS.IN_PROGRESS, '已开始穿线')
 }
 
@@ -439,49 +503,39 @@ function onComplete(job: Job) {
 }
 
 function onMore(job: Job) {
-  const itemList = ['查看详情']
+  const actions: Array<{ label: string; handler: () => void }> = [{ label: '查看详情', handler: () => openDetail(job) }]
+
   if (job.status === 'pending') {
-    itemList.push('开始穿线')
-    itemList.push('取消工单')
+    if (canCollectJobPayment(job)) {
+      actions.push({ label: '确认收款', handler: () => void payForJob(job) })
+    }
+    if (canStartJob(job)) {
+      actions.push({ label: '开始穿线', handler: () => onStart(job) })
+    }
+    actions.push({ label: '取消工单', handler: () => onCancel(job) })
   } else if (job.status === 'in_progress') {
-    itemList.push('标记完成')
-    itemList.push('取消工单')
-  } else if (job.status === 'ready') {
-    if (job.paymentStatus !== 1) itemList.push('确认收款')
-    if (job.paymentStatus === 1) itemList.push('退款')
+    actions.push({ label: '标记完成', handler: () => onComplete(job) })
+    actions.push({ label: '取消工单', handler: () => onCancel(job) })
+  } else if (job.status === 'ready' && job.paymentStatus === 1) {
+    actions.push({ label: '退款', handler: () => void refundJob(job) })
   }
 
   uni.showActionSheet({
-    itemList,
+    itemList: actions.map((action) => action.label),
     success(res) {
-      if (res.tapIndex === 0) {
-        openDetail(job)
-        return
-      }
-      if (job.status === 'pending') {
-        if (res.tapIndex === 1) onStart(job)
-        if (res.tapIndex === 2) onCancel(job)
-        return
-      }
-      if (job.status === 'in_progress') {
-        if (res.tapIndex === 1) onComplete(job)
-        if (res.tapIndex === 2) onCancel(job)
-        return
-      }
-      if (job.status === 'ready') {
-        if (job.paymentStatus !== 1 && res.tapIndex === 1) {
-          void payForJob(job)
-          return
-        }
-        if (job.paymentStatus === 1 && res.tapIndex === 1) {
-          void refundJob(job)
-        }
-      }
+      actions[res.tapIndex]?.handler()
     }
   })
 }
 
+onMounted(() => {
+  void loadPaymentAutoCancelConfig()
+})
+
 onShow(() => {
+  if (!configLoaded.value) {
+    void loadPaymentAutoCancelConfig()
+  }
   void loadRecords()
 })
 </script>
