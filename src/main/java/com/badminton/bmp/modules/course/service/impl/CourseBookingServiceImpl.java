@@ -1,5 +1,6 @@
 package com.badminton.bmp.modules.course.service.impl;
 
+import com.badminton.bmp.common.util.AutoCancelRemarkUtil;
 import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.course.entity.Course;
 import com.badminton.bmp.modules.course.entity.CourseBooking;
@@ -1016,7 +1017,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             if (booking == null) {
                 continue;
             }
-            int updated = courseBookingMapper.cancelExpiredUnpaidBooking(bookingId, LocalDateTime.now());
+            LocalDateTime cancelledAt = LocalDateTime.now();
+            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(booking.getRemark());
+            int updated = courseBookingMapper.cancelExpiredUnpaidBooking(bookingId, cancelledAt, cancelRemark);
             if (updated <= 0) {
                 continue;
             }

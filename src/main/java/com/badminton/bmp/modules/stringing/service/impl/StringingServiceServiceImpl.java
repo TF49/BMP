@@ -1,5 +1,6 @@
 package com.badminton.bmp.modules.stringing.service.impl;
 
+import com.badminton.bmp.common.util.AutoCancelRemarkUtil;
 import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.stringing.entity.StringingService;
 import com.badminton.bmp.modules.stringing.mapper.StringingServiceMapper;
@@ -795,7 +796,9 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             if (service == null) {
                 continue;
             }
-            int updated = stringingServiceMapper.cancelExpiredUnpaidService(serviceId, LocalDateTime.now());
+            LocalDateTime cancelledAt = LocalDateTime.now();
+            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(service.getRemark());
+            int updated = stringingServiceMapper.cancelExpiredUnpaidService(serviceId, cancelledAt, cancelRemark);
             if (updated <= 0) {
                 continue;
             }

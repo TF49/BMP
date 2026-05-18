@@ -251,10 +251,11 @@ public interface BookingMapper {
     /**
      * 条件取消更新：仅待支付且未支付的订单允许自动取消
      */
-    @Update("UPDATE biz_booking SET status = 0, update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0 " +
+    @Update("UPDATE biz_booking SET status = 0, cancel_time = #{updateTime}, remark = #{remark}, update_time = #{updateTime} WHERE id = #{id} AND del_flag = 0 " +
             "AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
     int cancelExpiredUnpaidBooking(@Param("id") Long id,
-                                   @Param("updateTime") java.time.LocalDateTime updateTime);
+                                   @Param("updateTime") java.time.LocalDateTime updateTime,
+                                   @Param("remark") String remark);
 
     /**
      * 按日期统计预订量（用于趋势图）

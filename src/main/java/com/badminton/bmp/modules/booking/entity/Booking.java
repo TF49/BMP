@@ -137,6 +137,12 @@ public class Booking {
     private LocalDateTime updateTime;
 
     /**
+     * 取消时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime cancelTime;
+
+    /**
      * 逻辑删除标记（0-正常，1-删除）
      */
     private Integer delFlag;

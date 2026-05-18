@@ -318,7 +318,8 @@ const {
   hasExpiredPending: () => myRegistrations.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
     timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
+    nowMs: countdownNowMs.value,
+    configLoaded: configLoaded.value
   }).expired),
   refreshOnExpire: async () => {
     await loadMyRegistrations()
@@ -328,7 +329,8 @@ const {
 const getPaymentCountdownInfo = (registration) => getPaymentAutoCancelInfo(registration, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 const isPaymentExpired = (registration) => getPaymentCountdownInfo(registration).expired
 const partnerOptions = ref([])

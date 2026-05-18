@@ -110,6 +110,14 @@
 
               <view class="booking-side">
                 <text class="status-pill" :class="`status-pill--${item.statusKey}`">{{ item.statusText }}</text>
+                <view
+                  v-if="isBookingPendingUnpaid(item)"
+                  class="collect-btn"
+                  :class="{ disabled: isPaymentExpired(item) }"
+                  @tap.stop="openPaymentConfirm(item)"
+                >
+                  {{ isPaymentExpired(item) ? '已超时' : '确认收款' }}
+                </view>
                 <uni-icons type="right" size="18" color="#2f3131" />
               </view>
             </view>
@@ -339,6 +347,26 @@ function getPaymentCountdownInfo(item: Pick<BookingCard, 'statusKey' | 'paymentS
 
 function isPaymentExpired(item: Pick<BookingCard, 'statusKey' | 'paymentStatus' | 'createTime'>) {
   return getPaymentCountdownInfo(item).expired
+}
+
+function isBookingPendingUnpaid(item: Pick<BookingCard, 'statusKey' | 'paymentStatus'>) {
+  return item.statusKey === 'pending' && Number(item.paymentStatus ?? 0) === 0
+}
+
+function canCollectBookingPayment(item: Pick<BookingCard, 'statusKey' | 'paymentStatus' | 'createTime'>) {
+  return isBookingPendingUnpaid(item) && !isPaymentExpired(item)
+}
+
+async function openPaymentConfirm(item: BookingCard) {
+  await loadPaymentAutoCancelConfig()
+  if (!canCollectBookingPayment(item)) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    void reload()
+    return
+  }
+  uni.navigateTo({
+    url: `/pages/booking/confirm?bookingId=${encodeURIComponent(String(item.id))}&returnUrl=${encodeURIComponent(PRESIDENT_PAGES.BOOKING_LIST)}`
+  })
 }
 
 async function fetchSummary() {
@@ -770,6 +798,23 @@ onShow(() => {
   padding-top: 4rpx;
 }
 
+.collect-btn {
+  min-width: 112rpx;
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  background: #fff1e4;
+  color: #a33e00;
+  font-size: 20rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.collect-btn.disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .status-pill {
   padding: 8rpx 18rpx;
   border-radius: 999rpx;
@@ -977,4 +1022,3 @@ onShow(() => {
   background: linear-gradient(90deg, #a33e00 0%, #ff6600 100%);
 }
 </style>
-

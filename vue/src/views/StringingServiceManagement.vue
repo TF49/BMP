@@ -518,6 +518,7 @@ import {
   EMPTY_PAYMENT_COUNTDOWN_INFO,
   getPaymentAutoCancelInfo,
   shouldShowStringingPaymentCountdown,
+  usePayDialogExpireGuard,
   usePaymentAutoCancelPage
 } from '@/composables/usePaymentAutoCancel'
 import { useAdminOrdersRefreshListener } from '@/utils/paymentOrderRefresh'
@@ -557,6 +558,8 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
+  paymentAutoCancelRefs,
+  configLoaded,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
@@ -681,10 +684,20 @@ const getPaymentStatusType = (status) => {
 const getPaymentCountdownInfo = (service) => getPaymentAutoCancelInfo(service, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 
 const isPaymentExpired = (service) => getPaymentCountdownInfo(service).expired
+const currentPayCountdownInfo = computed(() => getPaymentCountdownInfo(currentPay.value))
+
+usePayDialogExpireGuard(payDialogVisible, currentPayCountdownInfo, async () => {
+  await Promise.all([loadList(), loadStatistics()])
+})
+
+useAdminOrdersRefreshListener(() => {
+  void Promise.all([loadList(), loadStatistics()])
+})
 
 const canCollectStringingPayment = (service) => {
   return Number(service?.status ?? -1) === 1

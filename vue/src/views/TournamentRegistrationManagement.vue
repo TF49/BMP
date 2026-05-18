@@ -328,7 +328,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import {
+  buildPaymentCountdownOptions,
+  getPaymentAutoCancelInfo,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancelPage
+} from '@/composables/usePaymentAutoCancel'
 import { useAdminOrdersRefreshListener } from '@/utils/paymentOrderRefresh'
 import {
   bindPaymentCountdownCacheClear,
@@ -370,6 +375,8 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
+  paymentAutoCancelRefs,
+  configLoaded,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
@@ -487,6 +494,7 @@ const submitLoading = ref(false)
 
 // 支付对话框相关
 const paymentDialogVisible = ref(false)
+const currentPayRegistration = ref(null)
 const paymentForm = reactive({
   registrationId: null,
   registrationNo: '',
@@ -525,10 +533,20 @@ const getStatusType = (status) => {
 const getPaymentCountdownInfo = (registration) => getPaymentAutoCancelInfo(registration, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 
 const isPaymentExpired = (registration) => getPaymentCountdownInfo(registration).expired
+const currentPayCountdownInfo = computed(() => getPaymentCountdownInfo(currentPayRegistration.value))
+
+usePayDialogExpireGuard(paymentDialogVisible, currentPayCountdownInfo, async () => {
+  await Promise.all([loadList(), loadStatistics()])
+})
+
+useAdminOrdersRefreshListener(() => {
+  void Promise.all([loadList(), loadStatistics()])
+})
 
 const canCollectRegistrationPayment = (registration) => {
   return Number(registration?.status ?? -1) === 1

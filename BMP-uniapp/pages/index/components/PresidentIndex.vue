@@ -105,6 +105,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import PresidentBrandLogo from '@/components/president/PresidentBrandLogo.vue'
 import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { getPresidentDashboardSummary, type PresidentDashboardSummary } from '@/api/president/dashboard'
@@ -364,6 +365,12 @@ onMounted(() => {
   const systemInfo = getSafeSystemInfo()
   statusBarHeight.value = systemInfo.statusBarHeight || 44
   navBarMarginRight.value = 0
+  void loadPaymentAutoCancelConfig().then(async () => {
+    await Promise.all([loadSummary(), loadPendingPaySummary()])
+  })
+})
+
+onShow(() => {
   void loadPaymentAutoCancelConfig().then(async () => {
     await Promise.all([loadSummary(), loadPendingPaySummary()])
   })

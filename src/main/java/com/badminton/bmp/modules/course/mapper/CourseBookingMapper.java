@@ -254,10 +254,11 @@ public interface CourseBookingMapper {
     /**
      * 条件取消更新：仅待支付且未支付的课程预约允许自动取消
      */
-    @Update("UPDATE biz_course_booking SET status = 0, update_time = #{updateTime} WHERE id = #{id} " +
+    @Update("UPDATE biz_course_booking SET status = 0, cancel_time = #{updateTime}, remark = #{remark}, update_time = #{updateTime} WHERE id = #{id} " +
             "AND del_flag = 0 AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
     int cancelExpiredUnpaidBooking(@Param("id") Long id,
-                                   @Param("updateTime") java.time.LocalDateTime updateTime);
+                                   @Param("updateTime") java.time.LocalDateTime updateTime,
+                                   @Param("remark") String remark);
 
     /**
      * 按课程名称汇总出勤数（status=4 已完成，表示已签到/已上完课），用于与课程表汇总的报名人数合并计算出勤率

@@ -31,7 +31,7 @@ public class PaymentAutoCancelProperties {
      * 主配置项：支付超时秒数。
      */
     @Min(1)
-    private long timeoutSeconds = 300;
+    private Long timeoutSeconds;
 
     /**
      * 定时扫描频率，单位毫秒。
@@ -40,7 +40,7 @@ public class PaymentAutoCancelProperties {
     private long scanIntervalMs = 60000;
 
     /**
-     * 兼容旧配置：若仍传 timeout-minutes，则优先按分钟值换算。
+     * 兼容旧配置：未配置 timeout-seconds 时，按分钟值换算。
      */
     @Min(1)
     private Long timeoutMinutes;
@@ -54,13 +54,16 @@ public class PaymentAutoCancelProperties {
     }
 
     public long getTimeoutSeconds() {
+        if (timeoutSeconds != null) {
+            return timeoutSeconds;
+        }
         if (timeoutMinutes != null) {
             return timeoutMinutes * 60L;
         }
-        return timeoutSeconds;
+        return 300L;
     }
 
-    public void setTimeoutSeconds(long timeoutSeconds) {
+    public void setTimeoutSeconds(Long timeoutSeconds) {
         this.timeoutSeconds = timeoutSeconds;
     }
 

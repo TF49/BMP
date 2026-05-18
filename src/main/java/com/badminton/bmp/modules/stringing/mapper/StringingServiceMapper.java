@@ -263,8 +263,9 @@ public interface StringingServiceMapper {
     /**
      * 条件取消更新：仅等待穿线且未支付的订单允许自动取消
      */
-    @Update("UPDATE biz_stringing_service SET status = 0, update_time = #{updateTime} WHERE id = #{id} " +
+    @Update("UPDATE biz_stringing_service SET status = 0, remark = #{remark}, update_time = #{updateTime} WHERE id = #{id} " +
             "AND del_flag = 0 AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
     int cancelExpiredUnpaidService(@Param("id") Long id,
-                                   @Param("updateTime") java.time.LocalDateTime updateTime);
+                                   @Param("updateTime") java.time.LocalDateTime updateTime,
+                                   @Param("remark") String remark);
 }

@@ -399,7 +399,12 @@ import { ShoppingBag, CircleCheck, ArrowLeft, Wallet } from '@element-plus/icons
 import { getEquipmentList, getEquipmentTypes } from '@/api/equipment'
 import { getEquipmentRentalList, addEquipmentRental, updateEquipmentRentalStatus, processEquipmentRentalPayment } from '@/api/equipmentRental'
 import { getCurrentMember } from '@/api/member'
-import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import {
+  buildPaymentCountdownOptions,
+  getPaymentAutoCancelInfo,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancelPage
+} from '@/composables/usePaymentAutoCancel'
 import { PAYMENT_ORDER_TYPES, useOrderStatusRefreshListener } from '@/utils/paymentOrderRefresh'
 
 const activeTab = ref('rent')
@@ -428,7 +433,8 @@ const {
   hasExpiredPending: () => myRentals.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
     timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
+    nowMs: countdownNowMs.value,
+    configLoaded: configLoaded.value
   }).expired),
   refreshOnExpire: async () => {
     await loadMyRentals()
@@ -437,7 +443,8 @@ const {
 const getPaymentCountdownInfo = (rental) => getPaymentAutoCancelInfo(rental, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 const isPaymentExpired = (rental) => getPaymentCountdownInfo(rental).expired
 
@@ -445,6 +452,11 @@ const payDialogVisible = ref(false)
 const payLoading = ref(false)
 const currentPayRental = ref(null)
 const payForm = ref({ amount: 0, method: 'BALANCE' })
+const currentPayCountdownInfo = computed(() => getPaymentCountdownInfo(currentPayRental.value))
+
+usePayDialogExpireGuard(payDialogVisible, currentPayCountdownInfo, async () => {
+  await loadMyRentals()
+})
 
 const rentalForm = ref({
   equipmentId: null,

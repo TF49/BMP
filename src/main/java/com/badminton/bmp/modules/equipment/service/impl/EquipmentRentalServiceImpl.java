@@ -1,5 +1,6 @@
 package com.badminton.bmp.modules.equipment.service.impl;
 
+import com.badminton.bmp.common.util.AutoCancelRemarkUtil;
 import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.equipment.entity.Equipment;
 import com.badminton.bmp.modules.equipment.entity.EquipmentRental;
@@ -939,7 +940,9 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             if (rental == null) {
                 continue;
             }
-            int updated = equipmentRentalMapper.cancelExpiredUnpaidRental(rentalId, LocalDateTime.now());
+            LocalDateTime cancelledAt = LocalDateTime.now();
+            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(rental.getRemark());
+            int updated = equipmentRentalMapper.cancelExpiredUnpaidRental(rentalId, cancelledAt, cancelRemark);
             if (updated <= 0) {
                 continue;
             }

@@ -278,7 +278,12 @@ const payDialogContent = computed(() => {
   return `将为该报名单按会员余额完成支付。\n赛事：${payTarget.value.tournament}\n支付金额：¥${formatAmount(payTarget.value.entryFee)}`
 })
 
-usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, loadRegistrations)
+async function handlePayDialogExpire() {
+  payTarget.value = null
+  await loadRegistrations()
+}
+
+usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, handlePayDialogExpire)
 
 async function openPayDialog(row: RegRow) {
   await loadPaymentAutoCancelConfig()
@@ -900,4 +905,3 @@ onShow(() => {
   }
 }
 </style>
-

@@ -46,6 +46,9 @@ public class CourseBooking {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateTime;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime cancelTime;
+
     private Integer delFlag;
 
     private String memberName;

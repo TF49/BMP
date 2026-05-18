@@ -287,7 +287,8 @@ const {
   hasExpiredPending: () => myCourses.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
     timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
+    nowMs: countdownNowMs.value,
+    configLoaded: configLoaded.value
   }).expired),
   refreshOnExpire: async () => {
     await loadMyCourses()
@@ -297,7 +298,8 @@ const {
 const getPaymentCountdownInfo = (course) => getPaymentAutoCancelInfo(course, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 const isPaymentExpired = (course) => getPaymentCountdownInfo(course).expired
 

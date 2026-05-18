@@ -316,7 +316,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import {
+  buildPaymentCountdownOptions,
+  getPaymentAutoCancelInfo,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancelPage
+} from '@/composables/usePaymentAutoCancel'
 import { useAdminOrdersRefreshListener } from '@/utils/paymentOrderRefresh'
 import {
   bindPaymentCountdownCacheClear,
@@ -354,6 +359,8 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
+  paymentAutoCancelRefs,
+  configLoaded,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
@@ -497,10 +504,20 @@ const getPaymentStatusType = (status) => {
 const getPaymentCountdownInfo = (booking) => getPaymentAutoCancelInfo(booking, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 
 const isPaymentExpired = (booking) => getPaymentCountdownInfo(booking).expired
+const currentPayCountdownInfo = computed(() => getPaymentCountdownInfo(currentPay.value))
+
+usePayDialogExpireGuard(payDialogVisible, currentPayCountdownInfo, async () => {
+  await Promise.all([loadList(), loadStatistics()])
+})
+
+useAdminOrdersRefreshListener(() => {
+  void Promise.all([loadList(), loadStatistics()])
+})
 
 const canCollectCoursePayment = (booking) => {
   return Number(booking?.status ?? -1) === 1

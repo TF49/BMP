@@ -384,7 +384,8 @@ const {
   hasExpiredPending: () => myServices.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
     timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
+    nowMs: countdownNowMs.value,
+    configLoaded: configLoaded.value
   }).expired),
   refreshOnExpire: async () => {
     await loadMyServices()
@@ -394,7 +395,8 @@ const {
 const getPaymentCountdownInfo = (service) => getPaymentAutoCancelInfo(service, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 const isPaymentExpired = (service) => getPaymentCountdownInfo(service).expired
 

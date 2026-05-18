@@ -2,6 +2,7 @@ package com.badminton.bmp.modules.booking.service.impl;
 
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
+import com.badminton.bmp.common.util.AutoCancelRemarkUtil;
 import com.badminton.bmp.common.util.SecurityUtils;
 import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.booking.entity.Booking;
@@ -648,7 +649,9 @@ public class BookingServiceImpl implements BookingService {
                 continue;
             }
             List<BookingCourt> details = bookingCourtMapper.findByBookingId(bookingId);
-            int updated = bookingMapper.cancelExpiredUnpaidBooking(bookingId, LocalDateTime.now());
+            LocalDateTime cancelledAt = LocalDateTime.now();
+            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(booking.getRemark());
+            int updated = bookingMapper.cancelExpiredUnpaidBooking(bookingId, cancelledAt, cancelRemark);
             if (updated <= 0) {
                 continue;
             }
@@ -658,7 +661,9 @@ public class BookingServiceImpl implements BookingService {
                 recomputeCourtStatuses(courtIds);
             }
             booking.setStatus(0);
-            booking.setUpdateTime(LocalDateTime.now());
+            booking.setCancelTime(cancelledAt);
+            booking.setUpdateTime(cancelledAt);
+            booking.setRemark(cancelRemark);
             notifyStatusChange(booking, 0, "已取消");
         }
         return cancelled;

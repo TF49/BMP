@@ -214,8 +214,9 @@ public interface TournamentRegistrationMapper {
     /**
      * 条件取消更新：仅待支付且未支付的报名允许自动取消
      */
-    @Update("UPDATE biz_tournament_registration SET status = 0, update_time = #{updateTime} WHERE id = #{id} " +
+    @Update("UPDATE biz_tournament_registration SET status = 0, remark = #{remark}, update_time = #{updateTime} WHERE id = #{id} " +
             "AND del_flag = 0 AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
     int cancelExpiredUnpaidRegistration(@Param("id") Long id,
-                                        @Param("updateTime") LocalDateTime updateTime);
+                                        @Param("updateTime") LocalDateTime updateTime,
+                                        @Param("remark") String remark);
 }

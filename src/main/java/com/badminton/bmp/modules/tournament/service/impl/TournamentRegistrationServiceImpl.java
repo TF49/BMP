@@ -1,5 +1,6 @@
 package com.badminton.bmp.modules.tournament.service.impl;
 
+import com.badminton.bmp.common.util.AutoCancelRemarkUtil;
 import com.badminton.bmp.config.PaymentAutoCancelProperties;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
@@ -1055,7 +1056,9 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             if (registration == null) {
                 continue;
             }
-            int updated = tournamentRegistrationMapper.cancelExpiredUnpaidRegistration(registrationId, LocalDateTime.now());
+            LocalDateTime cancelledAt = LocalDateTime.now();
+            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(registration.getRemark());
+            int updated = tournamentRegistrationMapper.cancelExpiredUnpaidRegistration(registrationId, cancelledAt, cancelRemark);
             if (updated <= 0) {
                 continue;
             }

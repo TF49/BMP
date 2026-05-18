@@ -149,6 +149,14 @@
             取消预约
           </button>
           <button
+            v-if="showPayButton"
+            class="footer-btn footer-btn--primary"
+            @tap="openPaymentConfirm"
+          >
+            <uni-icons type="wallet" size="20" color="#561d00" />
+            <text>确认收款</text>
+          </button>
+          <button
             v-if="canCheckIn"
             class="footer-btn footer-btn--primary"
             @tap="handleCheckIn"
@@ -242,6 +250,13 @@ const canCancel = computed(() => {
   return status === BOOKING_STATUS.PENDING_PAYMENT || status === BOOKING_STATUS.PAID
 })
 
+const showPayButton = computed(() => {
+  if (!detail.value) return false
+  return Number(detail.value.status ?? -1) === BOOKING_STATUS.PENDING_PAYMENT
+    && Number(detail.value.paymentStatus ?? 0) === 0
+    && !paymentCountdownInfo.value.expired
+})
+
 const canCheckIn = computed(() => {
   const status = detail.value?.status
   return status === BOOKING_STATUS.PAID
@@ -297,6 +312,20 @@ async function handleCancel() {
 
 function handleCheckIn() {
   uni.showToast({ title: '核销功能开发中', icon: 'none' })
+}
+
+async function openPaymentConfirm() {
+  await loadPaymentAutoCancelConfig()
+  if (!detail.value || !showPayButton.value) {
+    if (paymentCountdownInfo.value.expired) {
+      uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+      void loadDetail()
+    }
+    return
+  }
+  uni.navigateTo({
+    url: `/pages/booking/confirm?bookingId=${encodeURIComponent(String(detail.value.id))}&returnUrl=${encodeURIComponent(`${PRESIDENT_PAGES.BOOKING_DETAIL}?id=${detail.value.id}`)}`
+  })
 }
 
 function goBack() {

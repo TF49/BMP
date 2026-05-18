@@ -119,7 +119,11 @@
             <version>2.3.0</version>
         </dependency>
 
-        <!-- 测试相关依赖已移除，如需单元测试可以在此重新添加 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -236,7 +236,12 @@ async function refreshListAfterPay() {
   await Promise.all([loadStatistics(), loadList(false)])
 }
 
-usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, refreshListAfterPay)
+async function handlePayDialogExpire() {
+  payTarget.value = null
+  await refreshListAfterPay()
+}
+
+usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, handlePayDialogExpire)
 
 async function openPayDialog(row: EquipmentRentalItem) {
   await loadPaymentAutoCancelConfig()

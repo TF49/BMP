@@ -506,7 +506,8 @@ const {
   hasExpiredPending: () => myBookings.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
     timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
+    nowMs: countdownNowMs.value,
+    configLoaded: configLoaded.value
   }).expired),
   refreshOnExpire: async () => {
     await loadMyBookings()
@@ -516,7 +517,8 @@ const {
 const getPaymentCountdownInfo = (booking) => getPaymentAutoCancelInfo(booking, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 const isPaymentExpired = (booking) => getPaymentCountdownInfo(booking).expired
 

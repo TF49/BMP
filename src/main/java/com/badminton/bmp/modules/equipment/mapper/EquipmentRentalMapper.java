@@ -237,10 +237,11 @@ public interface EquipmentRentalMapper {
     /**
      * 条件取消更新：仅租借中且未支付的订单允许自动取消
      */
-    @Update("UPDATE biz_equipment_rental SET status = 0, update_time = #{updateTime} WHERE id = #{id} " +
+    @Update("UPDATE biz_equipment_rental SET status = 0, remark = #{remark}, update_time = #{updateTime} WHERE id = #{id} " +
             "AND del_flag = 0 AND status = 1 AND (payment_status IS NULL OR payment_status = 0)")
     int cancelExpiredUnpaidRental(@Param("id") Long id,
-                                  @Param("updateTime") java.time.LocalDateTime updateTime);
+                                  @Param("updateTime") java.time.LocalDateTime updateTime,
+                                  @Param("remark") String remark);
 
     /**
      * 按器材统计租借次数（按 quantity 汇总，用于 Dashboard 饼图）

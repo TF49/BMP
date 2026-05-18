@@ -503,7 +503,12 @@ const payDialogContent = computed(() => {
   return `将为会员完成穿线服务收款。\n工单：${record.serviceNo || `#${record.id}`}\n服务费用：¥${amount}`
 })
 
-usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, loadRecords)
+async function handlePayDialogExpire() {
+  payTarget.value = null
+  await loadRecords()
+}
+
+usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, handlePayDialogExpire)
 
 async function openPayDialog(job: Job) {
   await loadPaymentAutoCancelConfig()
@@ -1216,4 +1221,3 @@ onShow(() => {
 }
 
 </style>
-

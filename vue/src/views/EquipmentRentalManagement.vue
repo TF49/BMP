@@ -331,12 +331,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PaymentPayCountdown from '@/components/payment/PaymentPayCountdown.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, ShoppingBag } from '@element-plus/icons-vue'
-import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import {
+  buildPaymentCountdownOptions,
+  getPaymentAutoCancelInfo,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancelPage
+} from '@/composables/usePaymentAutoCancel'
 import { useAdminOrdersRefreshListener } from '@/utils/paymentOrderRefresh'
 import {
   bindPaymentCountdownCacheClear,
@@ -369,6 +374,8 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
+  paymentAutoCancelRefs,
+  configLoaded,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
@@ -477,10 +484,20 @@ const getPaymentStatusType = (status) => {
 const getPaymentCountdownInfo = (rental) => getPaymentAutoCancelInfo(rental, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
 })
 
 const isPaymentExpired = (rental) => getPaymentCountdownInfo(rental).expired
+const currentPayCountdownInfo = computed(() => getPaymentCountdownInfo(currentPay.value))
+
+usePayDialogExpireGuard(payDialogVisible, currentPayCountdownInfo, async () => {
+  await Promise.all([loadList(), loadStatistics()])
+})
+
+useAdminOrdersRefreshListener(() => {
+  void Promise.all([loadList(), loadStatistics()])
+})
 
 const canCollectRentalPayment = (rental) => {
   return Number(rental?.status ?? -1) === 1

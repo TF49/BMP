@@ -224,7 +224,12 @@ const payDialogContent = computed(() => {
   return `将为会员完成课程预约收款。\n课程：${payTarget.value.courseName || '未命名课程'}\n订单金额：¥${payTarget.value.amountText}`
 })
 
-usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, reloadList)
+function handlePayDialogExpire() {
+  payTarget.value = null
+  reloadList()
+}
+
+usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, handlePayDialogExpire)
 
 async function openPayDialog(item: BookingCard) {
   await loadPaymentAutoCancelConfig()
@@ -456,4 +461,3 @@ onShow(() => {
 
 .bottom-space { height: 36rpx; }
 </style>
-
