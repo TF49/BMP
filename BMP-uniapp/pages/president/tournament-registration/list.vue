@@ -21,7 +21,7 @@
             <view class="head-copy">
               <text class="kicker">管理端审核</text>
               <text class="page-title">赛事报名审核</text>
-              <text class="page-desc">审核并授权运动员参加即将举行的赛事，审核结果以真实后端状态为准。</text>
+              <text class="page-desc">待支付报名需先完成余额收款；超时未支付将自动取消。拒绝报名请点红色按钮。</text>
             </view>
             <button class="filter-btn" @click="onFilter">
               <uni-icons type="settings" size="18" color="#1a1c1c" />
@@ -75,18 +75,25 @@
                     <view class="status-pill" :class="`pill-${row.status}`">
                       <text class="pill-txt">{{ statusLabel(row) }}</text>
                     </view>
-                    <text
-                      v-if="getPaymentCountdownInfo(row).show"
-                      class="status-note"
-                      :class="{ 'status-note--expired': isPaymentExpired(row) }"
-                    >
-                      {{ getPaymentCountdownInfo(row).text }}
-                    </text>
+                    <view v-if="getPaymentCountdownInfo(row).show" class="status-note">
+                      <PaymentCountdownBadge :info="getPaymentCountdownInfo(row)" size="small" />
+                    </view>
                   </view>
                 </view>
                 <view class="td td-actions" @click.stop>
                   <view v-if="row.status === 'pending'" class="act-group">
-                    <view class="act-ok" @click="onApprove(row)">
+                    <view
+                      v-if="canCollectRegistrationPayment(row)"
+                      class="act-pay"
+                      @click="openPayDialog(row)"
+                    >
+                      <uni-icons type="wallet" size="22" color="#a33e00" />
+                    </view>
+                    <view
+                      v-else-if="canConfirmAfterPayment(row)"
+                      class="act-ok"
+                      @click="onApprove(row)"
+                    >
                       <uni-icons type="checkbox-filled" size="22" color="#16a34a" />
                     </view>
                     <view class="act-no" @click="onReject(row)">
@@ -126,17 +133,37 @@
         </view>
       </scroll-view>
     </view>
+
+    <PaymentConfirmPopup
+      v-model="payDialogVisible"
+      title="确认余额代支付"
+      :content="payDialogContent"
+      :countdown-info="payDialogCountdownInfo"
+      confirm-text="确认支付"
+      @confirm="submitPay"
+    />
   </PresidentLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentConfirmPopup from '@/components/payment/PaymentConfirmPopup.vue'
+import {
+  EMPTY_PAYMENT_COUNTDOWN_INFO,
+  getPaymentAutoCancelInfo,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancel
+} from '@/composables/usePaymentAutoCancel'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
+import { PAYMENT_METHOD_TEXT } from '@/utils/constant'
+import { formatAmount } from '@/utils/format'
 import {
   getTournamentRegistrationList,
+  processTournamentRegistrationPayment,
   updateTournamentRegistrationStatus,
   type TournamentRegistrationItem
 } from '@/api/president/tournament'
@@ -156,6 +183,7 @@ type RegRow = {
   rawStatus: number
   paymentStatus: number
   createTime: string
+  entryFee: number
 }
 
 const loading = ref(false)
@@ -164,13 +192,12 @@ const activeFilter = ref<FilterKey>('pending')
 const currentPage = ref(1)
 const pageSize = 10
 const allRows = ref<RegRow[]>([])
+const payDialogVisible = ref(false)
+const payTarget = ref<RegRow | null>(null)
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
-  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => allRows.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await loadRegistrations()
@@ -216,7 +243,8 @@ function transformRegistration(item: TournamentRegistrationItem): RegRow {
     status: mapRegistrationStatus(rawStatus),
     rawStatus,
     paymentStatus: Number(item.paymentStatus ?? 0),
-    createTime: String(item.createTime || '')
+    createTime: String(item.createTime || ''),
+    entryFee: Number(item.entryFee || 0)
   }
 }
 
@@ -225,15 +253,76 @@ function getPaymentCountdownInfo(row: Pick<RegRow, 'rawStatus' | 'paymentStatus'
     status: row.rawStatus,
     paymentStatus: row.paymentStatus,
     createTime: row.createTime
-  }, {
-    enabled: autoCancelEnabled.value,
-    timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
-  })
+  }, buildCountdownOptions())
 }
 
 function isPaymentExpired(row: Pick<RegRow, 'rawStatus' | 'paymentStatus' | 'createTime'>) {
   return getPaymentCountdownInfo(row).expired
+}
+
+function canCollectRegistrationPayment(row: RegRow) {
+  const paymentStatus = Number(row.paymentStatus ?? 0)
+  return row.rawStatus === 1
+    && paymentStatus !== 1
+    && paymentStatus !== 2
+    && !isPaymentExpired(row)
+}
+
+const payDialogCountdownInfo = computed(() => {
+  if (!payTarget.value) return { ...EMPTY_PAYMENT_COUNTDOWN_INFO }
+  return getPaymentCountdownInfo(payTarget.value)
+})
+
+const payDialogContent = computed(() => {
+  if (!payTarget.value) return ''
+  return `将为该报名单按会员余额完成支付。\n赛事：${payTarget.value.tournament}\n支付金额：¥${formatAmount(payTarget.value.entryFee)}`
+})
+
+usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, loadRegistrations)
+
+async function openPayDialog(row: RegRow) {
+  await loadPaymentAutoCancelConfig()
+  if (!canCollectRegistrationPayment(row)) {
+    uni.showToast({ title: '报名已超时，正在刷新', icon: 'none' })
+    void loadRegistrations()
+    return
+  }
+  payTarget.value = row
+  payDialogVisible.value = true
+}
+
+async function submitPay() {
+  if (!payTarget.value || !canCollectRegistrationPayment(payTarget.value)) {
+    payDialogVisible.value = false
+    payTarget.value = null
+    return
+  }
+  if (payDialogCountdownInfo.value.expired) {
+    payDialogVisible.value = false
+    payTarget.value = null
+    uni.showToast({ title: '报名已超时，正在刷新', icon: 'none' })
+    await loadRegistrations()
+    return
+  }
+  try {
+    uni.showLoading({ title: '支付中...' })
+    await processTournamentRegistrationPayment(Number(payTarget.value.id), 'BALANCE')
+    payDialogVisible.value = false
+    payTarget.value = null
+    uni.hideLoading()
+    uni.showToast({
+      title: `${PAYMENT_METHOD_TEXT.BALANCE}支付成功`,
+      icon: 'success'
+    })
+    await loadRegistrations()
+  } catch (error) {
+    console.error('Failed to process tournament registration payment:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '支付失败',
+      icon: 'none'
+    })
+  }
 }
 
 async function loadRegistrations() {
@@ -269,7 +358,7 @@ const stats = computed(() => {
 
 const metricItems = computed(() => [
   { key: 'all' as const, label: '总申请人数', value: stats.value.totalApplicants },
-  { key: 'pending' as const, label: '待审核', value: String(stats.value.pending) },
+  { key: 'pending' as const, label: '待支付', value: String(stats.value.pending) },
   { key: 'approved' as const, label: '已通过', value: stats.value.approved },
   { key: 'rejected' as const, label: '已拒绝', value: stats.value.rejected }
 ])
@@ -298,7 +387,7 @@ const pageButtons = computed(() => {
 
 const footerHint = computed(() => {
   if (activeFilter.value === 'pending') {
-    return `显示 ${stats.value.pending} 条待审核记录中的 ${pagedRows.value.length} 条`
+    return `显示 ${stats.value.pending} 条待支付记录中的 ${pagedRows.value.length} 条`
   }
   return `本页 ${pagedRows.value.length} 条，筛选后共 ${filteredRows.value.length} 条`
 })
@@ -308,7 +397,9 @@ watch([activeFilter, () => filteredRows.value.length], () => {
 })
 
 function statusLabel(row: RegRow) {
-  if (row.status === 'pending') return '待审核'
+  if (row.status === 'pending') {
+    return canCollectRegistrationPayment(row) ? '待支付' : '待确认'
+  }
   if (row.status === 'approved') return '已通过'
   if (row.status === 'rejected') return '已拒绝'
   if (row.rawStatus === 3) return '已参赛'
@@ -323,7 +414,7 @@ function goBack() {
 function onFilter() {
   const options: Array<{ label: string; key: FilterKey }> = [
     { label: '全部报名', key: 'all' },
-    { label: '待审核', key: 'pending' },
+    { label: '待支付', key: 'pending' },
     { label: '已通过', key: 'approved' },
     { label: '已拒绝', key: 'rejected' }
   ]
@@ -355,13 +446,26 @@ async function updateStatus(row: RegRow, status: number, title: string) {
   }
 }
 
+function canConfirmAfterPayment(row: RegRow) {
+  return row.rawStatus === 1 && Number(row.paymentStatus ?? 0) === 1 && !isPaymentExpired(row)
+}
+
 function onApprove(row: RegRow) {
+  if (canCollectRegistrationPayment(row)) {
+    uni.showToast({ title: '请先完成收款', icon: 'none' })
+    openPayDialog(row)
+    return
+  }
+  if (!canConfirmAfterPayment(row)) {
+    uni.showToast({ title: '当前状态不可确认', icon: 'none' })
+    return
+  }
   if (isPaymentExpired(row)) {
     uni.showToast({ title: '报名已超时，正在刷新', icon: 'none' })
     void loadRegistrations()
     return
   }
-  void updateStatus(row, 2, '已通过')
+  void updateStatus(row, 2, '已确认')
 }
 
 function onReject(row: RegRow) {
@@ -374,10 +478,14 @@ function onReject(row: RegRow) {
 }
 
 function onMore(row: RegRow) {
+  const actions: Array<{ label: string; handler: () => void }> = [{ label: '查看详情', handler: () => openDetail(row) }]
+  if (canCollectRegistrationPayment(row)) {
+    actions.unshift({ label: '确认收款', handler: () => openPayDialog(row) })
+  }
   uni.showActionSheet({
-    itemList: ['查看详情'],
+    itemList: actions.map((action) => action.label),
     success(res) {
-      if (res.tapIndex === 0) openDetail(row)
+      actions[res.tapIndex]?.handler()
     }
   })
 }
@@ -387,7 +495,10 @@ function nextPage() {
 }
 
 onMounted(() => {
-  void loadPaymentAutoCancelConfig()
+  void loadPaymentAutoCancelConfig().then(() => loadRegistrations())
+})
+
+onShow(() => {
   void loadRegistrations()
 })
 </script>
@@ -676,9 +787,13 @@ onMounted(() => {
 }
 .act-ok,
 .act-no,
+.act-pay,
 .act-hit {
   padding: 12rpx;
   border-radius: 12rpx;
+}
+.act-pay:active {
+  background: rgba(163, 62, 0, 0.1);
 }
 .act-ok:active {
   background: rgba(22, 163, 74, 0.12);

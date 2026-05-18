@@ -132,12 +132,17 @@
                 <text class="tension-cross">/ {{ job.tensionCross }}</text>
               </view>
               <view class="td-status">
-                <view class="status-pill" :class="`st-${job.status}`">
-                  <view v-if="job.status === 'in_progress'" class="dot dot-tertiary" />
-                  <view v-if="job.status === 'pending'" class="dot dot-secondary" />
-                  <uni-icons v-if="job.status === 'ready'" type="checkbox-filled" size="14" color="#561d00" />
-                  <uni-icons v-if="job.status === 'cancelled'" type="closeempty" size="14" color="#666666" />
-                  <text class="status-text">{{ statusLabel(job.status) }}</text>
+                <view class="status-stack">
+                  <view class="status-pill" :class="`st-${job.status}`">
+                    <view v-if="job.status === 'in_progress'" class="dot dot-tertiary" />
+                    <view v-if="job.status === 'pending'" class="dot dot-secondary" />
+                    <uni-icons v-if="job.status === 'ready'" type="checkbox-filled" size="14" color="#561d00" />
+                    <uni-icons v-if="job.status === 'cancelled'" type="closeempty" size="14" color="#666666" />
+                    <text class="status-text">{{ statusLabel(job.status) }}</text>
+                  </view>
+                  <view v-if="getJobPaymentCountdownInfo(job).show" class="countdown-inline">
+                    <PaymentCountdownBadge :info="getJobPaymentCountdownInfo(job)" size="small" />
+                  </view>
                 </view>
               </view>
               <view class="td-actions">
@@ -189,6 +194,15 @@
         </view>
       </scroll-view>
     </view>
+
+    <PaymentConfirmPopup
+      v-model="payDialogVisible"
+      title="确认收款"
+      :content="payDialogContent"
+      :countdown-info="payDialogCountdownInfo"
+      confirm-text="确认收款"
+      @confirm="submitPay"
+    />
   </PresidentLayout>
 </template>
 
@@ -208,7 +222,16 @@ import { safeNavigateBack } from '@/utils/navigation'
 import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { getRoleName, isPresidentRole } from '@/utils/roleCheck'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentConfirmPopup from '@/components/payment/PaymentConfirmPopup.vue'
+import {
+  EMPTY_PAYMENT_COUNTDOWN_INFO,
+  resolvePaymentCountdownInfo,
+  shouldShowStringingPaymentCountdown,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancel
+} from '@/composables/usePaymentAutoCancel'
+import { formatAmount } from '@/utils/format'
 
 type JobStatus = 'in_progress' | 'pending' | 'ready' | 'cancelled'
 
@@ -232,17 +255,16 @@ type InventoryItem = {
 const drawerOpen = ref(false)
 const loading = ref(false)
 const records = ref<StringingService[]>([])
+const payDialogVisible = ref(false)
+const payTarget = ref<Job | null>(null)
 const keyword = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const userStore = useUserStore()
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
   configLoaded,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
-  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => records.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await loadRecords()
@@ -335,12 +357,14 @@ function statusLabel(status: JobStatus) {
   return '已完成'
 }
 
-function getPaymentCountdownInfo(item: Pick<StringingService, 'status' | 'paymentStatus' | 'createTime'>) {
-  return getPaymentAutoCancelInfo(item, {
-    enabled: autoCancelEnabled.value,
-    timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
-  })
+function getPaymentCountdownInfo(item: Pick<StringingService, 'status' | 'paymentStatus' | 'createTime' | 'servicePrice' | 'totalPrice'>) {
+  return resolvePaymentCountdownInfo(item, buildCountdownOptions(), 'STRINGING')
+}
+
+function getJobPaymentCountdownInfo(job: Job) {
+  const record = findJobRecord(job)
+  if (!record) return { ...EMPTY_PAYMENT_COUNTDOWN_INFO }
+  return getPaymentCountdownInfo(record)
 }
 
 function isPaymentExpired(item: Pick<StringingService, 'status' | 'paymentStatus' | 'createTime'>) {
@@ -354,6 +378,7 @@ function findJobRecord(job: Job) {
 function canCollectJobPayment(job: Job) {
   const record = findJobRecord(job)
   return Boolean(record)
+    && shouldShowStringingPaymentCountdown(record || undefined)
     && Number(record?.status ?? -1) === STRINGING_STATUS.WAITING
     && Number(record?.paymentStatus ?? 0) === 0
     && !isPaymentExpired(record!)
@@ -466,18 +491,59 @@ async function refundJob(job: Job) {
   }
 }
 
-async function payForJob(job: Job) {
+const payDialogCountdownInfo = computed(() => {
+  if (!payTarget.value) return { ...EMPTY_PAYMENT_COUNTDOWN_INFO }
+  return getJobPaymentCountdownInfo(payTarget.value)
+})
+
+const payDialogContent = computed(() => {
+  const record = payTarget.value ? findJobRecord(payTarget.value) : null
+  if (!record) return ''
+  const amount = formatAmount(record.totalPrice || record.servicePrice || 0)
+  return `将为会员完成穿线服务收款。\n工单：${record.serviceNo || `#${record.id}`}\n服务费用：¥${amount}`
+})
+
+usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, loadRecords)
+
+async function openPayDialog(job: Job) {
+  await loadPaymentAutoCancelConfig()
   if (!canCollectJobPayment(job)) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    void loadRecords()
+    return
+  }
+  payTarget.value = job
+  payDialogVisible.value = true
+}
+
+async function submitPay() {
+  if (!payTarget.value || !canCollectJobPayment(payTarget.value)) {
+    payDialogVisible.value = false
+    payTarget.value = null
+    return
+  }
+  if (payDialogCountdownInfo.value.expired) {
+    payDialogVisible.value = false
+    payTarget.value = null
     uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
     await loadRecords()
     return
   }
   try {
-    await processStringingPayment(job.id, BUSINESS_PAYMENT_METHOD)
+    uni.showLoading({ title: '收款中...' })
+    await processStringingPayment(payTarget.value.id, BUSINESS_PAYMENT_METHOD)
+    payDialogVisible.value = false
+    payTarget.value = null
+    uni.hideLoading()
     uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
     await loadRecords()
   } catch (error) {
     console.error('Failed to process stringing payment:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '收款失败',
+      icon: 'none'
+    })
   }
 }
 
@@ -507,7 +573,7 @@ function onMore(job: Job) {
 
   if (job.status === 'pending') {
     if (canCollectJobPayment(job)) {
-      actions.push({ label: '确认收款', handler: () => void payForJob(job) })
+      actions.push({ label: '确认收款', handler: () => openPayDialog(job) })
     }
     if (canStartJob(job)) {
       actions.push({ label: '开始穿线', handler: () => onStart(job) })
@@ -529,14 +595,11 @@ function onMore(job: Job) {
 }
 
 onMounted(() => {
-  void loadPaymentAutoCancelConfig()
+  void loadPaymentAutoCancelConfig().then(() => loadRecords())
 })
 
 onShow(() => {
-  if (!configLoaded.value) {
-    void loadPaymentAutoCancelConfig()
-  }
-  void loadRecords()
+  void loadPaymentAutoCancelConfig().then(() => loadRecords())
 })
 </script>
 
@@ -1141,5 +1204,16 @@ onShow(() => {
     flex-shrink: 0;
   }
 }
+.status-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8rpx;
+}
+
+.countdown-inline {
+  max-width: 100%;
+}
+
 </style>
 

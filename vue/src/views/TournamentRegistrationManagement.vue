@@ -289,6 +289,9 @@
       class="modern-dialog"
     >
       <el-form :model="paymentForm" label-position="top" class="modern-form">
+        <el-form-item label="支付时限">
+          <PaymentPayCountdown :order="currentPayRegistration" :countdown-state="paymentAutoCancelRefs" />
+        </el-form-item>
         <el-form-item label="报名单号">
           <el-input :model-value="paymentForm.registrationNo" disabled />
         </el-form-item>
@@ -307,7 +310,13 @@
       <template #footer>
         <div class="dialog-footer-enhanced modern-dialog-footer">
           <el-button class="modern-btn-cancel" @click="paymentDialogVisible = false">取消</el-button>
-          <el-button type="primary" class="modern-btn-submit" :loading="paymentLoading" @click="handlePaymentSubmit">
+          <el-button
+            type="primary"
+            class="modern-btn-submit"
+            :loading="paymentLoading"
+            :disabled="currentPayRegistration && isPaymentExpired(currentPayRegistration)"
+            @click="handlePaymentSubmit"
+          >
             确认支付
           </el-button>
         </div>
@@ -319,8 +328,14 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import { useAdminOrdersRefreshListener } from '@/utils/paymentOrderRefresh'
+import {
+  bindPaymentCountdownCacheClear,
+  usePaymentCountdownListCache
+} from '@/composables/usePaymentCountdownListCache'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PaymentPayCountdown from '@/components/payment/PaymentPayCountdown.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Medal } from '@element-plus/icons-vue'
 import {
@@ -356,7 +371,7 @@ const {
   autoCancelTimeoutMinutes,
   countdownNowMs,
   loadPaymentAutoCancelConfig
-} = usePaymentAutoCancel({
+} = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => registrationList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
@@ -829,12 +844,13 @@ const changeStatus = async (row, status) => {
 
 const handlePayment = (row) => {
   if (!canCollectRegistrationPayment(row)) {
-    ElMessage.warning(isPaymentExpired(row) ? '订单已超时，正在刷新状态' : '当前订单状态不可支付')
+    ElMessage.warning(isPaymentExpired(row) ? '订单已超时，暂不可支付' : '当前报名状态不可支付')
     if (isPaymentExpired(row)) {
       Promise.all([loadList(), loadStatistics()])
     }
     return
   }
+  currentPayRegistration.value = row
   Object.assign(paymentForm, {
     registrationId: row.id,
     registrationNo: row.registrationNo,
@@ -948,7 +964,6 @@ const calculateTableHeight = () => {
 onMounted(() => {
   calculateTableHeight()
   window.addEventListener('resize', calculateTableHeight)
-  loadPaymentAutoCancelConfig()
   loadTournaments()
   loadStatistics()
   loadList()

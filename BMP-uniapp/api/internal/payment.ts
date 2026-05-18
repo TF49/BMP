@@ -7,9 +7,10 @@ export interface PaymentAutoCancelConfig {
   serverTime?: string
 }
 
-export function getPaymentAutoCancelConfig() {
+export function getPaymentAutoCancelConfig(options: { suppressErrorToast?: boolean } = {}) {
   return request<PaymentAutoCancelConfig>({
-    url: '/api/payment/auto-cancel/config',
-    method: 'GET'
+    url: '/payment/auto-cancel/config',
+    method: 'GET',
+    suppressErrorToast: options.suppressErrorToast
   })
 }

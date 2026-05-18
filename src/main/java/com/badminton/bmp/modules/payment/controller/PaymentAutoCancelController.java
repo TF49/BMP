@@ -32,6 +32,7 @@ public class PaymentAutoCancelController extends BaseController {
         data.put("enabled", paymentAutoCancelProperties.isEnabled());
         data.put("timeoutSeconds", paymentAutoCancelProperties.getTimeoutSeconds());
         data.put("timeoutMinutes", paymentAutoCancelProperties.getTimeoutMinutesForDisplay());
+        data.put("scanIntervalMs", paymentAutoCancelProperties.getScanIntervalMs());
         data.put("serverTime", LocalDateTime.now().format(DATE_TIME_FORMATTER));
         return success(data);
     }

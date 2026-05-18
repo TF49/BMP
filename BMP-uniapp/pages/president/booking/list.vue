@@ -102,17 +102,8 @@
                       <text class="amount-text">¥{{ item.amountText }}</text>
                     </view>
                   </view>
-                  <view
-                    v-if="getPaymentCountdownInfo(item).show"
-                    class="payment-countdown"
-                    :class="{ 'payment-countdown--expired': isPaymentExpired(item) }"
-                  >
-                    <uni-icons
-                      type="notification"
-                      size="14"
-                      :color="isPaymentExpired(item) ? '#dc2626' : '#f97316'"
-                    />
-                    <text>{{ getPaymentCountdownInfo(item).text }}</text>
+                  <view v-if="getPaymentCountdownInfo(item).show" class="payment-countdown">
+                    <PaymentCountdownBadge :info="getPaymentCountdownInfo(item)" size="small" />
                   </view>
                 </view>
               </view>
@@ -174,6 +165,7 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import PresidentLayout from '@/components/president/PresidentLayout.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import {
   getBookingList,
@@ -223,12 +215,9 @@ const total = ref(0)
 const stats = ref<BookingStatistics | null>(null)
 const summary = ref<PresidentDashboardSummary | null>(null)
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
-  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => cards.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await reload()
@@ -345,11 +334,7 @@ function getPaymentCountdownInfo(item: Pick<BookingCard, 'statusKey' | 'paymentS
     status: statusMap[item.statusKey],
     paymentStatus: item.paymentStatus,
     createTime: item.createTime
-  }, {
-    enabled: autoCancelEnabled.value,
-    timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
-  })
+  }, buildCountdownOptions())
 }
 
 function isPaymentExpired(item: Pick<BookingCard, 'statusKey' | 'paymentStatus' | 'createTime'>) {
@@ -443,7 +428,7 @@ function goCourtManagement() {
 
 onLoad(() => {
   statusBarHeight.value = getSafeSystemInfo().statusBarHeight || 20
-  void loadPaymentAutoCancelConfig()
+  void loadPaymentAutoCancelConfig().then(() => reload())
 })
 
 onShow(() => {

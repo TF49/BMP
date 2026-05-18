@@ -99,6 +99,11 @@
               <el-tag :type="formatStatusType(row.status, BOOKING_STATUS_TYPE_MAP)" size="small">
                 {{ formatStatusText(row.status, BOOKING_STATUS_TEXT_MAP) }}
               </el-tag>
+              <PaymentCountdownBadge
+                v-if="showPaymentCountdown(row) && getPaymentCountdownInfo(row).show"
+                :info="getPaymentCountdownInfo(row)"
+                size="small"
+              />
             </div>
           </div>
 
@@ -301,6 +306,13 @@ import {
 } from '@/api/courseBooking'
 import { getMemberConsumeList, getMemberInfo } from '@/api/member'
 import MemberHistoryDrawer from './components/MemberHistoryDrawer.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import {
+  buildPaymentCountdownOptions,
+  getPaymentAutoCancelInfo,
+  usePaymentAutoCancelPage
+} from '@/composables/usePaymentAutoCancel'
+import { PAYMENT_ORDER_TYPES, useOrderStatusRefreshListener } from '@/utils/paymentOrderRefresh'
 import {
   BOOKING_STATUS_TEXT_MAP,
   BOOKING_STATUS_TYPE_MAP,
@@ -358,6 +370,32 @@ const memberHistoryList = ref([])
 const memberHistoryTotal = ref(0)
 const memberHistoryPage = ref(1)
 const memberHistorySize = ref(10)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  configLoaded,
+  configLoadError
+} = usePaymentAutoCancelPage({
+  hasExpiredPending: () =>
+    list.value.some((row) => Number(row?.status) === 1 && getPaymentCountdownInfo(row).expired),
+  refreshOnExpire: () => loadList()
+})
+
+const paymentCountdownState = () => ({
+  autoCancelEnabled,
+  autoCancelTimeoutMinutes,
+  countdownNowMs,
+  configLoaded,
+  configLoadError
+})
+
+const getPaymentCountdownInfo = (row) =>
+  getPaymentAutoCancelInfo(row, buildPaymentCountdownOptions(paymentCountdownState()))
+
+const showPaymentCountdown = (row) =>
+  Number(row?.status) === 1 && Number(row?.paymentStatus ?? 0) === 0
+
 const loadFailed = ref(false)
 const errorMessage = ref('请稍后重试')
 
@@ -404,6 +442,10 @@ const statusRemarkPlaceholder = computed(() => {
   if (targetStatus.value === 0) return '可填写缺席、取消或异常结束原因'
   if (targetStatus.value === 4) return '可填写上课情况、课后说明'
   return '可选，填写签到说明'
+})
+
+useOrderStatusRefreshListener(PAYMENT_ORDER_TYPES.courseBooking, () => {
+  void loadList()
 })
 
 const loadList = async () => {

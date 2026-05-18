@@ -5,6 +5,10 @@
       <h1 class="page-title">课程预约</h1>
       <p class="page-subtitle">预约专业课程，提升运动技能</p>
     </div>
+    <PaymentAutoCancelFeatureHint
+      :config-loaded="configLoaded"
+      :auto-cancel-enabled="autoCancelEnabled"
+    />
 
     <!-- Tab切换：预约课程 / 我的课程 -->
     <el-tabs v-model="activeTab" class="course-tabs">
@@ -203,14 +207,11 @@
                   <p class="course-item-coach">教练：{{ course.coachName || '未分配' }}</p>
                   <p class="course-item-time">时间：{{ formatCourseTime(course) }}</p>
                   <p class="course-item-amount">¥{{ formatCurrency(course.orderAmount) }}</p>
-                  <el-tag
+                  <PaymentCountdownBadge
                     v-if="getPaymentCountdownInfo(course).show"
-                    :type="isPaymentExpired(course) ? 'danger' : 'warning'"
-                    effect="plain"
+                    :info="getPaymentCountdownInfo(course)"
                     size="small"
-                  >
-                    {{ getPaymentCountdownInfo(course).text }}
-                  </el-tag>
+                  />
                 </div>
               </div>
               <div class="course-item-actions">
@@ -221,6 +222,14 @@
                   @click="handlePay(course)"
                 >
                   立即支付
+                </el-button>
+                <el-button
+                  v-else-if="course.status === 1 && isPaymentExpired(course)"
+                  type="info"
+                  size="small"
+                  disabled
+                >
+                  已超时
                 </el-button>
                 <el-button
                   v-if="course.status === 2 || course.status === 3"
@@ -244,12 +253,15 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Tickets, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getCourseList } from '@/api/course'
 import { getCourseBookingList, addCourseBooking, payMemberCourseBooking, updateCourseBookingStatus } from '@/api/courseBooking'
 import { getCurrentMember } from '@/api/member'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import { PAYMENT_ORDER_TYPES, useOrderStatusRefreshListener } from '@/utils/paymentOrderRefresh'
 
 const activeTab = ref('book')
 const step = ref(1) // 1-选择课程, 2-选择时间, 3-确认预约
@@ -267,8 +279,10 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
-  loadPaymentAutoCancelConfig
-} = usePaymentAutoCancel({
+  paymentAutoCancelRefs,
+  configLoaded,
+  orderSuccessMessage
+} = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => myCourses.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
@@ -279,6 +293,7 @@ const {
     await loadMyCourses()
   }
 })
+
 const getPaymentCountdownInfo = (course) => getPaymentAutoCancelInfo(course, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
@@ -464,7 +479,7 @@ const submitBooking = async () => {
     
     if (res.code === 200) {
       syncBookedCourseState(bookedCourseId, res.data?.id ?? null)
-      ElMessage.success('预约成功！')
+      ElMessage.success(orderSuccessMessage('预约成功！'))
       resetBookingForm()
       filterStatus.value = null
       activeTab.value = 'my-courses'
@@ -521,7 +536,9 @@ const handlePay = (course) => {
     entityValue: course.bookingNo,
     tone: 'warning',
     confirmButtonText: '确认支付',
-    cancelButtonText: '稍后支付'
+    cancelButtonText: '稍后支付',
+    paymentOrder: course,
+    paymentAutoCancel: paymentAutoCancelRefs
   }).then(async () => {
     if (isPaymentExpired(course)) {
       ElMessage.warning('该课程订单已超过支付时限，系统正在自动取消，请稍后刷新')
@@ -590,8 +607,11 @@ watch(activeTab, (newTab) => {
   }
 })
 
+useOrderStatusRefreshListener(PAYMENT_ORDER_TYPES.courseBooking, () => {
+  void loadMyCourses()
+})
+
 onMounted(() => {
-  loadPaymentAutoCancelConfig()
   loadCurrentMember()
   loadCourses()
   if (activeTab.value === 'my-courses') {

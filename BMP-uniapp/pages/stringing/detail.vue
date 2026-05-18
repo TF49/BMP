@@ -55,9 +55,7 @@
             </view>
             <view v-if="paymentCountdownInfo.show" class="field-row">
               <text class="field-label">支付时限</text>
-              <text class="field-value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
-                {{ paymentCountdownInfo.text }}
-              </text>
+              <PaymentCountdownBadge :info="paymentCountdownInfo" size="small" />
             </view>
             <view class="field-row">
               <text class="field-label">当前余额</text>
@@ -104,6 +102,15 @@
         </template>
       </view>
     </scroll-view>
+
+    <PaymentConfirmPopup
+      v-model="payDialogVisible"
+      title="确认余额支付"
+      :content="payDialogContent"
+      :countdown-info="paymentCountdownInfo"
+      confirm-text="确认支付"
+      @confirm="submitPay"
+    />
   </view>
 </template>
 
@@ -123,7 +130,14 @@ import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentConfirmPopup from '@/components/payment/PaymentConfirmPopup.vue'
+import {
+  resolvePaymentCountdownInfo,
+  shouldShowStringingPaymentCountdown,
+  usePaymentAutoCancel,
+  usePayDialogExpireGuard
+} from '@/composables/usePaymentAutoCancel'
 
 const userStore = useUserStore()
 const { currentMember, fetchCurrentMember } = useCurrentMember()
@@ -134,11 +148,13 @@ const serviceId = ref(0)
 const loading = ref(false)
 const errorText = ref('')
 const detail = ref<StringingService | null>(null)
+const payDialogVisible = ref(false)
 const {
   autoCancelEnabled,
-  autoCancelTimeoutMinutes,
+  autoCancelTimeoutSeconds: _autoCancelTimeoutSeconds,
   countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
   hasExpiredPending: () => paymentCountdownInfo.value.expired,
   refreshOnExpire: async () => {
@@ -161,11 +177,17 @@ const paymentStatusLabel = computed(() => {
   if (paymentStatus === 2) return '已退款'
   return '待支付'
 })
-const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
-  enabled: autoCancelEnabled.value,
-  timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
-}))
+const paymentCountdownInfo = computed(() =>
+  resolvePaymentCountdownInfo(detail.value, buildCountdownOptions(), 'STRINGING')
+)
+
+const payDialogContent = computed(() => {
+  if (!detail.value) return ''
+  const amount = formatAmount(detail.value.totalPrice || detail.value.servicePrice || 0)
+  return `将使用本人余额支付穿线服务。\n当前余额：¥${memberBalanceText.value}\n支付金额：¥${amount}`
+})
+
+usePayDialogExpireGuard(payDialogVisible, paymentCountdownInfo, loadDetail)
 
 const memberBalanceText = computed(() => Number(currentMember.value?.balance || 0).toFixed(2))
 
@@ -206,7 +228,8 @@ const showCancelButton = computed(() => {
 
 const showPayButton = computed(() => {
   if (!detail.value) return false
-  return Number(detail.value.status ?? -1) === STRINGING_STATUS.WAITING
+  return shouldShowStringingPaymentCountdown(detail.value)
+    && Number(detail.value.status ?? -1) === STRINGING_STATUS.WAITING
     && Number(detail.value.paymentStatus ?? 0) === 0
     && !paymentCountdownInfo.value.expired
 })
@@ -274,43 +297,42 @@ async function handleCancel() {
   })
 }
 
-function handlePay() {
+async function handlePay() {
+  await loadPaymentAutoCancelConfig()
   if (!detail.value || !showPayButton.value) return
   if (paymentCountdownInfo.value.expired) {
     uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
     void loadDetail()
     return
   }
-  const amount = formatAmount(detail.value.totalPrice || detail.value.servicePrice || 0)
-  uni.showModal({
-    title: '确认余额支付',
-    content: `将使用本人余额支付穿线服务。\n当前余额：¥${memberBalanceText.value}\n支付金额：¥${amount}`,
-    success: async (res) => {
-      if (!res.confirm || !detail.value) return
-      if (paymentCountdownInfo.value.expired || !showPayButton.value) {
-        uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
-        await Promise.all([loadDetail(), fetchCurrentMember(true)])
-        return
-      }
-      try {
-        uni.showLoading({ title: '支付中...' })
-        await processMemberStringingPayment(detail.value.id, 'BALANCE')
-        await Promise.all([loadDetail(), fetchCurrentMember(true)])
-        uni.hideLoading()
-        uni.showToast({
-          title: `${PAYMENT_METHOD_TEXT.BALANCE}支付完成`,
-          icon: 'success'
-        })
-      } catch (error) {
-        console.error('穿线支付失败:', error)
-        uni.hideLoading()
-        uni.showToast({
-          title: error instanceof Error ? error.message : '支付失败',
-          icon: 'none'
-        })
-      }
-    }
-  })
+  payDialogVisible.value = true
+}
+
+async function submitPay() {
+  if (!detail.value) return
+  payDialogVisible.value = false
+  if (paymentCountdownInfo.value.expired || !showPayButton.value) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    await Promise.all([loadDetail(), fetchCurrentMember(true)])
+    return
+  }
+  try {
+    uni.showLoading({ title: '支付中...' })
+    await processMemberStringingPayment(detail.value.id, 'BALANCE')
+    await Promise.all([loadDetail(), fetchCurrentMember(true)])
+    uni.hideLoading()
+    uni.showToast({
+      title: `${PAYMENT_METHOD_TEXT.BALANCE}支付完成`,
+      icon: 'success'
+    })
+  } catch (error) {
+    console.error('穿线支付失败:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '支付失败',
+      icon: 'none'
+    })
+  }
 }
 
 function handleReorder() {
@@ -327,7 +349,7 @@ onLoad(async (options?: Record<string, string | undefined>) => {
   }
 
   serviceId.value = Number(options?.id || 0)
-  void loadPaymentAutoCancelConfig()
+  await loadPaymentAutoCancelConfig()
   await loadDetail()
 })
 </script>

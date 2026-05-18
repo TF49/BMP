@@ -238,7 +238,8 @@ public interface StringingServiceMapper {
      * 查询已超时且仍未支付的穿线服务ID（创建时间早于等于 cutoff）
      */
     @Select("SELECT id FROM biz_stringing_service WHERE del_flag = 0 AND status = 1 " +
-            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
+            "AND (payment_status IS NULL OR payment_status = 0) AND service_price > 0 " +
+            "AND create_time <= #{cutoff}")
     List<Long> findExpiredUnpaidServiceIds(@Param("cutoff") java.time.LocalDateTime cutoff);
 
     /**

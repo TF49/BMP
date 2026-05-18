@@ -5,6 +5,10 @@
       <h1 class="page-title">器材租借</h1>
       <p class="page-subtitle">租借运动器材，享受运动乐趣</p>
     </div>
+    <PaymentAutoCancelFeatureHint
+      :config-loaded="configLoaded"
+      :auto-cancel-enabled="autoCancelEnabled"
+    />
 
     <!-- Tab切换：租借器材 / 我的租借 -->
     <el-tabs v-model="activeTab" class="equipment-tabs">
@@ -318,14 +322,11 @@
                     支付状态：<el-tag :type="rental.paymentStatus === 1 ? 'success' : rental.paymentStatus === 3 ? 'danger' : 'warning'" size="small">{{ getPaymentStatusText(rental.paymentStatus) }}</el-tag>
                     <span v-if="rental.paymentStatus === 1 || rental.paymentStatus === 3" style="margin-left: 8px">支付方式：{{ getPaymentMethodText(rental.paymentMethod) }}</span>
                   </p>
-                  <el-tag
+                  <PaymentCountdownBadge
                     v-if="getPaymentCountdownInfo(rental).show"
-                    :type="isPaymentExpired(rental) ? 'danger' : 'warning'"
-                    effect="plain"
+                    :info="getPaymentCountdownInfo(rental)"
                     size="small"
-                  >
-                    {{ getPaymentCountdownInfo(rental).text }}
-                  </el-tag>
+                  />
                 </div>
               </div>
               <div class="rental-actions">
@@ -364,6 +365,9 @@
     <!-- 支付弹窗：业务订单统一使用余额支付 -->
     <el-dialog v-model="payDialogVisible" title="器材租借支付" width="420px">
       <el-form label-width="100px">
+        <el-form-item label="支付时限">
+          <PaymentPayCountdown :order="currentPayRental" :countdown-state="paymentAutoCancelRefs" />
+        </el-form-item>
         <el-form-item label="租借单号">
           <el-tag type="info">{{ currentPayRental?.rentalNo || '-' }}</el-tag>
         </el-form-item>
@@ -378,7 +382,7 @@
       </el-form>
       <template #footer>
         <el-button @click="payDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="payLoading" @click="submitPay">确认支付</el-button>
+        <el-button type="primary" :loading="payLoading" :disabled="currentPayRental && isPaymentExpired(currentPayRental)" @click="submitPay">确认支付</el-button>
       </template>
     </el-dialog>
   </div>
@@ -387,12 +391,16 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
+import PaymentPayCountdown from '@/components/payment/PaymentPayCountdown.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { ShoppingBag, CircleCheck, ArrowLeft, Wallet } from '@element-plus/icons-vue'
 import { getEquipmentList, getEquipmentTypes } from '@/api/equipment'
 import { getEquipmentRentalList, addEquipmentRental, updateEquipmentRentalStatus, processEquipmentRentalPayment } from '@/api/equipmentRental'
 import { getCurrentMember } from '@/api/member'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import { PAYMENT_ORDER_TYPES, useOrderStatusRefreshListener } from '@/utils/paymentOrderRefresh'
 
 const activeTab = ref('rent')
 const step = ref(1) // 1-选择器材, 2-选择数量, 3-选择时间, 4-确认租借
@@ -412,8 +420,10 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
-  loadPaymentAutoCancelConfig
-} = usePaymentAutoCancel({
+  paymentAutoCancelRefs,
+  configLoaded,
+  orderSuccessMessage
+} = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => myRentals.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
@@ -619,7 +629,7 @@ const submitRental = async () => {
     })
     
     if (res.code === 200) {
-      ElMessage.success('租借成功！')
+      ElMessage.success(orderSuccessMessage('租借成功！'))
       resetRentalForm()
       loadEquipment()
       activeTab.value = 'my-rentals'
@@ -702,7 +712,7 @@ const submitPay = async () => {
   try {
     const res = await processEquipmentRentalPayment(currentPayRental.value.id, payForm.value.method)
     if (res.code === 200) {
-      ElMessage.success('支付成功')
+      ElMessage.success(orderSuccessMessage('支付成功'))
       payDialogVisible.value = false
       loadMyRentals()
     } else {
@@ -750,8 +760,11 @@ watch(activeTab, (newTab) => {
   }
 })
 
+useOrderStatusRefreshListener(PAYMENT_ORDER_TYPES.equipmentRental, () => {
+  void loadMyRentals()
+})
+
 onMounted(() => {
-  loadPaymentAutoCancelConfig()
   loadCurrentMember()
   loadEquipmentTypes()
   loadEquipment()

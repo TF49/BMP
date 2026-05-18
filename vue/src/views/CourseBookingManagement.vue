@@ -274,6 +274,9 @@
     <!-- 支付弹窗（与场地预约/器材租借一致） -->
     <el-dialog v-model="payDialogVisible" title="课程预约支付" width="420px">
       <el-form label-width="100px">
+        <el-form-item label="支付时限">
+          <PaymentPayCountdown :order="currentPay" :countdown-state="paymentAutoCancelRefs" />
+        </el-form-item>
         <el-form-item label="预约单号">
           <el-tag type="info">{{ currentPay?.bookingNo || '-' }}</el-tag>
         </el-form-item>
@@ -288,7 +291,7 @@
       </el-form>
       <template #footer>
         <el-button @click="payDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="payLoading" @click="submitPay">确认支付</el-button>
+        <el-button type="primary" :loading="payLoading" :disabled="currentPay && isPaymentExpired(currentPay)" @click="submitPay">确认支付</el-button>
       </template>
     </el-dialog>
 
@@ -313,8 +316,14 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import { useAdminOrdersRefreshListener } from '@/utils/paymentOrderRefresh'
+import {
+  bindPaymentCountdownCacheClear,
+  usePaymentCountdownListCache
+} from '@/composables/usePaymentCountdownListCache'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PaymentPayCountdown from '@/components/payment/PaymentPayCountdown.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Tickets } from '@element-plus/icons-vue'
 import {
@@ -346,7 +355,7 @@ const {
   autoCancelTimeoutMinutes,
   countdownNowMs,
   loadPaymentAutoCancelConfig
-} = usePaymentAutoCancel({
+} = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
@@ -849,7 +858,6 @@ const calculateTableHeight = () => {
 onMounted(() => {
   calculateTableHeight()
   window.addEventListener('resize', calculateTableHeight)
-  loadPaymentAutoCancelConfig()
   loadCourses()
   loadStatistics()
   loadList()

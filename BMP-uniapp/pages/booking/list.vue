@@ -92,8 +92,8 @@
             </view>
             <text class="amount" :class="{ strike: item.status === 0 }">¥{{ formatAmount(item.amount) }}</text>
           </view>
-          <view v-if="getPaymentCountdownInfo(item).show" class="pending-payment-note" :class="{ expired: isPaymentExpired(item) }">
-            {{ getPaymentCountdownInfo(item).text }}
+          <view v-if="getPaymentCountdownInfo(item).show" class="pending-payment-note">
+            <PaymentCountdownBadge :info="getPaymentCountdownInfo(item)" size="small" />
           </view>
           <text class="venue" :class="{ muted: item.status === 0 }">{{ item.venueName }}</text>
           <view class="line"><uni-icons type="location" size="14" color="#666" /><text>{{ getCourtSummary(item) }}</text></view>
@@ -102,8 +102,8 @@
           <view class="line"><uni-icons type="refreshtime" size="14" color="#666" /><text>{{ item.startTime }} - {{ item.endTime }}</text></view>
 
           <view v-if="item.status === 0" class="refund">{{ item.refundHint }}</view>
-          <button v-else class="card-btn" :class="{ rebook: item.status === 4 && Boolean(item.venueId) }" @tap.stop="handleAction(item)">
-            {{ item.status === 4 && item.venueId ? '查看场馆' : '查看详情' }}
+          <button v-else class="card-btn" :class="{ rebook: item.status === 4 && Boolean(item.venueId), pay: canPayBooking(item) }" @tap.stop="handleAction(item)">
+            {{ actionButtonText(item) }}
           </button>
         </view>
 
@@ -120,12 +120,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import { getBookingList, type BookingItem } from '@/api/booking'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getAvatarImage } from '@/utils/displayImage'
 import { useCurrentMember } from '@/composables/useCurrentMember'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  buildBookingConfirmUrl,
+  buildBookingSummaryFromDetail,
+  isBookingPendingPayment
+} from '@/utils/bookingPayment'
 
 type BookingCard = {
   id: number
@@ -160,12 +167,9 @@ const refreshing = ref(false)
 const topOffset = computed(() => statusBarHeight.value + 54)
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
-  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await loadBookingList()
@@ -221,11 +225,7 @@ const getPaymentCountdownInfo = (item: Pick<BookingCard, 'status' | 'paymentStat
   status: item.status,
   paymentStatus: item.paymentStatus,
   createTime: item.createTime
-}, {
-  enabled: autoCancelEnabled.value,
-  timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
-})
+}, buildCountdownOptions())
 
 const isPaymentExpired = (item: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => getPaymentCountdownInfo(item).expired
 
@@ -338,15 +338,35 @@ const getCourtSummary = (item: BookingCard) => {
   return count > 1 ? `${primary} 等 ${count} 块场地` : primary
 }
 
-const handleBookingClick = (item: BookingCard) => {
+function canPayBooking(item: BookingCard) {
+  return isBookingPendingPayment(item) && !isPaymentExpired(item)
+}
+
+function actionButtonText(item: BookingCard) {
+  if (canPayBooking(item)) return '立即支付'
+  if (item.status === 4 && item.venueId) return '查看场馆'
+  return '查看详情'
+}
+
+function openBookingTarget(item: BookingCard) {
+  if (canPayBooking(item)) {
+    const summary = buildBookingSummaryFromDetail(item as unknown as BookingItem)
+    const url = buildBookingConfirmUrl(item.id, summary, '/pages/booking/list')
+    uni.navigateTo({ url })
+    return
+  }
   uni.navigateTo({ url: `/pages/booking/detail?id=${item.id}` })
 }
 
+const handleBookingClick = (item: BookingCard) => {
+  openBookingTarget(item)
+}
+
 const handleAction = (item: BookingCard) => {
-  if (item.status === 4 && item.venueId) {
+  if (item.status === 4 && item.venueId && !canPayBooking(item)) {
     uni.navigateTo({ url: `/pages/venue/detail?id=${item.venueId}` })
   } else {
-    handleBookingClick(item)
+    openBookingTarget(item)
   }
 }
 
@@ -367,6 +387,11 @@ onMounted(async () => {
   } else {
     uni.redirectTo({ url: '/pages/login/login' })
   }
+})
+
+onShow(async () => {
+  if (!userStore.isLoggedIn) return
+  await loadBookingList()
 })
 </script>
 

@@ -483,6 +483,9 @@
     <!-- 支付弹窗（与预约管理/器材租借逻辑一致） -->
     <el-dialog v-model="payDialogVisible" title="穿线服务支付" width="420px">
       <el-form label-width="100px">
+        <el-form-item label="支付时限">
+          <PaymentPayCountdown :order="currentPay" :countdown-state="paymentAutoCancelRefs" />
+        </el-form-item>
         <el-form-item label="服务单号">
           <el-tag type="info">{{ currentPay?.serviceNo || '-' }}</el-tag>
         </el-form-item>
@@ -497,7 +500,7 @@
       </el-form>
       <template #footer>
         <el-button @click="payDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="payLoading" @click="submitPay">确认支付</el-button>
+        <el-button type="primary" :loading="payLoading" :disabled="currentPay && isPaymentExpired(currentPay)" @click="submitPay">确认支付</el-button>
       </template>
     </el-dialog>
   </div>
@@ -506,10 +509,22 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PaymentPayCountdown from '@/components/payment/PaymentPayCountdown.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Tools } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  buildPaymentCountdownOptions,
+  EMPTY_PAYMENT_COUNTDOWN_INFO,
+  getPaymentAutoCancelInfo,
+  shouldShowStringingPaymentCountdown,
+  usePaymentAutoCancelPage
+} from '@/composables/usePaymentAutoCancel'
+import { useAdminOrdersRefreshListener } from '@/utils/paymentOrderRefresh'
+import {
+  bindPaymentCountdownCacheClear,
+  usePaymentCountdownListCache
+} from '@/composables/usePaymentCountdownListCache'
 import {
   getStringingList,
   getStringingInfo,
@@ -543,7 +558,7 @@ const {
   autoCancelTimeoutMinutes,
   countdownNowMs,
   loadPaymentAutoCancelConfig
-} = usePaymentAutoCancel({
+} = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => serviceList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
@@ -1197,7 +1212,6 @@ const calculateTableHeight = () => {
 onMounted(() => {
   calculateTableHeight()
   window.addEventListener('resize', calculateTableHeight)
-  loadPaymentAutoCancelConfig()
   loadVenueOptions()
   loadStringOptions()
   loadStatistics()

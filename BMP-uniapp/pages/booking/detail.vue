@@ -105,6 +105,10 @@
               <text class="detail-label">下单时间</text>
               <text class="detail-value">{{ booking.createTime }}</text>
             </view>
+            <view v-if="paymentCountdownInfo.show" class="detail-row detail-row--countdown">
+              <text class="detail-label">支付时限</text>
+              <PaymentCountdownBadge :info="paymentCountdownInfo" size="small" />
+            </view>
             <view class="detail-row clickable" @tap="openFeeDetail">
               <text class="detail-label">费用明细</text>
               <view class="detail-action">
@@ -133,8 +137,12 @@
           </view>
         </view>
 
-        <view v-if="canCancel" class="action-panel">
-          <button class="cancel-btn" @tap="handleCancel">
+        <view v-if="showPayButton || canCancel" class="action-panel">
+          <button v-if="showPayButton" class="pay-btn" @tap="goPay">
+            <text class="pay-top">Pending Payment</text>
+            <text class="pay-bottom">立即支付</text>
+          </button>
+          <button v-if="canCancel" class="cancel-btn" :class="{ 'cancel-btn--secondary': showPayButton }" @tap="handleCancel">
             <text class="cancel-top">Manage Booking</text>
             <text class="cancel-bottom">取消预约</text>
           </button>
@@ -146,11 +154,18 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/modules/user'
 import MobileLayout from '@/components/MobileLayout.vue'
-import { getBookingDetail, cancelBooking } from '@/api/booking'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import { getBookingDetail, cancelBooking, type BookingItem } from '@/api/booking'
 import { safeNavigateBack } from '@/utils/navigation'
+import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  buildBookingConfirmUrl,
+  buildBookingSummaryFromDetail,
+  isBookingPendingPayment
+} from '@/utils/bookingPayment'
 
 const bookingId = ref(0)
 const booking = ref({
@@ -168,9 +183,23 @@ const booking = ref({
   endTime: '',
   orderAmount: 0,
   status: 0,
+  paymentStatus: 0,
   createTime: ''
 })
 const userStore = useUserStore()
+const detailRaw = ref<BookingItem | null>(null)
+const {
+  autoCancelEnabled,
+  autoCancelTimeoutSeconds: _autoCancelTimeoutSeconds,
+  countdownNowMs,
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => paymentCountdownInfo.value.expired,
+  refreshOnExpire: async () => {
+    await loadBookingDetail()
+  }
+})
 
 const bookingTimeRange = computed(() => {
   if (!booking.value.startTime || !booking.value.endTime) return '--'
@@ -197,6 +226,14 @@ const pricingSummary = computed(() => {
   return map[raw] || raw || (booking.value.bookingMode === 'PACKAGE' ? '包场按小时计费' : '拼场计费')
 })
 
+const paymentCountdownInfo = computed(() =>
+  getPaymentAutoCancelInfo(detailRaw.value || booking.value, buildCountdownOptions())
+)
+
+const showPayButton = computed(() =>
+  isBookingPendingPayment(booking.value) && !paymentCountdownInfo.value.expired
+)
+
 const canCancel = computed(() => booking.value.status === 1 || booking.value.status === 2)
 
 onLoad((options?: Record<string, string | undefined>) => {
@@ -208,6 +245,7 @@ onLoad((options?: Record<string, string | undefined>) => {
 const loadBookingDetail = async () => {
   try {
     const result = await getBookingDetail(bookingId.value)
+    detailRaw.value = result
     booking.value = {
       id: result.id,
       bookingNo: result.bookingNo || '',
@@ -223,6 +261,7 @@ const loadBookingDetail = async () => {
       endTime: result.endTime || '',
       orderAmount: Number(result.orderAmount) || 0,
       status: Number(result.status) || 0,
+      paymentStatus: Number(result.paymentStatus ?? 0),
       createTime: result.createTime || ''
     }
   } catch (error) {
@@ -263,6 +302,23 @@ const getStatusClass = (status: number) => {
 
 const handleBack = () => {
   safeNavigateBack()
+}
+
+const goPay = () => {
+  if (!showPayButton.value || !detailRaw.value) {
+    if (paymentCountdownInfo.value.expired) {
+      uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+      void loadBookingDetail()
+    }
+    return
+  }
+  const summary = buildBookingSummaryFromDetail(detailRaw.value)
+  const url = buildBookingConfirmUrl(
+    detailRaw.value.id,
+    summary,
+    `/pages/booking/detail?id=${detailRaw.value.id}`
+  )
+  uni.navigateTo({ url })
 }
 
 const openFeeDetail = () => {
@@ -307,8 +363,14 @@ onMounted(async () => {
   }
 
   if (bookingId.value) {
+    await loadPaymentAutoCancelConfig()
     await loadBookingDetail()
   }
+})
+
+onShow(async () => {
+  if (!userStore.isLoggedIn || !bookingId.value) return
+  await loadBookingDetail()
 })
 </script>
 
@@ -648,9 +710,42 @@ onMounted(async () => {
   color: #475569;
 }
 
+.detail-row--countdown .detail-value {
+  justify-content: flex-end;
+}
+
 .action-panel {
   padding: 18rpx;
   margin-bottom: 36rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.pay-btn {
+  width: 100%;
+  min-height: 104rpx;
+  border: none;
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 22rpx 36rpx rgba(22, 163, 74, 0.22);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+}
+
+.pay-top {
+  font-size: 20rpx;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+}
+
+.pay-bottom {
+  font-size: 32rpx;
+  font-weight: 700;
 }
 
 .cancel-btn {
@@ -675,6 +770,17 @@ onMounted(async () => {
 .cancel-bottom {
   display: block;
   color: #ffffff;
+}
+
+.cancel-btn--secondary {
+  background: #fff;
+  box-shadow: none;
+  border: 2rpx solid rgba(163, 62, 0, 0.18);
+}
+
+.cancel-btn--secondary .cancel-top,
+.cancel-btn--secondary .cancel-bottom {
+  color: #a33e00;
 }
 
 .cancel-top {

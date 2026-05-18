@@ -5,6 +5,10 @@
       <h1 class="page-title">赛事报名</h1>
       <p class="page-subtitle">报名参加精彩赛事，展现运动风采</p>
     </div>
+    <PaymentAutoCancelFeatureHint
+      :config-loaded="configLoaded"
+      :auto-cancel-enabled="autoCancelEnabled"
+    />
 
     <!-- Tab切换：报名赛事 / 我的报名 -->
     <el-tabs v-model="activeTab" class="tournament-tabs">
@@ -222,14 +226,11 @@
                   <p class="registration-tournament">{{ registration.tournamentName }}</p>
                   <p class="registration-time">赛事时间：{{ formatTimeRange(registration.tournamentStartTime, registration.tournamentEndTime) }}</p>
                   <p class="registration-amount">报名费：¥{{ formatCurrency(registration.registrationFee ?? registration.entryFee) }}</p>
-                  <el-tag
+                  <PaymentCountdownBadge
                     v-if="getPaymentCountdownInfo(registration).show"
-                    :type="isPaymentExpired(registration) ? 'danger' : 'warning'"
-                    effect="plain"
+                    :info="getPaymentCountdownInfo(registration)"
                     size="small"
-                  >
-                    {{ getPaymentCountdownInfo(registration).text }}
-                  </el-tag>
+                  />
                 </div>
               </div>
               <div class="registration-actions">
@@ -240,6 +241,14 @@
                   @click="handlePay(registration)"
                 >
                   立即支付
+                </el-button>
+                <el-button
+                  v-else-if="registration.status === 1 && isPaymentExpired(registration)"
+                  type="info"
+                  size="small"
+                  disabled
+                >
+                  已超时
                 </el-button>
                 <el-button
                   v-if="registration.status === 1 || registration.status === 2"
@@ -263,11 +272,14 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Trophy, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getTournamentList } from '@/api/tournament'
 import { getCurrentMember } from '@/api/member'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import { PAYMENT_ORDER_TYPES, useOrderStatusRefreshListener } from '@/utils/paymentOrderRefresh'
 import {
   getTournamentRegistrationList,
   addTournamentRegistration,
@@ -298,8 +310,10 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
-  loadPaymentAutoCancelConfig
-} = usePaymentAutoCancel({
+  paymentAutoCancelRefs,
+  configLoaded,
+  orderSuccessMessage
+} = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => myRegistrations.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
@@ -310,6 +324,7 @@ const {
     await loadMyRegistrations()
   }
 })
+
 const getPaymentCountdownInfo = (registration) => getPaymentAutoCancelInfo(registration, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
@@ -470,7 +485,7 @@ const submitRegistration = async () => {
     })
     
       if (res.code === 200) {
-        ElMessage.success('报名成功！')
+        ElMessage.success(orderSuccessMessage('报名成功！'))
         resetRegistrationForm()
         await Promise.all([loadTournaments(), syncRegisteredTournamentIds()])
         activeTab.value = 'my-registrations'
@@ -565,7 +580,9 @@ const handlePay = (registration) => {
     entityValue: registration.registrationNo,
     tone: 'warning',
     confirmButtonText: '确认支付',
-    cancelButtonText: '稍后支付'
+    cancelButtonText: '稍后支付',
+    paymentOrder: registration,
+    paymentAutoCancel: paymentAutoCancelRefs
   }).then(async () => {
       if (isPaymentExpired(registration)) {
         ElMessage.warning('该赛事报名已超过支付时限，系统正在自动取消，请稍后刷新')
@@ -628,8 +645,11 @@ watch(activeTab, (newTab) => {
   }
 })
 
+useOrderStatusRefreshListener(PAYMENT_ORDER_TYPES.tournamentRegistration, () => {
+  void loadMyRegistrations()
+})
+
 onMounted(() => {
-  loadPaymentAutoCancelConfig()
   Promise.all([loadTournaments(), syncRegisteredTournamentIds()])
   loadCurrentMemberInfo()
   if (activeTab.value === 'my-registrations') {

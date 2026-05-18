@@ -153,6 +153,12 @@ const routes = [
         meta: { title: '首页', icon: 'Odometer', roles: ['USER', 'MEMBER'] }
       },
       {
+        path: 'orders',
+        name: 'UserMyOrders',
+        component: () => import('@/views/user/MyOrders.vue'),
+        meta: { title: '待支付订单', icon: 'Clock', roles: ['USER', 'MEMBER'] }
+      },
+      {
         path: 'booking',
         name: 'UserBooking',
         component: () => import('@/views/user/Booking.vue'),

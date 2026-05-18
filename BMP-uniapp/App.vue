@@ -8,6 +8,7 @@
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { useUserStore } from './store/modules/user'
 import { useThemeStore } from './store/modules/theme'
+import { preloadPaymentAutoCancelConfig } from './composables/usePaymentAutoCancel'
 
 const userStore = useUserStore()
 const themeStore = useThemeStore()
@@ -70,6 +71,8 @@ onLaunch(() => {
 
   // 初始化主题
   themeStore.initTheme()
+
+  void preloadPaymentAutoCancelConfig()
 
   // 启动阶段不要阻塞在网络请求上，避免小程序生命周期超时。
   void userStore.checkLogin().catch((error) => {

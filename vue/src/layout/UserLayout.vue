@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { logout as authLogout, resolveAvatarUrl } from '@/utils/auth'
 import brandLogo from '@/assets/brand-logo.png'
@@ -125,7 +125,12 @@ import { getCurrentMember } from '@/api/member'
 import { useSiteMessageSetting } from '@/composables/useSiteMessageSetting'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { getToken } from '@/utils/auth'
+import { dispatchOrderStatusRefresh } from '@/utils/paymentOrderRefresh'
+import { ensurePaymentAutoCancelSession, PAYMENT_AUTO_CANCEL_KEY } from '@/composables/usePaymentAutoCancel'
 import { ElMessage } from 'element-plus'
+
+const paymentAutoCancelSession = ensurePaymentAutoCancelSession()
+provide(PAYMENT_AUTO_CANCEL_KEY, paymentAutoCancelSession.state)
 
 const { siteMessageEnabled, loadFromApi: loadSiteMessageSetting } = useSiteMessageSetting()
 const {
@@ -170,6 +175,7 @@ import {
   ShoppingBag,
   Tickets,
   Trophy,
+  Clock,
   Money,
   User,
   Setting,
@@ -204,6 +210,7 @@ const { connect: connectWebSocket, setOnOrderStatus } = useWebSocket(false)
 // 顶部导航菜单项
 const navItems = computed(() => [
   { path: '/user/dashboard', title: '首页', icon: Odometer },
+  { path: '/user/orders', title: '待支付', icon: Clock },
   { path: '/user/booking', title: '场地预订', icon: DataLine },
   { path: '/user/equipment', title: '器材租借', icon: ShoppingBag },
   { path: '/user/stringing', title: '穿线服务', icon: Tools },
@@ -251,9 +258,15 @@ const handleCommand = (command: string): void => {
 }
 
 onMounted(async () => {
+  void paymentAutoCancelSession.loadPaymentAutoCancelConfig()
   handleStorageChange()
   setOnOrderStatus((payload) => {
-    const title = payload.title || '预约'
+    dispatchOrderStatusRefresh(payload)
+    const title = payload.title || '订单'
+    if (Number(payload.status) === 0) {
+      ElMessage.warning(`${title}已取消：${payload.statusText || '已超时自动取消'}`)
+      return
+    }
     ElMessage.success(`${title}状态已更新：${payload.statusText}`)
   })
   if (getToken() && (userInfo.value.role === 'USER' || userInfo.value.role === 'MEMBER')) {

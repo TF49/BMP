@@ -68,6 +68,9 @@
                 :status="getStatus(row)"
                 @click="openDetail(row)"
               />
+              <view v-if="getPaymentCountdownInfo(row).show" class="payment-countdown-row">
+                <PaymentCountdownBadge :info="getPaymentCountdownInfo(row)" size="small" />
+              </view>
               <view class="item-actions">
                 <view class="action-btn" @click="openActions(row)">操作</view>
               </view>
@@ -82,6 +85,15 @@
         </view>
       </scroll-view>
     </view>
+
+    <PaymentConfirmPopup
+      v-model="payDialogVisible"
+      title="确认收款"
+      :content="payDialogContent"
+      :countdown-info="payDialogCountdownInfo"
+      confirm-text="确认收款"
+      @confirm="submitPay"
+    />
   </PresidentLayout>
 </template>
 
@@ -101,9 +113,16 @@ import {
   type EquipmentRentalItem,
   updateEquipmentRentalStatus
 } from '@/api/president/equipment'
-import { formatDate } from '@/utils/format'
+import { formatAmount, formatDate } from '@/utils/format'
 import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentConfirmPopup from '@/components/payment/PaymentConfirmPopup.vue'
+import {
+  EMPTY_PAYMENT_COUNTDOWN_INFO,
+  getPaymentAutoCancelInfo,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancel
+} from '@/composables/usePaymentAutoCancel'
 
 const stats = ref({
   totalRentals: 0,
@@ -115,17 +134,16 @@ const keyword = ref('')
 const filterStatus = ref<number | undefined>(undefined)
 const loading = ref(false)
 const list = ref<EquipmentRentalItem[]>([])
+const payDialogVisible = ref(false)
+const payTarget = ref<EquipmentRentalItem | null>(null)
 const page = ref(1)
 const size = 20
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
-  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => list.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     page.value = 1
@@ -196,15 +214,70 @@ function getStatus(item: EquipmentRentalItem): RentalListStatus {
 }
 
 function getPaymentCountdownInfo(item: Pick<EquipmentRentalItem, 'status' | 'paymentStatus' | 'createTime'>) {
-  return getPaymentAutoCancelInfo(item, {
-    enabled: autoCancelEnabled.value,
-    timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
-  })
+  return getPaymentAutoCancelInfo(item, buildCountdownOptions())
 }
 
 function isPaymentExpired(item: Pick<EquipmentRentalItem, 'status' | 'paymentStatus' | 'createTime'>) {
   return getPaymentCountdownInfo(item).expired
+}
+
+const payDialogCountdownInfo = computed(() => {
+  if (!payTarget.value) return { ...EMPTY_PAYMENT_COUNTDOWN_INFO }
+  return getPaymentCountdownInfo(payTarget.value)
+})
+
+const payDialogContent = computed(() => {
+  if (!payTarget.value) return ''
+  return `将为会员完成器材租借收款。\n器材：${payTarget.value.equipmentName || '未命名器材'}\n租借金额：¥${formatAmount(payTarget.value.rentalAmount || 0)}`
+})
+
+async function refreshListAfterPay() {
+  page.value = 1
+  await Promise.all([loadStatistics(), loadList(false)])
+}
+
+usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, refreshListAfterPay)
+
+async function openPayDialog(row: EquipmentRentalItem) {
+  await loadPaymentAutoCancelConfig()
+  if (!canCollectRentalPayment(row)) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    void refreshListAfterPay()
+    return
+  }
+  payTarget.value = row
+  payDialogVisible.value = true
+}
+
+async function submitPay() {
+  if (!payTarget.value || !canCollectRentalPayment(payTarget.value)) {
+    payDialogVisible.value = false
+    payTarget.value = null
+    return
+  }
+  if (payDialogCountdownInfo.value.expired) {
+    payDialogVisible.value = false
+    payTarget.value = null
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    await refreshListAfterPay()
+    return
+  }
+  try {
+    uni.showLoading({ title: '收款中...' })
+    await processEquipmentRentalPayment(payTarget.value.id, BUSINESS_PAYMENT_METHOD)
+    payDialogVisible.value = false
+    payTarget.value = null
+    uni.hideLoading()
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
+    await refreshListAfterPay()
+  } catch (error) {
+    console.error('Failed to process equipment rental payment:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '收款失败',
+      icon: 'none'
+    })
+  }
 }
 
 function canCollectRentalPayment(item: EquipmentRentalItem) {
@@ -311,23 +384,6 @@ async function updateRentalStatusAction(id: number, status: number, title: strin
   }
 }
 
-async function payRental(row: EquipmentRentalItem) {
-  if (!canCollectRentalPayment(row)) {
-    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
-    page.value = 1
-    await Promise.all([loadStatistics(), loadList(false)])
-    return
-  }
-  try {
-    await processEquipmentRentalPayment(row.id, BUSINESS_PAYMENT_METHOD)
-    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
-    page.value = 1
-    await Promise.all([loadStatistics(), loadList(false)])
-  } catch (error) {
-    console.error('Failed to process equipment rental payment:', error)
-  }
-}
-
 async function refundRental(row: EquipmentRentalItem) {
   const { confirm } = await uni.showModal({
     title: '确认退款',
@@ -367,7 +423,7 @@ function openActions(row: EquipmentRentalItem) {
 
   if (row.status === 1 || row.status === 3) {
     if (canCollectRentalPayment(row)) {
-      actions.push({ label: '确认收款', handler: () => void payRental(row) })
+      actions.push({ label: '确认收款', handler: () => openPayDialog(row) })
     }
     actions.push({ label: '标记归还', handler: () => void updateRentalStatusAction(row.id, 2, '已标记归还') })
     actions.push({ label: '取消租借', handler: () => void updateRentalStatusAction(row.id, 0, '已取消租借') })
@@ -385,8 +441,7 @@ function openActions(row: EquipmentRentalItem) {
 }
 
 onMounted(() => {
-  void loadPaymentAutoCancelConfig()
-  loadStatistics()
+  void loadPaymentAutoCancelConfig().then(() => loadStatistics())
   loadList(false)
 })
 </script>
@@ -580,6 +635,12 @@ onMounted(() => {
   padding: 100rpx 0;
   text-align: center;
 }
+.payment-countdown-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 8rpx;
+}
+
 .state-text {
   color: #5f5e5e;
   font-size: 28rpx;

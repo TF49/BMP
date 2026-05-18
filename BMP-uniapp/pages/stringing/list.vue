@@ -103,6 +103,10 @@
               </view>
             </view>
 
+            <view v-if="getPaymentCountdownInfo(job).show" class="job-countdown">
+              <PaymentCountdownBadge :info="getPaymentCountdownInfo(job)" size="small" />
+            </view>
+
             <view class="job-grid">
               <view class="job-field">
                 <text class="job-label">线材</text>
@@ -150,6 +154,8 @@ import { useUserStore } from '@/store/modules/user'
 import { safeNavigateBack } from '@/utils/navigation'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { STRINGING_STATUS } from '@/utils/constant'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import { resolvePaymentCountdownInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 type JobStatus = 'pending' | 'in_progress' | 'ready' | 'cancelled'
 type PaymentStatus = 'unpaid' | 'paid' | 'refunded'
@@ -164,6 +170,11 @@ type JobVm = {
   totalPrice: string
   status: JobStatus
   paymentStatus: PaymentStatus
+  rawStatus: number
+  rawPaymentStatus: number
+  createTime: string
+  servicePrice: number
+  totalPriceValue: number
 }
 
 const userStore = useUserStore()
@@ -243,7 +254,12 @@ const jobs = computed<JobVm[]>(() => {
       timeLabel: formatDateTime(item.createTime),
       totalPrice: formatMoney(item.totalPrice || item.servicePrice),
       status: mapStatus(Number(item.status)),
-      paymentStatus: mapPaymentStatus(Number(item.paymentStatus ?? 0))
+      paymentStatus: mapPaymentStatus(Number(item.paymentStatus ?? 0)),
+      rawStatus: Number(item.status ?? 0),
+      rawPaymentStatus: Number(item.paymentStatus ?? 0),
+      createTime: item.createTime || '',
+      servicePrice: Number(item.servicePrice ?? 0),
+      totalPriceValue: Number(item.totalPrice ?? item.servicePrice ?? 0)
     }))
     .filter((item) => (currentTab.value === 'all' ? true : item.status === currentTab.value))
     .filter((item) => {
@@ -265,6 +281,30 @@ const summary = computed(() => {
 })
 
 const hasMore = computed(() => rawList.value.length < total.value)
+
+const {
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => jobs.value.some((item) => getPaymentCountdownInfo(item).expired),
+  refreshOnExpire: async () => {
+    await fetchList(true)
+  }
+})
+
+function getPaymentCountdownInfo(item: Pick<JobVm, 'rawStatus' | 'rawPaymentStatus' | 'createTime' | 'servicePrice' | 'totalPriceValue'>) {
+  return resolvePaymentCountdownInfo(
+    {
+      status: item.rawStatus,
+      paymentStatus: item.rawPaymentStatus,
+      createTime: item.createTime,
+      servicePrice: item.servicePrice,
+      totalPrice: item.totalPriceValue
+    },
+    buildCountdownOptions(),
+    'STRINGING'
+  )
+}
 
 async function fetchList(reset = false) {
   let memberId = 0
@@ -369,6 +409,7 @@ onLoad(async () => {
   }
 
   hasLoadedOnce.value = true
+  await loadPaymentAutoCancelConfig()
   await fetchList(true)
 })
 
@@ -650,6 +691,10 @@ onShow(() => {
 .st-in_progress { background: #e0f2fe; color: #0062a1; }
 .st-ready { background: #dcfce7; color: #166534; }
 .st-cancelled { background: #f1f5f9; color: #64748b; }
+
+.job-countdown {
+  margin-top: 16rpx;
+}
 
 .job-grid {
   margin-top: 22rpx;

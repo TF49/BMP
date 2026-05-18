@@ -16,12 +16,19 @@
         <span class="brand-confirm-content__entity-value">{{ entityValue }}</span>
       </div>
       <p v-if="detail" class="brand-confirm-content__detail">{{ detail }}</p>
+      <PaymentPayCountdown
+        v-if="paymentOrder"
+        :order="paymentOrder"
+        :countdown-state="countdownState"
+        class="brand-confirm-content__countdown"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import PaymentPayCountdown from '@/components/payment/PaymentPayCountdown.vue'
 import {
   CircleCheckFilled,
   DeleteFilled,
@@ -53,6 +60,14 @@ const props = defineProps({
   tone: {
     type: String,
     default: 'warning'
+  },
+  paymentOrder: {
+    type: Object,
+    default: null
+  },
+  countdownState: {
+    type: Object,
+    default: null
   }
 })
 
@@ -71,3 +86,9 @@ const iconComponent = computed(() => {
 })
 
 </script>
+
+<style scoped>
+.brand-confirm-content__countdown {
+  margin-top: 12px;
+}
+</style>

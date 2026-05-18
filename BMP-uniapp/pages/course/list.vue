@@ -158,6 +158,9 @@
                     <text>Availability</text>
                     <text class="text-primary">{{ item.availText }}</text>
                   </view>
+                  <view v-if="getCoursePaymentCountdown(item).show" class="course-pay-countdown">
+                    <PaymentCountdownBadge :info="getCoursePaymentCountdown(item)" size="small" />
+                  </view>
                   <view class="h-1-5 w-full bg-surface-container-low rounded-full overflow-hidden">
                     <view
                       class="h-full rounded-full avail-fill"
@@ -233,12 +236,27 @@
 import { ref, computed, onMounted } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { getCourseList, getCoachList, type CourseItem } from '@/api/course'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
 import { useUserStore } from '@/store/modules/user'
+import { useCurrentMember } from '@/composables/useCurrentMember'
+import { usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  buildCourseBookingCountdownMap,
+  fetchMemberPendingPayItems,
+  type MemberPendingPayItem
+} from '@/utils/memberPendingPay'
+import { EMPTY_PAYMENT_COUNTDOWN_INFO } from '@/composables/usePaymentAutoCancel'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
+const pendingPayItems = ref<MemberPendingPayItem[]>([])
+const {
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
+} = usePaymentAutoCancel()
 const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
 const safeAreaBottom = ref(0)
@@ -413,6 +431,29 @@ const filteredCourses = computed(() => {
   })
 })
 
+const courseBookingCountdownMap = computed(() =>
+  buildCourseBookingCountdownMap(pendingPayItems.value, buildCountdownOptions())
+)
+
+function getCoursePaymentCountdown(item: UiCourse) {
+  if (!item.currentUserBookingId) return EMPTY_PAYMENT_COUNTDOWN_INFO
+  return courseBookingCountdownMap.value.get(item.currentUserBookingId) || EMPTY_PAYMENT_COUNTDOWN_INFO
+}
+
+async function loadPendingPayItems() {
+  if (!userStore.isLoggedIn) {
+    pendingPayItems.value = []
+    return
+  }
+  try {
+    const member = await fetchCurrentMember(true)
+    pendingPayItems.value = await fetchMemberPendingPayItems(member.id)
+  } catch (error) {
+    console.warn('加载课程待支付信息失败:', error)
+    pendingPayItems.value = []
+  }
+}
+
 function applySearch() {
   /* keyword reactive already filters */
 }
@@ -548,8 +589,9 @@ onMounted(() => {
     uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  void loadCoachList()
+  void loadPaymentAutoCancelConfig().then(() => loadCoachList())
   void loadCourseList()
+  void loadPendingPayItems()
   hasMounted.value = true
 })
 
@@ -563,6 +605,7 @@ onShow(() => {
   if (!hasMounted.value || !userStore.isLoggedIn) return
   void loadCourseList()
   void loadCoachList()
+  void loadPendingPayItems()
 })
 </script>
 

@@ -189,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { RouteRecordNormalized } from 'vue-router'
 import { logout as authLogout, resolveAvatarUrl, setUserInfo as persistUserInfo } from '@/utils/auth'
@@ -202,7 +202,11 @@ import { useNotificationPopup } from '@/composables/useNotificationPopup'
 import { useSiteMessageSetting } from '@/composables/useSiteMessageSetting'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { getToken } from '@/utils/auth'
+import { ensurePaymentAutoCancelSession, PAYMENT_AUTO_CANCEL_KEY } from '@/composables/usePaymentAutoCancel'
 import { getOperationTodoStatistics } from '@/api/booking'
+
+const paymentAutoCancelSession = ensurePaymentAutoCancelSession()
+provide(PAYMENT_AUTO_CANCEL_KEY, paymentAutoCancelSession.state)
 
 const { siteMessageEnabled, loadFromApi: loadSiteMessageSetting } = useSiteMessageSetting()
 const {
@@ -405,6 +409,7 @@ const handleCommand = (command: string): void => {
 }
 
 onMounted(async () => {
+  void paymentAutoCancelSession.loadPaymentAutoCancelConfig()
   handleStorageChange()
   // 有 token 时从后端拉取最新用户信息，确保 role 正确（避免本地 userInfo 缺失或与后端不一致导致无菜单）
   if (getToken()) {

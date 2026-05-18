@@ -5,6 +5,10 @@
       <h1 class="page-title">穿线服务</h1>
       <p class="page-subtitle">专业穿线服务，让您的球拍焕发新生</p>
     </div>
+    <PaymentAutoCancelFeatureHint
+      :config-loaded="configLoaded"
+      :auto-cancel-enabled="autoCancelEnabled"
+    />
 
     <!-- Tab切换：申请穿线服务 / 我的穿线服务 -->
     <el-tabs v-model="activeTab" class="stringing-tabs">
@@ -299,14 +303,11 @@
                   <p class="service-params">磅数：{{ service.pound }}磅 | 穿线法：{{ getStringingMethodText(service.stringingMethod) }}</p>
                   <p class="service-price">价格：¥{{ formatCurrency(service.servicePrice) }}</p>
                   <p class="service-price">支付状态：{{ getPaymentStatusText(service.paymentStatus) }}</p>
-                  <el-tag
+                  <PaymentCountdownBadge
                     v-if="getPaymentCountdownInfo(service).show"
-                    :type="isPaymentExpired(service) ? 'danger' : 'warning'"
-                    effect="plain"
+                    :info="getPaymentCountdownInfo(service)"
                     size="small"
-                  >
-                    {{ getPaymentCountdownInfo(service).text }}
-                  </el-tag>
+                  />
                   <p class="service-time">申请时间：{{ formatDateTime(service.createTime) }}</p>
                 </div>
               </div>
@@ -340,10 +341,13 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Location, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getVenueList } from '@/api/venue'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import { PAYMENT_ORDER_TYPES, useOrderStatusRefreshListener } from '@/utils/paymentOrderRefresh'
 import {
   getStringOptions,
   calculateStringingPrice,
@@ -372,8 +376,10 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
-  loadPaymentAutoCancelConfig
-} = usePaymentAutoCancel({
+  paymentAutoCancelRefs,
+  configLoaded,
+  orderSuccessMessage
+} = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => myServices.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
@@ -384,6 +390,7 @@ const {
     await loadMyServices()
   }
 })
+
 const getPaymentCountdownInfo = (service) => getPaymentAutoCancelInfo(service, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
@@ -591,7 +598,7 @@ const submitService = async () => {
     }
     const res = await addStringingService(payload)
     if (res.code === 200) {
-      ElMessage.success('申请成功！')
+      ElMessage.success(orderSuccessMessage('申请成功！'))
       resetForm()
       activeTab.value = 'my-services'
       loadMyServices()
@@ -685,7 +692,9 @@ const handlePayService = (service) => {
     entityValue: service.serviceNo,
     tone: 'warning',
     confirmButtonText: '确认支付',
-    cancelButtonText: '稍后支付'
+    cancelButtonText: '稍后支付',
+    paymentOrder: service,
+    paymentAutoCancel: paymentAutoCancelRefs
   }).then(async () => {
     if (isPaymentExpired(service)) {
       ElMessage.warning('该穿线服务已超过支付时限，系统正在自动取消，请稍后刷新')
@@ -713,8 +722,11 @@ watch(activeTab, (newTab) => {
   }
 })
 
+useOrderStatusRefreshListener(PAYMENT_ORDER_TYPES.stringingService, () => {
+  void loadMyServices()
+})
+
 onMounted(() => {
-  loadPaymentAutoCancelConfig()
   loadVenues()
   loadStringOptions()
   loadCurrentMemberInfo()

@@ -21,6 +21,20 @@
             <text class="h1">器材租借</text>
             <text class="sub">高品质专业装备，助你赛场表现更出色。</text>
           </view>
+
+          <view
+            v-if="equipmentPendingPay"
+            class="pending-rental-banner"
+            @tap="goEquipmentPendingPay"
+          >
+            <view class="pending-rental-copy">
+              <text class="pending-rental-tag">待支付租借</text>
+              <text class="pending-rental-title">{{ equipmentPendingPay.title }}</text>
+              <text class="pending-rental-sub">{{ equipmentPendingPay.subTitle }}</text>
+            </view>
+            <PaymentCountdownBadge :info="equipmentPendingCountdown" size="small" />
+          </view>
+
           <scroll-view class="pills-scroll" scroll-x :show-scrollbar="false">
             <view class="pills">
               <view
@@ -115,9 +129,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { useUserStore } from '@/store/modules/user'
+import { useCurrentMember } from '@/composables/useCurrentMember'
+import { usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  fetchMemberPendingPayItems,
+  findEquipmentPendingPay,
+  resolveMemberPendingCountdown,
+  type MemberPendingPayItem
+} from '@/utils/memberPendingPay'
 import { getEquipmentList, type EquipmentItem } from '@/api/equipment'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { resolveImageUrl } from '@/utils/resolveImageUrl'
@@ -125,6 +148,12 @@ import { getAvatarImage } from '@/utils/displayImage'
 import { EQUIPMENT_TYPE_TEXT } from '@/utils/constant'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
+const pendingPayItems = ref<MemberPendingPayItem[]>([])
+const {
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
+} = usePaymentAutoCancel()
 
 const statusBarHeight = ref(44)
 const loading = ref(false)
@@ -261,6 +290,35 @@ function goProfile() {
   uni.navigateTo({ url: '/pages/profile/index' })
 }
 
+const equipmentPendingPay = computed(() => findEquipmentPendingPay(pendingPayItems.value))
+
+const equipmentPendingCountdown = computed(() =>
+  resolveMemberPendingCountdown(equipmentPendingPay.value, buildCountdownOptions())
+)
+
+async function loadPendingPayItems() {
+  if (!userStore.isLoggedIn) {
+    pendingPayItems.value = []
+    return
+  }
+  try {
+    const member = await fetchCurrentMember(true)
+    pendingPayItems.value = await fetchMemberPendingPayItems(member.id)
+  } catch (error) {
+    console.warn('加载器材待支付信息失败:', error)
+    pendingPayItems.value = []
+  }
+}
+
+function goEquipmentPendingPay() {
+  if (!equipmentPendingPay.value) return
+  if (equipmentPendingCountdown.value.expired) {
+    void loadPendingPayItems()
+    return
+  }
+  uni.navigateTo({ url: equipmentPendingPay.value.detailUrl })
+}
+
 onMounted(() => {
   try {
     const sys = getSafeSystemInfo()
@@ -273,11 +331,17 @@ onMounted(() => {
     uni.redirectTo({ url: '/pages/login/login' })
     return
   }
-  void loadEquipmentList()
+  void loadPaymentAutoCancelConfig().then(() => loadEquipmentList())
+  void loadPendingPayItems()
+})
+
+onShow(() => {
+  if (!userStore.isLoggedIn) return
+  void loadPendingPayItems()
 })
 
 onPullDownRefresh(() => {
-  loadEquipmentList().finally(() => {
+  Promise.all([loadEquipmentList(), loadPendingPayItems()]).finally(() => {
     uni.stopPullDownRefresh()
   })
 })
@@ -351,6 +415,46 @@ onPullDownRefresh(() => {
 
 .hero-block {
   margin-bottom: 40rpx;
+}
+
+.pending-rental-banner {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 24rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  border: 1px solid rgba(255, 102, 0, 0.18);
+}
+
+.pending-rental-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.pending-rental-tag {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #a33e00;
+  margin-bottom: 8rpx;
+}
+
+.pending-rental-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.pending-rental-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #5f5e5e;
 }
 
 .hero-text {

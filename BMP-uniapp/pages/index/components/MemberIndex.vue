@@ -33,6 +33,28 @@
             </view>
           </view>
 
+          <view
+            v-if="pendingPayHighlight"
+            class="pending-pay-card p-5 rounded-xl shadow-sm"
+            @tap="goPendingPay"
+          >
+            <view class="flex flex-row justify-between items-start gap-3">
+              <view class="flex-1">
+                <text class="text-xs-10 font-bold tracking-wide uppercase text-primary mb-1 block">待支付订单</text>
+                <text class="text-base font-bold text-on-surface block">{{ pendingPayHighlight.title }}</text>
+                <text class="text-xs-10 text-secondary block mt-1">
+                  {{ pendingPayHighlight.typeLabel }} · {{ pendingPayHighlight.subTitle }}
+                  <text v-if="pendingPayTotal > 1"> · 另有 {{ pendingPayTotal - 1 }} 笔</text>
+                </text>
+              </view>
+              <PaymentCountdownBadge :info="pendingPayCountdownInfo" size="small" />
+            </view>
+            <view class="pending-pay-action mt-3">
+              <text class="pending-pay-btn">立即支付</text>
+              <uni-icons type="right" size="14" color="#a33e00"></uni-icons>
+            </view>
+          </view>
+
           <view class="gradient-cta p-6 rounded-xl text-white flex flex-col items-center justify-center text-center shadow-lg" @tap="navigateTo('/pages/booking/list')">
             <text class="text-xs-10 font-bold tracking-wide uppercase opacity-80 mb-2 block">预约提醒</text>
             <view class="flex flex-col items-center">
@@ -155,18 +177,66 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { useCurrentMember } from '@/composables/useCurrentMember'
-import { getBookingList } from '@/api/booking'
+import { getBookingList, type BookingItem } from '@/api/booking'
 import { getAvatarImage } from '@/utils/displayImage'
 import { useUserStore } from '@/store/modules/user'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import { usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import { isBookingPendingPayment } from '@/utils/bookingPayment'
+import {
+  fetchMemberPendingPayItems,
+  hasExpiredMemberPending,
+  pickMostUrgentMemberPendingPay,
+  resolveMemberPendingCountdown,
+  type MemberPendingPayItem
+} from '@/utils/memberPendingPay'
 
 const userStore = useUserStore()
 const { currentMember, fetchCurrentMember } = useCurrentMember()
 
 const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
-const nextBooking = ref<any | null>(null)
+const nextBooking = ref<BookingItem | null>(null)
+const pendingPayItems = ref<MemberPendingPayItem[]>([])
+
+async function loadPendingPaySummary() {
+  try {
+    const member = await fetchCurrentMember(true)
+    pendingPayItems.value = await fetchMemberPendingPayItems(member.id)
+  } catch (error) {
+    console.warn('加载待支付摘要失败:', error)
+    pendingPayItems.value = []
+  }
+}
+
+async function loadDashboardData() {
+  try {
+    const member = await fetchCurrentMember(true)
+    const [result] = await Promise.all([
+      getBookingList({ memberId: member.id, page: 1, size: 20 }),
+      loadPendingPaySummary()
+    ])
+    const list = Array.isArray(result.data) ? result.data : []
+    nextBooking.value = list.find((item) => [2, 3].includes(Number(item.status)))
+      || list.find((item) => Number(item.status) === 1 && !isBookingPendingPayment(item))
+      || null
+  } catch (error) {
+    console.error('加载首页数据失败:', error)
+    nextBooking.value = null
+    pendingPayItems.value = []
+  }
+}
+
+const {
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => hasExpiredMemberPending(pendingPayItems.value, buildCountdownOptions()),
+  refreshOnExpire: loadDashboardData
+})
 
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 const balanceText = computed(() => Number(currentMember.value?.balance || 0).toFixed(2))
@@ -191,20 +261,23 @@ const nextBookingTime = computed(() => {
 })
 const nextBookingLocation = computed(() => nextBooking.value?.venueName || '点击查看全部预约')
 
-async function loadDashboardData() {
-  try {
-    const member = await fetchCurrentMember(true)
-    const result = await getBookingList({
-      memberId: member.id,
-      page: 1,
-      size: 20
-    })
-    const list = Array.isArray(result.data) ? result.data : []
-    nextBooking.value = list.find((item) => [1, 2, 3].includes(Number(item.status))) || null
-  } catch (error) {
-    console.error('加载首页数据失败:', error)
-    nextBooking.value = null
+const pendingPayTotal = computed(() => pendingPayItems.value.length)
+
+const pendingPayHighlight = computed(() =>
+  pickMostUrgentMemberPendingPay(pendingPayItems.value, buildCountdownOptions())
+)
+
+const pendingPayCountdownInfo = computed(() =>
+  resolveMemberPendingCountdown(pendingPayHighlight.value, buildCountdownOptions())
+)
+
+function goPendingPay() {
+  if (!pendingPayHighlight.value) return
+  if (pendingPayCountdownInfo.value.expired) {
+    void loadDashboardData()
+    return
   }
+  navigateTo(pendingPayHighlight.value.detailUrl)
 }
 
 onMounted(() => {
@@ -222,6 +295,10 @@ onMounted(() => {
   }
   // #endif
 
+  void loadPaymentAutoCancelConfig().then(() => loadDashboardData())
+})
+
+onShow(() => {
   void loadDashboardData()
 })
 
@@ -256,6 +333,24 @@ const navigateTo = (url: string) => {
 .bg-emerald-100 { background-color: #d1fae5; }
 .text-white { color: #ffffff; }
 .text-white-70 { color: rgba(255, 255, 255, 0.7); }
+
+.pending-pay-card {
+  background: #fff;
+  border: 1px solid rgba(255, 102, 0, 0.18);
+}
+
+.pending-pay-action {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.pending-pay-btn {
+  color: #a33e00;
+  font-size: 26rpx;
+  font-weight: 700;
+}
 
 .gradient-cta {
   background: linear-gradient(45deg, #a33e00, #ff6600);

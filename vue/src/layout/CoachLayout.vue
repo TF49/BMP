@@ -68,16 +68,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { UserFilled, ArrowDown, User, SwitchButton, Odometer, Document, Calendar, List, WarningFilled } from '@element-plus/icons-vue'
 import brandLogo from '@/assets/brand-logo.png'
 import ThemeSelector from '@/components/ThemeSelector.vue'
 import { getCurrentCoach } from '@/api/coach'
 import { getToken, removeToken, removeRefreshToken } from '@/utils/auth'
+import { ensurePaymentAutoCancelSession, PAYMENT_AUTO_CANCEL_KEY } from '@/composables/usePaymentAutoCancel'
+import { useWebSocket } from '@/composables/useWebSocket'
+import { dispatchOrderStatusRefresh } from '@/utils/paymentOrderRefresh'
+import { ElMessage } from 'element-plus'
 import { COACH_PROFILE_UPDATED_EVENT, isCoachUnboundError } from '@/views/coach/coachViewUtils'
 
+const paymentAutoCancelSession = ensurePaymentAutoCancelSession()
+provide(PAYMENT_AUTO_CANCEL_KEY, paymentAutoCancelSession.state)
+
 const router = useRouter()
+const { connect: connectWebSocket, setOnOrderStatus } = useWebSocket(false)
 const coachInfo = ref(null)
 const coachUnbound = ref(false)
 
@@ -143,6 +151,19 @@ const loadCoachInfo = async () => {
 }
 
 onMounted(() => {
+  void paymentAutoCancelSession.loadPaymentAutoCancelConfig()
+  setOnOrderStatus((payload) => {
+    dispatchOrderStatusRefresh(payload)
+    const title = payload.title || '订单'
+    if (Number(payload.status) === 0) {
+      ElMessage.warning(`${title}已取消：${payload.statusText || '已超时自动取消'}`)
+      return
+    }
+    ElMessage.success(`${title}状态已更新：${payload.statusText}`)
+  })
+  if (getToken()) {
+    connectWebSocket()
+  }
   loadCoachInfo()
   window.addEventListener('storage', loadCoachInfo)
   window.addEventListener(COACH_PROFILE_UPDATED_EVENT, loadCoachInfo)

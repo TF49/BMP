@@ -59,9 +59,7 @@
             </view>
             <view v-if="paymentCountdownInfo.show" class="row">
               <text class="label">支付时限</text>
-              <text class="value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
-                {{ paymentCountdownInfo.text }}
-              </text>
+              <PaymentCountdownBadge :info="paymentCountdownInfo" size="small" />
             </view>
             <view class="row">
               <text class="label">会员余额</text>
@@ -146,6 +144,7 @@ import { getBookingDetail, processMemberBookingPayment, processPayment, type Boo
 import { safeNavigateBack } from '@/utils/navigation'
 import { useCurrentMember } from '@/composables/useCurrentMember'
 import { useUserStore } from '@/store/modules/user'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 
 type FallbackSummary = {
@@ -180,10 +179,8 @@ const returnUrl = ref('/pages/booking/list')
 const fallbackSummary = ref<FallbackSummary>({})
 const selectedPayment = ref<'BALANCE'>('BALANCE')
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
   hasExpiredPending: () => paymentCountdownInfo.value.expired,
   refreshOnExpire: async () => {
@@ -259,11 +256,7 @@ const paymentStatusText = computed(() => {
   }
   return statusMap[Number(booking.value?.paymentStatus ?? 0)] || '未知'
 })
-const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(booking.value, {
-  enabled: autoCancelEnabled.value,
-  timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
-}))
+const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(booking.value, buildCountdownOptions()))
 
 const statusClass = computed(() => {
   const status = Number(booking.value?.status ?? 1)
@@ -330,6 +323,7 @@ function openFeeDetail() {
 }
 
 async function handlePayment() {
+  await loadPaymentAutoCancelConfig()
   if (submitDisabled.value || !booking.value) return
   if (paymentCountdownInfo.value.expired) {
     uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
@@ -391,8 +385,7 @@ onLoad((options?: Record<string, string | undefined>) => {
     }
   }
 
-  void loadPaymentAutoCancelConfig()
-  void loadBooking()
+  void loadPaymentAutoCancelConfig().then(() => loadBooking())
 })
 </script>
 

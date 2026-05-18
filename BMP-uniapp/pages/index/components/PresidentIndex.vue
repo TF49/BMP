@@ -18,6 +18,28 @@
           </view>
         </view>
 
+        <view
+          v-if="pendingPayHighlight"
+          class="pending-pay-card"
+          @tap="goPendingPay"
+        >
+          <view class="pending-pay-head">
+            <view class="pending-pay-copy">
+              <text class="pending-pay-tag">待支付订单</text>
+              <text class="pending-pay-title">{{ pendingPayHighlight.title }}</text>
+              <text class="pending-pay-sub">
+                {{ pendingPayHighlight.typeLabel }} · {{ pendingPayHighlight.subTitle }}
+                <text v-if="pendingPayTotal > 1"> · 另有 {{ pendingPayTotal - 1 }} 笔</text>
+              </text>
+            </view>
+            <PaymentCountdownBadge :info="pendingPayCountdownInfo" size="small" />
+          </view>
+          <view class="pending-pay-action">
+            <text class="pending-pay-link">查看详情</text>
+            <uni-icons type="right" size="14" color="#a33e00" />
+          </view>
+        </view>
+
         <view v-if="loading" class="state-card">
           <text class="state-text">正在加载经营摘要...</text>
         </view>
@@ -84,12 +106,21 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import PresidentBrandLogo from '@/components/president/PresidentBrandLogo.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { getPresidentDashboardSummary, type PresidentDashboardSummary } from '@/api/president/dashboard'
 import { isPresidentTabPage, PRESIDENT_PAGES } from '@/utils/presidentRouter'
 import { formatAmount, formatDate } from '@/utils/format'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { useUserStore } from '@/store/modules/user'
 import { isPresidentRole } from '@/utils/roleCheck'
+import { usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  fetchPresidentPendingPayItems,
+  hasExpiredPresidentPending,
+  pickMostUrgentPendingPay,
+  resolvePresidentPendingCountdown,
+  type PresidentPendingPayItem
+} from '@/utils/presidentPendingPay'
 
 interface MetricItem {
   label: string
@@ -117,7 +148,25 @@ const navBarMarginRight = ref(0)
 const loading = ref(false)
 const loadError = ref('')
 const summary = ref<PresidentDashboardSummary | null>(null)
+const pendingPayItems = ref<PresidentPendingPayItem[]>([])
 const userStore = useUserStore()
+
+async function loadPendingPaySummary() {
+  try {
+    pendingPayItems.value = await fetchPresidentPendingPayItems()
+  } catch (error) {
+    console.warn('加载管理端待支付摘要失败:', error)
+    pendingPayItems.value = []
+  }
+}
+
+const {
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
+} = usePaymentAutoCancel({
+  hasExpiredPending: () => hasExpiredPresidentPending(pendingPayItems.value, buildCountdownOptions()),
+  refreshOnExpire: loadPendingPaySummary
+})
 const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
 const managementTag = computed(() => '管理工作台')
 
@@ -268,6 +317,25 @@ const summaryTimeLabel = computed(() => {
   return today ? `${today} 数据摘要` : '实时同步后端摘要数据'
 })
 
+const pendingPayTotal = computed(() => pendingPayItems.value.length)
+
+const pendingPayHighlight = computed(() =>
+  pickMostUrgentPendingPay(pendingPayItems.value, buildCountdownOptions())
+)
+
+const pendingPayCountdownInfo = computed(() =>
+  resolvePresidentPendingCountdown(pendingPayHighlight.value, buildCountdownOptions())
+)
+
+function goPendingPay() {
+  if (!pendingPayHighlight.value) return
+  if (pendingPayCountdownInfo.value.expired) {
+    void loadPendingPaySummary()
+    return
+  }
+  navigateTo(pendingPayHighlight.value.detailPath)
+}
+
 async function loadSummary() {
   loading.value = true
   loadError.value = ''
@@ -296,7 +364,9 @@ onMounted(() => {
   const systemInfo = getSafeSystemInfo()
   statusBarHeight.value = systemInfo.statusBarHeight || 44
   navBarMarginRight.value = 0
-  loadSummary()
+  void loadPaymentAutoCancelConfig().then(async () => {
+    await Promise.all([loadSummary(), loadPendingPaySummary()])
+  })
 })
 </script>
 
@@ -327,6 +397,65 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24rpx;
+}
+
+.pending-pay-card {
+  padding: 28rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  border: 1px solid rgba(255, 102, 0, 0.18);
+  box-shadow: 0 8rpx 24rpx rgba(163, 62, 0, 0.08);
+}
+
+.pending-pay-head {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.pending-pay-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.pending-pay-tag {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a33e00;
+  margin-bottom: 8rpx;
+}
+
+.pending-pay-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1a1c1c;
+}
+
+.pending-pay-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #5f5e5e;
+}
+
+.pending-pay-action {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 20rpx;
+}
+
+.pending-pay-link {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #a33e00;
 }
 
 .hero-card,

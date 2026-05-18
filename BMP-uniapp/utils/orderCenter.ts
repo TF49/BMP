@@ -5,6 +5,7 @@ import type { TournamentRegistrationItem } from '@/api/tournament'
 import type { StringingService } from '@/api/stringing'
 import { BOOKING_STATUS_TEXT, STRINGING_STATUS_TEXT } from '@/utils/constant'
 import { formatAmount, formatDateTime } from '@/utils/format'
+import { buildBookingConfirmUrl, buildBookingSummaryFromDetail, isBookingPendingPayment } from '@/utils/bookingPayment'
 
 export type OrderBusinessType = 'BOOKING' | 'COURSE' | 'TOURNAMENT' | 'EQUIPMENT' | 'STRINGING'
 export type OrderLifecycle = 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
@@ -76,6 +77,10 @@ function paymentText(paymentStatus?: number) {
 
 export function mapBookingOrder(item: BookingItem): UnifiedOrderItem {
   const bookingStatusText = BOOKING_STATUS_TEXT as Record<number, string>
+  const summary = buildBookingSummaryFromDetail(item)
+  const detailUrl = isBookingPendingPayment(item)
+    ? buildBookingConfirmUrl(item.id, summary, `/pages/profile/orders`)
+    : `/pages/booking/detail?id=${item.id}`
   return mapCommon(
     'BOOKING',
     bookingLifecycle(Number(item.status || 0)),
@@ -87,7 +92,7 @@ export function mapBookingOrder(item: BookingItem): UnifiedOrderItem {
     bookingStatusText[Number(item.status || 0)] || '未知状态',
     paymentText(item.paymentStatus),
     formatDateTime(item.createTime),
-    `/pages/booking/detail?id=${item.id}`,
+    detailUrl,
     Number(item.status || 0),
     Number(item.paymentStatus || 0),
     item.createTime || ''
@@ -175,6 +180,7 @@ export function mapStringingOrder(item: StringingService): UnifiedOrderItem {
   const status = Number(item.status || 0)
   const stringingStatusText = STRINGING_STATUS_TEXT as Record<number, string>
   const lifecycle: OrderLifecycle = status === 0 ? 'CANCELLED' : status === 3 ? 'COMPLETED' : 'ACTIVE'
+  const paymentStatusValue = Number(item.paymentStatus || 0)
   return mapCommon(
     'STRINGING',
     lifecycle,

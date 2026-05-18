@@ -5,6 +5,10 @@
       <h1 class="page-title">场地预订</h1>
       <p class="page-subtitle">选择您心仪的场地，轻松完成预订</p>
     </div>
+    <PaymentAutoCancelFeatureHint
+      :config-loaded="configLoaded"
+      :auto-cancel-enabled="autoCancelEnabled"
+    />
 
     <!-- Tab切换：预订场地 / 我的预约 -->
     <el-tabs v-model="activeTab" class="booking-tabs">
@@ -395,14 +399,11 @@
                   <p class="booking-time">{{ formatTimeRange(booking.startTime, booking.endTime, booking.bookingDate) }}</p>
                   <!-- 后端金额字段为 orderAmount，这里使用它来展示实际订单金额 -->
                   <p class="booking-amount">¥{{ formatCurrency(booking.orderAmount) }}</p>
-                  <el-tag
+                  <PaymentCountdownBadge
                     v-if="getPaymentCountdownInfo(booking).show"
-                    :type="isPaymentExpired(booking) ? 'danger' : 'warning'"
-                    effect="plain"
+                    :info="getPaymentCountdownInfo(booking)"
                     size="small"
-                  >
-                    {{ getPaymentCountdownInfo(booking).text }}
-                  </el-tag>
+                  />
                 </div>
               </div>
               <div class="booking-actions">
@@ -413,6 +414,14 @@
                   @click="handlePay(booking)"
                 >
                   立即支付
+                </el-button>
+                <el-button
+                  v-else-if="booking.status === 1 && isPaymentExpired(booking)"
+                  type="info"
+                  size="small"
+                  disabled
+                >
+                  已超时
                 </el-button>
                 <el-button
                   v-if="booking.status === 2 || booking.status === 3"
@@ -444,12 +453,15 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { ArrowLeft, OfficeBuilding, Location, Coin, InfoFilled } from '@element-plus/icons-vue'
 import { CircleCheck } from '@element-plus/icons-vue'
 import { getVenueList } from '@/api/venue'
 import { getCourtList, getTodayBookingCounts } from '@/api/court'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import { buildPaymentCountdownOptions, getPaymentAutoCancelInfo, usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
+import { PAYMENT_ORDER_TYPES, useOrderStatusRefreshListener } from '@/utils/paymentOrderRefresh'
 import {
   getBookingList,
   addBooking,
@@ -486,8 +498,10 @@ const {
   autoCancelEnabled,
   autoCancelTimeoutMinutes,
   countdownNowMs,
-  loadPaymentAutoCancelConfig
-} = usePaymentAutoCancel({
+  paymentAutoCancelRefs,
+  configLoaded,
+  orderSuccessMessage
+} = usePaymentAutoCancelPage({
   refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => myBookings.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
@@ -498,6 +512,7 @@ const {
     await loadMyBookings()
   }
 })
+
 const getPaymentCountdownInfo = (booking) => getPaymentAutoCancelInfo(booking, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
@@ -1067,7 +1082,7 @@ const submitBooking = async () => {
       })
     
     if (res.code === 200) {
-      ElMessage.success('预订成功！')
+      ElMessage.success(orderSuccessMessage('预订成功！'))
       // 重置表单
       step.value = 1
         selectedVenue.value = null
@@ -1124,7 +1139,9 @@ const handlePay = (booking) => {
     entityValue: booking.bookingNo,
     tone: 'warning',
     confirmButtonText: '确认支付',
-    cancelButtonText: '稍后支付'
+    cancelButtonText: '稍后支付',
+    paymentOrder: booking,
+    paymentAutoCancel: paymentAutoCancelRefs
   }).then(async () => {
     if (isPaymentExpired(booking)) {
       ElMessage.warning('该预约订单已超过支付时限，系统正在自动取消，请稍后刷新')
@@ -1215,8 +1232,11 @@ const loadCurrentMember = async () => {
   }
 }
 
+useOrderStatusRefreshListener(PAYMENT_ORDER_TYPES.booking, () => {
+  void loadMyBookings()
+})
+
 onMounted(() => {
-  loadPaymentAutoCancelConfig()
   loadCurrentMember()
   loadVenues()
   if (activeTab.value === 'my-bookings') {

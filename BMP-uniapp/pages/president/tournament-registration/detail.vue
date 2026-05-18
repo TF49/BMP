@@ -69,9 +69,7 @@
               </view>
               <view v-if="paymentCountdownInfo.show" class="field-row">
                 <text class="field-label">支付时限</text>
-                <text class="field-value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
-                  {{ paymentCountdownInfo.text }}
-                </text>
+                <PaymentCountdownBadge :info="paymentCountdownInfo" size="small" />
               </view>
               <view class="field-row">
                 <text class="field-label">比赛结果</text>
@@ -84,12 +82,21 @@
             </view>
 
             <view v-if="showPayAction" class="action-row">
-              <view class="action-btn" @click="handlePay">确认收款 / 余额支付</view>
+              <view class="action-btn" @click="openPayDialog">确认收款 / 余额支付</view>
             </view>
           </template>
         </view>
       </scroll-view>
     </view>
+
+    <PaymentConfirmPopup
+      v-model="payDialogVisible"
+      title="确认余额代支付"
+      :content="payDialogContent"
+      :countdown-info="paymentCountdownInfo"
+      confirm-text="确认支付"
+      @confirm="submitPay"
+    />
   </PresidentLayout>
 </template>
 
@@ -106,7 +113,13 @@ import { formatAmount, formatDateTime } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { PAYMENT_METHOD_TEXT } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentConfirmPopup from '@/components/payment/PaymentConfirmPopup.vue'
+import {
+  getPaymentAutoCancelInfo,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancel
+} from '@/composables/usePaymentAutoCancel'
 
 type TournamentRegistrationDetail = TournamentRegistrationItem & {
   paymentStatus?: number
@@ -121,11 +134,10 @@ type TournamentRegistrationDetail = TournamentRegistrationItem & {
 const detail = ref<TournamentRegistrationDetail | null>(null)
 const loading = ref(false)
 const loadError = ref('')
+const payDialogVisible = ref(false)
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
   hasExpiredPending: () => paymentCountdownInfo.value.expired,
   refreshOnExpire: async () => {
@@ -156,11 +168,9 @@ const paymentStatusLabel = computed(() => {
   if (registrationStatus === 2 || registrationStatus === 3 || registrationStatus === 4) return '支付成功'
   return '支付状态未知'
 })
-const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
-  enabled: autoCancelEnabled.value,
-  timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
-}))
+const paymentCountdownInfo = computed(() =>
+  getPaymentAutoCancelInfo(detail.value, buildCountdownOptions())
+)
 
 const showPayAction = computed(() => {
   if (!detail.value) return false
@@ -169,6 +179,17 @@ const showPayAction = computed(() => {
     && paymentStatus !== 1
     && paymentStatus !== 2
     && !paymentCountdownInfo.value.expired
+})
+
+const payDialogContent = computed(() => {
+  if (!detail.value) return ''
+  return `将为该报名单按会员余额完成支付。\n支付金额：¥${formatAmount(detail.value.entryFee || 0)}`
+})
+
+usePayDialogExpireGuard(payDialogVisible, paymentCountdownInfo, async () => {
+  if (detail.value?.id) {
+    await loadDetail(detail.value.id)
+  }
 })
 
 const tournamentTimeLabel = computed(() => {
@@ -198,42 +219,46 @@ function goBack() {
   safeNavigateBack(PRESIDENT_PAGES.TOURNAMENT_REGISTRATION_LIST)
 }
 
-async function handlePay() {
+async function openPayDialog() {
+  await loadPaymentAutoCancelConfig()
   if (!detail.value || !showPayAction.value) return
   if (paymentCountdownInfo.value.expired) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    void loadDetail(detail.value.id)
+    return
+  }
+  payDialogVisible.value = true
+}
+
+async function submitPay() {
+  if (!detail.value || !showPayAction.value) {
+    payDialogVisible.value = false
+    return
+  }
+  if (paymentCountdownInfo.value.expired) {
+    payDialogVisible.value = false
     uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
     await loadDetail(detail.value.id)
     return
   }
-  uni.showModal({
-    title: '确认余额代支付',
-    content: `将为该报名单按会员余额完成支付。\n支付金额：¥${formatAmount(detail.value.entryFee || 0)}`,
-    success: async (res) => {
-      if (!res.confirm || !detail.value) return
-      if (paymentCountdownInfo.value.expired || !showPayAction.value) {
-        uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
-        await loadDetail(detail.value.id)
-        return
-      }
-      try {
-        uni.showLoading({ title: '支付中...' })
-        await processTournamentRegistrationPayment(detail.value.id, 'BALANCE')
-        await loadDetail(detail.value.id)
-        uni.hideLoading()
-        uni.showToast({
-          title: `${PAYMENT_METHOD_TEXT.BALANCE}支付成功`,
-          icon: 'success'
-        })
-      } catch (error) {
-        console.error('Failed to process tournament registration payment:', error)
-        uni.hideLoading()
-        uni.showToast({
-          title: error instanceof Error ? error.message : '支付失败',
-          icon: 'none'
-        })
-      }
-    }
-  })
+  try {
+    uni.showLoading({ title: '支付中...' })
+    await processTournamentRegistrationPayment(detail.value.id, 'BALANCE')
+    payDialogVisible.value = false
+    await loadDetail(detail.value.id)
+    uni.hideLoading()
+    uni.showToast({
+      title: `${PAYMENT_METHOD_TEXT.BALANCE}支付成功`,
+      icon: 'success'
+    })
+  } catch (error) {
+    console.error('Failed to process tournament registration payment:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '支付失败',
+      icon: 'none'
+    })
+  }
 }
 
 onLoad((options) => {
@@ -242,8 +267,7 @@ onLoad((options) => {
     loadError.value = '缺少有效的报名 ID'
     return
   }
-  void loadPaymentAutoCancelConfig()
-  loadDetail(rawId)
+  void loadPaymentAutoCancelConfig().then(() => loadDetail(rawId))
 })
 </script>
 

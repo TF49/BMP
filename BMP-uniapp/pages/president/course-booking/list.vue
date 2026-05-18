@@ -67,6 +67,10 @@
               </view>
             </view>
 
+            <view v-if="getPaymentCountdownInfo(item).show" class="payment-countdown-row">
+              <PaymentCountdownBadge :info="getPaymentCountdownInfo(item)" size="small" />
+            </view>
+
             <view class="meta-grid">
               <view class="meta-item">
                 <text class="label">教练</text>
@@ -96,6 +100,15 @@
         <view class="bottom-space" />
       </scroll-view>
     </view>
+
+    <PaymentConfirmPopup
+      v-model="payDialogVisible"
+      title="确认收款"
+      :content="payDialogContent"
+      :countdown-info="payDialogCountdownInfo"
+      confirm-text="确认收款"
+      @confirm="submitPay"
+    />
   </PresidentLayout>
 </template>
 
@@ -117,7 +130,14 @@ import { parsePagedList } from '@/utils/parsePagedList'
 import { formatDate, formatDateTime, formatTime } from '@/utils/format'
 import { getCourseBookingStatusMeta } from '@/utils/presidentStatus'
 import { BOOKING_STATUS, BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT } from '@/utils/constant'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentConfirmPopup from '@/components/payment/PaymentConfirmPopup.vue'
+import {
+  EMPTY_PAYMENT_COUNTDOWN_INFO,
+  getPaymentAutoCancelInfo,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancel
+} from '@/composables/usePaymentAutoCancel'
 
 type BookingCard = {
   id: number
@@ -142,13 +162,12 @@ const keyword = ref('')
 const statusFilter = ref(-1)
 const courseId = ref<number | undefined>(undefined)
 const bookingList = ref<BookingCard[]>([])
+const payDialogVisible = ref(false)
+const payTarget = ref<BookingCard | null>(null)
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
-  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     reloadList()
@@ -182,11 +201,7 @@ function getPaymentCountdownInfo(item: Pick<BookingCard, 'rawStatus' | 'paymentS
     status: item.rawStatus,
     paymentStatus: item.paymentStatus,
     createTime: item.createTime
-  }, {
-    enabled: autoCancelEnabled.value,
-    timeoutMinutes: autoCancelTimeoutMinutes.value,
-    nowMs: countdownNowMs.value
-  })
+  }, buildCountdownOptions())
 }
 
 function isPaymentExpired(item: Pick<BookingCard, 'rawStatus' | 'paymentStatus' | 'createTime'>) {
@@ -197,6 +212,60 @@ function canCollectBookingPayment(item: BookingCard) {
   return item.rawStatus === BOOKING_STATUS.PENDING_PAYMENT
     && Number(item.paymentStatus ?? 0) === 0
     && !isPaymentExpired(item)
+}
+
+const payDialogCountdownInfo = computed(() => {
+  if (!payTarget.value) return { ...EMPTY_PAYMENT_COUNTDOWN_INFO }
+  return getPaymentCountdownInfo(payTarget.value)
+})
+
+const payDialogContent = computed(() => {
+  if (!payTarget.value) return ''
+  return `将为会员完成课程预约收款。\n课程：${payTarget.value.courseName || '未命名课程'}\n订单金额：¥${payTarget.value.amountText}`
+})
+
+usePayDialogExpireGuard(payDialogVisible, payDialogCountdownInfo, reloadList)
+
+async function openPayDialog(item: BookingCard) {
+  await loadPaymentAutoCancelConfig()
+  if (!canCollectBookingPayment(item)) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    reloadList()
+    return
+  }
+  payTarget.value = item
+  payDialogVisible.value = true
+}
+
+async function submitPay() {
+  if (!payTarget.value || !canCollectBookingPayment(payTarget.value)) {
+    payDialogVisible.value = false
+    payTarget.value = null
+    return
+  }
+  if (payDialogCountdownInfo.value.expired) {
+    payDialogVisible.value = false
+    payTarget.value = null
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    reloadList()
+    return
+  }
+  try {
+    uni.showLoading({ title: '收款中...' })
+    await processCourseBookingPayment(payTarget.value.id, BUSINESS_PAYMENT_METHOD)
+    payDialogVisible.value = false
+    payTarget.value = null
+    uni.hideLoading()
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
+    reloadList()
+  } catch (error) {
+    console.error('Failed to process course booking payment:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '收款失败',
+      icon: 'none'
+    })
+  }
 }
 
 async function fetchList(reset = false) {
@@ -268,21 +337,6 @@ async function updateBookingStatusAction(item: BookingCard, status: number, titl
   }
 }
 
-async function payBooking(item: BookingCard) {
-  if (!canCollectBookingPayment(item)) {
-    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
-    reloadList()
-    return
-  }
-  try {
-    await processCourseBookingPayment(item.id, BUSINESS_PAYMENT_METHOD)
-    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
-    reloadList()
-  } catch (error) {
-    console.error('Failed to process course booking payment:', error)
-  }
-}
-
 async function refundBooking(item: BookingCard) {
   const { confirm } = await uni.showModal({
     title: '确认退款',
@@ -320,7 +374,7 @@ function openActions(item: BookingCard) {
 
   if (item.rawStatus === BOOKING_STATUS.PENDING_PAYMENT) {
     if (canCollectBookingPayment(item)) {
-      actions.push({ label: '确认收款', handler: () => void payBooking(item) })
+      actions.push({ label: '确认收款', handler: () => openPayDialog(item) })
     }
     actions.push({
       label: '取消预约',
@@ -350,7 +404,7 @@ function openActions(item: BookingCard) {
 onLoad((query?: Record<string, string | undefined>) => {
   const id = Number(query?.courseId || 0)
   courseId.value = id > 0 ? id : undefined
-  void loadPaymentAutoCancelConfig()
+  void loadPaymentAutoCancelConfig().then(() => reloadList())
 })
 
 onShow(() => {
@@ -395,6 +449,11 @@ onShow(() => {
 .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16rpx; }
 .label { display: block; font-size: 18rpx; color: #6b7280; margin-bottom: 6rpx; }
 .value { font-size: 24rpx; font-weight: 700; line-height: 1.5; }
+.payment-countdown-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .bottom-space { height: 36rpx; }
 </style>
 

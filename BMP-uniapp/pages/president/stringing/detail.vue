@@ -69,9 +69,7 @@
               </view>
               <view v-if="paymentCountdownInfo.show" class="field-row">
                 <text class="field-label">支付时限</text>
-                <text class="field-value" :style="{ color: paymentCountdownInfo.expired ? '#dc2626' : '#f97316' }">
-                  {{ paymentCountdownInfo.text }}
-                </text>
+                <PaymentCountdownBadge :info="paymentCountdownInfo" size="small" />
               </view>
               <view class="field-row multiline">
                 <text class="field-label">备注</text>
@@ -86,6 +84,15 @@
         </view>
       </scroll-view>
     </view>
+
+    <PaymentConfirmPopup
+      v-model="payDialogVisible"
+      title="确认收款"
+      :content="payDialogContent"
+      :countdown-info="paymentCountdownInfo"
+      confirm-text="确认收款"
+      @confirm="submitPay"
+    />
   </PresidentLayout>
 </template>
 
@@ -104,16 +111,22 @@ import { formatAmount, formatDateTime, formatPhone } from '@/utils/format'
 import { safeNavigateBack } from '@/utils/navigation'
 import { BUSINESS_PAYMENT_METHOD, PAYMENT_METHOD_TEXT, STRINGING_STATUS } from '@/utils/constant'
 import { PRESIDENT_PAGES } from '@/utils/presidentRouter'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
+import PaymentConfirmPopup from '@/components/payment/PaymentConfirmPopup.vue'
+import {
+  resolvePaymentCountdownInfo,
+  shouldShowStringingPaymentCountdown,
+  usePayDialogExpireGuard,
+  usePaymentAutoCancel
+} from '@/composables/usePaymentAutoCancel'
 
 const detail = ref<StringingService | null>(null)
 const loading = ref(false)
 const loadError = ref('')
+const payDialogVisible = ref(false)
 const {
-  autoCancelEnabled,
-  autoCancelTimeoutMinutes,
-  countdownNowMs,
-  loadPaymentAutoCancelConfig
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
 } = usePaymentAutoCancel({
   hasExpiredPending: () => paymentCountdownInfo.value.expired,
   refreshOnExpire: async () => {
@@ -129,11 +142,23 @@ const statusLabel = computed(() => {
   if (status === STRINGING_STATUS.COMPLETED) return '已完成'
   return '未知状态'
 })
-const paymentCountdownInfo = computed(() => getPaymentAutoCancelInfo(detail.value, {
-  enabled: autoCancelEnabled.value,
-  timeoutMinutes: autoCancelTimeoutMinutes.value,
-  nowMs: countdownNowMs.value
-}))
+const paymentCountdownInfo = computed(() =>
+  resolvePaymentCountdownInfo(detail.value, buildCountdownOptions(), 'STRINGING')
+)
+
+const payDialogContent = computed(() => {
+  if (!detail.value) return ''
+  const amount = formatAmount(detail.value.totalPrice || detail.value.servicePrice || 0)
+  return `将为会员完成穿线服务收款。\n工单：${detail.value.serviceNo || `#${detail.value.id}`}\n服务费用：¥${amount}`
+})
+
+function canCollectPayment() {
+  if (!detail.value) return false
+  return Number(detail.value.status ?? -1) === STRINGING_STATUS.WAITING
+    && Number(detail.value.paymentStatus ?? 0) === 0
+    && shouldShowStringingPaymentCountdown(detail.value)
+    && !paymentCountdownInfo.value.expired
+}
 
 const racketLabel = computed(() => {
   const current = detail.value
@@ -185,6 +210,46 @@ async function refreshDetail() {
   await loadDetail(detail.value.id)
 }
 
+usePayDialogExpireGuard(payDialogVisible, paymentCountdownInfo, refreshDetail)
+
+async function openPayDialog() {
+  await loadPaymentAutoCancelConfig()
+  if (!canCollectPayment()) {
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    void refreshDetail()
+    return
+  }
+  payDialogVisible.value = true
+}
+
+async function submitPay() {
+  if (!detail.value || !canCollectPayment()) {
+    payDialogVisible.value = false
+    return
+  }
+  if (paymentCountdownInfo.value.expired) {
+    payDialogVisible.value = false
+    uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
+    await refreshDetail()
+    return
+  }
+  try {
+    uni.showLoading({ title: '收款中...' })
+    await processStringingPayment(detail.value.id, BUSINESS_PAYMENT_METHOD)
+    payDialogVisible.value = false
+    await refreshDetail()
+    uni.hideLoading()
+    uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
+  } catch (error) {
+    console.error('Failed to process stringing payment:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error instanceof Error ? error.message : '收款失败',
+      icon: 'none'
+    })
+  }
+}
+
 async function openActions() {
   if (!detail.value?.id) return
   const actions: Array<{ label: string; handler: () => Promise<void> | void }> = []
@@ -192,18 +257,11 @@ async function openActions() {
   const currentPaymentStatus = Number(detail.value.paymentStatus ?? 0)
 
   if (currentStatus === STRINGING_STATUS.WAITING) {
-    if (currentPaymentStatus === 0 && !paymentCountdownInfo.value.expired) {
+    if (canCollectPayment()) {
       actions.push({
         label: '确认收款',
-        handler: async () => {
-          if (paymentCountdownInfo.value.expired) {
-            uni.showToast({ title: '订单已超时，正在刷新状态', icon: 'none' })
-            await refreshDetail()
-            return
-          }
-          await processStringingPayment(detail.value!.id, BUSINESS_PAYMENT_METHOD)
-          uni.showToast({ title: `${PAYMENT_METHOD_TEXT[BUSINESS_PAYMENT_METHOD]}收款成功`, icon: 'success' })
-          await refreshDetail()
+        handler: () => {
+          openPayDialog()
         }
       })
     }
@@ -277,8 +335,7 @@ onLoad((options) => {
     loadError.value = '缺少有效的工单 ID'
     return
   }
-  void loadPaymentAutoCancelConfig()
-  void loadDetail(rawId)
+  void loadPaymentAutoCancelConfig().then(() => loadDetail(rawId))
 })
 </script>
 

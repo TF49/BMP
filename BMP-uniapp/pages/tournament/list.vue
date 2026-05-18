@@ -149,11 +149,16 @@
                 </view>
               </view>
               <view class="mt-auto flex items-center justify-between pt-4 border-t border-surface-container">
-                <view>
-                  <text class="text-xs font-bold text-slate-400 block tracking-wider">ENTRY FEE</text>
-                  <text class="text-2xl font-black text-primary italic leading-none">
-                    ¥{{ item.feeDisplay }}<text class="text-xs font-bold italic">{{ item.feeUnit }}</text>
-                  </text>
+                <view class="flex-1">
+                  <view v-if="getTournamentPaymentCountdown(item).show" class="tournament-pay-countdown mb-2">
+                    <PaymentCountdownBadge :info="getTournamentPaymentCountdown(item)" size="small" />
+                  </view>
+                  <view>
+                    <text class="text-xs font-bold text-slate-400 block tracking-wider">ENTRY FEE</text>
+                    <text class="text-2xl font-black text-primary italic leading-none">
+                      ¥{{ item.feeDisplay }}<text class="text-xs font-bold italic">{{ item.feeUnit }}</text>
+                    </text>
+                  </view>
                 </view>
                 <button
                   class="register-btn bg-primary-container text-on-primary-container px-6 py-3 rounded-xl font-black italic tracking-wider text-sm border-none"
@@ -195,14 +200,29 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { getTournamentList, type TournamentItem } from '@/api/tournament'
 import { getSafeSystemInfo } from '@/utils/systemInfo'
 import { useUserStore } from '@/store/modules/user'
+import { useCurrentMember } from '@/composables/useCurrentMember'
+import { usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  buildTournamentCountdownMap,
+  fetchMemberPendingPayItems,
+  type MemberPendingPayItem
+} from '@/utils/memberPendingPay'
+import { EMPTY_PAYMENT_COUNTDOWN_INFO } from '@/composables/usePaymentAutoCancel'
 import { getTournamentEventLabel, isTournamentDoubles } from '@/utils/tournament'
 
 const userStore = useUserStore()
+const { fetchCurrentMember } = useCurrentMember()
+const pendingPayItems = ref<MemberPendingPayItem[]>([])
+const {
+  loadPaymentAutoCancelConfig,
+  buildCountdownOptions
+} = usePaymentAutoCancel()
 const statusBarHeight = ref(44)
 const navBarMarginRight = ref(0)
 const headerOffsetPx = computed(() => (statusBarHeight.value || 44) + 56)
@@ -432,6 +452,28 @@ function canRegister(item: UiCard) {
   return item.status === 1 && item.participants < item.maxParticipants
 }
 
+const tournamentCountdownMap = computed(() =>
+  buildTournamentCountdownMap(pendingPayItems.value, buildCountdownOptions())
+)
+
+function getTournamentPaymentCountdown(item: UiCard) {
+  return tournamentCountdownMap.value.get(item.id) || EMPTY_PAYMENT_COUNTDOWN_INFO
+}
+
+async function loadPendingPayItems() {
+  if (!userStore.isLoggedIn) {
+    pendingPayItems.value = []
+    return
+  }
+  try {
+    const member = await fetchCurrentMember(true)
+    pendingPayItems.value = await fetchMemberPendingPayItems(member.id)
+  } catch (error) {
+    console.warn('加载赛事待支付信息失败:', error)
+    pendingPayItems.value = []
+  }
+}
+
 function openDetail(item: UiCard) {
   uni.navigateTo({ url: `/pages/tournament/detail?id=${item.id}` })
 }
@@ -475,8 +517,15 @@ onMounted(() => {
     return
   }
 
-  void loadList()
+  void loadPaymentAutoCancelConfig().then(() => loadList())
+  void loadPendingPayItems()
   timer = setInterval(updateCountdown, 1000)
+})
+
+onShow(() => {
+  if (!userStore.isLoggedIn) return
+  void loadPendingPayItems()
+  void loadList()
 })
 
 onUnmounted(() => {
