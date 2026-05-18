@@ -72,6 +72,10 @@ public class TournamentRegistration {
     private String memberName;
     private String partnerName;
     private String tournamentName;
+    private Integer tournamentStatus;
+    private String tournamentType;
+    private String tournamentEventType;
+    private BigDecimal tournamentEntryFee;
     private String venueName;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

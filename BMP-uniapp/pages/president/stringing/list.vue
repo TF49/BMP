@@ -242,7 +242,7 @@ const {
   configLoaded,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => records.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await loadRecords()
@@ -1142,3 +1142,4 @@ onShow(() => {
   }
 }
 </style>
+

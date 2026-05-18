@@ -49,7 +49,7 @@
               </el-form-item>
               <el-form-item label="赛事" class="search-item">
                 <el-select v-model="searchForm.tournamentId" placeholder="全部赛事" clearable class="search-select">
-                  <el-option v-for="item in tournamentOptions" :key="item.id" :label="item.tournamentName" :value="item.id" />
+                  <el-option v-for="item in searchTournamentOptions" :key="item.id" :label="item.tournamentName" :value="item.id" />
                 </el-select>
               </el-form-item>
               <el-form-item label="会员" class="search-item">
@@ -197,9 +197,16 @@
             <el-input :model-value="form.registrationNo || '提交后自动生成'" disabled />
           </el-form-item>
           <el-form-item label="赛事" prop="tournamentId" class="modern-form-item">
-            <el-select v-model="form.tournamentId" placeholder="选择赛事" filterable @change="onTournamentChange">
-              <el-option v-for="item in tournamentOptions" :key="item.id" :label="item.tournamentName" :value="item.id" />
+            <el-select
+              v-model="form.tournamentId"
+              placeholder="选择赛事"
+              filterable
+              :disabled="formTournamentLocked"
+              @change="onTournamentChange"
+            >
+              <el-option v-for="item in formTournamentOptions" :key="item.id" :label="item.tournamentName" :value="item.id" />
             </el-select>
+            <div v-if="formTournamentLocked" class="form-item-hint">当前关联赛事已不在报名中，仅支持查看，不支持改绑</div>
           </el-form-item>
           <el-form-item label="场馆" class="modern-form-item">
             <el-input :model-value="selectedVenueName" placeholder="选择赛事后自动显示" disabled />
@@ -350,7 +357,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => registrationList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await Promise.all([loadList(), loadStatistics()])
@@ -358,7 +365,9 @@ const {
 })
 const pagination = reactive({ page: 1, size: 10, total: 0 })
 const statistics = reactive({ total: 0, pending: 0, paid: 0, participated: 0, cancelled: 0 })
-const tournamentOptions = ref([])
+const allTournamentOptions = ref([])
+const formTournamentContext = ref(null)
+const formTournamentLocked = ref(false)
 const memberOptions = ref([])
 const partnerOptions = ref([])
 const memberKeyword = ref('')
@@ -366,10 +375,58 @@ const partnerKeyword = ref('')
 const tableHeight = ref(600)
 const { isAdmin, isUser } = useAuth()
 
+const searchTournamentOptions = computed(() => allTournamentOptions.value)
+const formTournamentOptions = computed(() => {
+  const enrollingOptions = allTournamentOptions.value.filter((item) => Number(item?.status) === 1)
+  if (!formTournamentContext.value) {
+    return enrollingOptions
+  }
+  const exists = enrollingOptions.some((item) => Number(item.id) === Number(formTournamentContext.value.id))
+  return exists ? enrollingOptions : [formTournamentContext.value, ...enrollingOptions]
+})
+
+const findTournamentOption = (tournamentId) => {
+  if (tournamentId == null) return null
+  const id = Number(tournamentId)
+  if (Number.isNaN(id)) return null
+  return formTournamentOptions.value.find((item) => Number(item.id) === id)
+    || searchTournamentOptions.value.find((item) => Number(item.id) === id)
+    || (formTournamentContext.value && Number(formTournamentContext.value.id) === id ? formTournamentContext.value : null)
+}
+
+const createTournamentContext = (data) => {
+  if (!data?.tournamentId) return null
+  return {
+    id: data.tournamentId,
+    tournamentName: data.tournamentName || `赛事#${data.tournamentId}`,
+    venueName: data.venueName || '',
+    status: data.tournamentStatus,
+    eventType: data.tournamentEventType || data.eventTypeSnapshot || '',
+    tournamentType: data.tournamentType || '',
+    entryFee: data.tournamentEntryFee ?? data.entryFee ?? 0
+  }
+}
+
+const syncFormTournamentState = (data = null) => {
+  const previousContext = formTournamentContext.value
+  formTournamentContext.value = null
+  formTournamentLocked.value = false
+  const tournamentId = data?.tournamentId ?? form.tournamentId
+  if (!tournamentId) return
+  const currentOption = searchTournamentOptions.value.find((item) => Number(item.id) === Number(tournamentId))
+    || createTournamentContext(data)
+    || (previousContext && Number(previousContext.id) === Number(tournamentId)
+      ? previousContext
+      : null)
+  if (!currentOption) return
+  formTournamentContext.value = currentOption
+  formTournamentLocked.value = Number(currentOption.status) !== 1
+}
+
 // 当前选中赛事关联的场馆名称（只读展示）
 const selectedVenueName = computed(() => {
   if (!form.tournamentId) return ''
-  const t = tournamentOptions.value.find((item) => item.id === form.tournamentId)
+  const t = findTournamentOption(form.tournamentId)
   return t?.venueName ?? ''
 })
 
@@ -378,13 +435,13 @@ const selectedVenueName = computed(() => {
 // 当前选中赛事的类型（用于双打/混双必填搭档等）
 const selectedTournamentType = computed(() => {
   if (!form.tournamentId) return null
-  const t = tournamentOptions.value.find((item) => item.id === form.tournamentId)
+  const t = findTournamentOption(form.tournamentId)
   return t ? normalizeTournamentEventType(t) : null
 })
 // 当前选中赛事的报名费（与赛事管理一致；双打/混双自动×2，只读）
 const selectedTournamentFee = computed(() => {
   if (!form.tournamentId) return null
-  const t = tournamentOptions.value.find((item) => item.id === form.tournamentId)
+  const t = findTournamentOption(form.tournamentId)
   if (t == null || t.entryFee == null) return 0
   let num = Number(t.entryFee)
   if (Number.isNaN(num) || num < 0) num = 0
@@ -487,7 +544,10 @@ const loadTournaments = async () => {
   try {
     const res = await getTournamentRegistrationTournaments()
     if (res.code === 200) {
-      tournamentOptions.value = res.data || []
+      allTournamentOptions.value = res.data || []
+      if (dialogVisible.value && form.tournamentId) {
+        syncFormTournamentState()
+      }
     }
   } catch (e) {
     console.error('加载赛事下拉失败:', e)
@@ -500,7 +560,7 @@ const onTournamentChange = (tournamentId) => {
     form.fee = 0
     return
   }
-  const t = tournamentOptions.value.find((item) => item.id === tournamentId)
+  const t = findTournamentOption(tournamentId)
   if (t != null) {
     let num = Number(t.entryFee)
     if (Number.isNaN(num) || num < 0) num = 0
@@ -625,6 +685,7 @@ const handleAdd = () => {
   dialogTitle.value = '新增报名'
   isEdit.value = false
   resetForm()
+  syncFormTournamentState()
   dialogVisible.value = true
 }
 
@@ -659,6 +720,7 @@ const handleEdit = async (row) => {
         partnerOptions.value = []
         partnerKeyword.value = ''
       }
+      syncFormTournamentState(data)
     }
   } catch (e) {
     console.error('加载报名详情失败:', e)
@@ -859,6 +921,8 @@ const resetForm = () => {
   partnerKeyword.value = ''
   memberOptions.value = []
   partnerOptions.value = []
+  formTournamentContext.value = null
+  formTournamentLocked.value = false
   if (formRef.value) formRef.value.resetFields()
 }
 
@@ -1315,3 +1379,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

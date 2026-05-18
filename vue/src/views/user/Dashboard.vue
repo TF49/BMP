@@ -193,7 +193,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => recentBookings.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await loadBookings()
@@ -1206,3 +1206,4 @@ onActivated(() => {
   }
 }
 </style>
+

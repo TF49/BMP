@@ -329,7 +329,7 @@
               end-placeholder="结束时间"
               value-format="YYYY-MM-DD HH:mm:ss"
               style="width: 100%"
-              @change="checkFormOccupancy"
+              @change="handleFormTimeRangeChange"
             />
           </el-form-item>
           <div v-if="showFormConflictAlert" class="booking-conflict-alert">
@@ -470,7 +470,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await Promise.all([loadList(), loadStatistics()])
@@ -528,16 +528,26 @@ const form = reactive({
   pricingMode: 'SHARED_HOUR',
   status: null,
   amount: 0,
-   paymentMethod: null,
+  paymentMethod: null,
   timeRange: [],
   remark: ''
 })
+
+const validateBookingTimeRange = (_, value, callback) => {
+  const errorMessage = getFormRangeError(value)
+  if (errorMessage) {
+    callback(new Error(errorMessage))
+    return
+  }
+  callback()
+}
+
 const formRules = {
   venueId: [{ required: true, message: '请选择场馆', trigger: 'change' }],
   courtIds: [{ required: true, message: '请选择场地', trigger: 'change' }],
   memberId: [{ required: true, message: '请选择会员', trigger: 'change' }],
   bookingMode: [{ required: true, message: '请选择预约模式', trigger: 'change' }],
-  timeRange: [{ required: true, message: '请选择预约时间', trigger: 'change' }],
+  timeRange: [{ validator: validateBookingTimeRange, trigger: 'change' }],
   amount: [{ required: true, message: '请输入金额', trigger: 'blur' }]
 }
 const submitLoading = ref(false)
@@ -875,6 +885,41 @@ const resetFormOccupancy = () => {
   formOccupancyLoading.value = false
 }
 
+const buildFormRangeMeta = (range = form.timeRange) => {
+  const [start, end] = range || []
+  const startDateTime = start ? new Date(start.replace(' ', 'T')) : null
+  const endDateTime = end ? new Date(end.replace(' ', 'T')) : null
+  const sameDay = !!(start && end && start.slice(0, 10) === end.slice(0, 10))
+  const bookingDate = start ? start.slice(0, 10) : null
+  const startTime = start ? start.slice(11, 19) : null
+  const endTime = end ? end.slice(11, 19) : null
+  return {
+    start,
+    end,
+    startDateTime,
+    endDateTime,
+    sameDay,
+    bookingDate,
+    startTime,
+    endTime
+  }
+}
+
+const getFormRangeError = (range = form.timeRange) => {
+  const { start, end, startDateTime, endDateTime, sameDay } = buildFormRangeMeta(range)
+  if (!start || !end || !startDateTime || !endDateTime) return '请选择预约时间'
+  if (Number.isNaN(startDateTime.getTime()) || Number.isNaN(endDateTime.getTime())) {
+    return '预约时间格式无效，请重新选择'
+  }
+  if (endDateTime.getTime() <= startDateTime.getTime()) {
+    return '结束时间必须晚于开始时间'
+  }
+  if (!sameDay) {
+    return '预约仅支持单日安排，不支持跨天'
+  }
+  return ''
+}
+
 const handleFormVenueChange = async () => {
   resetFormOccupancy()
   form.courtId = null
@@ -883,17 +928,15 @@ const handleFormVenueChange = async () => {
 }
 
 const extractFormRangePayload = () => {
-  const [start, end] = form.timeRange || []
-  const bookingDate = start ? start.slice(0, 10) : null
-  const startTime = start ? start.slice(11, 19) : null
-  const endTime = end ? end.slice(11, 19) : null
+  const { bookingDate, startTime, endTime } = buildFormRangeMeta()
   return { bookingDate, startTime, endTime }
 }
 
 const computeFormAmount = () => {
+  const rangeError = getFormRangeError()
   const { startTime, endTime } = extractFormRangePayload()
   const selectedCourts = formCourtOptions.value.filter(item => normalizedFormCourtIds.value.includes(item.id))
-  if (!selectedCourts.length || !startTime || !endTime) {
+  if (!selectedCourts.length || !startTime || !endTime || rangeError) {
     form.amount = 0
     return
   }
@@ -922,6 +965,14 @@ const handleBookingModeChange = () => {
   }
   form.courtId = normalizedFormCourtIds.value[0] || null
   computeFormAmount()
+  checkFormOccupancy()
+}
+
+const handleFormTimeRangeChange = () => {
+  const validationTask = formRef.value?.validateField('timeRange')
+  if (validationTask && typeof validationTask.catch === 'function') {
+    validationTask.catch(() => {})
+  }
   checkFormOccupancy()
 }
 
@@ -958,7 +1009,7 @@ const checkFormOccupancy = async () => {
   const { bookingDate, startTime, endTime } = extractFormRangePayload()
   computeFormAmount()
   if (!normalizedFormCourtIds.value.length || !bookingDate || !startTime || !endTime) return
-  if (endTime <= startTime) return
+  if (getFormRangeError()) return
 
   const requestId = ++formOccupancyRequestId
   formOccupancyLoading.value = true
@@ -1156,6 +1207,13 @@ const handleSubmit = async () => {
     submitLoading.value = true
     try {
       const { bookingDate, startTime, endTime } = extractFormRangePayload()
+      const rangeError = getFormRangeError()
+
+      if (rangeError) {
+        ElMessage.warning(rangeError)
+        submitLoading.value = false
+        return
+      }
 
       if (formOccupancy.count > 0) {
         ElMessage.warning('该时段已被占用，请调整时间后再提交')
@@ -1938,3 +1996,4 @@ onUnmounted(() => {
 }
 
 </style>
+

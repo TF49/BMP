@@ -1,0 +1,65 @@
+model_provider = "TuFu"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+
+[model_providers.TuFu]
+base_url = "http://127.0.0.1:8327/v1"
+name = "TuFu"
+
+[windows]
+sandbox = "elevated"
+
+[hooks.state."C:\\Users\\Administrator\\.codex\\hooks.json:stop:0:0"]
+enabled = false
+trusted_hash = "sha256:afbe63287e543f66f217a2ec4c42174a26d9bc0a81906ec8b4f0678364aaee4b"
+
+[projects."c:\\users\\administrator"]
+trust_level = "trusted"
+
+[projects."d:\\developer tool"]
+trust_level = "trusted"
+
+[projects."d:\\developer tool\\claude-desktop-win-chinese-main"]
+trust_level = "trusted"
+
+[projects."c:\\"]
+trust_level = "trusted"
+
+[projects."d:\\developer tool\\idea\\javaee\\bmp"]
+trust_level = "trusted"
+
+[projects.'d:\developer tool\vs code\project\新华书店']
+trust_level = "trusted"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[mcp_servers.chrome-devtools]
+type = "stdio"
+command = "npx"
+args = ["chrome-devtools-mcp@latest"]
+
+[mcp_servers.pencil]
+type = "stdio"
+command = 'C:\Users\Administrator\.pencil\mcp\cursor\out\mcp-server-windows-x64.exe'
+args = ["--app", "cursor"]
+
+[plugins."canva@openai-curated"]
+enabled = true
+
+[plugins."figma@openai-curated"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-05-16T06:03:00Z"
+source_type = "local"
+source = '\\?\C:\Users\Administrator\.cache\codex-runtimes\codex-primary-runtime\plugins\openai-primary-runtime'

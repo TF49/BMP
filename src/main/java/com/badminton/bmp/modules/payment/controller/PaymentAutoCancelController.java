@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-@Tag(name = "支付自动取消配置", description = "提供业务订单支付超时自动取消配置")
+@Tag(name = "支付自动取消配置", description = "提供业务订单支付超时自动取消只读配置，供前端倒计时与服务端时间对齐使用")
 @RestController
 @RequestMapping("/api/payment/auto-cancel")
 public class PaymentAutoCancelController extends BaseController {
@@ -25,13 +25,13 @@ public class PaymentAutoCancelController extends BaseController {
     @Autowired
     private PaymentAutoCancelProperties paymentAutoCancelProperties;
 
-    @Operation(summary = "获取支付超时自动取消配置")
+    @Operation(summary = "获取支付超时自动取消配置", description = "主配置字段为 timeoutSeconds；timeoutMinutes 为展示兼容字段；serverTime 格式为 yyyy-MM-dd HH:mm:ss")
     @GetMapping("/config")
     public Result<Object> getConfig() {
-        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("enabled", paymentAutoCancelProperties.isEnabled());
-        data.put("timeoutMinutes", paymentAutoCancelProperties.getTimeoutMinutesForDisplay());
         data.put("timeoutSeconds", paymentAutoCancelProperties.getTimeoutSeconds());
+        data.put("timeoutMinutes", paymentAutoCancelProperties.getTimeoutMinutesForDisplay());
         data.put("serverTime", LocalDateTime.now().format(DATE_TIME_FORMATTER));
         return success(data);
     }

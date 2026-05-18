@@ -366,11 +366,15 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         Long tournamentId = registration.getTournamentId() != null ? registration.getTournamentId() : existing.getTournamentId();
         Long effectiveMemberId = registration.getMemberId() != null ? registration.getMemberId() : existing.getMemberId();
         Long effectivePartnerId = registration.getPartnerId() != null ? registration.getPartnerId() : existing.getPartnerId();
+        boolean tournamentChanged = registration.getTournamentId() != null && !registration.getTournamentId().equals(existing.getTournamentId());
         if (effectivePartnerId != null && effectivePartnerId.equals(effectiveMemberId)) {
             throw new RuntimeException("主报名人与搭档不能为同一人");
         }
         Tournament tournamentForValidation = tournamentMapper.findById(tournamentId);
         if (tournamentForValidation != null) {
+            if (tournamentChanged) {
+                ensureTournamentSelectableForRegistration(tournamentForValidation);
+            }
             String eventType = TournamentTypeHelper.normalizeEventType(
                     tournamentForValidation.getEventType(),
                     tournamentForValidation.getTournamentType(),
@@ -395,7 +399,6 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         Integer newStatus = registration.getStatus() != null ? registration.getStatus() : existing.getStatus();
         boolean oldStatusValid = isActiveStatus(oldStatus);
         boolean newStatusValid = isActiveStatus(newStatus);
-        boolean tournamentChanged = registration.getTournamentId() != null && !registration.getTournamentId().equals(existing.getTournamentId());
         int occupancyUnits = 0;
         if (tournamentForValidation != null) {
             String effectiveEventType = TournamentTypeHelper.normalizeEventType(
@@ -650,6 +653,29 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
 
     private int resolveOccupancyUnits(String eventType) {
         return TournamentTypeHelper.isDoublesEvent(eventType) ? 2 : 1;
+    }
+
+    private void ensureTournamentSelectableForRegistration(Tournament tournament) {
+        if (tournament == null) {
+            throw new RuntimeException("目标赛事不存在");
+        }
+        Integer status = tournament.getStatus();
+        if (status != null && status == 1) {
+            return;
+        }
+        if (status == null) {
+            throw new RuntimeException("目标赛事状态异常，仅可选择报名中的赛事");
+        }
+        switch (status) {
+            case 0:
+                throw new RuntimeException("目标赛事已取消，仅可选择报名中的赛事");
+            case 2:
+                throw new RuntimeException("目标赛事已进行中，仅可选择报名中的赛事");
+            case 3:
+                throw new RuntimeException("目标赛事已结束，仅可选择报名中的赛事");
+            default:
+                throw new RuntimeException("目标赛事未开放报名，仅可选择报名中的赛事");
+        }
     }
 
     private void ensureTournamentCapacity(Tournament tournament, int additionalUnits, String fullMessage) {

@@ -148,7 +148,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     reloadList()
@@ -397,3 +397,4 @@ onShow(() => {
 .value { font-size: 24rpx; font-weight: 700; line-height: 1.5; }
 .bottom-space { height: 36rpx; }
 </style>
+

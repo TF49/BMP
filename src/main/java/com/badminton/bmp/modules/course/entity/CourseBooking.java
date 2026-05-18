@@ -50,6 +50,7 @@ public class CourseBooking {
 
     private String memberName;
     private String courseName;
+    private Integer courseStatus;
     private String coachName;
     private String courtName;
     private LocalDate courseDate;

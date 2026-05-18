@@ -310,6 +310,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (course == null) {
             throw new RuntimeException("课程不存在");
         }
+        ensureCourseSelectableForBooking(course);
         if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
             com.badminton.bmp.modules.system.entity.User current = SecurityUtils.getCurrentUser();
             if (current != null && current.getId() != null) {
@@ -418,16 +419,18 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         
         // 如果修改了课程ID，需要处理报名人数的变化
         if (booking.getCourseId() != null && !booking.getCourseId().equals(existing.getCourseId())) {
-            // 从旧课程减少报名人数（如果旧状态是有效状态）
-            if (oldStatus != null && oldStatus >= 1 && oldStatus <= 3) {
-                decrementCourseCurrentStudents(existing.getCourseId());
-            }
-            
-            // 向新课程增加报名人数（需要验证新课程是否还有名额）
             Course newCourse = courseMapper.findById(booking.getCourseId());
             if (newCourse == null) {
                 throw new RuntimeException("新课程不存在");
             }
+            ensureCourseSelectableForBooking(newCourse);
+
+            // 从旧课程减少报名人数（如果旧状态是有效状态）
+            if (oldStatus != null && oldStatus >= 1 && oldStatus <= 3) {
+                decrementCourseCurrentStudents(existing.getCourseId());
+            }
+
+            // 向新课程增加报名人数（需要验证新课程是否还有名额）
             if (newStatus != null && newStatus >= 1 && newStatus <= 3) {
                 incrementCourseCurrentStudents(booking.getCourseId(), "新课程报名人数已满");
             }
@@ -1074,6 +1077,29 @@ public class CourseBookingServiceImpl implements CourseBookingService {
 
     private void decrementCourseCurrentStudents(Long courseId) {
         adjustCourseCurrentStudents(courseId, -1, null, true);
+    }
+
+    private void ensureCourseSelectableForBooking(Course course) {
+        if (course == null) {
+            throw new RuntimeException("课程不存在");
+        }
+        Integer status = course.getStatus();
+        if (status != null && status == 1) {
+            return;
+        }
+        if (status == null) {
+            throw new RuntimeException("该课程状态异常，仅可选择报名中的课程");
+        }
+        switch (status) {
+            case 0:
+                throw new RuntimeException("该课程已取消，仅可选择报名中的课程");
+            case 2:
+                throw new RuntimeException("该课程已进行中，仅可选择报名中的课程");
+            case 3:
+                throw new RuntimeException("该课程已结束，仅可选择报名中的课程");
+            default:
+                throw new RuntimeException("仅可预约报名中的课程");
+        }
     }
 
     private void adjustCourseCurrentStudents(Long courseId, int delta, String fullMessage, boolean allowMissingCourse) {

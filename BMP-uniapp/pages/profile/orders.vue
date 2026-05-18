@@ -160,7 +160,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => orders.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await reloadAll()
@@ -632,3 +632,4 @@ onMounted(async () => {
   }
 }
 </style>
+

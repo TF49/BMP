@@ -86,6 +86,7 @@ Authorization: Bearer {accessToken}
 | 近期动态 | `/api/activity` | 最近会员/预约/财务动态 |
 | 综合搜索 | `/api/search` | 场馆/课程/赛事/器材搜索 |
 | 通知 | `/api/notifications` | 列表、发布、编辑、删除 |
+| 支付自动取消配置 | `/api/payment/auto-cancel` | 倒计时与自动取消只读配置 |
 | 场馆 | `/api/venue` | 场馆、图片、营业时间、状态日志 |
 | 场地 | `/api/court` | 场地 CRUD、占用、利用率 |
 | 会员 | `/api/member` | 会员 CRUD、统计、消费记录 |
@@ -221,6 +222,42 @@ Authorization: Bearer {accessToken}
 | `/{id}` | `GET` | 通知详情 |
 | `/{id}` | `PUT` | 编辑通知 |
 | `/{id}` | `DELETE` | 删除通知 |
+
+### 3.6 支付自动取消配置：`/api/payment/auto-cancel`
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/config` | `GET` | 获取支付超时自动取消配置，用于前端倒计时与服务端时间对齐 |
+
+响应字段说明：
+
+- `enabled`：是否启用自动取消
+- `timeoutSeconds`：主配置字段，前端倒计时应优先使用该值
+- `timeoutMinutes`：展示兼容字段，由后端根据秒值换算得到
+- `serverTime`：服务端当前时间，格式为 `yyyy-MM-dd HH:mm:ss`
+
+响应示例：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "enabled": true,
+    "timeoutSeconds": 5,
+    "timeoutMinutes": 0.08333333333333333,
+    "serverTime": "2026-05-17 14:30:05"
+  }
+}
+```
+
+配置口径说明：
+
+- 运行时主配置项为 `bmp.payment.auto-cancel.timeout-seconds`
+- 扫描频率配置项为 `bmp.payment.auto-cancel.scan-interval-ms`
+- `timeout-minutes` 仅作为旧配置兼容输入保留，不作为新配置主写法
+- 当前仓库默认值仍为开发联调基线：`5 秒超时 + 1 秒扫描`
+- 提测或发布前应通过环境变量覆盖为：`300 秒超时 + 60000 毫秒扫描`
 
 ## 4. 场馆经营资源类接口
 

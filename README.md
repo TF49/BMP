@@ -100,7 +100,43 @@ npm install
 npm run dev:mp-weixin
 ```
 
-## 8. 文档导航
+## 8. 支付超时自动取消配置口径
+
+当前项目已经接入业务订单“支付超时自动取消”能力，配置口径统一如下：
+
+- 主配置项使用 `bmp.payment.auto-cancel.timeout-seconds`
+- 扫描频率使用 `bmp.payment.auto-cancel.scan-interval-ms`
+- `timeout-minutes` 只保留为兼容旧配置的输入方式，不再作为新文档和新环境变量示例的主写法
+- 前端倒计时应优先使用接口返回的 `timeoutSeconds`
+- 接口中的 `timeoutMinutes` 为展示兼容字段，由后端根据秒值换算得到
+
+当前仓库的默认值仍保留开发联调用配置：
+
+```properties
+bmp.payment.auto-cancel.enabled=true
+bmp.payment.auto-cancel.timeout-seconds=5
+bmp.payment.auto-cancel.scan-interval-ms=1000
+```
+
+用途：
+
+- 快速验证倒计时显示
+- 快速验证超时自动取消链路
+- 快速验证支付与自动取消的并发竞争
+
+提测前或发布前，应通过环境变量覆盖为真实业务目标值：
+
+```properties
+BMP_PAYMENT_AUTO_CANCEL_TIMEOUT_SECONDS=300
+BMP_PAYMENT_AUTO_CANCEL_SCAN_INTERVAL_MS=60000
+```
+
+前端读取配置接口：
+
+- `GET /api/payment/auto-cancel/config`
+- `serverTime` 返回格式：`yyyy-MM-dd HH:mm:ss`
+
+## 9. 文档导航
 
 - [README.md](./README.md)：仓库现状、启动方式、文档导航
 - [项目分析总结.md](./项目分析总结.md)：项目阶段判断、主要风险、下一步优先级
@@ -108,6 +144,7 @@ npm run dev:mp-weixin
 - [API文档.md](./API文档.md)：接口索引、基础路径、关键业务端点
 - [数据库设计文档.md](./数据库设计文档.md)：数据库范围、27 张物理表、关键关系与约束
 - [模块化测试文档.md](./模块化测试文档.md)：当前验证基线、测试缺口与回归建议
+- [支付功能5分钟未支付自动取消实施计划.md](./支付功能5分钟未支付自动取消实施计划.md)：现状评估、修正顺序、当前阶段执行策略
 
 ---
 

@@ -53,7 +53,7 @@
               </el-form-item>
               <el-form-item label="课程" class="search-item">
                 <el-select v-model="searchForm.courseId" placeholder="全部课程" clearable class="search-select">
-                  <el-option v-for="item in courseOptions" :key="item.id" :label="item.courseName" :value="item.id" />
+                  <el-option v-for="item in searchCourseOptions" :key="item.id" :label="item.courseName" :value="item.id" />
                 </el-select>
               </el-form-item>
               <el-form-item label="会员" class="search-item">
@@ -211,9 +211,15 @@
             <el-input :model-value="form.bookingNo || '提交后自动生成'" disabled />
           </el-form-item>
           <el-form-item label="课程" prop="courseId" class="modern-form-item">
-            <el-select v-model="form.courseId" placeholder="选择课程" filterable>
+            <el-select
+              v-model="form.courseId"
+              placeholder="选择课程"
+              filterable
+              :disabled="formCourseLocked"
+              @change="handleCourseChange"
+            >
               <el-option
-                v-for="item in courseOptions"
+                v-for="item in formCourseOptions"
                 :key="item.id"
                 :label="item.courseName"
                 :value="item.id"
@@ -222,8 +228,12 @@
                 <span style="margin-left: 8px; color: var(--color-text-secondary, #64748B)">
                   教练：{{ item.coachName || '未分配' }}
                 </span>
+                <span style="margin-left: 8px; color: var(--color-primary, #2563EB)">
+                  价格：¥{{ formatCurrency(item.coursePrice) }}
+                </span>
               </el-option>
             </el-select>
+            <div v-if="formCourseLocked" class="form-item-hint">当前关联课程已不在报名中，仅支持查看，不支持改绑</div>
           </el-form-item>
           <el-form-item label="会员" prop="memberId" class="modern-form-item">
             <el-input v-model="memberKeyword" placeholder="输入姓名/手机号搜索" @change="loadMembers" clearable />
@@ -236,6 +246,7 @@
           </el-form-item>
           <el-form-item label="金额" prop="amount" class="modern-form-item">
             <el-input-number v-model="form.amount" :min="0" :precision="2" :step="10" style="width: 100%" />
+            <div v-if="form.courseId" class="form-item-hint">选择课程后会自动带入该课程的固定价格。</div>
           </el-form-item>
           <el-form-item label="支付方式" class="modern-form-item">
             <!-- 创建时为空；已支付的预约在这里只做查看，支付/修改仍通过“支付/退款”弹窗处理 -->
@@ -300,7 +311,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -336,7 +347,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await Promise.all([loadList(), loadStatistics()])
@@ -344,11 +355,57 @@ const {
 })
 const pagination = reactive({ page: 1, size: 10, total: 0 })
 const statistics = reactive({ total: 0, pending: 0, paid: 0, running: 0, finished: 0, canceled: 0 })
-const courseOptions = ref([])
+const allCourseOptions = ref([])
+const formCourseContext = ref(null)
+const formCourseLocked = ref(false)
 const memberOptions = ref([])
 const memberKeyword = ref('')
 const tableHeight = ref(600)
 const { isAdmin, isUser } = useAuth()
+
+const searchCourseOptions = computed(() => allCourseOptions.value)
+const formCourseOptions = computed(() => {
+  const enrollingOptions = allCourseOptions.value.filter((item) => Number(item?.status) === 1)
+  if (!formCourseContext.value) {
+    return enrollingOptions
+  }
+  const exists = enrollingOptions.some((item) => Number(item.id) === Number(formCourseContext.value.id))
+  return exists ? enrollingOptions : [formCourseContext.value, ...enrollingOptions]
+})
+
+const findCourseOptionById = (courseId) => allCourseOptions.value.find((item) => Number(item.id) === Number(courseId)) || null
+
+const getCourseFixedPrice = (course) => {
+  const price = Number(course?.coursePrice ?? 0)
+  return Number.isFinite(price) ? price : 0
+}
+
+const createCourseContext = (data) => {
+  if (!data?.courseId) return null
+  return {
+    id: data.courseId,
+    courseName: data.courseName || `课程#${data.courseId}`,
+    coachName: data.coachName || '',
+    status: data.courseStatus,
+    coursePrice: data.coursePrice ?? data.orderAmount ?? 0
+  }
+}
+
+const syncFormCourseState = (data = null) => {
+  const previousContext = formCourseContext.value
+  formCourseContext.value = null
+  formCourseLocked.value = false
+  const courseId = data?.courseId ?? form.courseId
+  if (!courseId) return
+  const currentOption = searchCourseOptions.value.find((item) => Number(item.id) === Number(courseId))
+    || createCourseContext(data)
+    || (previousContext && Number(previousContext.id) === Number(courseId)
+      ? previousContext
+      : null)
+  if (!currentOption) return
+  formCourseContext.value = currentOption
+  formCourseLocked.value = Number(currentOption.status) !== 1
+}
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增预约')
@@ -465,7 +522,10 @@ const loadCourses = async () => {
   try {
     const res = await getCourseBookingCourses()
     if (res.code === 200) {
-      courseOptions.value = res.data || []
+      allCourseOptions.value = res.data || []
+      if (dialogVisible.value && form.courseId) {
+        syncFormCourseState()
+      }
     }
   } catch (e) {
     console.error('加载课程下拉失败:', e)
@@ -532,6 +592,12 @@ const loadList = async () => {
   }
 }
 
+const handleCourseChange = (courseId) => {
+  syncFormCourseState({ courseId })
+  const selectedCourse = findCourseOptionById(courseId) || formCourseContext.value
+  form.amount = getCourseFixedPrice(selectedCourse)
+}
+
 const handleStatClick = (status) => {
   searchForm.status = status
   pagination.page = 1
@@ -559,6 +625,7 @@ const handleAdd = () => {
   dialogTitle.value = '新增预约'
   isEdit.value = false
   resetForm()
+  syncFormCourseState()
   dialogVisible.value = true
 }
 
@@ -578,6 +645,14 @@ const handleEdit = async (row) => {
         paymentMethod: data.paymentMethod || null,
         status: data.status
       })
+      if (data.memberId && data.memberName) {
+        memberOptions.value = [{ id: data.memberId, memberName: data.memberName, phone: data.memberPhone || '' }]
+        memberKeyword.value = data.memberName
+      } else {
+        memberOptions.value = []
+        memberKeyword.value = ''
+      }
+      syncFormCourseState(data)
     }
   } catch (e) {
     console.error('加载预约详情失败:', e)
@@ -747,6 +822,8 @@ const resetForm = () => {
   })
   memberKeyword.value = ''
   memberOptions.value = []
+  formCourseContext.value = null
+  formCourseLocked.value = false
   if (formRef.value) formRef.value.resetFields()
 }
 
@@ -1179,6 +1256,13 @@ onUnmounted(() => {
   margin-bottom: 14px !important;
 }
 
+.form-item-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary, #64748B);
+  line-height: 1.5;
+}
+
 .dialog-footer-enhanced {
   display: flex;
   justify-content: flex-end;
@@ -1238,3 +1322,4 @@ onUnmounted(() => {
 }
 
 </style>
+

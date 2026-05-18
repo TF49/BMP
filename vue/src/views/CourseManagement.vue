@@ -260,13 +260,66 @@ const form = reactive({
   timeRange: [],
   status: 1
 })
+const MAX_COURSE_DURATION_MINUTES = 480
+
+const normalizeDateTimeString = (value) => {
+  if (!value || typeof value !== 'string') return ''
+  return value.includes('T') ? value : value.replace(' ', 'T')
+}
+
+const buildCourseTimeMeta = (range) => {
+  const [startStr, endStr] = Array.isArray(range) ? range : []
+  const startDate = startStr ? new Date(normalizeDateTimeString(startStr)) : null
+  const endDate = endStr ? new Date(normalizeDateTimeString(endStr)) : null
+  const sameDay = !!(startStr && endStr && startStr.slice(0, 10) === endStr.slice(0, 10))
+  const durationMinutes = startDate && endDate
+    ? Math.round((endDate.getTime() - startDate.getTime()) / 60000)
+    : null
+
+  return {
+    startStr,
+    endStr,
+    startDate,
+    endDate,
+    sameDay,
+    durationMinutes
+  }
+}
+
+const getCourseTimeRangeError = (range) => {
+  const { startStr, endStr, startDate, endDate, sameDay, durationMinutes } = buildCourseTimeMeta(range)
+  if (!startStr || !endStr) return '请选择时间'
+  if (!startDate || !endDate || Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return '课程时间格式无效，请重新选择'
+  }
+  if (endDate.getTime() <= startDate.getTime()) {
+    return '结束时间必须晚于开始时间'
+  }
+  if (!sameDay) {
+    return '课程仅支持单日安排，不支持跨天'
+  }
+  if (durationMinutes > MAX_COURSE_DURATION_MINUTES) {
+    return `课程时长不能超过${MAX_COURSE_DURATION_MINUTES}分钟`
+  }
+  return ''
+}
+
+const validateCourseTimeRange = (_, value, callback) => {
+  const errorMessage = getCourseTimeRangeError(value)
+  if (errorMessage) {
+    callback(new Error(errorMessage))
+    return
+  }
+  callback()
+}
+
 const formRules = {
   courseName: [{ required: true, message: '请输入课程名称', trigger: 'blur' }],
   coachId: [{ required: true, message: '请选择教练', trigger: 'change' }],
   courtId: [{ required: true, message: '请选择场地', trigger: 'change' }],
   price: [{ required: true, message: '请输入价格', trigger: 'blur' }],
   maxStudents: [{ required: true, message: '请输入最大人数', trigger: 'blur' }],
-  timeRange: [{ required: true, message: '请选择时间', trigger: 'change' }],
+  timeRange: [{ validator: validateCourseTimeRange, trigger: 'change' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 const submitLoading = ref(false)
@@ -416,8 +469,8 @@ const handleEdit = async (row) => {
     if (res.code === 200) {
       const data = res.data || {}
       // 后端返回 coursePrice、courseDate、startTime、endTime
-      const startDt = data.courseDate && data.startTime ? `${data.courseDate}T${data.startTime}` : data.startTime
-      const endDt = data.courseDate && data.endTime ? `${data.courseDate}T${data.endTime}` : data.endTime
+      const startDt = data.courseDate && data.startTime ? `${data.courseDate} ${data.startTime}` : data.startTime
+      const endDt = data.courseDate && data.endTime ? `${data.courseDate} ${data.endTime}` : data.endTime
       Object.assign(form, {
         id: data.id,
         courseName: data.courseName,
@@ -466,50 +519,52 @@ const handleDelete = (row) => {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
-    submitLoading.value = true
-    try {
-      const startStr = form.timeRange?.[0]
-      const endStr = form.timeRange?.[1]
-      const courseDate = startStr ? startStr.slice(0, 10) : null
-      const startTime = startStr ? startStr.slice(11, 19) : null
-      const endTime = endStr ? endStr.slice(11, 19) : null
-      let courseDuration = null
-      if (startStr && endStr) {
-        const startMs = new Date(startStr).getTime()
-        const endMs = new Date(endStr).getTime()
-        courseDuration = Math.round((endMs - startMs) / 60000)
-      }
-      const payload = {
-        id: form.id,
-        courseName: form.courseName,
-        coachId: form.coachId,
-        courtId: form.courtId,
-        coursePrice: form.price,
-        courseDuration,
-        maxStudents: form.maxStudents,
-        courseDate,
-        startTime,
-        endTime,
-        status: form.status
-      }
-      const res = isEdit.value ? await updateCourse(payload) : await addCourse(payload)
-      if (res.code === 200) {
-        ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
-        dialogVisible.value = false
-        loadList()
-        loadStatistics()
-      } else {
-        ElMessage.error(res.message || '操作失败')
-      }
-    } catch (e) {
-      console.error('提交失败:', e)
-      ElMessage.error('提交失败，请稍后重试')
-    } finally {
-      submitLoading.value = false
+  try {
+    await formRef.value.validate()
+  } catch {
+    return
+  }
+
+  const timeRangeError = getCourseTimeRangeError(form.timeRange)
+  if (timeRangeError) {
+    ElMessage.error(timeRangeError)
+    return
+  }
+
+  submitLoading.value = true
+  try {
+    const { startStr, endStr, durationMinutes } = buildCourseTimeMeta(form.timeRange)
+    const courseDate = startStr ? startStr.slice(0, 10) : null
+    const startTime = startStr ? startStr.slice(11, 19) : null
+    const endTime = endStr ? endStr.slice(11, 19) : null
+    const payload = {
+      id: form.id,
+      courseName: form.courseName,
+      coachId: form.coachId,
+      courtId: form.courtId,
+      coursePrice: form.price,
+      courseDuration: durationMinutes,
+      maxStudents: form.maxStudents,
+      courseDate,
+      startTime,
+      endTime,
+      status: form.status
     }
-  })
+    const res = isEdit.value ? await updateCourse(payload) : await addCourse(payload)
+    if (res.code === 200) {
+      ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
+      dialogVisible.value = false
+      loadList()
+      loadStatistics()
+    } else {
+      ElMessage.error(res.message || '操作失败')
+    }
+  } catch (e) {
+    console.error('提交失败:', e)
+    ElMessage.error('提交失败，请稍后重试')
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 const changeStatus = async (row, status) => {

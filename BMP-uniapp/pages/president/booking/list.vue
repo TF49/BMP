@@ -228,7 +228,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => cards.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await reload()
@@ -992,3 +992,4 @@ onShow(() => {
   background: linear-gradient(90deg, #a33e00 0%, #ff6600 100%);
 }
 </style>
+

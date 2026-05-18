@@ -170,7 +170,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => allRows.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await loadRegistrations()
@@ -785,3 +785,4 @@ onMounted(() => {
   }
 }
 </style>
+

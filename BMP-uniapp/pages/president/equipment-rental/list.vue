@@ -125,7 +125,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => list.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     page.value = 1
@@ -594,3 +594,4 @@ onMounted(() => {
   height: 48rpx;
 }
 </style>
+

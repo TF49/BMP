@@ -413,6 +413,7 @@ public class CourseBookingController extends BaseController {
                         item.put("id", course.getId());
                         item.put("courseName", course.getCourseName());
                         item.put("coachName", course.getCoachName());
+                        item.put("coursePrice", course.getCoursePrice());
                         item.put("courseDate", course.getCourseDate());
                         item.put("status", course.getStatus());
                         return item;

@@ -544,7 +544,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => serviceList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await Promise.all([loadList(), loadStatistics()])
@@ -1702,3 +1702,4 @@ onUnmounted(() => {
   box-shadow: 0 6px 16px rgba(239, 68, 68, 0.28);
 }
 </style>
+

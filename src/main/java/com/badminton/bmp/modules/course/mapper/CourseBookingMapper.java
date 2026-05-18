@@ -14,7 +14,7 @@ import java.util.Map;
 @Mapper
 public interface CourseBookingMapper {
 
-    @Select("SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+    @Select("SELECT cb.*, m.member_name, c.course_name, c.status AS course_status, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
             "LEFT JOIN sys_member m ON cb.member_id = m.id " +
             "LEFT JOIN biz_course c ON cb.course_id = c.id " +
             "LEFT JOIN sys_court ct ON c.court_id = ct.id " +

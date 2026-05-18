@@ -249,7 +249,7 @@
             <el-input :model-value="form.rentalNo || '提交后自动生成'" disabled />
           </el-form-item>
           <el-form-item label="器材" prop="equipmentId" class="modern-form-item">
-            <el-select v-model="form.equipmentId" placeholder="选择器材" filterable style="width: 100%">
+            <el-select v-model="form.equipmentId" placeholder="选择器材" filterable style="width: 100%" @change="recalcAmount">
               <el-option
                 v-for="item in equipmentOptions"
                 :key="item.id"
@@ -362,7 +362,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => rentalList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
     await Promise.all([loadList(), loadStatistics()])
@@ -1349,3 +1349,4 @@ onUnmounted(() => {
 }
 
 </style>
+

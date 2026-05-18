@@ -488,7 +488,7 @@ const {
   countdownNowMs,
   loadPaymentAutoCancelConfig
 } = usePaymentAutoCancel({
-  countdownTickMs: 5000,
+  refreshCheckIntervalMs: 5000,
   hasExpiredPending: () => myBookings.value.some((item) => getPaymentAutoCancelInfo(item, {
     enabled: autoCancelEnabled.value,
     timeoutMinutes: autoCancelTimeoutMinutes.value,
@@ -2424,3 +2424,4 @@ html.theme-dark-mode .page-subtitle {
   }
 }
 </style>
+

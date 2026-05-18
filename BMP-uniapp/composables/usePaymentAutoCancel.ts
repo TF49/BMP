@@ -81,16 +81,19 @@ export function usePaymentAutoCancel(options: {
   refreshOnExpire?: () => void | Promise<void>
   refreshThrottleMs?: number
   countdownTickMs?: number
+  refreshCheckIntervalMs?: number
 } = {}) {
   const autoCancelEnabled = ref(false)
   const autoCancelTimeoutMinutes = ref(15)
   const countdownNowMs = ref(Date.now())
   const configLoaded = ref(false)
   const countdownTickMs = normalizeTickMs(options.countdownTickMs, 1000)
+  const refreshCheckIntervalMs = normalizeTickMs(options.refreshCheckIntervalMs, countdownTickMs)
 
   let serverOffsetMs = 0
   let timer: ReturnType<typeof setInterval> | null = null
   let lastExpiredRefreshAt = 0
+  let lastRefreshCheckAt = 0
   let disposed = false
 
   const syncNow = () => {
@@ -114,9 +117,14 @@ export function usePaymentAutoCancel(options: {
   const startTimer = () => {
     if (disposed || timer) return
     syncNow()
+    lastRefreshCheckAt = 0
     timer = setInterval(() => {
       syncNow()
-      void maybeRefreshExpiredOrders()
+      const now = Date.now()
+      if (now - lastRefreshCheckAt >= refreshCheckIntervalMs) {
+        lastRefreshCheckAt = now
+        void maybeRefreshExpiredOrders()
+      }
     }, countdownTickMs)
   }
 

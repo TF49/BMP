@@ -157,7 +157,7 @@ public class ScheduleConfig {
                 log.info("{}自动取消超时未支付订单 {} 笔", moduleName, cancelled);
             }
         } catch (Exception e) {
-            log.warn("{}自动取消超时未支付订单失败: {}", moduleName, e.getMessage());
+            log.warn("{}自动取消超时未支付订单失败", moduleName, e);
         }
     }
 }

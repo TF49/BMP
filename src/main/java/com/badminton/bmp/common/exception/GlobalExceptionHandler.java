@@ -2,6 +2,7 @@ package com.badminton.bmp.common.exception;
 
 import com.badminton.bmp.common.Result;
 import com.badminton.bmp.common.util.ErrorMessageSanitizer;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -122,8 +123,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public Result<Object> handleException(Exception e) {
-        log.error("系统异常", e);
+    public Result<Object> handleException(Exception e, HttpServletRequest request) {
+        log.error("系统异常: {} {}", request.getMethod(), request.getRequestURI(), e);
         return Result.error("系统繁忙，请稍后重试");
     }
 }
