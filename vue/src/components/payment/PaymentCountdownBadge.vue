@@ -9,29 +9,25 @@
     role="timer"
     :aria-label="info.text"
   >
-    <ElectricBorder
-      v-if="useElectricBorder"
-      :color="theme.accent"
-      :border-radius="borderRadius"
-      :speed="info.urgency === 'critical' ? 1.4 : 1"
-      :chaos="info.urgency === 'critical' ? 0.16 : 0.1"
-      class="payment-countdown-badge__electric"
-    >
-      <div class="payment-countdown-badge__inner">
+    <AnimatedContent :duration="220" :distance="8">
+      <div
+        class="payment-countdown-badge__inner payment-countdown-badge__inner--soft"
+        :style="{
+          '--payment-countdown-bg': theme.background,
+          '--payment-countdown-border': theme.border,
+          '--payment-countdown-shadow': theme.shadow
+        }"
+      >
         <ExpiredState v-if="info.expired" />
         <ActiveState v-else :info="info" :theme="theme" :progress-offset="progressOffset" :compact="size === 'small'" />
       </div>
-    </ElectricBorder>
-    <div v-else class="payment-countdown-badge__inner payment-countdown-badge__inner--soft">
-      <ExpiredState v-if="info.expired" />
-      <ActiveState v-else :info="info" :theme="theme" :progress-offset="progressOffset" :compact="size === 'small'" />
-    </div>
+    </AnimatedContent>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import ElectricBorder from '@/components/react-bits/ElectricBorder.vue'
+import AnimatedContent from '@/components/react-bits/AnimatedContent.vue'
 import ActiveState from './PaymentCountdownActive.vue'
 import ExpiredState from './PaymentCountdownExpired.vue'
 
@@ -45,19 +41,41 @@ const props = defineProps({
 })
 
 const URGENCY_THEME = {
-  normal: { accent: '#f59e0b', text: '#b45309', shine: '#fff7ed', track: 'rgba(245, 158, 11, 0.2)' },
-  warning: { accent: '#f97316', text: '#c2410c', shine: '#ffedd5', track: 'rgba(249, 115, 22, 0.22)' },
-  critical: { accent: '#ef4444', text: '#b91c1c', shine: '#fee2e2', track: 'rgba(239, 68, 68, 0.25)' },
-  expired: { accent: '#94a3b8', text: '#64748b', shine: '#f1f5f9', track: 'rgba(148, 163, 184, 0.3)' }
+  normal: {
+    accent: '#f59e0b',
+    text: '#b45309',
+    track: 'rgba(245, 158, 11, 0.2)',
+    border: 'rgba(245, 158, 11, 0.22)',
+    shadow: 'rgba(245, 158, 11, 0.12)',
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,251,235,0.95))'
+  },
+  warning: {
+    accent: '#f97316',
+    text: '#c2410c',
+    track: 'rgba(249, 115, 22, 0.22)',
+    border: 'rgba(249, 115, 22, 0.28)',
+    shadow: 'rgba(249, 115, 22, 0.14)',
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,237,213,0.94))'
+  },
+  critical: {
+    accent: '#ef4444',
+    text: '#b91c1c',
+    track: 'rgba(239, 68, 68, 0.25)',
+    border: 'rgba(239, 68, 68, 0.32)',
+    shadow: 'rgba(239, 68, 68, 0.18)',
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.97), rgba(254,226,226,0.95))'
+  },
+  expired: {
+    accent: '#94a3b8',
+    text: '#64748b',
+    track: 'rgba(148, 163, 184, 0.3)',
+    border: 'rgba(148, 163, 184, 0.28)',
+    shadow: 'rgba(148, 163, 184, 0.08)',
+    background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)'
+  }
 }
 
 const theme = computed(() => URGENCY_THEME[props.info?.urgency] || URGENCY_THEME.normal)
-const borderRadius = computed(() => (props.size === 'small' ? 10 : 14))
-const useElectricBorder = computed(() => {
-  if (props.info?.expired) return false
-  // 仅危急态启用 ElectricBorder，避免列表/卡片中大量 Canvas 动画影响性能
-  return props.info?.urgency === 'critical'
-})
 
 const progressOffset = computed(() => {
   const circumference = 2 * Math.PI * 16
@@ -80,17 +98,13 @@ const progressOffset = computed(() => {
   font-size: 13px;
 }
 
-.payment-countdown-badge__electric {
-  display: inline-flex;
-}
-
 .payment-countdown-badge__inner {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 6px 12px 6px 8px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 251, 235, 0.92));
+  background: var(--payment-countdown-bg);
   backdrop-filter: blur(8px);
 }
 
@@ -101,23 +115,7 @@ const progressOffset = computed(() => {
 }
 
 .payment-countdown-badge__inner--soft {
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.12);
-}
-
-.payment-countdown-badge--warning .payment-countdown-badge__inner--soft {
-  border-color: rgba(249, 115, 22, 0.3);
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.14);
-}
-
-.payment-countdown-badge--critical .payment-countdown-badge__inner--soft {
-  border-color: rgba(239, 68, 68, 0.35);
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.18);
-}
-
-.payment-countdown-badge--expired .payment-countdown-badge__inner--soft {
-  border-color: rgba(148, 163, 184, 0.35);
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  box-shadow: none;
+  border: 1px solid var(--payment-countdown-border);
+  box-shadow: 0 8px 20px var(--payment-countdown-shadow);
 }
 </style>

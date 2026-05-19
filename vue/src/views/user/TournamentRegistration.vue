@@ -230,6 +230,7 @@
                     v-if="getPaymentCountdownInfo(registration).show"
                     :info="getPaymentCountdownInfo(registration)"
                     size="small"
+                    class="registration-countdown"
                   />
                 </div>
               </div>
@@ -272,8 +273,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Trophy, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getTournamentList } from '@/api/tournament'
@@ -326,13 +327,19 @@ const {
   }
 })
 
+const isPaymentExpired = (registration) => getPaymentAutoCancelInfo(registration, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
+}).expired
+
 const getPaymentCountdownInfo = (registration) => getPaymentAutoCancelInfo(registration, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
   nowMs: countdownNowMs.value,
   configLoaded: configLoaded.value
 })
-const isPaymentExpired = (registration) => getPaymentCountdownInfo(registration).expired
 const partnerOptions = ref([])
 const registeredTournamentIds = ref(new Set())
 
@@ -1400,7 +1407,13 @@ html.theme-dark-mode .page-subtitle {
 
 .registration-actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
+}
+
+.registration-countdown {
+  margin-top: 6px;
 }
 
 .estimated-cost {

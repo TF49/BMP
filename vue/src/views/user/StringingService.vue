@@ -303,11 +303,6 @@
                   <p class="service-params">磅数：{{ service.pound }}磅 | 穿线法：{{ getStringingMethodText(service.stringingMethod) }}</p>
                   <p class="service-price">价格：¥{{ formatCurrency(service.servicePrice) }}</p>
                   <p class="service-price">支付状态：{{ getPaymentStatusText(service.paymentStatus) }}</p>
-                  <PaymentCountdownBadge
-                    v-if="getPaymentCountdownInfo(service).show"
-                    :info="getPaymentCountdownInfo(service)"
-                    size="small"
-                  />
                   <p class="service-time">申请时间：{{ formatDateTime(service.createTime) }}</p>
                 </div>
               </div>
@@ -341,7 +336,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Location, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
@@ -392,13 +386,12 @@ const {
   }
 })
 
-const getPaymentCountdownInfo = (service) => getPaymentAutoCancelInfo(service, {
+const isPaymentExpired = (service) => getPaymentAutoCancelInfo(service, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
   nowMs: countdownNowMs.value,
   configLoaded: configLoaded.value
-})
-const isPaymentExpired = (service) => getPaymentCountdownInfo(service).expired
+}).expired
 
 const serviceForm = ref({
   venueId: null,

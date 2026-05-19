@@ -78,7 +78,6 @@
           <div class="pending-pay-main">
             <el-tag size="small" type="warning">{{ item.title }}</el-tag>
             <span class="pending-pay-no">{{ item.orderNo }}</span>
-            <PaymentCountdownBadge :info="getPendingItemCountdown(item)" size="small" />
           </div>
           <span class="pending-pay-amount">¥{{ formatCurrency(item.amount) }}</span>
         </div>
@@ -108,11 +107,6 @@
               <p class="booking-venue">{{ booking.venueName }} · {{ booking.courtName }}</p>
               <p class="booking-time">{{ formatTimeRange(booking.startTime, booking.endTime, booking.bookingDate) }}</p>
               <p class="booking-amount">¥{{ formatCurrency(booking.orderAmount) }}</p>
-              <PaymentCountdownBadge
-                v-if="getPaymentCountdownInfo(booking).show"
-                :info="getPaymentCountdownInfo(booking)"
-                size="small"
-              />
             </div>
           </div>
           <div class="booking-actions">
@@ -203,7 +197,6 @@ import { getBookingList, getBookingStatistics, payMemberBooking, updateBookingSt
 import { getCurrentMember } from '@/api/member'
 import { getUserInfo, resolveAvatarUrl } from '@/utils/auth'
 import { getRoleName } from '@/utils/roleHelper'
-import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
 import {
   buildPaymentCountdownOptions,
@@ -389,8 +382,6 @@ const getStatusType = (status) => {
 
 const getPaymentCountdownInfo = (booking) =>
   getPaymentAutoCancelInfo(booking, buildPaymentCountdownOptions(paymentCountdownState()))
-
-const getPendingItemCountdown = (item) => getPaymentCountdownInfo(item.raw)
 
 const isPaymentExpired = (booking) => getPaymentCountdownInfo(booking).expired
 

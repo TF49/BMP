@@ -403,6 +403,7 @@
                     v-if="getPaymentCountdownInfo(booking).show"
                     :info="getPaymentCountdownInfo(booking)"
                     size="small"
+                    class="booking-countdown"
                   />
                 </div>
               </div>
@@ -453,8 +454,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { ArrowLeft, OfficeBuilding, Location, Coin, InfoFilled } from '@element-plus/icons-vue'
 import { CircleCheck } from '@element-plus/icons-vue'
@@ -514,13 +515,19 @@ const {
   }
 })
 
+const isPaymentExpired = (booking) => getPaymentAutoCancelInfo(booking, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
+}).expired
+
 const getPaymentCountdownInfo = (booking) => getPaymentAutoCancelInfo(booking, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
   nowMs: countdownNowMs.value,
   configLoaded: configLoaded.value
 })
-const isPaymentExpired = (booking) => getPaymentCountdownInfo(booking).expired
 
 // 选择场地步骤使用的日期（与管理员端一致：按日期显示场地状态）
 const getLocalTodayDateStr = () => {
@@ -2328,7 +2335,13 @@ html.theme-dark-mode .page-subtitle {
 
 .booking-actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
+}
+
+.booking-countdown {
+  margin-top: 6px;
 }
 
 .empty-state {
@@ -2446,4 +2459,3 @@ html.theme-dark-mode .page-subtitle {
   }
 }
 </style>
-

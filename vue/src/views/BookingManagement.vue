@@ -159,15 +159,6 @@
                 <el-tag :type="getPaymentStatusType(scope.row.paymentStatus)" size="small">
                   {{ getPaymentStatusText(scope.row.paymentStatus) }}
                 </el-tag>
-                <el-tag
-                  v-if="getPaymentCountdownInfo(scope.row).show"
-                  :type="isPaymentExpired(scope.row) ? 'danger' : 'warning'"
-                  effect="plain"
-                  size="small"
-                  class="payment-countdown-tag"
-                >
-                  {{ getPaymentCountdownInfo(scope.row).text }}
-                </el-tag>
               </div>
             </template>
           </el-table-column>
@@ -1504,12 +1495,6 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-}
-
-.payment-countdown-tag {
-  max-width: 180px;
-  white-space: normal;
-  line-height: 1.4;
 }
 
 .page-header {

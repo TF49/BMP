@@ -16,23 +16,21 @@
         :style="{ stroke: theme.accent, strokeDashoffset: progressOffset }"
       />
     </svg>
-    <div class="payment-countdown-active__content">
-      <span class="payment-countdown-active__prefix">剩余</span>
-      <ShinyText
-        class="payment-countdown-active__timer"
-        :text="`${info.minutes}:${info.seconds}`"
-        :color="theme.text"
-        :shine-color="theme.shine"
-        :speed="info.urgency === 'critical' ? 1.2 : 2"
-        :spread="110"
-      />
-      <span class="payment-countdown-active__suffix">支付</span>
-    </div>
+    <AnimatedContent class="payment-countdown-active__content" :distance="6" :duration="220">
+      <span class="payment-countdown-active__prefix">剩余支付时间</span>
+      <div class="payment-countdown-active__timer" :style="{ color: theme.text }">
+        <CountUp :value="Number(info.minutes)" :pad-length="2" :duration="260" />
+        <span class="payment-countdown-active__colon">:</span>
+        <CountUp :value="Number(info.seconds)" :pad-length="2" :duration="260" />
+      </div>
+      <span class="payment-countdown-active__suffix">请尽快完成支付</span>
+    </AnimatedContent>
   </div>
 </template>
 
 <script setup>
-import ShinyText from '@/components/react-bits/ShinyText.vue'
+import AnimatedContent from '@/components/react-bits/AnimatedContent.vue'
+import CountUp from '@/components/react-bits/CountUp.vue'
 
 defineProps({
   info: { type: Object, required: true },
@@ -79,16 +77,21 @@ defineProps({
 .payment-countdown-active__suffix {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.04em;
   color: #78716c;
 }
 
 .payment-countdown-active__timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
   font-size: 18px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
   line-height: 1;
+}
+
+.payment-countdown-active__colon {
+  padding: 0 1px;
 }
 
 .payment-countdown-active--compact {

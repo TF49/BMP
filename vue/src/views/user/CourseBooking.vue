@@ -211,6 +211,7 @@
                     v-if="getPaymentCountdownInfo(course).show"
                     :info="getPaymentCountdownInfo(course)"
                     size="small"
+                    class="course-countdown"
                   />
                 </div>
               </div>
@@ -253,8 +254,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { openActionConfirm } from '@/utils/confirm'
 import { Tickets, CircleCheck, ArrowLeft } from '@element-plus/icons-vue'
 import { getCourseList } from '@/api/course'
@@ -295,13 +296,19 @@ const {
   }
 })
 
+const isPaymentExpired = (course) => getPaymentAutoCancelInfo(course, {
+  enabled: autoCancelEnabled.value,
+  timeoutMinutes: autoCancelTimeoutMinutes.value,
+  nowMs: countdownNowMs.value,
+  configLoaded: configLoaded.value
+}).expired
+
 const getPaymentCountdownInfo = (course) => getPaymentAutoCancelInfo(course, {
   enabled: autoCancelEnabled.value,
   timeoutMinutes: autoCancelTimeoutMinutes.value,
   nowMs: countdownNowMs.value,
   configLoaded: configLoaded.value
 })
-const isPaymentExpired = (course) => getPaymentCountdownInfo(course).expired
 
 const bookingForm = ref({
   courseId: null,
@@ -1359,7 +1366,13 @@ html.theme-dark-mode .page-subtitle {
 
 .course-item-actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
+}
+
+.course-countdown {
+  margin-top: 6px;
 }
 
 .estimated-cost {
@@ -1404,4 +1417,3 @@ html.theme-dark-mode .page-subtitle {
   }
 }
 </style>
-

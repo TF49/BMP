@@ -322,11 +322,6 @@
                     支付状态：<el-tag :type="rental.paymentStatus === 1 ? 'success' : rental.paymentStatus === 3 ? 'danger' : 'warning'" size="small">{{ getPaymentStatusText(rental.paymentStatus) }}</el-tag>
                     <span v-if="rental.paymentStatus === 1 || rental.paymentStatus === 3" style="margin-left: 8px">支付方式：{{ getPaymentMethodText(rental.paymentMethod) }}</span>
                   </p>
-                  <PaymentCountdownBadge
-                    v-if="getPaymentCountdownInfo(rental).show"
-                    :info="getPaymentCountdownInfo(rental)"
-                    size="small"
-                  />
                 </div>
               </div>
               <div class="rental-actions">
@@ -391,7 +386,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
 import PaymentPayCountdown from '@/components/payment/PaymentPayCountdown.vue'
 import { openActionConfirm } from '@/utils/confirm'

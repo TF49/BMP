@@ -26,11 +26,13 @@
           </div>
           <p v-if="item.subtitle" class="order-subtitle">{{ item.subtitle }}</p>
           <p class="order-amount">¥{{ formatCurrency(item.amount) }}</p>
-          <PaymentCountdownBadge
-            :info="getPaymentCountdownInfo(item.raw)"
-            size="default"
-          />
           <p class="order-time">下单时间：{{ formatDateTime(item.createTime) }}</p>
+          <PaymentCountdownBadge
+            v-if="getPaymentCountdownInfo(item.raw).show"
+            :info="getPaymentCountdownInfo(item.raw)"
+            size="small"
+            class="order-countdown"
+          />
         </div>
         <div class="order-card__actions">
           <el-button
@@ -51,19 +53,24 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import PaymentAutoCancelFeatureHint from '@/components/payment/PaymentAutoCancelFeatureHint.vue'
+import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
 import { usePaymentAutoCancelPage } from '@/composables/usePaymentAutoCancel'
 import {
   bindPaymentCountdownCacheClear,
   usePaymentCountdownListCache
 } from '@/composables/usePaymentCountdownListCache'
+import { openActionConfirm } from '@/utils/confirm'
+import { payMemberBooking } from '@/api/booking'
+import { payMemberCourseBooking } from '@/api/courseBooking'
+import { processEquipmentRentalPayment } from '@/api/equipmentRental'
+import { processMemberTournamentRegistrationPayment } from '@/api/tournamentRegistration'
+import { processMemberStringingPayment } from '@/api/stringing'
 import { fetchUserPendingPaymentOrders } from '@/utils/pendingUserOrders'
 import { PAYMENT_ORDER_TYPES, useOrderStatusRefreshListener } from '@/utils/paymentOrderRefresh'
 
-const router = useRouter()
 const loading = ref(false)
 const pendingOrders = ref([])
 
@@ -80,7 +87,8 @@ const {
   autoCancelTimeoutMinutes,
   countdownNowMs,
   configLoaded,
-  configLoadError
+  configLoadError,
+  paymentAutoCancelRefs
 } = usePaymentAutoCancelPage({
   hasExpiredPending: () => pendingOrders.value.some((item) => getPaymentCountdownInfo(item.raw).expired),
   refreshOnExpire: loadPendingOrders
@@ -115,10 +123,120 @@ async function loadPendingOrders() {
   }
 }
 
-function goPay(item) {
-  if (item?.route) {
-    router.push(item.route)
+function getPayConfirmMeta(item) {
+  const amountText = `¥${formatCurrency(item?.amount)}`
+  switch (item?.orderType) {
+    case PAYMENT_ORDER_TYPES.booking:
+      return {
+        title: '预约支付确认',
+        message: '确认使用余额支付这笔场地预约订单吗？',
+        detail: `订单金额：${amountText}`,
+        entityLabel: '预约单号'
+      }
+    case PAYMENT_ORDER_TYPES.courseBooking:
+      return {
+        title: '课程支付确认',
+        message: '确认使用余额支付这笔课程订单吗？',
+        detail: `订单金额：${amountText}`,
+        entityLabel: '课程单号'
+      }
+    case PAYMENT_ORDER_TYPES.equipmentRental:
+      return {
+        title: '器材租借支付确认',
+        message: '确认使用余额支付这笔器材租借订单吗？',
+        detail: `订单金额：${amountText}`,
+        entityLabel: '租借单号'
+      }
+    case PAYMENT_ORDER_TYPES.tournamentRegistration:
+      return {
+        title: '赛事报名支付确认',
+        message: '确认使用余额支付这笔赛事报名吗？',
+        detail: `报名费用：${amountText}`,
+        entityLabel: '报名编号'
+      }
+    case PAYMENT_ORDER_TYPES.stringingService:
+      return {
+        title: '穿线服务支付确认',
+        message: '确认使用余额支付这笔穿线服务吗？',
+        detail: `服务金额：${amountText}`,
+        entityLabel: '服务单号'
+      }
+    default:
+      return {
+        title: '支付确认',
+        message: '确认支付这笔订单吗？',
+        detail: `订单金额：${amountText}`,
+        entityLabel: '订单编号'
+      }
   }
+}
+
+async function submitPendingOrderPayment(item) {
+  switch (item?.orderType) {
+    case PAYMENT_ORDER_TYPES.booking:
+      return payMemberBooking({
+        bookingId: item.raw.id,
+        paymentMethod: 'BALANCE'
+      })
+    case PAYMENT_ORDER_TYPES.courseBooking:
+      return payMemberCourseBooking({
+        bookingId: item.raw.id,
+        paymentMethod: 'BALANCE'
+      }, {
+        skipErrorMessage: true
+      })
+    case PAYMENT_ORDER_TYPES.equipmentRental:
+      return processEquipmentRentalPayment(item.raw.id, 'BALANCE')
+    case PAYMENT_ORDER_TYPES.tournamentRegistration:
+      return processMemberTournamentRegistrationPayment(item.raw.id, 'BALANCE')
+    case PAYMENT_ORDER_TYPES.stringingService:
+      return processMemberStringingPayment(item.raw.id, 'BALANCE')
+    default:
+      throw new Error('暂不支持该订单类型的支付')
+  }
+}
+
+async function goPay(item) {
+  if (!item?.raw) return
+  if (getPaymentCountdownInfo(item.raw).expired) {
+    ElMessage.warning('该订单已超过支付时限，系统正在自动取消，请稍后刷新')
+    await loadPendingOrders()
+    return
+  }
+
+  const meta = getPayConfirmMeta(item)
+
+  openActionConfirm({
+    title: meta.title,
+    eyebrow: 'BALANCE PAYMENT',
+    message: meta.message,
+    detail: meta.detail,
+    entityLabel: meta.entityLabel,
+    entityValue: item.orderNo,
+    tone: 'warning',
+    confirmButtonText: '确认支付',
+    cancelButtonText: '稍后支付',
+    paymentOrder: item.raw,
+    paymentAutoCancel: paymentAutoCancelRefs
+  }).then(async () => {
+    if (getPaymentCountdownInfo(item.raw).expired) {
+      ElMessage.warning('该订单已超过支付时限，系统正在自动取消，请稍后刷新')
+      await loadPendingOrders()
+      return
+    }
+    try {
+      const res = await submitPendingOrderPayment(item)
+      if (res.code === 200) {
+        ElMessage.success('支付成功')
+        await loadPendingOrders()
+      } else {
+        ElMessage.error(res.message || '支付失败')
+      }
+    } catch (error) {
+      console.error('待支付订单支付失败:', error)
+      ElMessage.error(error.response?.data?.message || error.message || '支付失败，请稍后重试')
+    }
+  }).catch(() => {})
 }
 
 useOrderStatusRefreshListener(
@@ -211,7 +329,15 @@ onMounted(() => {
 }
 
 .order-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
   flex-shrink: 0;
   padding-top: 8px;
+}
+
+.order-countdown {
+  margin-top: 8px;
 }
 </style>
