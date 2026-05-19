@@ -12,8 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.IntSupplier;
 
 /**
@@ -25,6 +28,7 @@ import java.util.function.IntSupplier;
 @EnableScheduling
 public class ScheduleConfig {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class);
+    private volatile boolean redisLockAvailable = true;
 
     @Autowired
     private LoginRateLimiter loginRateLimiter;
@@ -53,6 +57,11 @@ public class ScheduleConfig {
     @Autowired
     private StringingServiceService stringingServiceService;
 
+    @Autowired(required = false)
+    private StringRedisTemplate stringRedisTemplate;
+
+    private static final String AUTO_CANCEL_LOCK_KEY = "bmp:payment:auto-cancel:lock";
+
     /**
      * 每5分钟清理一次过期的登录记录
      * 防止内存泄漏
@@ -70,12 +79,28 @@ public class ScheduleConfig {
         if (!paymentAutoCancelProperties.isEnabled()) {
             return;
         }
+        String lockToken = tryAcquireAutoCancelLock();
+        if (lockToken == null) {
+            return;
+        }
+        long startedAt = System.currentTimeMillis();
+        int totalCancelled = 0;
         LocalDateTime cutoff = LocalDateTime.now().minus(paymentAutoCancelProperties.getTimeoutDuration());
-        runAutoCancel("场地预约", () -> bookingService.autoCancelExpiredUnpaidOrders(cutoff));
-        runAutoCancel("课程预约", () -> courseBookingService.autoCancelExpiredUnpaidOrders(cutoff));
-        runAutoCancel("器材租借", () -> equipmentRentalService.autoCancelExpiredUnpaidOrders(cutoff));
-        runAutoCancel("赛事报名", () -> tournamentRegistrationService.autoCancelExpiredUnpaidOrders(cutoff));
-        runAutoCancel("穿线服务", () -> stringingServiceService.autoCancelExpiredUnpaidOrders(cutoff));
+        try {
+            totalCancelled += runAutoCancel("场地预约", () -> bookingService.autoCancelExpiredUnpaidOrders(cutoff));
+            totalCancelled += runAutoCancel("课程预约", () -> courseBookingService.autoCancelExpiredUnpaidOrders(cutoff));
+            totalCancelled += runAutoCancel("器材租借", () -> equipmentRentalService.autoCancelExpiredUnpaidOrders(cutoff));
+            totalCancelled += runAutoCancel("赛事报名", () -> tournamentRegistrationService.autoCancelExpiredUnpaidOrders(cutoff));
+            totalCancelled += runAutoCancel("穿线服务", () -> stringingServiceService.autoCancelExpiredUnpaidOrders(cutoff));
+            long durationMs = System.currentTimeMillis() - startedAt;
+            if (totalCancelled > 0) {
+                log.info("支付自动取消扫描完成，共取消 {} 笔，耗时 {} ms", totalCancelled, durationMs);
+            } else {
+                log.debug("支付自动取消扫描完成，无需取消，耗时 {} ms", durationMs);
+            }
+        } finally {
+            releaseAutoCancelLock(lockToken);
+        }
     }
 
     /**
@@ -86,7 +111,7 @@ public class ScheduleConfig {
         try {
             bookingService.completeOverdueInProgressBookings();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class).warn("定时完成超时预约失败: {}", e.getMessage());
+            log.warn("定时完成超时预约失败: {}", e.getMessage());
         }
     }
 
@@ -98,7 +123,7 @@ public class ScheduleConfig {
         try {
             courseService.autoUpdateCourseStatusByTime();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class).warn("课程状态自动更新失败: {}", e.getMessage());
+            log.warn("课程状态自动更新失败: {}", e.getMessage());
         }
     }
 
@@ -110,7 +135,7 @@ public class ScheduleConfig {
         try {
             courseBookingService.autoUpdateCourseBookingStatusByTime();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class).warn("课程预约状态自动更新失败: {}", e.getMessage());
+            log.warn("课程预约状态自动更新失败: {}", e.getMessage());
         }
     }
 
@@ -122,7 +147,7 @@ public class ScheduleConfig {
         try {
             tournamentService.autoUpdateTournamentStatusByTime();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class).warn("赛事状态自动更新失败: {}", e.getMessage());
+            log.warn("赛事状态自动更新失败: {}", e.getMessage());
         }
     }
 
@@ -134,7 +159,7 @@ public class ScheduleConfig {
         try {
             tournamentRegistrationService.autoUpdateTournamentRegistrationStatusByTime();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class).warn("赛事报名状态自动更新失败: {}", e.getMessage());
+            log.warn("赛事报名状态自动更新失败: {}", e.getMessage());
         }
     }
 
@@ -146,18 +171,60 @@ public class ScheduleConfig {
         try {
             equipmentRentalService.autoMarkOverdueRentals();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(ScheduleConfig.class).warn("器材租借逾期自动标记失败: {}", e.getMessage());
+            log.warn("器材租借逾期自动标记失败: {}", e.getMessage());
         }
     }
 
-    private void runAutoCancel(String moduleName, IntSupplier supplier) {
+    private int runAutoCancel(String moduleName, IntSupplier supplier) {
         try {
+            long startedAt = System.currentTimeMillis();
             int cancelled = supplier.getAsInt();
+            long durationMs = System.currentTimeMillis() - startedAt;
             if (cancelled > 0) {
-                log.info("{}自动取消超时未支付订单 {} 笔", moduleName, cancelled);
+                log.info("{}自动取消超时未支付订单 {} 笔，耗时 {} ms", moduleName, cancelled, durationMs);
             }
+            return cancelled;
         } catch (Exception e) {
             log.warn("{}自动取消超时未支付订单失败", moduleName, e);
+            return 0;
+        }
+    }
+
+    private String tryAcquireAutoCancelLock() {
+        if (stringRedisTemplate == null || !redisLockAvailable) {
+            return UUID.randomUUID().toString();
+        }
+        String token = UUID.randomUUID().toString();
+        try {
+            Boolean locked = stringRedisTemplate.opsForValue().setIfAbsent(
+                    AUTO_CANCEL_LOCK_KEY,
+                    token,
+                    Math.max(paymentAutoCancelProperties.getScanIntervalMs() * 2, 120000L),
+                    TimeUnit.MILLISECONDS
+            );
+            if (Boolean.TRUE.equals(locked)) {
+                return token;
+            }
+        } catch (Exception e) {
+            redisLockAvailable = false;
+            log.warn("Redis 不可用，支付自动取消任务切换为单实例兜底模式；如需启用分布式锁，请启动 Redis 后重启应用。");
+            return UUID.randomUUID().toString();
+        }
+        return null;
+    }
+
+    private void releaseAutoCancelLock(String token) {
+        if (token == null || stringRedisTemplate == null || !redisLockAvailable) {
+            return;
+        }
+        try {
+            String currentToken = stringRedisTemplate.opsForValue().get(AUTO_CANCEL_LOCK_KEY);
+            if (token.equals(currentToken)) {
+                stringRedisTemplate.delete(AUTO_CANCEL_LOCK_KEY);
+            }
+        } catch (Exception e) {
+            redisLockAvailable = false;
+            log.warn("Redis 不可用，停止尝试释放支付自动取消分布式锁；当前实例继续按单机模式运行。");
         }
     }
 }

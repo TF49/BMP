@@ -17,16 +17,21 @@ import com.badminton.bmp.modules.court.mapper.CourtMapper;
 import com.badminton.bmp.modules.court.service.CourtService;
 import com.badminton.bmp.modules.equipment.mapper.EquipmentRentalMapper;
 import com.badminton.bmp.modules.finance.entity.Finance;
+import com.badminton.bmp.modules.finance.service.FinanceAuditService;
 import com.badminton.bmp.modules.finance.service.FinanceService;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
+import com.badminton.bmp.modules.notification.service.NotificationService;
 import com.badminton.bmp.modules.stringing.mapper.StringingServiceMapper;
 import com.badminton.bmp.modules.tournament.mapper.TournamentRegistrationMapper;
 import com.badminton.bmp.websocket.WebSocketPushService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.sql.Time;
@@ -49,6 +54,7 @@ import java.util.stream.Collectors;
 @Service
 public class BookingServiceImpl implements BookingService {
     private static final long PACKAGE_MIN_ADVANCE_HOURS = 2L;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BookingServiceImpl.class);
 
     @Autowired
     private BookingMapper bookingMapper;
@@ -65,6 +71,8 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     private FinanceService financeService;
     @Autowired
+    private FinanceAuditService financeAuditService;
+    @Autowired
     private CourseBookingMapper courseBookingMapper;
     @Autowired
     private TournamentRegistrationMapper tournamentRegistrationMapper;
@@ -76,6 +84,10 @@ public class BookingServiceImpl implements BookingService {
     private WebSocketPushService webSocketPushService;
     @Autowired
     private PaymentAutoCancelProperties paymentAutoCancelProperties;
+    @Autowired
+    private NotificationService notificationService;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Override
     public Booking findById(Long id) {
@@ -633,38 +645,20 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
         if (cutoff == null) {
             return 0;
         }
-        List<Long> bookingIds = bookingMapper.findExpiredUnpaidBookingIds(cutoff);
-        if (bookingIds == null || bookingIds.isEmpty()) {
+        List<Booking> bookings = bookingMapper.findExpiredUnpaidBookings(cutoff);
+        if (bookings == null || bookings.isEmpty()) {
             return 0;
         }
         int cancelled = 0;
-        for (Long bookingId : bookingIds) {
-            Booking booking = bookingMapper.findById(bookingId);
-            if (booking == null) {
+        for (Booking booking : bookings) {
+            if (booking == null || booking.getId() == null) {
                 continue;
             }
-            List<BookingCourt> details = bookingCourtMapper.findByBookingId(bookingId);
-            LocalDateTime cancelledAt = LocalDateTime.now();
-            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(booking.getRemark());
-            int updated = bookingMapper.cancelExpiredUnpaidBooking(bookingId, cancelledAt, cancelRemark);
-            if (updated <= 0) {
-                continue;
-            }
-            cancelled += updated;
-            Set<Long> courtIds = extractCourtIds(details);
-            if (!courtIds.isEmpty()) {
-                recomputeCourtStatuses(courtIds);
-            }
-            booking.setStatus(0);
-            booking.setCancelTime(cancelledAt);
-            booking.setUpdateTime(cancelledAt);
-            booking.setRemark(cancelRemark);
-            notifyStatusChange(booking, 0, "已取消");
+            cancelled += runAutoCancelInNewTransaction(() -> autoCancelSingleBooking(booking));
         }
         return cancelled;
     }
@@ -1101,7 +1095,7 @@ public class BookingServiceImpl implements BookingService {
             webSocketPushService.pushTodoUpdate(getOperationTodoCount(), getTodoList());
             webSocketPushService.pushDashboardRefresh();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(BookingServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+            log.warn("WebSocket 推送失败: {}", e.getMessage());
         }
     }
 
@@ -1111,9 +1105,55 @@ public class BookingServiceImpl implements BookingService {
             Long userId = member != null ? member.getUserId() : null;
             webSocketPushService.onOrderStatusChanged(userId, "booking", booking.getId(), status, statusText, "场地预约", getOperationTodoCount(), getTodoList());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(BookingServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+            log.warn("WebSocket 推送失败: {}", e.getMessage());
         }
         pushBookingUpdates();
+    }
+
+    private int autoCancelSingleBooking(Booking booking) {
+        Long bookingId = booking.getId();
+        List<BookingCourt> details = bookingCourtMapper.findByBookingId(bookingId);
+        LocalDateTime cancelledAt = LocalDateTime.now();
+        String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(booking.getRemark());
+        int updated = bookingMapper.cancelExpiredUnpaidBooking(bookingId, cancelledAt, cancelRemark);
+        if (updated <= 0) {
+            return 0;
+        }
+        Set<Long> courtIds = extractCourtIds(details);
+        if (!courtIds.isEmpty()) {
+            recomputeCourtStatuses(courtIds);
+        }
+        publishAutoCancelArtifacts(booking, resolveVenueId(details), "场地预约", booking.getBookingNo());
+        booking.setStatus(0);
+        booking.setCancelTime(cancelledAt);
+        booking.setUpdateTime(cancelledAt);
+        booking.setRemark(cancelRemark);
+        notifyStatusChange(booking, 0, "已取消");
+        return updated;
+    }
+
+    private int runAutoCancelInNewTransaction(java.util.function.IntSupplier action) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        Integer result = transactionTemplate.execute(status -> action.getAsInt());
+        return result == null ? 0 : result;
+    }
+
+    private void publishAutoCancelArtifacts(Booking booking, Long venueId, String businessType, String businessNo) {
+        String title = businessType + "订单已自动取消";
+        String content = businessType + "订单 " + businessNo + " 超时未支付，系统已自动取消。";
+        try {
+            notificationService.publishSystemNotification(title, content, venueId);
+        } catch (Exception e) {
+            log.warn("{}自动取消通知持久化失败, orderNo={}", businessType, businessNo, e);
+        }
+        financeAuditService.logSystemAutoCancel(
+                businessType,
+                booking.getId(),
+                businessNo,
+                booking,
+                content
+        );
     }
 
     private String resolvePendingPaymentConflictMessage(Booking latestBooking, String orderLabel) {

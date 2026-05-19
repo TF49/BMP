@@ -7,8 +7,8 @@ export const DEFAULT_PAYMENT_REFRESH_CHECK_MS = process.env.NODE_ENV === 'develo
 /** 超时后轮询列表的最小间隔，避免压垮后端 */
 const MIN_EXPIRE_POLL_MS = process.env.NODE_ENV === 'development' ? 8000 : 12000
 
-/** 与 application.properties 默认 bmp.payment.auto-cancel.timeout-seconds=5 对齐（勿按 NODE_ENV 区分，小程序构建常为 production） */
-const FALLBACK_TIMEOUT_SECONDS = 5
+/** 仅作为展示兜底，不再用于本地提前锁单 */
+const FALLBACK_TIMEOUT_SECONDS = process.env.NODE_ENV === 'development' ? 5 : 900
 const CONFIG_CACHE_MS = 60_000
 
 let cachedConfigPayload: Record<string, unknown> | null = null
@@ -55,8 +55,7 @@ function syncInstanceFromShared(state: PaymentCountdownState): boolean {
 
 function applySharedConfigPayload(config: Record<string, unknown>) {
   const scanIntervalMs = Number(config?.scanIntervalMs || 0)
-  const serverTimeValue = typeof config?.serverTime === 'string' ? config.serverTime : null
-  const serverTime = parseBackendDateTime(serverTimeValue)
+  const serverTime = parseBackendServerTime(config)
   commitSharedPaymentCancelConfig({
     enabled: Boolean(config?.enabled),
     timeoutSeconds: readTimeoutSecondsFromPayload(config),
@@ -68,7 +67,7 @@ function applySharedConfigPayload(config: Record<string, unknown>) {
 
 function applySharedFallbackConfig() {
   commitSharedPaymentCancelConfig({
-    enabled: true,
+    enabled: false,
     timeoutSeconds: FALLBACK_TIMEOUT_SECONDS,
     serverOffsetMs: 0,
     configLoadError: true
@@ -76,7 +75,7 @@ function applySharedFallbackConfig() {
   if (!fallbackToastShown) {
     fallbackToastShown = true
     uni.showToast({
-      title: `支付超时配置加载失败，已按 ${FALLBACK_TIMEOUT_SECONDS} 秒本地规则限制支付`,
+      title: '支付超时规则加载失败，请以服务端校验结果为准',
       icon: 'none',
       duration: 3000
     })
@@ -91,6 +90,15 @@ function parseBackendDateTime(value?: string | null) {
   const [hour = 0, minute = 0, second = 0] = timePart.split(':').map(Number)
   if (![year, month, day].every(Number.isFinite)) return null
   return new Date(year, month - 1, day, hour, minute, second)
+}
+
+function parseBackendServerTime(config: Record<string, unknown>) {
+  const serverTimestamp = Number(config?.serverTimestamp)
+  if (Number.isFinite(serverTimestamp) && serverTimestamp > 0) {
+    return new Date(serverTimestamp)
+  }
+  const serverTimeValue = typeof config?.serverTime === 'string' ? config.serverTime : null
+  return parseBackendDateTime(serverTimeValue)
 }
 
 function pad2(value: number) {

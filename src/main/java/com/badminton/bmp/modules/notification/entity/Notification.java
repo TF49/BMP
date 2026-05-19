@@ -19,7 +19,7 @@ public class Notification {
     private String content;
 
     @NotNull
-    @Positive
+    @PositiveOrZero
     private Long publisherId;
 
     @Size(max = 50)

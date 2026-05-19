@@ -11,13 +11,18 @@ import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
 import com.badminton.bmp.modules.finance.entity.Finance;
+import com.badminton.bmp.modules.finance.service.FinanceAuditService;
 import com.badminton.bmp.modules.finance.service.FinanceService;
+import com.badminton.bmp.modules.notification.service.NotificationService;
 import com.badminton.bmp.websocket.WebSocketPushService;
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
@@ -34,6 +39,7 @@ import com.badminton.bmp.common.util.SecurityUtils;
  */
 @Service
 public class EquipmentRentalServiceImpl implements EquipmentRentalService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EquipmentRentalServiceImpl.class);
 
     @Autowired
     private EquipmentRentalMapper equipmentRentalMapper;
@@ -49,11 +55,17 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
 
     @Autowired
     private FinanceService financeService;
+    @Autowired
+    private FinanceAuditService financeAuditService;
 
     @Autowired
     private WebSocketPushService webSocketPushService;
     @Autowired
     private PaymentAutoCancelProperties paymentAutoCancelProperties;
+    @Autowired
+    private NotificationService notificationService;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     private static final int INVENTORY_UPDATE_MAX_RETRIES = 5;
 
@@ -925,43 +937,70 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
         if (cutoff == null) {
             return 0;
         }
-        List<Long> rentalIds = equipmentRentalMapper.findExpiredUnpaidRentalIds(cutoff);
-        if (rentalIds == null || rentalIds.isEmpty()) {
+        List<EquipmentRental> rentals = equipmentRentalMapper.findExpiredUnpaidRentals(cutoff);
+        if (rentals == null || rentals.isEmpty()) {
             return 0;
         }
         int cancelled = 0;
-        for (Long rentalId : rentalIds) {
-            EquipmentRental rental = equipmentRentalMapper.findById(rentalId);
-            if (rental == null) {
+        for (EquipmentRental rental : rentals) {
+            if (rental == null || rental.getId() == null) {
                 continue;
             }
-            LocalDateTime cancelledAt = LocalDateTime.now();
-            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(rental.getRemark());
-            int updated = equipmentRentalMapper.cancelExpiredUnpaidRental(rentalId, cancelledAt, cancelRemark);
-            if (updated <= 0) {
-                continue;
-            }
-            cancelled += updated;
-            int qty = rental.getQuantity() != null ? rental.getQuantity() : 0;
-            if (qty > 0) {
-                adjustEquipmentAvailableQuantity(rental.getEquipmentId(), qty, null);
-            }
-            try {
-                Long userId = null;
-                Member m = memberMapper.findById(rental.getMemberId());
-                if (m != null && m.getUserId() != null) userId = m.getUserId();
-                webSocketPushService.pushOrderStatusToUser(userId, "equipmentRental", rentalId, 0, "已取消", "器材租借");
-                webSocketPushService.pushDashboardRefresh();
-            } catch (Exception e) {
-                org.slf4j.LoggerFactory.getLogger(EquipmentRentalServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
-            }
+            cancelled += runAutoCancelInNewTransaction(() -> autoCancelSingleRental(rental));
         }
         return cancelled;
+    }
+
+    private int autoCancelSingleRental(EquipmentRental rental) {
+        Long rentalId = rental.getId();
+        LocalDateTime cancelledAt = LocalDateTime.now();
+        String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(rental.getRemark());
+        int updated = equipmentRentalMapper.cancelExpiredUnpaidRental(rentalId, cancelledAt, cancelRemark);
+        if (updated <= 0) {
+            return 0;
+        }
+        int qty = rental.getQuantity() != null ? rental.getQuantity() : 0;
+        if (qty > 0) {
+            adjustEquipmentAvailableQuantity(rental.getEquipmentId(), qty, null);
+        }
+        publishAutoCancelArtifacts(rental);
+        rental.setStatus(0);
+        rental.setUpdateTime(cancelledAt);
+        rental.setRemark(cancelRemark);
+        try {
+            Long userId = null;
+            Member m = memberMapper.findById(rental.getMemberId());
+            if (m != null && m.getUserId() != null) userId = m.getUserId();
+            webSocketPushService.pushOrderStatusToUser(userId, "equipmentRental", rentalId, 0, "已取消", "器材租借");
+            webSocketPushService.pushDashboardRefresh();
+        } catch (Exception e) {
+            log.warn("WebSocket 推送失败: {}", e.getMessage());
+        }
+        return updated;
+    }
+
+    private int runAutoCancelInNewTransaction(java.util.function.IntSupplier action) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        Integer result = transactionTemplate.execute(status -> action.getAsInt());
+        return result == null ? 0 : result;
+    }
+
+    private void publishAutoCancelArtifacts(EquipmentRental rental) {
+        Equipment equipment = equipmentMapper.findById(rental.getEquipmentId());
+        Long venueId = equipment != null ? equipment.getVenueId() : null;
+        String businessNo = rental.getRentalNo();
+        String content = "器材租借订单 " + businessNo + " 超时未支付，系统已自动取消。";
+        try {
+            notificationService.publishSystemNotification("器材租借订单已自动取消", content, venueId);
+        } catch (Exception e) {
+            log.warn("器材租借自动取消通知持久化失败, orderNo={}", businessNo, e);
+        }
+        financeAuditService.logSystemAutoCancel("器材租借", rental.getId(), businessNo, rental, content);
     }
 
     private void adjustEquipmentAvailableQuantity(Long equipmentId, int delta, String insufficientMessage) {

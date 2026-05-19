@@ -103,6 +103,26 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
         }
     }
 
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void logSystemAutoCancel(String businessType, Long businessId, String businessNo, Object beforeData, String summary) {
+        try {
+            FinanceAuditLog auditLog = new FinanceAuditLog();
+            auditLog.setFinanceId(null);
+            auditLog.setFinanceNo(null);
+            auditLog.setOperationType("RECONCILE");
+            auditLog.setBeforeData(beforeData == null ? null : objectMapper.writeValueAsString(beforeData));
+            auditLog.setAfterData(null);
+            auditLog.setChangeSummary(summary);
+            auditLog.setRemark(buildSystemAutoCancelRemark(businessType, businessId, businessNo));
+            setSystemOperatorInfo(auditLog);
+            auditLog.setOperationTime(LocalDateTime.now());
+            auditLogMapper.insert(auditLog);
+        } catch (Exception e) {
+            log.error("记录系统自动取消审计日志失败: businessType={}, businessId={}, businessNo={}", businessType, businessId, businessNo, e);
+        }
+    }
+
     /**
      * 设置操作人信息
      */
@@ -112,6 +132,31 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
             auditLog.setOperator(currentUser.getUsername());
             auditLog.setOperatorId(currentUser.getId());
         }
+    }
+
+    private void setSystemOperatorInfo(FinanceAuditLog auditLog) {
+        User currentUser = SecurityUtils.getCurrentUser();
+        if (currentUser != null) {
+            auditLog.setOperator(currentUser.getUsername());
+            auditLog.setOperatorId(currentUser.getId());
+            return;
+        }
+        auditLog.setOperator("SYSTEM");
+        auditLog.setOperatorId(0L);
+    }
+
+    private String buildSystemAutoCancelRemark(String businessType, Long businessId, String businessNo) {
+        StringBuilder remark = new StringBuilder("SYSTEM_AUTO_CANCEL");
+        if (businessType != null && !businessType.isBlank()) {
+            remark.append(":").append(businessType);
+        }
+        if (businessId != null) {
+            remark.append(";businessId=").append(businessId);
+        }
+        if (businessNo != null && !businessNo.isBlank()) {
+            remark.append(";businessNo=").append(businessNo);
+        }
+        return remark.toString();
     }
 
     /**

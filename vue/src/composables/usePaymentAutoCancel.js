@@ -7,7 +7,8 @@ export const PAYMENT_AUTO_CANCEL_KEY = Symbol('paymentAutoCancel')
 /** 与后端 scan-interval-ms 对齐：开发 1s，生产 5s */
 export const DEFAULT_PAYMENT_REFRESH_CHECK_MS = import.meta.env.DEV ? 1000 : 5000
 
-const FALLBACK_TIMEOUT_SECONDS = import.meta.env.DEV ? 5 : 300
+const FALLBACK_TIMEOUT_SECONDS = import.meta.env.DEV ? 5 : 900
+const EXPIRE_FOLLOW_UP_REFRESH_DELAYS = [3000, 8000, 15000]
 
 function parseBackendDateTime(value) {
   if (!value || typeof value !== 'string') return null
@@ -17,6 +18,14 @@ function parseBackendDateTime(value) {
   const [hour = 0, minute = 0, second = 0] = timePart.split(':').map(Number)
   if (![year, month, day].every(Number.isFinite)) return null
   return new Date(year, month - 1, day, hour, minute, second)
+}
+
+function parseBackendServerTime(config) {
+  const serverTimestamp = Number(config?.serverTimestamp)
+  if (Number.isFinite(serverTimestamp) && serverTimestamp > 0) {
+    return new Date(serverTimestamp)
+  }
+  return parseBackendDateTime(config?.serverTime)
 }
 
 function pad2(value) {
@@ -210,6 +219,7 @@ function createPaymentAutoCancelEngine(options = {}) {
   let lastRefreshCheckAt = 0
   let wasExpiredPending = false
   let disposed = false
+  const followUpTimers = []
 
   const state = {
     autoCancelEnabled,
@@ -249,6 +259,25 @@ function createPaymentAutoCancelEngine(options = {}) {
     await runRefreshOnExpire(force)
   }
 
+  const clearFollowUpTimers = () => {
+    followUpTimers.forEach((timerId) => window.clearTimeout(timerId))
+    followUpTimers.length = 0
+  }
+
+  const scheduleFollowUpRefresh = () => {
+    clearFollowUpTimers()
+    EXPIRE_FOLLOW_UP_REFRESH_DELAYS.forEach((delay) => {
+      const timerId = window.setTimeout(() => {
+        if (disposed || !options.hasExpiredPending?.()) {
+          clearFollowUpTimers()
+          return
+        }
+        void runRefreshOnExpire(true)
+      }, delay)
+      followUpTimers.push(timerId)
+    })
+  }
+
   const checkExpiredEdgeAndRefresh = async () => {
     if (typeof options.hasExpiredPending !== 'function') {
       wasExpiredPending = false
@@ -257,6 +286,9 @@ function createPaymentAutoCancelEngine(options = {}) {
     const isExpiredPending = options.hasExpiredPending()
     if (!wasExpiredPending && isExpiredPending) {
       await maybeRefreshExpiredOrders(true)
+      scheduleFollowUpRefresh()
+    } else if (!isExpiredPending) {
+      clearFollowUpTimers()
     }
     wasExpiredPending = isExpiredPending
   }
@@ -282,18 +314,18 @@ function createPaymentAutoCancelEngine(options = {}) {
       window.clearInterval(timer)
       timer = null
     }
+    clearFollowUpTimers()
   }
 
   const applyFallbackConfig = () => {
-    autoCancelEnabled.value = true
+    autoCancelEnabled.value = false
     autoCancelTimeoutSeconds.value = FALLBACK_TIMEOUT_SECONDS
     autoCancelTimeoutMinutes.value = FALLBACK_TIMEOUT_SECONDS / 60
     serverOffsetMs = 0
     configLoadError.value = true
     configLoaded.value = true
     syncNow()
-    const fallbackLabel = import.meta.env.DEV ? '5 秒' : '5 分钟'
-    ElMessage.warning(`支付超时配置加载失败，已按 ${fallbackLabel} 本地规则限制支付`)
+    ElMessage.warning('支付超时规则加载失败，当前不按本地规则锁定支付，请以服务端校验结果为准')
   }
 
   const loadPaymentAutoCancelConfig = async () => {
@@ -316,7 +348,7 @@ function createPaymentAutoCancelEngine(options = {}) {
           refreshCheckIntervalMs
         )
       }
-      const serverTime = parseBackendDateTime(config?.serverTime)
+      const serverTime = parseBackendServerTime(config)
       serverOffsetMs = serverTime ? serverTime.getTime() - Date.now() : 0
       configLoadError.value = false
       configLoaded.value = true

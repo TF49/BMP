@@ -27,7 +27,7 @@ public class FinanceAuditLog {
     private String operator;
 
     @NotNull
-    @Positive
+    @PositiveOrZero
     private Long operatorId;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

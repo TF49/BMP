@@ -195,7 +195,7 @@ public interface EquipmentRentalMapper {
     @Select("<script>" +
             "SELECT COUNT(*) FROM biz_equipment_rental er " +
             "LEFT JOIN sys_equipment e ON er.equipment_id = e.id " +
-            "WHERE er.del_flag = 0 AND er.payment_status = #{paymentStatus} " +
+            "WHERE er.del_flag = 0 AND er.status != 0 AND er.payment_status = #{paymentStatus} " +
             "<if test='venueId != null'> AND e.venue_id = #{venueId} </if>" +
             "</script>")
     int countByPaymentStatus(@Param("venueId") Long venueId,
@@ -212,9 +212,13 @@ public interface EquipmentRentalMapper {
     /**
      * 查询已超时且仍未支付的器材租借ID（创建时间早于等于 cutoff）
      */
-    @Select("SELECT id FROM biz_equipment_rental WHERE del_flag = 0 AND status = 1 " +
-            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
-    List<Long> findExpiredUnpaidRentalIds(@Param("cutoff") java.time.LocalDateTime cutoff);
+    @Select("SELECT er.*, m.member_name, e.equipment_name, e.equipment_code " +
+            "FROM biz_equipment_rental er " +
+            "LEFT JOIN sys_member m ON er.member_id = m.id " +
+            "LEFT JOIN sys_equipment e ON er.equipment_id = e.id " +
+            "WHERE er.del_flag = 0 AND er.status = 1 " +
+            "AND (er.payment_status IS NULL OR er.payment_status = 0) AND er.create_time <= #{cutoff}")
+    List<EquipmentRental> findExpiredUnpaidRentals(@Param("cutoff") java.time.LocalDateTime cutoff);
 
     /**
      * 条件支付更新：仅租借中且未支付的订单允许标记为已支付

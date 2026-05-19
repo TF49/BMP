@@ -11,14 +11,19 @@ import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
 import com.badminton.bmp.modules.finance.entity.Finance;
+import com.badminton.bmp.modules.finance.service.FinanceAuditService;
 import com.badminton.bmp.modules.finance.service.FinanceService;
+import com.badminton.bmp.modules.notification.service.NotificationService;
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import com.badminton.bmp.common.util.SecurityUtils;
 import com.badminton.bmp.websocket.WebSocketPushService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,6 +38,7 @@ import java.util.Map;
  */
 @Service
 public class StringingServiceServiceImpl implements StringingServiceService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(StringingServiceServiceImpl.class);
 
     @Autowired
     private StringingServiceMapper stringingServiceMapper;
@@ -49,9 +55,15 @@ public class StringingServiceServiceImpl implements StringingServiceService {
     @Autowired
     private FinanceService financeService;
     @Autowired
+    private FinanceAuditService financeAuditService;
+    @Autowired
     private WebSocketPushService webSocketPushService;
     @Autowired
     private PaymentAutoCancelProperties paymentAutoCancelProperties;
+    @Autowired
+    private NotificationService notificationService;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     // 手工费固定为20元
     private static final BigDecimal HANDLING_FEE = new BigDecimal("20.00");
@@ -781,41 +793,66 @@ public class StringingServiceServiceImpl implements StringingServiceService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
         if (cutoff == null) {
             return 0;
         }
-        List<Long> serviceIds = stringingServiceMapper.findExpiredUnpaidServiceIds(cutoff);
-        if (serviceIds == null || serviceIds.isEmpty()) {
+        List<StringingService> services = stringingServiceMapper.findExpiredUnpaidServices(cutoff);
+        if (services == null || services.isEmpty()) {
             return 0;
         }
         int cancelled = 0;
-        for (Long serviceId : serviceIds) {
-            StringingService service = stringingServiceMapper.findById(serviceId);
-            if (service == null) {
+        for (StringingService service : services) {
+            if (service == null || service.getId() == null) {
                 continue;
             }
-            LocalDateTime cancelledAt = LocalDateTime.now();
-            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(service.getRemark());
-            int updated = stringingServiceMapper.cancelExpiredUnpaidService(serviceId, cancelledAt, cancelRemark);
-            if (updated <= 0) {
-                continue;
-            }
-            cancelled += updated;
-            try {
-                Long userId = service.getUserId();
-                if (userId == null && service.getMemberId() != null) {
-                    Member m = memberMapper.findById(service.getMemberId());
-                    if (m != null && m.getUserId() != null) userId = m.getUserId();
-                }
-                webSocketPushService.pushOrderStatusToUser(userId, "stringingService", serviceId, 0, "已取消", "穿线服务");
-                webSocketPushService.pushDashboardRefresh();
-            } catch (Exception e) {
-                org.slf4j.LoggerFactory.getLogger(StringingServiceServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
-            }
+            cancelled += runAutoCancelInNewTransaction(() -> autoCancelSingleService(service));
         }
         return cancelled;
+    }
+
+    private int autoCancelSingleService(StringingService service) {
+        Long serviceId = service.getId();
+        LocalDateTime cancelledAt = LocalDateTime.now();
+        String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(service.getRemark());
+        int updated = stringingServiceMapper.cancelExpiredUnpaidService(serviceId, cancelledAt, cancelRemark);
+        if (updated <= 0) {
+            return 0;
+        }
+        publishAutoCancelArtifacts(service);
+        service.setStatus(0);
+        service.setUpdateTime(cancelledAt);
+        service.setRemark(cancelRemark);
+        try {
+            Long userId = service.getUserId();
+            if (userId == null && service.getMemberId() != null) {
+                Member m = memberMapper.findById(service.getMemberId());
+                if (m != null && m.getUserId() != null) userId = m.getUserId();
+            }
+            webSocketPushService.pushOrderStatusToUser(userId, "stringingService", serviceId, 0, "已取消", "穿线服务");
+            webSocketPushService.pushDashboardRefresh();
+        } catch (Exception e) {
+            log.warn("WebSocket 推送失败: {}", e.getMessage());
+        }
+        return updated;
+    }
+
+    private int runAutoCancelInNewTransaction(java.util.function.IntSupplier action) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        Integer result = transactionTemplate.execute(status -> action.getAsInt());
+        return result == null ? 0 : result;
+    }
+
+    private void publishAutoCancelArtifacts(StringingService service) {
+        String businessNo = service.getServiceNo();
+        String content = "穿线服务订单 " + businessNo + " 超时未支付，系统已自动取消。";
+        try {
+            notificationService.publishSystemNotification("穿线服务订单已自动取消", content, service.getVenueId());
+        } catch (Exception e) {
+            log.warn("穿线服务自动取消通知持久化失败, orderNo={}", businessNo, e);
+        }
+        financeAuditService.logSystemAutoCancel("穿线服务", service.getId(), businessNo, service, content);
     }
 
     private String resolvePendingPaymentConflictMessage(StringingService latestService, String orderLabel) {

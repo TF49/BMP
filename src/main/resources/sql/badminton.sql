@@ -533,8 +533,8 @@ CREATE TABLE `biz_finance_audit_log`  (
   `finance_id` bigint NULL DEFAULT NULL COMMENT '财务记录ID（关联biz_finance，删除时可能为空）',
   `finance_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '财务单号（冗余存储，便于查询已删除记录）',
   `operation_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '操作类型（CREATE-创建，UPDATE-修改，DELETE-删除，RECONCILE-对账）',
-  `operator` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '操作人姓名',
-  `operator_id` bigint NULL DEFAULT NULL COMMENT '操作人ID（关联sys_user）',
+  `operator` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '操作人姓名',
+  `operator_id` bigint NOT NULL DEFAULT 0 COMMENT '操作人ID（人工操作对应sys_user.id，系统任务可为0）',
   `operation_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
   `before_data` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '操作前数据（JSON格式，UPDATE时记录）',
   `after_data` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '操作后数据（JSON格式，CREATE/UPDATE时记录）',
@@ -1264,7 +1264,7 @@ CREATE TABLE `sys_notification`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `publisher_id` bigint NOT NULL,
+  `publisher_id` bigint NOT NULL DEFAULT 0 COMMENT '发布人ID（人工通知对应sys_user.id，系统通知可为0）',
   `publisher_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `venue_id` bigint NULL DEFAULT NULL,
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1606,9 +1606,6 @@ ALTER TABLE `biz_finance`
   ADD CONSTRAINT `biz_finance_ibfk_2` FOREIGN KEY (`venue_id`) REFERENCES `sys_venue` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   ADD CONSTRAINT `fk_finance_reconcile_user` FOREIGN KEY (`reconcile_user_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 
-ALTER TABLE `biz_finance_audit_log`
-  ADD CONSTRAINT `biz_finance_audit_log_ibfk_1` FOREIGN KEY (`operator_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
-
 ALTER TABLE `biz_finance_reconciliation`
   ADD CONSTRAINT `biz_finance_reconciliation_ibfk_1` FOREIGN KEY (`operator_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   ADD CONSTRAINT `biz_finance_reconciliation_ibfk_2` FOREIGN KEY (`venue_id`) REFERENCES `sys_venue` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
@@ -1653,7 +1650,6 @@ ALTER TABLE `sys_member`
   ADD CONSTRAINT `sys_member_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 
 ALTER TABLE `sys_notification`
-  ADD CONSTRAINT `sys_notification_ibfk_1` FOREIGN KEY (`publisher_id`) REFERENCES `sys_user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   ADD CONSTRAINT `sys_notification_ibfk_2` FOREIGN KEY (`venue_id`) REFERENCES `sys_venue` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 
 ALTER TABLE `sys_user`

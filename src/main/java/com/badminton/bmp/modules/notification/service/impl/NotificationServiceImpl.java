@@ -8,6 +8,8 @@ import com.badminton.bmp.modules.system.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -58,6 +60,19 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setCreateTime(LocalDateTime.now());
 
         return notificationMapper.insert(notification);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public void publishSystemNotification(String title, String content, Long venueId) {
+        Notification notification = new Notification();
+        notification.setTitle(title);
+        notification.setContent(content);
+        notification.setPublisherId(0L);
+        notification.setPublisherName("SYSTEM");
+        notification.setVenueId(venueId);
+        notification.setCreateTime(LocalDateTime.now());
+        notificationMapper.insert(notification);
     }
 
     @Override

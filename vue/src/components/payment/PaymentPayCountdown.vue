@@ -3,11 +3,11 @@
     <p v-if="showConfigLoadingHint" class="payment-pay-countdown__hint payment-pay-countdown__hint--loading">
       正在加载支付超时规则…
     </p>
+    <p v-else-if="showConfigFallbackHint" class="payment-pay-countdown__hint payment-pay-countdown__hint--fallback">
+      支付超时规则加载失败，当前以服务端校验结果为准
+    </p>
     <p v-else-if="showFeatureDisabledHint" class="payment-pay-countdown__hint payment-pay-countdown__hint--disabled">
       系统未启用支付超时自动取消，请尽快完成支付
-    </p>
-    <p v-else-if="showConfigFallbackHint" class="payment-pay-countdown__hint payment-pay-countdown__hint--fallback">
-      超时规则来自本地兜底（服务端配置未加载）
     </p>
     <PaymentCountdownBadge v-if="info.show" :info="info" size="small" />
   </div>
@@ -59,6 +59,7 @@ const showFeatureDisabledHint = computed(() =>
   Boolean(props.order)
   && isPendingPaymentOrder(props.order)
   && activeState.value?.configLoaded?.value === true
+  && !showConfigFallbackHint.value
   && activeState.value?.autoCancelEnabled?.value === false
 )
 

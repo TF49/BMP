@@ -174,7 +174,7 @@ public interface BookingMapper {
 
     @Select("<script>" +
             "SELECT COUNT(*) FROM biz_booking b " +
-            "WHERE b.del_flag = 0 AND b.payment_status = #{paymentStatus} " +
+            "WHERE b.del_flag = 0 AND b.status != 0 AND b.payment_status = #{paymentStatus} " +
             "<if test='memberId != null'> AND b.member_id = #{memberId} </if>" +
             "<if test='venueId != null'> AND EXISTS (" +
             "SELECT 1 FROM biz_booking_court bc LEFT JOIN sys_court c ON bc.court_id = c.id " +
@@ -223,9 +223,11 @@ public interface BookingMapper {
     /**
      * 查询已超时且仍未支付的预约ID（创建时间早于等于 cutoff）
      */
-    @Select("SELECT id FROM biz_booking WHERE del_flag = 0 AND status = 1 " +
-            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
-    List<Long> findExpiredUnpaidBookingIds(@Param("cutoff") java.time.LocalDateTime cutoff);
+    @Select("SELECT b.*, m.member_name FROM biz_booking b " +
+            "LEFT JOIN sys_member m ON b.member_id = m.id " +
+            "WHERE b.del_flag = 0 AND b.status = 1 " +
+            "AND (b.payment_status IS NULL OR b.payment_status = 0) AND b.create_time <= #{cutoff}")
+    List<Booking> findExpiredUnpaidBookings(@Param("cutoff") java.time.LocalDateTime cutoff);
 
     /**
      * 条件支付更新：仅待支付且未支付的订单允许更新为已支付/进行中

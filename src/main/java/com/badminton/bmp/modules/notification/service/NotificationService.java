@@ -30,6 +30,11 @@ public interface NotificationService {
     int create(Notification notification);
 
     /**
+     * 记录系统通知（用于定时任务等无登录上下文场景）
+     */
+    void publishSystemNotification(String title, String content, Long venueId);
+
+    /**
      * 删除通知（仅协会会长、场馆管理员可调用）
      */
     int delete(Long id);

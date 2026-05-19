@@ -217,7 +217,7 @@ public interface StringingServiceMapper {
 
     @Select("<script>" +
             "SELECT COUNT(*) FROM biz_stringing_service " +
-            "WHERE del_flag = 0 AND payment_status = #{paymentStatus} " +
+            "WHERE del_flag = 0 AND status != 0 AND payment_status = #{paymentStatus} " +
             "<if test='venueId != null'> AND venue_id = #{venueId} </if>" +
             "</script>")
     int countByPaymentStatus(@Param("venueId") Long venueId,
@@ -237,10 +237,16 @@ public interface StringingServiceMapper {
     /**
      * 查询已超时且仍未支付的穿线服务ID（创建时间早于等于 cutoff）
      */
-    @Select("SELECT id FROM biz_stringing_service WHERE del_flag = 0 AND status = 1 " +
-            "AND (payment_status IS NULL OR payment_status = 0) AND service_price > 0 " +
-            "AND create_time <= #{cutoff}")
-    List<Long> findExpiredUnpaidServiceIds(@Param("cutoff") java.time.LocalDateTime cutoff);
+    @Select("SELECT ss.*, m.member_name, m.phone as member_phone, u.username as user_name, v.venue_name, e.equipment_name as string_equipment_name " +
+            "FROM biz_stringing_service ss " +
+            "LEFT JOIN sys_member m ON ss.member_id = m.id " +
+            "LEFT JOIN sys_user u ON ss.user_id = u.id " +
+            "LEFT JOIN sys_venue v ON ss.venue_id = v.id " +
+            "LEFT JOIN sys_equipment e ON ss.string_id = e.id " +
+            "WHERE ss.del_flag = 0 AND ss.status = 1 " +
+            "AND (ss.payment_status IS NULL OR ss.payment_status = 0) AND ss.service_price > 0 " +
+            "AND ss.create_time <= #{cutoff}")
+    List<StringingService> findExpiredUnpaidServices(@Param("cutoff") java.time.LocalDateTime cutoff);
 
     /**
      * 条件支付更新：仅等待穿线且未支付的订单允许标记为已支付

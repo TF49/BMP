@@ -49,14 +49,13 @@ function updatePaymentMessageBoxUi(paymentOrder, paymentAutoCancel, confirmButto
   const boxEl = getPaymentConfirmBoxEl(instanceId)
   if (!boxEl) return
 
-  const info = getPaymentAutoCancelInfo(
-    paymentOrder,
-    buildPaymentCountdownOptions(paymentAutoCancel)
-  )
+  const countdownOptions = buildPaymentCountdownOptions(paymentAutoCancel)
+  const info = getPaymentAutoCancelInfo(paymentOrder, countdownOptions)
   const primaryBtn = boxEl.querySelector('.el-message-box__btns .el-button--primary')
   if (!primaryBtn) return
+  const hasConfigFallback = Boolean(paymentAutoCancel?.configLoadError?.value)
 
-  if (info.expired) {
+  if (info.expired && !hasConfigFallback) {
     boxEl.classList.add('brand-confirm-box--payment-expired')
     primaryBtn.textContent = '已超时，请关闭'
     primaryBtn.disabled = true
@@ -83,6 +82,10 @@ function closePaymentMessageBoxOnExpire(paymentAutoCancel) {
 function createPaymentBeforeClose(paymentOrder, paymentAutoCancel) {
   return (action, _instance, done) => {
     if (action !== 'confirm') {
+      done()
+      return
+    }
+    if (paymentAutoCancel?.configLoadError?.value) {
       done()
       return
     }
@@ -146,6 +149,9 @@ export function openActionConfirm(options) {
       () => {
         void nextTick(() => {
           updatePaymentMessageBoxUi(paymentOrder, paymentAutoCancel, confirmButtonText, instanceId)
+          if (paymentAutoCancel?.configLoadError?.value) {
+            return
+          }
           const info = getPaymentAutoCancelInfo(
             paymentOrder,
             buildPaymentCountdownOptions(paymentAutoCancel)

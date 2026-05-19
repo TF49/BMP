@@ -144,7 +144,7 @@ public interface CourseBookingMapper {
             "SELECT COUNT(*) FROM biz_course_booking cb " +
             "INNER JOIN biz_course c ON cb.course_id = c.id " +
             "INNER JOIN sys_court ct ON c.court_id = ct.id " +
-            "WHERE cb.del_flag = 0 AND cb.payment_status = #{paymentStatus} " +
+            "WHERE cb.del_flag = 0 AND cb.status != 0 AND cb.payment_status = #{paymentStatus} " +
             "<if test='venueId != null'> AND ct.venue_id = #{venueId} </if>" +
             "</script>")
     int countByPaymentStatusFiltered(@Param("venueId") Long venueId,
@@ -229,9 +229,14 @@ public interface CourseBookingMapper {
     /**
      * 查询已超时且仍未支付的课程预约ID（创建时间早于等于 cutoff）
      */
-    @Select("SELECT id FROM biz_course_booking WHERE del_flag = 0 AND status = 1 " +
-            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
-    List<Long> findExpiredUnpaidBookingIds(@Param("cutoff") java.time.LocalDateTime cutoff);
+    @Select("SELECT cb.*, m.member_name, c.course_name, c.status AS course_status, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+            "LEFT JOIN sys_member m ON cb.member_id = m.id " +
+            "LEFT JOIN biz_course c ON cb.course_id = c.id " +
+            "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
+            "LEFT JOIN sys_coach co ON c.coach_id = co.id " +
+            "WHERE cb.del_flag = 0 AND cb.status = 1 " +
+            "AND (cb.payment_status IS NULL OR cb.payment_status = 0) AND cb.create_time <= #{cutoff}")
+    List<CourseBooking> findExpiredUnpaidBookings(@Param("cutoff") java.time.LocalDateTime cutoff);
 
     /**
      * 条件支付更新：仅待支付且未支付的课程预约允许更新为已支付

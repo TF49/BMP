@@ -147,7 +147,7 @@ public interface TournamentRegistrationMapper {
     @Select("<script>" +
             "SELECT COUNT(*) FROM biz_tournament_registration tr " +
             "LEFT JOIN biz_tournament t ON tr.tournament_id = t.id " +
-            "WHERE tr.del_flag = 0 AND tr.payment_status = #{paymentStatus} " +
+            "WHERE tr.del_flag = 0 AND tr.status != 0 AND tr.payment_status = #{paymentStatus} " +
             "<if test='venueId != null'> AND t.venue_id = #{venueId} </if>" +
             "</script>")
     int countByPaymentStatus(@Param("venueId") Long venueId,
@@ -189,9 +189,20 @@ public interface TournamentRegistrationMapper {
     /**
      * 查询已超时且仍未支付的赛事报名ID（创建时间早于等于 cutoff）
      */
-    @Select("SELECT id FROM biz_tournament_registration WHERE del_flag = 0 AND status = 1 " +
-            "AND (payment_status IS NULL OR payment_status = 0) AND create_time <= #{cutoff}")
-    List<Long> findExpiredUnpaidRegistrationIds(@Param("cutoff") LocalDateTime cutoff);
+    @Select("SELECT tr.*, " +
+            "COALESCE(tr.registrant_name, m1.member_name) as member_name, " +
+            "COALESCE(tr.partner_name_snapshot, m2.member_name) as partner_name, t.tournament_name, " +
+            "t.status as tournament_status, t.tournament_type as tournament_type, t.event_type as tournament_event_type, " +
+            "t.entry_fee as tournament_entry_fee, t.tournament_start as tournament_start_time, t.tournament_end as tournament_end_time, " +
+            "IFNULL(v.venue_name, '') as venue_name " +
+            "FROM biz_tournament_registration tr " +
+            "LEFT JOIN sys_member m1 ON tr.member_id = m1.id " +
+            "LEFT JOIN sys_member m2 ON tr.partner_id = m2.id " +
+            "LEFT JOIN biz_tournament t ON tr.tournament_id = t.id " +
+            "LEFT JOIN sys_venue v ON t.venue_id = v.id " +
+            "WHERE tr.del_flag = 0 AND tr.status = 1 " +
+            "AND (tr.payment_status IS NULL OR tr.payment_status = 0) AND tr.create_time <= #{cutoff}")
+    List<TournamentRegistration> findExpiredUnpaidRegistrations(@Param("cutoff") LocalDateTime cutoff);
 
     /**
      * 条件支付更新：仅待支付且未支付的报名允许更新为已支付

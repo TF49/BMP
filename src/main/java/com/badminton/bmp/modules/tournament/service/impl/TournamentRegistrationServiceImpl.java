@@ -6,7 +6,9 @@ import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
 import com.badminton.bmp.modules.finance.entity.Finance;
+import com.badminton.bmp.modules.finance.service.FinanceAuditService;
 import com.badminton.bmp.modules.finance.service.FinanceService;
+import com.badminton.bmp.modules.notification.service.NotificationService;
 import com.badminton.bmp.modules.tournament.entity.Tournament;
 import com.badminton.bmp.modules.tournament.entity.TournamentRegistration;
 import com.badminton.bmp.modules.tournament.mapper.TournamentMapper;
@@ -16,7 +18,10 @@ import com.badminton.bmp.modules.tournament.support.TournamentTypeHelper;
 import com.badminton.bmp.websocket.WebSocketPushService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,6 +38,7 @@ import com.badminton.bmp.common.util.SecurityUtils;
 @Service
 public class TournamentRegistrationServiceImpl implements TournamentRegistrationService {
     private static final java.math.BigDecimal DOUBLES_FEE_MULTIPLIER = java.math.BigDecimal.valueOf(2);
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class);
 
     @Autowired
     private TournamentRegistrationMapper tournamentRegistrationMapper;
@@ -45,9 +51,15 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
     @Autowired
     private FinanceService financeService;
     @Autowired
+    private FinanceAuditService financeAuditService;
+    @Autowired
     private WebSocketPushService webSocketPushService;
     @Autowired
     private PaymentAutoCancelProperties paymentAutoCancelProperties;
+    @Autowired
+    private NotificationService notificationService;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     /**
      * 根据ID查找赛事报名记录
@@ -1041,38 +1053,20 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public int autoCancelExpiredUnpaidOrders(LocalDateTime cutoff) {
         if (cutoff == null) {
             return 0;
         }
-        List<Long> registrationIds = tournamentRegistrationMapper.findExpiredUnpaidRegistrationIds(cutoff);
-        if (registrationIds == null || registrationIds.isEmpty()) {
+        List<TournamentRegistration> registrations = tournamentRegistrationMapper.findExpiredUnpaidRegistrations(cutoff);
+        if (registrations == null || registrations.isEmpty()) {
             return 0;
         }
         int cancelled = 0;
-        for (Long registrationId : registrationIds) {
-            TournamentRegistration registration = tournamentRegistrationMapper.findById(registrationId);
-            if (registration == null) {
+        for (TournamentRegistration registration : registrations) {
+            if (registration == null || registration.getId() == null) {
                 continue;
             }
-            LocalDateTime cancelledAt = LocalDateTime.now();
-            String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(registration.getRemark());
-            int updated = tournamentRegistrationMapper.cancelExpiredUnpaidRegistration(registrationId, cancelledAt, cancelRemark);
-            if (updated <= 0) {
-                continue;
-            }
-            cancelled += updated;
-            syncTournamentCurrentParticipants(registration.getTournamentId());
-            try {
-                Long userId = null;
-                Member m = memberMapper.findById(registration.getMemberId());
-                if (m != null && m.getUserId() != null) userId = m.getUserId();
-                webSocketPushService.pushOrderStatusToUser(userId, "tournamentRegistration", registrationId, 0, "已取消", "赛事报名");
-                webSocketPushService.pushDashboardRefresh();
-            } catch (Exception e) {
-                org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
-            }
+            cancelled += runAutoCancelInNewTransaction(() -> autoCancelSingleRegistration(registration));
         }
         return cancelled;
     }
@@ -1093,9 +1087,54 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
             try {
                 webSocketPushService.pushDashboardRefresh();
             } catch (Exception e) {
-                org.slf4j.LoggerFactory.getLogger(TournamentRegistrationServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
+                log.warn("WebSocket 推送失败: {}", e.getMessage());
             }
         }
+    }
+
+    private int autoCancelSingleRegistration(TournamentRegistration registration) {
+        Long registrationId = registration.getId();
+        LocalDateTime cancelledAt = LocalDateTime.now();
+        String cancelRemark = AutoCancelRemarkUtil.buildAutoCancelRemark(registration.getRemark());
+        int updated = tournamentRegistrationMapper.cancelExpiredUnpaidRegistration(registrationId, cancelledAt, cancelRemark);
+        if (updated <= 0) {
+            return 0;
+        }
+        syncTournamentCurrentParticipants(registration.getTournamentId());
+        publishAutoCancelArtifacts(registration);
+        registration.setStatus(0);
+        registration.setUpdateTime(cancelledAt);
+        registration.setRemark(cancelRemark);
+        try {
+            Long userId = null;
+            Member m = memberMapper.findById(registration.getMemberId());
+            if (m != null && m.getUserId() != null) userId = m.getUserId();
+            webSocketPushService.pushOrderStatusToUser(userId, "tournamentRegistration", registrationId, 0, "已取消", "赛事报名");
+            webSocketPushService.pushDashboardRefresh();
+        } catch (Exception e) {
+            log.warn("WebSocket 推送失败: {}", e.getMessage());
+        }
+        return updated;
+    }
+
+    private int runAutoCancelInNewTransaction(java.util.function.IntSupplier action) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        Integer result = transactionTemplate.execute(status -> action.getAsInt());
+        return result == null ? 0 : result;
+    }
+
+    private void publishAutoCancelArtifacts(TournamentRegistration registration) {
+        Tournament tournament = tournamentMapper.findById(registration.getTournamentId());
+        Long venueId = tournament != null ? tournament.getVenueId() : null;
+        String businessNo = registration.getRegistrationNo();
+        String content = "赛事报名订单 " + businessNo + " 超时未支付，系统已自动取消。";
+        try {
+            notificationService.publishSystemNotification("赛事报名订单已自动取消", content, venueId);
+        } catch (Exception e) {
+            log.warn("赛事报名自动取消通知持久化失败, orderNo={}", businessNo, e);
+        }
+        financeAuditService.logSystemAutoCancel("赛事报名", registration.getId(), businessNo, registration, content);
     }
 
     private String resolvePendingPaymentConflictMessage(TournamentRegistration latestRegistration, String orderLabel) {
