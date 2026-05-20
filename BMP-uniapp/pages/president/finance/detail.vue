@@ -8,8 +8,8 @@
       </view>
       <view v-if="loading" class="loading-wrap">加载中...</view>
       <view v-else-if="detail" class="detail-card glass-card">
-        <view class="detail-row"><text class="label">业务类型</text><text class="value">{{ detail.businessType || '—' }}</text></view>
-        <view class="detail-row"><text class="label">收支类型</text><text class="value">{{ detail.incomeExpenseType === 'INCOME' ? '收入' : '支出' }}</text></view>
+        <view class="detail-row"><text class="label">业务类型</text><text class="value">{{ formatBusinessLabel(detail.businessType) }}</text></view>
+        <view class="detail-row"><text class="label">收支类型</text><text class="value">{{ isIncome(detail) ? '收入' : '支出' }}</text></view>
         <view class="detail-row"><text class="label">金额</text><text class="value amount">¥{{ formatNum(detail.amount) }}</text></view>
         <view class="detail-row"><text class="label">支付方式</text><text class="value">{{ detail.paymentMethod || '—' }}</text></view>
         <view class="detail-row"><text class="label">场馆</text><text class="value">{{ detail.venueName || '—' }}</text></view>
@@ -47,6 +47,27 @@ const isPresident = computed(() => isPresidentRole(userStore.userInfo?.role))
 function formatNum(v: unknown) {
   const n = Number(v)
   return Number.isFinite(n) ? n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '0'
+}
+
+function formatBusinessLabel(label?: string) {
+  const map: Record<string, string> = {
+    BOOKING: '场地预约',
+    COURSE: '课程预约',
+    TOURNAMENT: '赛事报名',
+    EQUIPMENT: '器材租借',
+    STRINGING: '穿线服务',
+    RECHARGE: '会员充值',
+    OTHER: '其他收支'
+  }
+  if (!label) return '—'
+  return map[label] || label
+}
+
+function isIncome(item: FinanceItem) {
+  return item.incomeExpenseType === 1
+    || item.incomeExpenseType === '1'
+    || item.incomeExpenseType === 'income'
+    || item.incomeExpenseType === 'INCOME'
 }
 
 function onBack() {

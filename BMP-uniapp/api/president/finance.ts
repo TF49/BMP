@@ -8,7 +8,7 @@ export interface FinanceItem {
   venueId?: number
   venueName?: string
   businessType?: string
-  incomeExpenseType?: string
+  incomeExpenseType?: number | string
   amount?: number
   paymentMethod?: string
   operatorName?: string
@@ -23,6 +23,13 @@ export interface FinanceListResult {
   page?: number
   size?: number
   pages?: number
+}
+
+export interface BusinessRatioItem {
+  type?: string
+  name?: string
+  amount?: number
+  ratio?: number
 }
 
 export function getFinanceList(params?: {
@@ -84,8 +91,8 @@ export function getBusinessRatio(params?: {
   startDate?: string
   endDate?: string
 }) {
-  return get<{
-    labels: string[]
-    values: number[]
+  return get<BusinessRatioItem[] | {
+    labels?: string[]
+    values?: number[]
   }>('/finance/ratio', params || {})
 }

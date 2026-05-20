@@ -85,13 +85,21 @@ const weekData = ref({ categories: [], values: [] })
 const monthData = ref({ categories: [], values: [] })
 
 const currentData = computed(() => activePeriod.value === 'week' ? weekData.value : monthData.value)
-const totalRevenue = computed(() => (currentData.value.values || []).reduce((a, b) => a + (Number(b) || 0), 0))
+const getCategories = () => {
+  const categories = currentData.value?.categories
+  return Array.isArray(categories) ? categories : []
+}
+const getValues = () => {
+  const values = currentData.value?.values
+  return Array.isArray(values) ? values : []
+}
+const totalRevenue = computed(() => getValues().reduce((a, b) => a + (Number(b) || 0), 0))
 const avgRevenue = computed(() => {
-  const len = (currentData.value.values || []).length
+  const len = getValues().length
   return len > 0 ? Math.round(totalRevenue.value / len) : 0
 })
 const trendChange = computed(() => {
-  const values = currentData.value.values || []
+  const values = getValues()
   if (values.length < 2) return 0
   const lastValue = Number(values[values.length - 1]) || 0
   const prevValue = Number(values[values.length - 2]) || 0
@@ -168,12 +176,13 @@ const getChartOption = () => {
         shadowBlur: 10
       }
     },
-    formatter: (params) => {
-      const data = params[0]
-      const trend = data.dataIndex > 0 
-        ? (data.value > currentData.value.values[data.dataIndex - 1] ? '↑' : '↓')
-        : ''
-      return `
+      formatter: (params) => {
+        const data = params[0]
+        const values = getValues()
+        const trend = data.dataIndex > 0 
+          ? (data.value > values[data.dataIndex - 1] ? '↑' : '↓')
+          : ''
+        return `
         <div style="font-weight: 600; margin-bottom: 10px; color: ${colors.textPrimary}; font-size: 14px;">${data.name}</div>
         <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
           <span style="width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, ${colors.primary}, ${colors.info}); box-shadow: 0 2px 4px ${colors.primary}4D;"></span>
@@ -192,7 +201,7 @@ const getChartOption = () => {
   },
   xAxis: {
     type: 'category',
-    data: currentData.value.categories,
+    data: getCategories(),
     axisLine: {
       show: false
     },

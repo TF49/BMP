@@ -123,15 +123,25 @@ const periods = [
 ]
 
 const currentData = computed(() => props.venueData[activePeriod.value] || { categories: [], values: [] })
-const hasData = computed(() => currentData.value.values && currentData.value.values.length > 0)
-const totalBookings = computed(() => hasData.value ? currentData.value.values.reduce((a, b) => a + b, 0) : 0)
-const avgBookings = computed(() => hasData.value ? Math.round(totalBookings.value / currentData.value.values.length) : 0)
+const getCategories = () => {
+  const categories = currentData.value?.categories
+  return Array.isArray(categories) ? categories : []
+}
+const getValues = () => {
+  const values = currentData.value?.values
+  return Array.isArray(values) ? values : []
+}
+const hasData = computed(() => getValues().length > 0)
+const totalBookings = computed(() => getValues().reduce((a, b) => a + (Number(b) || 0), 0))
+const avgBookings = computed(() => {
+  const values = getValues()
+  return values.length > 0 ? Math.round(totalBookings.value / values.length) : 0
+})
 const trendChange = computed(() => {
-  if (!hasData.value) return 0
-  const values = currentData.value.values
+  const values = getValues()
   if (values.length < 2) return 0
-  const lastValue = values[values.length - 1]
-  const prevValue = values[values.length - 2]
+  const lastValue = Number(values[values.length - 1]) || 0
+  const prevValue = Number(values[values.length - 2]) || 0
   return prevValue > 0 ? ((lastValue - prevValue) / prevValue) * 100 : 0
 })
 
@@ -165,8 +175,9 @@ const getChartOption = () => {
       },
       formatter: (params) => {
         const data = params[0]
+        const values = getValues()
         const trend = data.dataIndex > 0
-          ? (data.value > currentData.value.values[data.dataIndex - 1] ? '↑' : '↓')
+          ? (data.value > values[data.dataIndex - 1] ? '↑' : '↓')
           : ''
         return `
           <div style="font-weight: 600; margin-bottom: 10px; color: ${textPrimary}; font-size: 14px;">${props.venueName} - ${data.name}</div>
@@ -188,7 +199,7 @@ const getChartOption = () => {
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: currentData.value.categories,
+      data: getCategories(),
       axisLine: {
         show: false
       },

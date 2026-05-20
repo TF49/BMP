@@ -220,13 +220,13 @@
                     <view :class="['icon-box', getBusinessStyle(item.businessType)]">
                       <uni-icons :type="getBusinessIcon(item.businessType)" size="20" color="#a33e00"></uni-icons>
                     </view>
-                    <text class="type-text">{{ item.businessType || '其他' }}</text>
+                    <text class="type-text">{{ formatBusinessLabel(item.businessType) }}</text>
                   </view>
                   <view class="td w-channel">{{ item.paymentMethod || '-' }}</view>
                   <view 
-                    :class="['td', 'w-amount', 'right', item.incomeExpenseType === 'income' ? 'amt-plus' : 'amt-minus']"
+                    :class="['td', 'w-amount', 'right', isIncome(item) ? 'amt-plus' : 'amt-minus']"
                   >
-                    {{ item.incomeExpenseType === 'income' ? '+' : '-' }}{{ formatAmount(item.amount) }}
+                    {{ isIncome(item) ? '+' : '-' }}{{ formatAmount(item.amount) }}
                   </view>
                   <view class="td w-status">
                     <text :class="['status-tag', getStatusTag(item).class]">
@@ -254,7 +254,8 @@ import {
   getFinanceStatistics,
   getFinanceTrend,
   getBusinessRatio,
-  type FinanceItem 
+  type FinanceItem,
+  type BusinessRatioItem
 } from '@/api/president/finance'
 
 // 数据状态
@@ -300,8 +301,8 @@ const trendBars = computed(() => {
 })
 
 const ratioItems = computed(() => {
-  const labels = businessRatioData.value.labels || []
-  const values = businessRatioData.value.values || []
+  const labels = Array.isArray(businessRatioData.value.labels) ? businessRatioData.value.labels : []
+  const values = Array.isArray(businessRatioData.value.values) ? businessRatioData.value.values : []
   const total = values.reduce((sum, value) => sum + Number(value || 0), 0)
 
   return labels.map((label, index) => {
@@ -369,10 +370,31 @@ async function loadTrendData() {
 async function loadBusinessRatio() {
   try {
     const ratio = await getBusinessRatio()
-    businessRatioData.value = ratio
+    businessRatioData.value = normalizeBusinessRatio(ratio)
   } catch (error) {
     console.error('加载业务占比失败:', error)
+    businessRatioData.value = { labels: [], values: [] }
   }
+}
+
+function normalizeBusinessRatio(
+  ratio: BusinessRatioItem[] | { labels?: unknown; values?: unknown } | null | undefined
+): { labels: string[]; values: number[] } {
+  if (Array.isArray(ratio)) {
+    return {
+      labels: ratio.map((item) => String(item?.type || item?.name || '')),
+      values: ratio.map((item) => Number(item?.amount || 0))
+    }
+  }
+
+  const labels = Array.isArray(ratio?.labels)
+    ? ratio.labels.map((item) => String(item || ''))
+    : []
+  const values = Array.isArray(ratio?.values)
+    ? ratio.values.map((item) => Number(item || 0))
+    : []
+
+  return { labels, values }
 }
 
 // 加载财务列表数据
@@ -430,7 +452,14 @@ function formatBusinessLabel(label?: string): string {
     equipment_rental: '器材租借',
     stringing: '穿线服务',
     member_recharge: '会员充值',
-    maintenance: '维护服务'
+    maintenance: '维护服务',
+    BOOKING: '场地预约',
+    COURSE: '课程预约',
+    TOURNAMENT: '赛事报名',
+    EQUIPMENT: '器材租借',
+    STRINGING: '穿线服务',
+    RECHARGE: '会员充值',
+    OTHER: '其他收支'
   }
   if (!label) return '其他'
   return map[label] || label
@@ -443,7 +472,14 @@ function getBusinessIcon(type?: string): string {
     'course_booking': 'flag',
     'equipment_rental': 'shop',
     'tournament': 'medal',
-    'maintenance': 'settings'
+    'maintenance': 'settings',
+    'BOOKING': 'calendar',
+    'COURSE': 'flag',
+    'EQUIPMENT': 'shop',
+    'TOURNAMENT': 'medal',
+    'STRINGING': 'gear-filled',
+    'RECHARGE': 'wallet',
+    'OTHER': 'wallet'
   }
   return iconMap[type || ''] || 'wallet'
 }
@@ -454,9 +490,23 @@ function getBusinessStyle(type?: string): string {
     'court_booking': 'primary-bg',
     'course_booking': 'secondary-bg',
     'equipment_rental': 'tertiary-bg',
-    'maintenance': 'error-bg'
+    'maintenance': 'error-bg',
+    'BOOKING': 'primary-bg',
+    'COURSE': 'secondary-bg',
+    'EQUIPMENT': 'tertiary-bg',
+    'TOURNAMENT': 'primary-bg',
+    'STRINGING': 'secondary-bg',
+    'RECHARGE': 'tertiary-bg',
+    'OTHER': 'error-bg'
   }
   return styleMap[type || ''] || 'primary-bg'
+}
+
+function isIncome(item: FinanceItem): boolean {
+  return item.incomeExpenseType === 1
+    || item.incomeExpenseType === '1'
+    || item.incomeExpenseType === 'income'
+    || item.incomeExpenseType === 'INCOME'
 }
 
 // 获取状态标签
