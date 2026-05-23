@@ -144,7 +144,7 @@ public class BookingController extends BaseController {
 
     /**
      * 添加预约记录
-     * @param booking 预约记录对象
+     * @param 预约记录对象
      * @return 添加结果
      */
     @Operation(summary = "新增预约")
