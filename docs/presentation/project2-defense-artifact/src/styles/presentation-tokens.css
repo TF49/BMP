@@ -1,0 +1,43 @@
+/* ui-ux-pro-max: glassmorphism + engineering SaaS palette; Space Grotesk + Noto Sans SC */
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+:root {
+  --pres-bg: #f7f5ef;
+  --pres-bg-soft: #fcfbf8;
+  --pres-text: #17191f;
+  --pres-muted: #5d6472;
+  --pres-line: rgba(23, 25, 31, 0.12);
+  --pres-panel: rgba(255, 255, 255, 0.76);
+  --pres-shadow: 0 24px 80px rgba(21, 28, 45, 0.1);
+  --pres-accent: #2268f6;
+  --pres-accent-2: #f18962;
+  --pres-accent-3: #7bcaf7;
+  --font-display: "Space Grotesk", "Noto Sans SC", sans-serif;
+  --font-body: "Noto Sans SC", "PingFang SC", sans-serif;
+  --radius: 1.25rem;
+}
+
+.theme-engineering-systems {
+  --pres-bg: #111827;
+  --pres-bg-soft: #1a2233;
+  --pres-text: #edf2ff;
+  --pres-muted: #9aa7bf;
+  --pres-line: rgba(237, 242, 255, 0.12);
+  --pres-panel: rgba(21, 31, 49, 0.76);
+  --pres-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  --pres-accent: #4dc5ff;
+  --pres-accent-2: #89d55d;
+  --pres-accent-3: #8ac3ff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-scale: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --motion-scale: 1;
+  }
+}

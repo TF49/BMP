@@ -10,8 +10,6 @@ interface RequestOptions {
   suppressErrorToast?: boolean
 }
 
-function reportDebug(_payload: Record<string, unknown>) {}
-
 let lastGlobalErrorToastAt = 0
 let lastGlobalErrorToastMessage = ''
 
@@ -87,11 +85,6 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
       timeout: REQUEST_TIMEOUT,
       success: (res) => {
         const { statusCode, data } = res
-        // #region agent log
-        if (statusCode !== 200) {
-          reportDebug({sessionId:'dd076f',runId:'post-fix',hypothesisId:'H5',location:'utils/request.ts:request:non200',message:'non-200 response received',data:{url:options.url,statusCode},timestamp:Date.now()})
-        }
-        // #endregion
 
         // 对于认证接口：不进行自动跳转处理，但仍需做统一的业务 code 处理，保证调用方可通过 catch 处理错误
         if (isAuth) {
@@ -111,7 +104,9 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
 
         // 处理 HTTP 状态码错误（非认证接口）
         if (statusCode === 403) {
-          console.error('API 请求被拒绝 (403)，当前账号无权访问该资源')
+          if (!options.suppressErrorToast) {
+            console.error('API 请求被拒绝 (403)，当前账号无权访问该资源')
+          }
           const errorMessage = (data as any)?.message || (data as any)?.msg || '权限不足'
           if (!options.suppressErrorToast) {
             showRequestErrorToast(errorMessage)
@@ -197,9 +192,6 @@ export function request<T = any>(options: RequestOptions): Promise<T> {
         }
 
         console.error('网络请求错误:', err)
-        // #region agent log
-        reportDebug({sessionId:'dd076f',runId:'post-fix',hypothesisId:'H5',location:'utils/request.ts:request:fail',message:'uni.request failed',data:{url:options.url,errMsg:err?.errMsg||''},timestamp:Date.now()})
-        // #endregion
         let errorMessage = '网络请求失败，请检查网络连接'
         
         if (errMsg) {
