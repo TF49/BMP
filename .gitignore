@@ -18,7 +18,10 @@ target/
 *.iws
 *.iml
 *.ipr
-!BMP.iml
+
+### Tooling / build caches ###
+.codex/
+.parcel-cache/
 
 ### NetBeans ###
 /nbproject/private/

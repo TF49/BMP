@@ -191,9 +191,10 @@ BMP/
 
 ## 提交到 GitHub 前检查
 
-- [ ] 确认 `.gitignore` 已排除 `node_modules/`、`target/`、`uploads/`、`logs/`、`.env*`
-- [ ] 勿提交真实数据库密码、JWT 密钥、第三方 API Key
-- [ ] 按需删除或脱敏 SQL 中的个人演示账号
+- [x] 确认 `.gitignore` 已排除 `node_modules/`、`target/`、`uploads/`、`logs/`、`.env*`、`.parcel-cache/`、`.codex/`
+- [ ] 勿提交真实数据库密码、JWT 密钥、第三方 API Key（生产务必用环境变量覆盖 `JWT_SECRET`）
+- [x] SQL 与 `vue/src/config/contact.ts` 已使用演示占位数据（手机号/身份证/联系方式为虚构值）
+- [ ] 答辩稿 `docs/presentation/` 中的组员姓名若需匿名，请自行调整蓝图 JSON/HTML
 - [ ] 在仓库 Description 中注明：Java 17 + Vue 3 + UniApp 羽毛球场馆管理系统
 
 ## 许可证
