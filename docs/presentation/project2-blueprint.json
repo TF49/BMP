@@ -6,9 +6,18 @@
   "theme": "brand-roadshow",
   "defaultPresenter": "尹晴",
   "presenters": [
-    { "name": "尹晴", "module": "开场 · 项目简介" },
-    { "name": "阿英莫", "module": "预约模块（后端 + Web）" },
-    { "name": "涂家乐", "module": "支付模块（后端 + UniApp）" }
+    {
+      "name": "尹晴",
+      "module": "开场 · 项目简介"
+    },
+    {
+      "name": "阿英莫",
+      "module": "预约模块（后端 + Web）"
+    },
+    {
+      "name": "涂家乐",
+      "module": "支付模块（后端 + UniApp）"
+    }
   ],
   "chapterOrder": [
     "opening",
@@ -18,6 +27,7 @@
     "split_overview",
     "split_architecture",
     "module_booking",
+    "demo_pay_success",
     "booking_model",
     "booking_conflict",
     "booking_pipeline",
@@ -25,6 +35,7 @@
     "booking_web_user",
     "booking_web_admin",
     "module_payment",
+    "demo_auto_cancel",
     "payment_api",
     "payment_flow",
     "payment_balance",
@@ -51,19 +62,39 @@
         "本次答辩按三人分模块：尹晴讲开场与简介，阿英莫讲预约，涂家乐讲支付。"
       ],
       "metrics": [
-        { "label": "章节", "value": "20 章", "note": "三人分模块，每章一个焦点。" },
-        { "label": "时长", "value": "~12 min", "note": "开场 3 min · 预约 4 min · 支付 4 min" }
+        {
+          "label": "章节",
+          "value": "22 章",
+          "note": "三人分模块，每章一个焦点。"
+        },
+        {
+          "label": "时长",
+          "value": "~12 min",
+          "note": "开场 3 min · 预约 4 min · 支付 4 min"
+        }
       ],
       "support": {
         "label": "Cover",
         "title": "项目标识",
         "copy": "羽擎 BMP · 项目二 · 课程设计答辩。",
         "items": [
-          { "label": "System", "title": "Badminton Management Platform", "body": "v1.0.0 · Java 17 · Vue 3 · UniApp" },
-          { "label": "Focus", "title": "预约 + 支付", "body": "选场下单与待支付治理。" }
+          {
+            "label": "System",
+            "title": "Badminton Management Platform",
+            "body": "v1.0.0 · Java 17 · Vue 3 · UniApp"
+          },
+          {
+            "label": "Focus",
+            "title": "预约 + 支付",
+            "body": "选场下单与待支付治理。"
+          }
         ]
       },
-      "scenePos": { "x": 0, "y": 360, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 360,
+        "width": 1280
+      }
     },
     {
       "id": "background_problem",
@@ -83,20 +114,44 @@
         "下单后若长时间待支付，会占用场地，影响他人预约。"
       ],
       "metrics": [
-        { "label": "模式", "value": "SHARED / PACKAGE", "note": "Booking.MODE_SHARED · MODE_PACKAGE" },
-        { "label": "风险", "value": "占场不付", "note": "待支付单需可配置超时并自动取消" }
+        {
+          "label": "模式",
+          "value": "SHARED / PACKAGE",
+          "note": "Booking.MODE_SHARED · MODE_PACKAGE"
+        },
+        {
+          "label": "风险",
+          "value": "占场不付",
+          "note": "待支付单需可配置超时并自动取消"
+        }
       ],
       "support": {
         "label": "Must solve",
         "title": "系统必须同时做到",
         "copy": "这三件事贯穿后续所有章节。",
         "items": [
-          { "label": "1", "title": "冲突校验", "body": "明细级占用判断，避免重复预约。" },
-          { "label": "2", "title": "状态流转", "body": "0–4 五态驱动预约全生命周期。" },
-          { "label": "3", "title": "超时释放", "body": "未付款订单到期自动取消并解锁场地。" }
+          {
+            "label": "1",
+            "title": "冲突校验",
+            "body": "明细级占用判断，避免重复预约。"
+          },
+          {
+            "label": "2",
+            "title": "状态流转",
+            "body": "0–4 五态驱动预约全生命周期。"
+          },
+          {
+            "label": "3",
+            "title": "超时释放",
+            "body": "未付款订单到期自动取消并解锁场地。"
+          }
         ]
       },
-      "scenePos": { "x": 0, "y": 1480, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 1480,
+        "width": 1280
+      }
     },
     {
       "id": "background_governance",
@@ -111,15 +166,25 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Governance funnel",
-      "body": ["听众先记住：不是三个孤立功能，而是同一订单域上的三种入口压力。"],
+      "body": [
+        "听众先记住：不是三个孤立功能，而是同一订单域上的三种入口压力。"
+      ],
       "diagram": {
         "type": "funnel",
         "title": "业务压力汇聚",
-        "inputs": ["拼场 SHARED", "包场 PACKAGE", "待支付占场"],
+        "inputs": [
+          "拼场 SHARED",
+          "包场 PACKAGE",
+          "待支付占场"
+        ],
         "output": "冲突校验 + 超时释放"
       },
       "supportHidden": true,
-      "scenePos": { "x": 1480, "y": 2600, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 2600,
+        "width": 1280
+      }
     },
     {
       "id": "background_scenarios",
@@ -134,14 +199,20 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Scenario tree",
-      "body": ["答辩现场可任选其一展开 20 秒，不必三章都念完。"],
+      "body": [
+        "答辩现场可任选其一展开 20 秒，不必三章都念完。"
+      ],
       "diagram": {
         "type": "tree",
         "preset": "bmp-scenarios",
         "title": "三类情境分支"
       },
       "supportHidden": true,
-      "scenePos": { "x": 0, "y": 3720, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 3720,
+        "width": 1280
+      }
     },
     {
       "id": "split_overview",
@@ -156,7 +227,9 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Three speakers · One backend",
-      "body": ["简介部分到此结束，接下来由阿英莫、涂家乐分别展开两条业务线。"],
+      "body": [
+        "简介部分到此结束，接下来由阿英莫、涂家乐分别展开两条业务线。"
+      ],
       "diagram": {
         "type": "flow-rail",
         "preset": "bmp-three-tracks",
@@ -164,7 +237,11 @@
         "caption": "尹晴 · 开场简介 → 阿英莫 · 预约模块 → 涂家乐 · 支付模块"
       },
       "supportHidden": true,
-      "scenePos": { "x": 1480, "y": 4840, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 4840,
+        "width": 1280
+      }
     },
     {
       "id": "split_architecture",
@@ -179,7 +256,9 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Architecture",
-      "body": ["数据落库：biz_booking 主单 + biz_booking_court 场地明细。"],
+      "body": [
+        "数据落库：biz_booking 主单 + biz_booking_court 场地明细。"
+      ],
       "diagram": {
         "type": "flow-rail",
         "preset": "bmp-dual-track",
@@ -187,7 +266,11 @@
         "caption": "预约走 Web、支付走 UniApp，汇入同一 API 与 MySQL。"
       },
       "supportHidden": true,
-      "scenePos": { "x": 0, "y": 5960, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 5960,
+        "width": 1280
+      }
     },
     {
       "id": "module_booking",
@@ -206,7 +289,34 @@
       "body": [
         "覆盖：数据模型 → 冲突检测 → 下单链路 → 状态机 → Web 用户端与管理端。"
       ],
-      "scenePos": { "x": 1480, "y": 7080, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 7080,
+        "width": 1280
+      }
+    },
+    {
+      "id": "demo_pay_success",
+      "step": "演示 / 支付",
+      "title": "演示：余额支付成功",
+      "dotLabel": "演示",
+      "presenter": "涂家乐",
+      "module": "支付模块（后端 + UniApp）",
+      "claim": "Web 下单后，小程序 confirm 完成 BALANCE 扣款，订单进入已支付。",
+      "sceneRole": "mechanism",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "demo",
+      "eyebrow": "实机录屏",
+      "support": {
+        "video": "assets/videos/支付测试.mp4",
+        "copy": "user001 · 待支付 → 立即支付 → 余额支付成功"
+      },
+      "scenePos": {
+        "x": 0,
+        "y": 8200,
+        "width": 1360
+      }
     },
     {
       "id": "booking_model",
@@ -221,18 +331,36 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "BookingServiceImpl",
-      "body": ["创建预约时同时写入主单与多场地明细。"],
+      "body": [
+        "创建预约时同时写入主单与多场地明细。"
+      ],
       "diagram": {
         "type": "layer-stack",
         "title": "预约数据分层",
         "layers": [
-          { "tag": "主单", "title": "biz_booking", "body": "会员、模式、日期、总金额、状态码 0–4" },
-          { "tag": "明细", "title": "biz_booking_court", "body": "多场地、多时段，冲突检测依据" },
-          { "tag": "策略", "title": "定价模式", "body": "SHARED_HOUR · SHARED_TIME · PACKAGE_HOUR" }
+          {
+            "tag": "主单",
+            "title": "biz_booking",
+            "body": "会员、模式、日期、总金额、状态码 0–4"
+          },
+          {
+            "tag": "明细",
+            "title": "biz_booking_court",
+            "body": "多场地、多时段，冲突检测依据"
+          },
+          {
+            "tag": "策略",
+            "title": "定价模式",
+            "body": "SHARED_HOUR · SHARED_TIME · PACKAGE_HOUR"
+          }
         ]
       },
       "supportHidden": true,
-      "scenePos": { "x": 0, "y": 8200, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 9320,
+        "width": 1280
+      }
     },
     {
       "id": "booking_conflict",
@@ -247,7 +375,9 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Conflict check",
-      "body": ["冲突检测是预约模块的第一道闸门，避免重复占场。"],
+      "body": [
+        "冲突检测是预约模块的第一道闸门，避免重复占场。"
+      ],
       "diagram": {
         "type": "flow-rail",
         "preset": "bmp-booking-conflict",
@@ -255,7 +385,11 @@
         "caption": "DTO 入参 → 查占用明细 → 分支拒绝/通过 → 写单 → 待支付(1)"
       },
       "supportHidden": true,
-      "scenePos": { "x": 1480, "y": 9320, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 10440,
+        "width": 1280
+      }
     },
     {
       "id": "booking_pipeline",
@@ -270,14 +404,25 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Create booking",
-      "body": ["BookingServiceImpl 在冲突通过后一次性写入主单与明细，并返回 bookingNo。"],
+      "body": [
+        "BookingServiceImpl 在冲突通过后一次性写入主单与明细，并返回 bookingNo。"
+      ],
       "diagram": {
         "type": "pipeline",
         "title": "下单流程",
-        "steps": ["选场与模式", "冲突检测", "写主单+明细", "待支付(1)"]
+        "steps": [
+          "选场与模式",
+          "冲突检测",
+          "写主单+明细",
+          "待支付(1)"
+        ]
       },
       "supportHidden": true,
-      "scenePos": { "x": 0, "y": 10440, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 11560,
+        "width": 1280
+      }
     },
     {
       "id": "booking_state",
@@ -292,15 +437,27 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Status codes",
-      "body": ["当前答辩焦点在待支付(1)：要么付款进入已支付(2)，要么超时回到已取消(0)。"],
+      "body": [
+        "当前答辩焦点在待支付(1)：要么付款进入已支付(2)，要么超时回到已取消(0)。"
+      ],
       "diagram": {
         "type": "state-machine",
         "title": "订单状态机",
-        "states": ["0 已取消", "1 待支付", "2 已支付", "3 进行中", "4 已完成"],
+        "states": [
+          "0 已取消",
+          "1 待支付",
+          "2 已支付",
+          "3 进行中",
+          "4 已完成"
+        ],
         "activeIndex": 1
       },
       "supportHidden": true,
-      "scenePos": { "x": 1480, "y": 11560, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 12680,
+        "width": 1280
+      }
     },
     {
       "id": "booking_web_user",
@@ -315,11 +472,18 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "user/Booking.vue",
-      "body": ["通过 Axios 调用 /api/booking，与 BookingController 契约一致。"],
+      "body": [
+        "通过 Axios 调用 /api/booking，与 BookingController 契约一致。"
+      ],
       "diagram": {
         "type": "pipeline",
         "title": "用户端调用链",
-        "steps": ["选场 UI", "POST /api/booking", "待支付订单", "跳转支付/详情"]
+        "steps": [
+          "选场 UI",
+          "POST /api/booking",
+          "待支付订单",
+          "跳转支付/详情"
+        ]
       },
       "support": {
         "label": "截图",
@@ -327,10 +491,18 @@
         "image": "assets/screenshots/web-booking-user.png",
         "copy": "步骤 2：选择场地（拼场/包场、日期与空闲场地）。",
         "items": [
-          { "label": "Tip", "title": "演示建议", "body": "用 user001 登录后走一遍选场提交。" }
+          {
+            "label": "Tip",
+            "title": "演示建议",
+            "body": "用 user001 登录后走一遍选场提交。"
+          }
         ]
       },
-      "scenePos": { "x": 0, "y": 12680, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 13800,
+        "width": 1280
+      }
     },
     {
       "id": "booking_web_admin",
@@ -345,11 +517,18 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "BookingManagement.vue",
-      "body": ["与用户端共用后端接口，差异在权限与页面信息密度。"],
+      "body": [
+        "与用户端共用后端接口，差异在权限与页面信息密度。"
+      ],
       "diagram": {
         "type": "pipeline",
         "title": "管理端运营链",
-        "steps": ["列表筛选", "状态查看", "待支付/已支付", "运营处理"]
+        "steps": [
+          "列表筛选",
+          "状态查看",
+          "待支付/已支付",
+          "运营处理"
+        ]
       },
       "support": {
         "label": "截图",
@@ -357,10 +536,18 @@
         "image": "assets/screenshots/web-booking-admin.png",
         "copy": "预约管理列表：筛选场馆/场地/状态，查看金额与支付状态。",
         "items": [
-          { "label": "Tip", "title": "演示建议", "body": "展示待支付/已支付筛选即可。" }
+          {
+            "label": "Tip",
+            "title": "演示建议",
+            "body": "展示待支付/已支付筛选即可。"
+          }
         ]
       },
-      "scenePos": { "x": 1480, "y": 13800, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 14920,
+        "width": 1280
+      }
     },
     {
       "id": "module_payment",
@@ -379,7 +566,34 @@
       "body": [
         "覆盖：支付 API → 双路径治理 → 余额扣款 → UniApp 页面与 composable。"
       ],
-      "scenePos": { "x": 0, "y": 14920, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 16040,
+        "width": 1280
+      }
+    },
+    {
+      "id": "demo_auto_cancel",
+      "step": "演示 / 超时",
+      "title": "演示：倒计时自动取消",
+      "dotLabel": "演示",
+      "presenter": "涂家乐",
+      "module": "支付模块（后端 + UniApp）",
+      "claim": "待支付单不操作支付，dev 5s 后后端扫描取消，订单 status=0。",
+      "sceneRole": "mechanism",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "demo",
+      "eyebrow": "实机录屏",
+      "support": {
+        "video": "assets/videos/支付倒计时测试.mp4",
+        "copy": "静置 ≥6s · 倒计时归零 · status=0"
+      },
+      "scenePos": {
+        "x": 1480,
+        "y": 17160,
+        "width": 1280
+      }
     },
     {
       "id": "payment_api",
@@ -405,7 +619,11 @@
         "caption": "UniApp 拉配置与发起支付，后端统一调度状态变更。"
       },
       "supportHidden": true,
-      "scenePos": { "x": 1480, "y": 16040, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 18280,
+        "width": 1280
+      }
     },
     {
       "id": "payment_flow",
@@ -420,7 +638,9 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Dual path",
-      "body": ["config 接口的 serverTime 保证前端倒计时与后端扫描同一时钟。"],
+      "body": [
+        "config 接口的 serverTime 保证前端倒计时与后端扫描同一时钟。"
+      ],
       "diagram": {
         "type": "flow-rail",
         "preset": "bmp-payment-paths",
@@ -428,7 +648,11 @@
         "caption": "成功支付写流水；超时取消释放 biz_booking_court 占用。"
       },
       "supportHidden": true,
-      "scenePos": { "x": 0, "y": 17160, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 19400,
+        "width": 1280
+      }
     },
     {
       "id": "payment_balance",
@@ -443,14 +667,25 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "BALANCE payment",
-      "body": ["开发环境超时 5s 便于联调；生产建议 300s。"],
+      "body": [
+        "开发环境超时 5s 便于联调；生产建议 300s。"
+      ],
       "diagram": {
         "type": "pipeline",
         "title": "余额支付流程",
-        "steps": ["校验余额", "扣减账户", "写 biz_finance", "status 1→2"]
+        "steps": [
+          "校验余额",
+          "扣减账户",
+          "写 biz_finance",
+          "status 1→2"
+        ]
       },
       "supportHidden": true,
-      "scenePos": { "x": 1480, "y": 18280, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 20520,
+        "width": 1280
+      }
     },
     {
       "id": "payment_uniapp_pages",
@@ -465,7 +700,9 @@
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "usePaymentAutoCancel",
-      "body": ["PaymentConfirmPopup.vue：支付确认弹窗与倒计时联动。"],
+      "body": [
+        "PaymentConfirmPopup.vue：支付确认弹窗与倒计时联动。"
+      ],
       "diagram": {
         "type": "combo",
         "caption": "前端倒计时与后端扫描对齐",
@@ -473,22 +710,36 @@
           {
             "type": "pipeline",
             "title": "倒计时对齐链路",
-            "steps": ["GET /auto-cancel/config", "usePaymentAutoCancel", "confirm.vue 倒计时", "支付或过期"]
+            "steps": [
+              "GET /auto-cancel/config",
+              "usePaymentAutoCancel",
+              "confirm.vue 倒计时",
+              "支付或过期"
+            ]
           },
           {
             "type": "state-machine",
             "title": "前端感知状态",
-            "states": ["倒计时中", "发起支付", "支付成功", "已过期"],
+            "states": [
+              "倒计时中",
+              "发起支付",
+              "支付成功",
+              "已过期"
+            ],
             "activeIndex": 0
           }
         ]
       },
       "supportHidden": true,
-      "scenePos": { "x": 0, "y": 19400, "width": 1280 }
+      "scenePos": {
+        "x": 0,
+        "y": 21640,
+        "width": 1280
+      }
     },
     {
       "id": "payment_uniapp_ui",
-      "step": "19 / 界面",
+      "step": "21 / 界面",
       "title": "UniApp 界面：确认与倒计时",
       "dotLabel": "界面",
       "presenter": "涂家乐",
@@ -499,17 +750,19 @@
       "diagramNeed": "medium",
       "layout": "story",
       "eyebrow": "Screenshots",
-      "body": ["confirm.vue 确认支付；我的预约/详情页倒计时与后端 auto-cancel 对齐。"],
+      "body": [
+        "confirm.vue 确认支付；我的预约/详情页倒计时与后端 auto-cancel 对齐。"
+      ],
       "support": {
         "label": "截图",
         "title": "小程序界面",
-        "copy": "左：订单确认与余额支付；右：待支付倒计时。",
+        "copy": "建议演示顺序：列表点待支付 → 确认页 → 支付或等待 5s。",
         "items": [
           {
             "label": "确认",
             "title": "订单确认",
             "image": "assets/screenshots/uniapp-booking-confirm.png",
-            "body": "pages/booking/confirm.vue · 余额支付"
+            "body": "pages/booking/confirm.vue · BALANCE"
           },
           {
             "label": "倒计时",
@@ -519,11 +772,15 @@
           }
         ]
       },
-      "scenePos": { "x": 1480, "y": 20520, "width": 1280 }
+      "scenePos": {
+        "x": 1480,
+        "y": 22760,
+        "width": 1280
+      }
     },
     {
       "id": "closing",
-      "step": "20 / 收束",
+      "step": "22 / 收束",
       "title": "演示路径、局限与致谢",
       "dotLabel": "结论",
       "presenter": "尹晴",
@@ -540,19 +797,39 @@
         "感谢聆听，欢迎提问。—— 尹晴 · 阿英莫 · 涂家乐"
       ],
       "metrics": [
-        { "label": "演示账号", "value": "user001", "note": "密码 123456" }
+        {
+          "label": "演示账号",
+          "value": "user001",
+          "note": "密码 123456"
+        }
       ],
       "support": {
         "label": "Checklist",
         "title": "现场演示清单",
         "copy": "答辩前按顺序走一遍。",
         "items": [
-          { "label": "1", "title": "启动三端", "body": "9090 / 8080 / 微信开发者工具" },
-          { "label": "2", "title": "Web 下单", "body": "阿英莫演示 · 创建待支付预约" },
-          { "label": "3", "title": "小程序", "body": "涂家乐演示 · 支付或等待自动取消" }
+          {
+            "label": "1",
+            "title": "启动三端",
+            "body": "9090 / 8080 / 微信开发者工具"
+          },
+          {
+            "label": "2",
+            "title": "Web 下单",
+            "body": "阿英莫演示 · 创建待支付预约"
+          },
+          {
+            "label": "3",
+            "title": "小程序",
+            "body": "涂家乐演示 · 支付或等待自动取消"
+          }
         ]
       },
-      "scenePos": { "x": 0, "y": 21640, "width": 1120 }
+      "scenePos": {
+        "x": 0,
+        "y": 23880,
+        "width": 1120
+      }
     }
   ]
 }

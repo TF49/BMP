@@ -127,7 +127,11 @@ import CustomTabBar from '@/components/CustomTabBar/CustomTabBar.vue'
 import { getAvatarImage } from '@/utils/displayImage'
 import { useCurrentMember } from '@/composables/useCurrentMember'
 import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
-import { getPaymentAutoCancelInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  EMPTY_PAYMENT_COUNTDOWN_INFO,
+  getPaymentAutoCancelInfo,
+  usePaymentAutoCancel
+} from '@/composables/usePaymentAutoCancel'
 import {
   buildBookingConfirmUrl,
   buildBookingSummaryFromDetail,
@@ -168,7 +172,8 @@ const topOffset = computed(() => statusBarHeight.value + 54)
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
 const {
   loadPaymentAutoCancelConfig,
-  buildCountdownOptions
+  buildCountdownOptions,
+  countdownNowMs
 } = usePaymentAutoCancel({
   hasExpiredPending: () => bookingList.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
@@ -221,13 +226,31 @@ const filteredList = computed(() => {
   return list
 })
 
-const getPaymentCountdownInfo = (item: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => getPaymentAutoCancelInfo({
-  status: item.status,
-  paymentStatus: item.paymentStatus,
-  createTime: item.createTime
-}, buildCountdownOptions())
+const paymentCountdownById = computed(() => {
+  void countdownNowMs.value
+  const options = buildCountdownOptions()
+  const map = new Map<number, ReturnType<typeof getPaymentAutoCancelInfo>>()
+  bookingList.value.forEach((item) => {
+    map.set(
+      item.id,
+      getPaymentAutoCancelInfo(
+        {
+          status: item.status,
+          paymentStatus: item.paymentStatus,
+          createTime: item.createTime
+        },
+        options
+      )
+    )
+  })
+  return map
+})
 
-const isPaymentExpired = (item: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => getPaymentCountdownInfo(item).expired
+const getPaymentCountdownInfo = (item: Pick<BookingCard, 'id' | 'status' | 'paymentStatus' | 'createTime'>) =>
+  paymentCountdownById.value.get(item.id) ?? { ...EMPTY_PAYMENT_COUNTDOWN_INFO }
+
+const isPaymentExpired = (item: Pick<BookingCard, 'id' | 'status' | 'paymentStatus' | 'createTime'>) =>
+  getPaymentCountdownInfo(item).expired
 
 const loadBookingList = async () => {
   if (loading.value) return

@@ -8,7 +8,7 @@
 - [`project2-defense.react.html`](./project2-defense.react.html) — 曾用 React 打包的单文件版（内联 JS，也能直接打开，但改稿需 `pnpm bundle`）
 - [`project2-defense-artifact/`](./project2-defense-artifact/) — React 源码工程
 
-**翻页**：空格 / ↑↓ / 滚轮 / 右侧进度点 —— 每章镜头推进并吸附到视口正中（当前 **20 章**，三人分模块讲解）。
+**翻页**：空格 / ↑↓ / 滚轮 / 右侧进度点 —— 每章镜头推进并吸附到视口正中（当前 **22 章**，三人分模块讲解）。
 
 **讲解人**：右上角随章节切换显示「讲解人：XXX」—— 尹晴（开场·简介）、阿英莫（预约模块）、涂家乐（支付模块）。在蓝图各章 `presenter` / `module` 字段配置。
 
@@ -52,3 +52,11 @@ python "C:\Users\Administrator\.claude\skills\网页pptskill\html-defense-builde
 
 - 滚轮 / 右侧进度点切换章节
 - 键盘：空格、`↑` `↓` / `PageUp` `PageDown` / `Home` / `End`
+
+
+## 演示录屏（本地）
+
+| 文件 | 章节 id | 位置 |
+|------|---------|------|
+| `assets/videos/支付测试.mp4` | `demo_pay_success` | 紧接「07 预约模块」 |
+| `assets/videos/支付倒计时测试.mp4` | `demo_auto_cancel` | 紧接「14 支付模块」 |

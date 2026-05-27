@@ -62,3 +62,6 @@ Thumbs.db
 # Build outputs
 out/
 dist/
+
+# Defense / presentation materials (local only)
+docs/

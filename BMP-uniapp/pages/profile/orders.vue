@@ -127,7 +127,11 @@ import { safeNavigateBack } from '@/utils/navigation'
 import { useUserStore } from '@/store/modules/user'
 import { useCurrentMember } from '@/composables/useCurrentMember'
 import PaymentCountdownBadge from '@/components/payment/PaymentCountdownBadge.vue'
-import { resolvePaymentCountdownInfo, usePaymentAutoCancel } from '@/composables/usePaymentAutoCancel'
+import {
+  EMPTY_PAYMENT_COUNTDOWN_INFO,
+  resolvePaymentCountdownInfo,
+  usePaymentAutoCancel
+} from '@/composables/usePaymentAutoCancel'
 import { getBookingList } from '@/api/booking'
 import { getCourseBookingList } from '@/api/course'
 import { getEquipmentRentalList } from '@/api/equipment'
@@ -154,7 +158,8 @@ const activeLifecycle = ref<'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'>('ALL')
 const activeBusiness = ref<'ALL' | OrderBusinessType>('ALL')
 const {
   loadPaymentAutoCancelConfig,
-  buildCountdownOptions
+  buildCountdownOptions,
+  countdownNowMs
 } = usePaymentAutoCancel({
   hasExpiredPending: () => orders.value.some((item) => isPaymentExpired(item)),
   refreshOnExpire: async () => {
@@ -189,17 +194,33 @@ const businessTextMap: Record<OrderBusinessType, string> = {
 const activeLifecycleLabel = computed(() => lifecycleTabs.find((item) => item.value === activeLifecycle.value)?.label || '全部')
 const filteredOrders = computed(() => filterUnifiedOrders(orders.value, activeLifecycle.value, activeBusiness.value))
 
-const getPaymentCountdownInfo = (item: UnifiedOrderItem) => resolvePaymentCountdownInfo(
-  {
-    status: item.businessStatus,
-    paymentStatus: item.paymentStatus,
-    createTime: item.createTime,
-    servicePrice: item.businessType === 'STRINGING' ? item.amount : undefined,
-    totalPrice: item.businessType === 'STRINGING' ? item.amount : undefined
-  },
-  buildCountdownOptions(),
-  item.businessType === 'STRINGING' ? 'STRINGING' : undefined
-)
+const getOrderCountdownKey = (item: UnifiedOrderItem) => `${item.businessType}-${item.id}`
+
+const paymentCountdownByKey = computed(() => {
+  void countdownNowMs.value
+  const options = buildCountdownOptions()
+  const map = new Map<string, ReturnType<typeof resolvePaymentCountdownInfo>>()
+  orders.value.forEach((item) => {
+    map.set(
+      getOrderCountdownKey(item),
+      resolvePaymentCountdownInfo(
+        {
+          status: item.businessStatus,
+          paymentStatus: item.paymentStatus,
+          createTime: item.createTime,
+          servicePrice: item.businessType === 'STRINGING' ? item.amount : undefined,
+          totalPrice: item.businessType === 'STRINGING' ? item.amount : undefined
+        },
+        options,
+        item.businessType === 'STRINGING' ? 'STRINGING' : undefined
+      )
+    )
+  })
+  return map
+})
+
+const getPaymentCountdownInfo = (item: UnifiedOrderItem) =>
+  paymentCountdownByKey.value.get(getOrderCountdownKey(item)) ?? { ...EMPTY_PAYMENT_COUNTDOWN_INFO }
 
 const isPaymentExpired = (item: UnifiedOrderItem) => getPaymentCountdownInfo(item).expired
 
