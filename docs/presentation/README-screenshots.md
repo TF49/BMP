@@ -22,10 +22,10 @@
 2. 重新生成 HTML：
 
 ```bash
-python "C:\Users\Administrator\.claude\skills\网页pptskill\html-defense-builder\scripts\apply_blueprint.py" --blueprint "docs/presentation/project2-blueprint.json" --output "docs/presentation/project2-defense.html"
+python "C:\Users\Administrator\.claude\skills\网页pptskill\html-defense-builder\scripts\apply_blueprint.py" --blueprint "docs/presentation/project2-blueprint.json" --template "docs/presentation/project2-defense.html" --output "docs/presentation/project2-defense.html"
 ```
 
-（在 BMP 仓库根目录执行时，路径按上式；或在 `docs/presentation` 下把路径写成相对路径。）
+（在 BMP 仓库根目录执行。**必须加 `--template project2-defense.html`**：技能默认模板不含演示录屏 `layout: demo` 与截图渲染，仅用默认模板会覆盖掉视频播放器逻辑。）
 
 3. 用浏览器打开 `project2-defense.html` 验收（有缓存时 **Ctrl+F5** 强刷）。
 
