@@ -775,11 +775,10 @@
       .fr-node.hub .fr-node-sub { opacity: 0.82; }
       .pipeline-step {
         position: relative;
-        padding-top: 20px;
       }
       .pipeline-step-index {
         position: absolute;
-        top: 7px;
+        top: 8px;
         left: 50%;
         transform: translateX(-50%);
         min-width: 1.4rem;
@@ -792,9 +791,28 @@
         letter-spacing: 0.06em;
         line-height: 1.35;
         text-align: center;
+        z-index: 1;
+        pointer-events: none;
       }
       .pipeline-step-label {
         display: block;
+        padding-top: 22px;
+      }
+      .pipeline-step-label .fr-node-title {
+        display: block;
+        line-height: 1.3;
+      }
+      .pipeline-step-label .fr-node-sub {
+        display: block;
+        margin-top: 3px;
+        font-size: 0.72em;
+        font-weight: 600;
+        line-height: 1.25;
+        letter-spacing: 0.01em;
+        color: #4338ca;
+        opacity: 0.82;
+        overflow-wrap: break-word;
+        word-break: keep-all;
       }
       .scene.diagram-scene-live .state-pill.active {
         animation: state-pill-pulse 2.5s ease-in-out infinite;
@@ -982,45 +1000,46 @@
       .pipeline-diagram {
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
+        align-items: stretch;
         justify-content: center;
-        gap: 10px 4px;
+        gap: 12px 8px;
         margin-top: 8px;
-        padding: 14px 16px;
+        padding: 18px 20px;
         border-radius: 22px;
         border: 1px solid var(--line);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 248, 253, 0.85));
       }
       .pipeline-diagram[data-steps="4"] .pipeline-step {
-        flex: 1 1 calc(25% - 1.35rem);
-        min-width: 6.75rem;
-        max-width: 10.5rem;
+        flex: 1 1 calc(25% - 1.5rem);
+        min-width: 8.25rem;
+        max-width: 13.5rem;
       }
       .pipeline-diagram[data-steps="3"] .pipeline-step {
-        flex: 1 1 calc(33.33% - 1.35rem);
-        min-width: 7.5rem;
-        max-width: 12rem;
+        flex: 1 1 calc(33.33% - 1.5rem);
+        min-width: 8.5rem;
+        max-width: 14rem;
       }
       .pipeline-step {
-        flex: 1 1 8rem;
-        min-width: 6.5rem;
-        max-width: 11rem;
-        padding: 12px 10px;
+        flex: 1 1 9rem;
+        min-width: 7.5rem;
+        max-width: 13rem;
+        padding: 10px 12px 14px;
         border-radius: 16px;
         background: rgba(255, 255, 255, 0.95);
         box-shadow: var(--shadow-soft);
-        font-size: clamp(0.68rem, 1vw, 0.8rem);
+        font-size: clamp(0.7rem, 1vw, 0.82rem);
         font-weight: 700;
         line-height: 1.38;
         text-align: center;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        overflow-wrap: break-word;
+        word-break: keep-all;
       }
       .pipeline-arrow {
         flex: 0 0 auto;
-        width: 1.1rem;
+        align-self: center;
+        width: 1.25rem;
         color: var(--accent);
-        font-size: 0.95rem;
+        font-size: 1rem;
         font-weight: 700;
         line-height: 1;
         text-align: center;
@@ -1141,8 +1160,8 @@
         padding: 12px 14px;
       }
       .diagram-combo .pipeline-diagram {
-        padding: 12px 14px;
-        gap: 8px 2px;
+        padding: 16px 18px;
+        gap: 10px 6px;
       }
       .support-grid.compact { margin-top: 8px; }
       .support-grid.compact .support-card { padding: 10px 12px; }
@@ -1340,7 +1359,7 @@
       }
       body.presentation-stage .scene-visual .scene-visual-layout {
         display: grid;
-        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
         gap: 16px 22px;
         align-items: center;
         min-height: 0;
@@ -1427,14 +1446,18 @@
       }
       body.presentation-stage .scene-visual .diagram-combo .pipeline-diagram {
         margin-top: 0;
-        padding: 10px 12px;
+        padding: 16px 18px;
         flex: 0 0 auto;
         align-self: center;
         width: min(100%, 100%);
       }
       body.presentation-stage .scene-visual .diagram-combo .pipeline-step {
-        padding: 10px 8px;
-        font-size: clamp(0.68rem, 0.95vw, 0.8rem);
+        padding: 10px 12px 14px;
+        font-size: clamp(0.7rem, 0.95vw, 0.82rem);
+      }
+      body.presentation-stage .scene-visual .diagram-combo .pipeline-diagram[data-steps="4"] .pipeline-step {
+        min-width: 7.75rem;
+        max-width: 12.5rem;
       }
       body.presentation-stage .scene-visual .state-machine-diagram {
         flex: 0 0 auto;
@@ -1573,7 +1596,7 @@
       }
       body.presentation-stage .pipeline-step {
         font-size: 0.92rem;
-        padding: 12px 10px;
+        padding: 10px 12px 14px;
       }
       body.presentation-stage .funnel-input,
       body.presentation-stage .funnel-output {
@@ -1587,7 +1610,7 @@
       }
       .scene-visual-layout {
         display: grid;
-        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
         gap: 22px 28px;
         align-items: stretch;
         width: 100%;
@@ -1650,22 +1673,22 @@
       }
       .scene-visual .pipeline-diagram {
         margin-top: 16px;
-        padding: 12px 14px;
-        gap: 8px 2px;
+        padding: 16px 18px;
+        gap: 10px 6px;
       }
       .scene-visual .pipeline-diagram[data-steps="4"] .pipeline-step {
-        flex: 1 1 calc(25% - 1.1rem);
-        min-width: 6.25rem;
-        max-width: 9.75rem;
+        flex: 1 1 calc(25% - 1.25rem);
+        min-width: 7.75rem;
+        max-width: 12.5rem;
       }
       .scene-visual .pipeline-step {
-        padding: 10px 8px;
-        font-size: clamp(0.66rem, 0.92vw, 0.76rem);
+        padding: 10px 12px 14px;
+        font-size: clamp(0.68rem, 0.92vw, 0.78rem);
         line-height: 1.36;
       }
       .scene-visual .pipeline-arrow {
-        width: 0.95rem;
-        font-size: 0.88rem;
+        width: 1.1rem;
+        font-size: 0.92rem;
       }
       .scene-visual .diagram-combo {
         gap: 12px;
@@ -3201,7 +3224,7 @@
         steps.forEach((step, index) => {
           const label = typeof step === "string" ? step : step.label || "";
           const stepNo = String(index + 1).padStart(2, "0");
-          chunks.push(`<div class="pipeline-step" style="--stagger:${index}"><span class="pipeline-step-index">${stepNo}</span><span class="pipeline-step-label">${esc(label)}</span></div>`);
+          chunks.push(`<div class="pipeline-step" style="--stagger:${index}"><span class="pipeline-step-index">${stepNo}</span><span class="pipeline-step-label">${diagramNodeLabelHtml(label)}</span></div>`);
           if (index < steps.length - 1) chunks.push('<span class="pipeline-arrow" aria-hidden="true">→</span>');
         });
         return `<div class="diagram-panel pipeline-diagram" data-steps="${steps.length}" role="img" aria-label="${esc(diagram.title || "流程")}">${chunks.join("")}</div>`;
@@ -3784,6 +3807,18 @@
         window.setTimeout(() => { wheelLocked = false; }, 720);
         scrollByChapter(event.deltaY > 0 ? 1 : -1);
       }, { passive: false });
+      let clickLocked = false;
+      window.addEventListener("click", (event) => {
+        if (event.button !== 0 || event.defaultPrevented) return;
+        const tag = event.target && event.target.tagName ? event.target.tagName.toLowerCase() : "";
+        if (tag === "input" || tag === "textarea" || tag === "select") return;
+        if (event.target.closest("a, button, input, textarea, select, label, video, [data-scene-target], .progress-dot")) return;
+        if (clickLocked) return;
+        clickLocked = true;
+        window.setTimeout(() => { clickLocked = false; }, 720);
+        const direction = event.clientX < window.innerWidth * 0.38 ? -1 : 1;
+        scrollByChapter(direction);
+      });
       const STAGE_PAD_X = 268;
       const STAGE_PAD_Y = 72;
       const STAGE_DESIGN_W = 1520;
