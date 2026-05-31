@@ -6,7 +6,7 @@
  2. 一次性建表 + 初始化基础/示例数据
 
  注意：
- 1. 请勿直接用于老库升级
+ 1. 请勿直接用于老库升级（老库请对照本文件 CREATE TABLE 中的索引定义，手工执行缺失的 ALTER TABLE ADD INDEX）
  2. 本文件最终会建成最新结构：支持 SHARED / PACKAGE 双模式、biz_booking_court 明细表、sys_court 新价格字段
 */
 
@@ -41,14 +41,16 @@ CREATE TABLE `biz_booking`  (
   `refund_amount` decimal(10, 2) NULL DEFAULT 0.00 COMMENT '实际退款金额',
   `del_flag` tinyint(1) NULL DEFAULT 0 COMMENT '逻辑删除标记（0-正常，1-删除）',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `booking_no`(`booking_no` ASC) USING BTREE,
   UNIQUE INDEX `idx_booking_no`(`booking_no` ASC) USING BTREE,
   INDEX `idx_member_id`(`member_id` ASC) USING BTREE,
   INDEX `idx_court_id`(`court_id` ASC) USING BTREE,
   INDEX `idx_booking_date`(`booking_date` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_booking_date_status`(`booking_date` ASC, `status` ASC) USING BTREE,
-  INDEX `idx_court_date_status`(`court_id` ASC, `booking_date` ASC, `status` ASC) USING BTREE
+  INDEX `idx_court_date_status`(`court_id` ASC, `booking_date` ASC, `status` ASC) USING BTREE,
+  INDEX `idx_booking_unpaid_scan`(`del_flag` ASC, `status` ASC, `payment_status` ASC, `create_time` ASC) USING BTREE,
+  INDEX `idx_booking_list_time`(`del_flag` ASC, `create_time` ASC) USING BTREE,
+  INDEX `idx_booking_member_time`(`member_id` ASC, `del_flag` ASC, `create_time` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 39 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '场地预约表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -244,11 +246,11 @@ CREATE TABLE `biz_course_booking`  (
   `refund_amount` decimal(10, 2) NULL DEFAULT 0.00 COMMENT '实际退款金额',
   `del_flag` tinyint(1) NULL DEFAULT 0 COMMENT '逻辑删除标记（0-正常，1-删除）',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `booking_no`(`booking_no` ASC) USING BTREE,
   UNIQUE INDEX `idx_booking_no`(`booking_no` ASC) USING BTREE,
   INDEX `idx_member_id`(`member_id` ASC) USING BTREE,
   INDEX `idx_course_id`(`course_id` ASC) USING BTREE,
-  INDEX `idx_status`(`status` ASC) USING BTREE
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  INDEX `idx_course_booking_unpaid_scan`(`del_flag` ASC, `status` ASC, `payment_status` ASC, `create_time` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 29 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '课程预约表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -306,14 +308,14 @@ CREATE TABLE `biz_equipment_rental`  (
   `del_flag` tinyint(1) NULL DEFAULT 0 COMMENT '逻辑删除标记（0-正常，1-删除）',
   `venue_id` bigint NULL DEFAULT NULL COMMENT '所属场馆ID（冗余，便于场馆级查询）',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `rental_no`(`rental_no` ASC) USING BTREE,
   UNIQUE INDEX `idx_rental_no`(`rental_no` ASC) USING BTREE,
   INDEX `idx_member_id`(`member_id` ASC) USING BTREE,
   INDEX `idx_equipment_id`(`equipment_id` ASC) USING BTREE,
   INDEX `idx_venue_id`(`venue_id` ASC) USING BTREE,
   INDEX `idx_rental_date`(`rental_date` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
-  INDEX `idx_rental_expected_return`(`expected_return_date` ASC, `status` ASC) USING BTREE
+  INDEX `idx_rental_expected_return`(`expected_return_date` ASC, `status` ASC) USING BTREE,
+  INDEX `idx_rental_unpaid_scan`(`del_flag` ASC, `status` ASC, `payment_status` ASC, `create_time` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 26 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '器材租借表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -386,13 +388,13 @@ CREATE TABLE `biz_finance`  (
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `del_flag` tinyint(1) NULL DEFAULT 0 COMMENT '逻辑删除标记（0-正常，1-删除）',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `finance_no`(`finance_no` ASC) USING BTREE,
   UNIQUE INDEX `idx_finance_no`(`finance_no` ASC) USING BTREE,
   INDEX `idx_business_type`(`business_type` ASC) USING BTREE,
   INDEX `idx_business_id`(`business_id` ASC) USING BTREE,
   INDEX `idx_income_expense_type`(`income_expense_type` ASC) USING BTREE,
   INDEX `idx_venue_id`(`venue_id` ASC) USING BTREE,
   INDEX `idx_create_time`(`create_time` ASC) USING BTREE,
+  INDEX `idx_finance_venue_time`(`venue_id` ASC, `del_flag` ASC, `create_time` ASC) USING BTREE,
   INDEX `operator_id`(`operator_id` ASC) USING BTREE,
   INDEX `idx_record_source`(`record_source` ASC) USING BTREE,
   INDEX `idx_is_reconciled`(`is_reconciled` ASC) USING BTREE,
@@ -582,7 +584,6 @@ CREATE TABLE `biz_finance_reconciliation`  (
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `reconcile_no`(`reconcile_no` ASC) USING BTREE,
   UNIQUE INDEX `idx_reconcile_no`(`reconcile_no` ASC) USING BTREE,
   INDEX `idx_business_type`(`business_type` ASC) USING BTREE,
   INDEX `idx_date_range`(`start_date` ASC, `end_date` ASC) USING BTREE,
@@ -791,14 +792,14 @@ CREATE TABLE `biz_stringing_service`  (
   `start_time` datetime NULL DEFAULT NULL COMMENT '开始穿线时间（管理员点击\"开始穿线\"时记录）',
   `del_flag` tinyint(1) NULL DEFAULT 0 COMMENT '逻辑删除标记（0-正常，1-删除）',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `service_no`(`service_no` ASC) USING BTREE,
   UNIQUE INDEX `idx_service_no`(`service_no` ASC) USING BTREE,
   INDEX `idx_member_id`(`member_id` ASC) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   INDEX `idx_venue_id`(`venue_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_create_time`(`create_time` ASC) USING BTREE,
-  INDEX `string_id`(`string_id` ASC) USING BTREE
+  INDEX `string_id`(`string_id` ASC) USING BTREE,
+  INDEX `idx_stringing_unpaid_scan`(`del_flag` ASC, `status` ASC, `payment_status` ASC, `create_time` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '穿线服务表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -895,7 +896,8 @@ CREATE TABLE `biz_tournament_registration`  (
   INDEX `idx_tournament_id`(`tournament_id` ASC) USING BTREE,
   INDEX `idx_member_id`(`member_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
-  INDEX `partner_id`(`partner_id` ASC) USING BTREE
+  INDEX `partner_id`(`partner_id` ASC) USING BTREE,
+  INDEX `idx_registration_unpaid_scan`(`del_flag` ASC, `status` ASC, `payment_status` ASC, `create_time` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 37 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '赛事报名表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

@@ -95,11 +95,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> findAll() {
-        return userMapper.findAll();
-    }
-
-    @Override
     public List<User> findAvailableMemberUsers() {
         return userMapper.findAvailableMemberUsers();
     }
@@ -155,36 +150,30 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> findByUsernameOrIdCard(String username, String idCard, String role, Integer status, int page, int size) {
-        // 如果搜索条件都为空，直接返回所有用户
-        if ((username == null || username.trim().isEmpty()) && 
-            (idCard == null || idCard.trim().isEmpty()) && 
-            (role == null || role.trim().isEmpty()) &&
-            status == null) {
-            List<User> allUsers = userMapper.findAll();
-            // 手动分页
-            int offset = (page - 1) * size;
-            int endIndex = Math.min(offset + size, allUsers.size());
-            if (offset >= allUsers.size()) {
-                return new java.util.ArrayList<>();
-            }
-            return allUsers.subList(offset, endIndex);
-        }
-        // 否则按照搜索条件过滤
         int offset = (page - 1) * size;
-        return userMapper.findByUsernameOrIdCard(username, idCard, role, status, offset, size);
+        return userMapper.findByUsernameOrIdCard(
+                emptyToNull(username),
+                emptyToNull(idCard),
+                emptyToNull(role),
+                status,
+                offset,
+                size);
     }
 
     @Override
     public int countByUsernameOrIdCard(String username, String idCard, String role, Integer status) {
-        // 如果搜索条件都为空，直接返回所有用户数量
-        if ((username == null || username.trim().isEmpty()) && 
-            (idCard == null || idCard.trim().isEmpty()) && 
-            (role == null || role.trim().isEmpty()) &&
-            status == null) {
-            return userMapper.findAll().size();
+        return userMapper.countByUsernameOrIdCard(
+                emptyToNull(username),
+                emptyToNull(idCard),
+                emptyToNull(role),
+                status);
+    }
+
+    private static String emptyToNull(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
         }
-        // 否则按照搜索条件统计
-        return userMapper.countByUsernameOrIdCard(username, idCard, role, status);
+        return value.trim();
     }
 
     @Override

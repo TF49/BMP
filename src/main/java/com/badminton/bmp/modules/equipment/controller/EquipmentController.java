@@ -576,7 +576,7 @@ public class EquipmentController extends BaseController {
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getVenueList() {
         try {
-            List<Venue> venues = venueService.findAll();
+            List<Venue> venues = venueService.findAllOptions();
             // 只返回必要的字段：ID、名称、状态
             List<Map<String, Object>> venueList = venues.stream()
                     .map(venue -> {

@@ -22,11 +22,10 @@ public interface VenueMapper {
     Venue findById(@Param("id") Long id);
 
     /**
-     * 查找所有场馆
-     * @return 场馆列表
+     * 下拉选项轻量查询（仅 id、名称、状态、地址）
      */
-    @Select("SELECT * FROM sys_venue ORDER BY id")
-    List<Venue> findAll();
+    @Select("SELECT id, venue_name, status, address FROM sys_venue ORDER BY id")
+    List<Venue> findAllOptions();
 
     /**
      * 根据场馆名称或地址搜索场馆，支持分页

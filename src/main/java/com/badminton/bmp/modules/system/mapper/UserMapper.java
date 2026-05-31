@@ -40,13 +40,6 @@ public interface UserMapper {
     int updateLastLoginTime(@Param("id") Long id, @Param("lastLoginTime") LocalDateTime lastLoginTime);
 
     /**
-     * 查找所有用户
-     * @return 用户列表
-     */
-    @Select("SELECT * FROM sys_user")
-    List<User> findAll();
-
-    /**
      * 查找所有用户端账号（兼容历史 MEMBER 角色）
      * @return 用户端账号列表
      */

@@ -784,7 +784,7 @@ public class BookingController extends BaseController {
     @PreAuthorize("isAuthenticated()")
     public Result<Object> getVenueList() {
         try {
-            List<Venue> venues = venueService.findAll();
+            List<Venue> venues = venueService.findAllOptions();
             List<Map<String, Object>> venueList = venues.stream()
                     .map(venue -> {
                         Map<String, Object> item = new HashMap<>();

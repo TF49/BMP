@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-
 /**
  * 认证业务实现类
  * 支持双Token认证机制（AccessToken + RefreshToken）
@@ -97,16 +95,14 @@ public class AuthServiceImpl implements AuthService {
                 return false;
             }
 
-            // 检查管理员唯一性
-            if ("ADMIN".equals(user.getRole())) {
-                // 查找所有用户
-                List<User> allUsers = userService.findAll();
-                // 检查是否已存在管理员
-                for (User u : allUsers) {
-                    if ("ADMIN".equals(u.getRole())) {
-                        return false;
-                    }
-                }
+            // 检查 PRESIDENT 唯一性（系统主管理员角色）
+            String role = user.getRole() != null ? user.getRole().trim() : "";
+            if ("PRESIDENT".equalsIgnoreCase(role) && userService.checkPresidentExists(null)) {
+                return false;
+            }
+            // 兼容历史 ADMIN 角色名
+            if ("ADMIN".equalsIgnoreCase(role) && userService.findByRole("ADMIN") != null) {
+                return false;
             }
 
             // 注册新用户

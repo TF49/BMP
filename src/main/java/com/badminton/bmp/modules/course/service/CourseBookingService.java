@@ -15,6 +15,9 @@ public interface CourseBookingService {
     int countForCoach(Long coachId, Long courseId, Integer status, String keyword);
     CourseBooking findByIdForCoach(Long coachId, Long id);
     CourseBooking findLatestActiveByMemberAndCourse(Long memberId, Long courseId);
+
+    /** 批量查询会员在各课程下的最新有效预约（courseId -> booking） */
+    java.util.Map<Long, CourseBooking> findLatestActiveByMemberAndCourses(Long memberId, java.util.List<Long> courseIds);
     int updateStatusForCoach(Long coachId, Long id, Integer status, String remark);
     int add(CourseBooking booking);
     int update(CourseBooking booking);

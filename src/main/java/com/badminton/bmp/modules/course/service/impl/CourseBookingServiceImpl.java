@@ -34,9 +34,11 @@ import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 课程预约业务实现类
@@ -217,6 +219,28 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             return null;
         }
         return courseBookingMapper.findLatestActiveByMemberIdAndCourseId(memberId, courseId);
+    }
+
+    @Override
+    public Map<Long, CourseBooking> findLatestActiveByMemberAndCourses(Long memberId, List<Long> courseIds) {
+        if (memberId == null || courseIds == null || courseIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> distinctIds = courseIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (distinctIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, CourseBooking> latestByCourse = new HashMap<>();
+        for (CourseBooking booking : courseBookingMapper.findActiveByMemberAndCourseIds(memberId, distinctIds)) {
+            if (booking == null || booking.getCourseId() == null) {
+                continue;
+            }
+            latestByCourse.putIfAbsent(booking.getCourseId(), booking);
+        }
+        return latestByCourse;
     }
 
     private void evictCourseCache(Long courseId) {

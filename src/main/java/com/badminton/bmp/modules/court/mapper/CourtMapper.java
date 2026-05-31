@@ -232,7 +232,7 @@ public interface CourtMapper {
      */
     @Select("<script>" +
             "SELECT COUNT(*) FROM sys_court " +
-            "WHERE del_flag = 0 AND DATE(create_time) = #{date} " +
+            "WHERE del_flag = 0 AND create_time &gt;= #{date} AND create_time &lt; DATE_ADD(#{date}, INTERVAL 1 DAY) " +
             "<if test='venueId != null'> AND venue_id = #{venueId} </if>" +
             "</script>")
     int countCreatedOnDate(@Param("venueId") Long venueId,

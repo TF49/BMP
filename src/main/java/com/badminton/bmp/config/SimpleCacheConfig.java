@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnMissingBean(CacheManager.class)
 public class SimpleCacheConfig {
 
-    private static final String[] CACHE_NAMES = {"coach", "venue", "court", "course", "user"};
+    private static final String[] CACHE_NAMES = {"coach", "venue", "venueOptions", "court", "course", "user"};
 
     @Bean
     public CacheManager cacheManager() {

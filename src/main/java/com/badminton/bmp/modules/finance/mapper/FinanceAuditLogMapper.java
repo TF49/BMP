@@ -39,8 +39,8 @@ public interface FinanceAuditLogMapper extends BaseMapper<FinanceAuditLog> {
             "<if test='financeId != null'> AND finance_id = #{financeId} </if>" +
             "<if test='operationType != null and operationType != \"\"'> AND operation_type = #{operationType} </if>" +
             "<if test='operatorId != null'> AND operator_id = #{operatorId} </if>" +
-            "<if test='startDate != null and startDate != \"\"'> AND DATE(operation_time) &gt;= #{startDate} </if>" +
-            "<if test='endDate != null and endDate != \"\"'> AND DATE(operation_time) &lt;= #{endDate} </if>" +
+            "<if test='startDate != null and startDate != \"\"'> AND operation_time &gt;= CONCAT(#{startDate}, ' 00:00:00') </if>" +
+            "<if test='endDate != null and endDate != \"\"'> AND operation_time &lt; DATE_ADD(CONCAT(#{endDate}, ' 00:00:00'), INTERVAL 1 DAY) </if>" +
             "ORDER BY operation_time DESC " +
             "LIMIT #{offset}, #{size}" +
             "</script>")
@@ -61,8 +61,8 @@ public interface FinanceAuditLogMapper extends BaseMapper<FinanceAuditLog> {
             "<if test='financeId != null'> AND finance_id = #{financeId} </if>" +
             "<if test='operationType != null and operationType != \"\"'> AND operation_type = #{operationType} </if>" +
             "<if test='operatorId != null'> AND operator_id = #{operatorId} </if>" +
-            "<if test='startDate != null and startDate != \"\"'> AND DATE(operation_time) &gt;= #{startDate} </if>" +
-            "<if test='endDate != null and endDate != \"\"'> AND DATE(operation_time) &lt;= #{endDate} </if>" +
+            "<if test='startDate != null and startDate != \"\"'> AND operation_time &gt;= CONCAT(#{startDate}, ' 00:00:00') </if>" +
+            "<if test='endDate != null and endDate != \"\"'> AND operation_time &lt; DATE_ADD(CONCAT(#{endDate}, ' 00:00:00'), INTERVAL 1 DAY) </if>" +
             "</script>")
     int count(@Param("financeId") Long financeId,
               @Param("operationType") String operationType,

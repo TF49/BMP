@@ -41,12 +41,6 @@ public interface UserService {
     boolean verifyPassword(String rawPassword, String encodedPassword);
 
     /**
-     * 查找所有用户
-     * @return 用户列表
-     */
-    List<User> findAll();
-
-    /**
      * 查找可用于创建会员档案的用户端账号（尚未绑定会员档案）
      * @return 用户列表
      */

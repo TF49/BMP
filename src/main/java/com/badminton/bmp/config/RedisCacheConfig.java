@@ -39,6 +39,7 @@ public class RedisCacheConfig {
         // 按 cacheName 设置不同 TTL（可选）
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
         cacheConfigurations.put("venue", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        cacheConfigurations.put("venueOptions", defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigurations.put("court", defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigurations.put("coach", defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigurations.put("course", defaultConfig.entryTtl(Duration.ofMinutes(30)));

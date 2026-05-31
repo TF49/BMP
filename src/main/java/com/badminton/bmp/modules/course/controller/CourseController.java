@@ -71,7 +71,7 @@ public class CourseController extends BaseController {
             if (startTime != null && startTime.trim().isEmpty()) startTime = null;
             if (endTime != null && endTime.trim().isEmpty()) endTime = null;
             List<Course> courses = courseService.findAll(coachId, courtId, status, keyword, startTime, endTime, page, size);
-            courses.forEach(this::enrichCurrentUserView);
+            enrichCurrentUserViewBatch(courses);
             int total = courseService.count(coachId, courtId, status, keyword, startTime, endTime);
             Map<String, Object> result = new HashMap<>();
             result.put("data", courses);
@@ -104,7 +104,7 @@ public class CourseController extends BaseController {
             if (startTime != null && startTime.trim().isEmpty()) startTime = null;
             if (endTime != null && endTime.trim().isEmpty()) endTime = null;
             List<Course> courses = courseService.findAll(coachId, courtId, status, keyword, startTime, endTime, page, size);
-            courses.forEach(this::enrichCurrentUserView);
+            enrichCurrentUserViewBatch(courses);
             int total = courseService.count(coachId, courtId, status, keyword, startTime, endTime);
             Map<String, Object> result = new HashMap<>();
             result.put("data", courses);
@@ -135,33 +135,64 @@ public class CourseController extends BaseController {
         }
     }
 
-    private void enrichCurrentUserView(Course course) {
-        if (course == null) {
+    private void enrichCurrentUserViewBatch(List<Course> courses) {
+        if (courses == null || courses.isEmpty()) {
             return;
         }
-        course.setHasBookedByCurrentUser(false);
-        course.setCurrentUserBookingId(null);
-        course.setIsCurrentCourseCoach(false);
+        for (Course course : courses) {
+            if (course != null) {
+                course.setHasBookedByCurrentUser(false);
+                course.setCurrentUserBookingId(null);
+                course.setIsCurrentCourseCoach(false);
+            }
+        }
 
         User current = SecurityUtils.getCurrentUser();
         if (current == null || current.getId() == null) {
             return;
         }
 
+        Coach currentCoach = coachService.findByUserId(current.getId());
+        if (currentCoach != null && currentCoach.getId() != null) {
+            for (Course course : courses) {
+                if (course != null && currentCoach.getId().equals(course.getCoachId())) {
+                    course.setIsCurrentCourseCoach(true);
+                }
+            }
+        }
+
         Member currentMember = memberService.findByUserId(current.getId());
-        if (currentMember != null && currentMember.getId() != null) {
-            com.badminton.bmp.modules.course.entity.CourseBooking latestBooking =
-                    courseBookingService.findLatestActiveByMemberAndCourse(currentMember.getId(), course.getId());
+        if (currentMember == null || currentMember.getId() == null) {
+            return;
+        }
+
+        List<Long> courseIds = courses.stream()
+                .filter(c -> c != null && c.getId() != null)
+                .map(Course::getId)
+                .collect(Collectors.toList());
+        if (courseIds.isEmpty()) {
+            return;
+        }
+
+        Map<Long, com.badminton.bmp.modules.course.entity.CourseBooking> bookingMap =
+                courseBookingService.findLatestActiveByMemberAndCourses(currentMember.getId(), courseIds);
+        for (Course course : courses) {
+            if (course == null || course.getId() == null) {
+                continue;
+            }
+            com.badminton.bmp.modules.course.entity.CourseBooking latestBooking = bookingMap.get(course.getId());
             if (latestBooking != null) {
                 course.setHasBookedByCurrentUser(true);
                 course.setCurrentUserBookingId(latestBooking.getId());
             }
         }
+    }
 
-        Coach currentCoach = coachService.findByUserId(current.getId());
-        if (currentCoach != null && currentCoach.getId() != null && currentCoach.getId().equals(course.getCoachId())) {
-            course.setIsCurrentCourseCoach(true);
+    private void enrichCurrentUserView(Course course) {
+        if (course == null) {
+            return;
         }
+        enrichCurrentUserViewBatch(List.of(course));
     }
 
     /**

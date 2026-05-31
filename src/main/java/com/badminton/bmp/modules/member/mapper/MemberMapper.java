@@ -63,13 +63,6 @@ public interface MemberMapper {
     int restoreById(@Param("id") Long id, @Param("updateTime") java.time.LocalDateTime updateTime);
 
     /**
-     * 查找所有会员（仅用户 USER/MEMBER，不含教练/会长等）
-     * @return 会员列表
-     */
-    @Select("SELECT m.* FROM sys_member m " + USER_ROLE_FILTER + "WHERE m.del_flag = 0 ORDER BY m.id")
-    List<Member> findAll();
-
-    /**
      * 插入新会员
      * @param member 会员对象
      * @return 影响的行数
@@ -280,7 +273,7 @@ public interface MemberMapper {
      * 统计指定日期注册的会员数量（按 register_time）- 仅用户(USER/MEMBER)
      */
     @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER +
-            "WHERE m.del_flag = 0 AND DATE(m.register_time) = #{date}")
+            "WHERE m.del_flag = 0 AND m.register_time >= #{date} AND m.register_time < DATE_ADD(#{date}, INTERVAL 1 DAY)")
     int countRegisteredOnDate(@Param("date") java.time.LocalDate date);
 
     /**
@@ -288,7 +281,7 @@ public interface MemberMapper {
      */
     @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER +
             "WHERE m.del_flag = 0 AND m.member_type = 'NORMAL' " +
-            "AND DATE(m.register_time) >= #{startDate} AND DATE(m.register_time) <= #{endDate}")
+            "AND m.register_time >= #{startDate} AND m.register_time < DATE_ADD(#{endDate}, INTERVAL 1 DAY)")
     int countNormalRegisteredBetween(@Param("startDate") java.time.LocalDate startDate,
                                      @Param("endDate") java.time.LocalDate endDate);
 
@@ -311,7 +304,7 @@ public interface MemberMapper {
      */
     @Select("SELECT DATE(m.register_time) AS date, COUNT(*) AS cnt FROM sys_member m " + USER_ROLE_FILTER +
             "WHERE m.del_flag = 0 AND m.register_time IS NOT NULL " +
-            "AND DATE(m.register_time) >= #{startDate} AND DATE(m.register_time) <= #{endDate} " +
+            "AND m.register_time >= #{startDate} AND m.register_time < DATE_ADD(#{endDate}, INTERVAL 1 DAY) " +
             "GROUP BY DATE(m.register_time) ORDER BY date")
     List<java.util.Map<String, Object>> countRegisteredByDate(@Param("startDate") java.time.LocalDate startDate,
                                                               @Param("endDate") java.time.LocalDate endDate);
@@ -320,7 +313,7 @@ public interface MemberMapper {
      * 统计某日期之前累计注册会员数（用于累计趋势）- 仅用户(USER/MEMBER)
      */
     @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER +
-            "WHERE m.del_flag = 0 AND m.register_time IS NOT NULL AND DATE(m.register_time) < #{date}")
+            "WHERE m.del_flag = 0 AND m.register_time IS NOT NULL AND m.register_time < #{date}")
     int countRegisteredBeforeDate(@Param("date") java.time.LocalDate date);
 
     /**
@@ -335,8 +328,8 @@ public interface MemberMapper {
 
     @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER +
             "WHERE m.del_flag = 0 AND (" +
-            "(m.expire_time IS NOT NULL AND DATE(m.expire_time) >= #{startDate} AND DATE(m.expire_time) <= #{endDate}) " +
-            "OR (m.status = 2 AND m.expire_time IS NULL AND DATE(m.update_time) >= #{startDate} AND DATE(m.update_time) <= #{endDate})" +
+            "(m.expire_time IS NOT NULL AND m.expire_time >= #{startDate} AND m.expire_time < DATE_ADD(#{endDate}, INTERVAL 1 DAY)) " +
+            "OR (m.status = 2 AND m.expire_time IS NULL AND m.update_time >= #{startDate} AND m.update_time < DATE_ADD(#{endDate}, INTERVAL 1 DAY))" +
             ")")
     int countChurnBetween(@Param("startDate") java.time.LocalDate startDate,
                           @Param("endDate") java.time.LocalDate endDate);

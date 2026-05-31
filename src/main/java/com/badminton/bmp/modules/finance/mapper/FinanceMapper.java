@@ -31,8 +31,8 @@ public interface FinanceMapper {
             "<if test='venueId != null'> AND f.venue_id = #{venueId} </if>" +
             "<if test='businessType != null and businessType != \"\"'> AND f.business_type = #{businessType} </if>" +
             "<if test='incomeExpenseType != null'> AND f.income_expense_type = #{incomeExpenseType} </if>" +
-            "<if test='startDate != null and startDate != \"\"'> AND DATE(f.create_time) &gt;= #{startDate} </if>" +
-            "<if test='endDate != null and endDate != \"\"'> AND DATE(f.create_time) &lt;= #{endDate} </if>" +
+            "<if test='startDate != null and startDate != \"\"'> AND f.create_time &gt;= CONCAT(#{startDate}, ' 00:00:00') </if>" +
+            "<if test='endDate != null and endDate != \"\"'> AND f.create_time &lt; DATE_ADD(CONCAT(#{endDate}, ' 00:00:00'), INTERVAL 1 DAY) </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND (f.finance_no LIKE CONCAT('%', #{keyword}, '%') " +
             "OR f.remark LIKE CONCAT('%', #{keyword}, '%') " +
@@ -59,8 +59,8 @@ public interface FinanceMapper {
             "<if test='venueId != null'> AND f.venue_id = #{venueId} </if>" +
             "<if test='businessType != null and businessType != \"\"'> AND f.business_type = #{businessType} </if>" +
             "<if test='incomeExpenseType != null'> AND f.income_expense_type = #{incomeExpenseType} </if>" +
-            "<if test='startDate != null and startDate != \"\"'> AND DATE(f.create_time) &gt;= #{startDate} </if>" +
-            "<if test='endDate != null and endDate != \"\"'> AND DATE(f.create_time) &lt;= #{endDate} </if>" +
+            "<if test='startDate != null and startDate != \"\"'> AND f.create_time &gt;= CONCAT(#{startDate}, ' 00:00:00') </if>" +
+            "<if test='endDate != null and endDate != \"\"'> AND f.create_time &lt; DATE_ADD(CONCAT(#{endDate}, ' 00:00:00'), INTERVAL 1 DAY) </if>" +
             "<if test='keyword != null and keyword != \"\"'> " +
             "AND (f.finance_no LIKE CONCAT('%', #{keyword}, '%') " +
             "OR f.remark LIKE CONCAT('%', #{keyword}, '%') " +
@@ -125,8 +125,8 @@ public interface FinanceMapper {
             "SELECT COALESCE(SUM(amount), 0) FROM biz_finance " +
             "WHERE del_flag = 0 AND income_expense_type = #{incomeExpenseType} " +
             "<if test='venueId != null'> AND venue_id = #{venueId} </if>" +
-            "<if test='startDate != null and startDate != \"\"'> AND DATE(create_time) &gt;= #{startDate} </if>" +
-            "<if test='endDate != null and endDate != \"\"'> AND DATE(create_time) &lt;= #{endDate} </if>" +
+            "<if test='startDate != null and startDate != \"\"'> AND create_time &gt;= CONCAT(#{startDate}, ' 00:00:00') </if>" +
+            "<if test='endDate != null and endDate != \"\"'> AND create_time &lt; DATE_ADD(CONCAT(#{endDate}, ' 00:00:00'), INTERVAL 1 DAY) </if>" +
             "</script>")
     BigDecimal sumByType(@Param("venueId") Long venueId,
                          @Param("incomeExpenseType") Integer incomeExpenseType,
@@ -141,8 +141,8 @@ public interface FinanceMapper {
             "FROM biz_finance " +
             "WHERE del_flag = 0 AND income_expense_type = 1 " +
             "<if test='venueId != null'> AND venue_id = #{venueId} </if>" +
-            "<if test='startDate != null and startDate != \"\"'> AND DATE(create_time) &gt;= #{startDate} </if>" +
-            "<if test='endDate != null and endDate != \"\"'> AND DATE(create_time) &lt;= #{endDate} </if>" +
+            "<if test='startDate != null and startDate != \"\"'> AND create_time &gt;= CONCAT(#{startDate}, ' 00:00:00') </if>" +
+            "<if test='endDate != null and endDate != \"\"'> AND create_time &lt; DATE_ADD(CONCAT(#{endDate}, ' 00:00:00'), INTERVAL 1 DAY) </if>" +
             "GROUP BY business_type " +
             "ORDER BY amount DESC" +
             "</script>")
@@ -158,8 +158,8 @@ public interface FinanceMapper {
             "FROM biz_finance " +
             "WHERE del_flag = 0 " +
             "<if test='venueId != null'> AND venue_id = #{venueId} </if>" +
-            "<if test='startDate != null and startDate != \"\"'> AND DATE(create_time) &gt;= #{startDate} </if>" +
-            "<if test='endDate != null and endDate != \"\"'> AND DATE(create_time) &lt;= #{endDate} </if>" +
+            "<if test='startDate != null and startDate != \"\"'> AND create_time &gt;= CONCAT(#{startDate}, ' 00:00:00') </if>" +
+            "<if test='endDate != null and endDate != \"\"'> AND create_time &lt; DATE_ADD(CONCAT(#{endDate}, ' 00:00:00'), INTERVAL 1 DAY) </if>" +
             "GROUP BY DATE(create_time), income_expense_type " +
             "ORDER BY date" +
             "</script>")
@@ -182,8 +182,8 @@ public interface FinanceMapper {
             "LEFT JOIN sys_venue v ON f.venue_id = v.id " +
             "WHERE f.del_flag = 0 AND f.income_expense_type = 1 " +
             "<if test='venueId != null'> AND f.venue_id = #{venueId} </if>" +
-            "<if test='startDate != null and startDate != \"\"'> AND DATE(f.create_time) &gt;= #{startDate} </if>" +
-            "<if test='endDate != null and endDate != \"\"'> AND DATE(f.create_time) &lt;= #{endDate} </if>" +
+            "<if test='startDate != null and startDate != \"\"'> AND f.create_time &gt;= CONCAT(#{startDate}, ' 00:00:00') </if>" +
+            "<if test='endDate != null and endDate != \"\"'> AND f.create_time &lt; DATE_ADD(CONCAT(#{endDate}, ' 00:00:00'), INTERVAL 1 DAY) </if>" +
             "GROUP BY f.venue_id, v.venue_name, DATE(f.create_time) " +
             "ORDER BY f.venue_id, date" +
             "</script>")

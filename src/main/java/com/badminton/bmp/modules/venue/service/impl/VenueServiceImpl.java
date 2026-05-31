@@ -14,6 +14,7 @@ import com.badminton.bmp.modules.venue.service.VenueService;
 import com.badminton.bmp.modules.venue.service.VenueStatusLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -80,9 +81,17 @@ public class VenueServiceImpl implements VenueService {
         }
     }
 
+    /**
+     * 查找所有场馆（轻量：id、名称、状态、地址，与 findAllOptions 一致）
+     */
     @Override
     public List<Venue> findAll() {
-        // 数据范围过滤：场馆管理者只能查看自己归属的场馆
+        return findAllOptions();
+    }
+
+    @Override
+    @Cacheable(cacheNames = "venueOptions", key = "'all'")
+    public List<Venue> findAllOptions() {
         if (com.badminton.bmp.common.util.SecurityUtils.isVenueManager()) {
             Long vId = com.badminton.bmp.common.util.SecurityUtils.getCurrentUserVenueId();
             if (vId == null) {
@@ -91,7 +100,7 @@ public class VenueServiceImpl implements VenueService {
             Venue v = venueMapper.findById(vId);
             return (v != null) ? Collections.singletonList(v) : Collections.emptyList();
         }
-        return venueMapper.findAll();
+        return venueMapper.findAllOptions();
     }
 
     @Override
@@ -131,6 +140,7 @@ public class VenueServiceImpl implements VenueService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"venue", "venueOptions"}, allEntries = true)
     public int add(Venue venue) {
         // 设置创建时间
         if (venue.getCreateTime() == null) {
@@ -151,7 +161,7 @@ public class VenueServiceImpl implements VenueService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "venue", key = "#venue.id")
+    @CacheEvict(cacheNames = {"venue", "venueOptions"}, allEntries = true)
     public int update(Venue venue) {
         // 先查询原有场馆信息
         Venue existingVenue = venueEntityCache.getById(venue.getId());
@@ -239,7 +249,7 @@ public class VenueServiceImpl implements VenueService {
     }
 
     @Override
-    @CacheEvict(cacheNames = "venue", key = "#id")
+    @CacheEvict(cacheNames = {"venue", "venueOptions"}, allEntries = true)
     public int deleteById(Long id) {
         // 先查询场馆是否存在
         Venue venue = venueEntityCache.getById(id);
@@ -295,7 +305,7 @@ public class VenueServiceImpl implements VenueService {
             Venue v = venueMapper.findById(vId);
             allVenues = (v != null) ? Collections.singletonList(v) : Collections.emptyList();
         } else {
-            allVenues = venueMapper.findAll();
+            allVenues = findAllOptions();
         }
 
         int total = allVenues.size();

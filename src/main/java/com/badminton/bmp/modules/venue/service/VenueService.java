@@ -24,6 +24,11 @@ public interface VenueService {
     List<Venue> findAll();
 
     /**
+     * 下拉选项轻量列表（id、名称、状态、地址），带缓存
+     */
+    List<Venue> findAllOptions();
+
+    /**
      * 根据场馆名称或地址搜索场馆，支持分页
      * @param venueName 场馆名称
      * @param address 地址

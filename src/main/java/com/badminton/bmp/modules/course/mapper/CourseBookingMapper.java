@@ -208,6 +208,16 @@ public interface CourseBookingMapper {
             "ORDER BY cb.create_time DESC, cb.id DESC LIMIT 1")
     CourseBooking findLatestActiveByMemberIdAndCourseId(@Param("memberId") Long memberId, @Param("courseId") Long courseId);
 
+    @Select("<script>" +
+            "SELECT cb.* FROM biz_course_booking cb " +
+            "WHERE cb.del_flag = 0 AND cb.member_id = #{memberId} AND cb.status IN (1, 2, 3) " +
+            "AND cb.course_id IN " +
+            "<foreach collection='courseIds' item='courseId' open='(' separator=',' close=')'>#{courseId}</foreach> " +
+            "ORDER BY cb.course_id, cb.create_time DESC, cb.id DESC" +
+            "</script>")
+    List<CourseBooking> findActiveByMemberAndCourseIds(@Param("memberId") Long memberId,
+                                                       @Param("courseIds") List<Long> courseIds);
+
     /**
      * 定时任务：查询「已支付」且关联课程已到开始时间的预约ID（用于自动改为进行中）
      * 条件：cb.status=2 且 (course_date &lt; 今日 或 (course_date=今日 且 start_time &lt;= 当前时间))
