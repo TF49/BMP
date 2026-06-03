@@ -1,4 +1,68 @@
-# 项目二答辩 HTML · 截图占位说明
+# BMP 答辩 HTML · 截图与录屏说明
+
+---
+
+## 项目三（当前答辩稿）
+
+答辩文件：[`project3-defense.html`](./project3-defense.html) — **纯静态 HTML**，双击或用浏览器打开即可。  
+蓝图配置：[`project3-blueprint.json`](./project3-blueprint.json)
+
+**翻页**：空格 / ↑↓ / 滚轮 / **左键**（左侧 38% 上一章，其余下一章）/ 右侧进度点 —— **16 章**，约 **10 分钟**。
+
+**讲解人**（右上角随章节切换）：
+
+| 姓名 | 模块 | 章节 | 建议时长 |
+|------|------|------|----------|
+| 尹晴 | 总览 · 架构 · 收束 | 01–05、16 | ~3 min |
+| 阿英莫 | 会员充值 · 课程预约 | 06–11 | ~3.5 min |
+| 涂家乐 | Dashboard · 财务 · 通知搜索 | 12–15 | ~3 min |
+
+**章节结构**：总览 5 章 → 核心业务 6 章（含 2 段 demo）→ 运营治理 5 章 → 收束 1 章。  
+**范围说明**：全系统交付视角，**不展开**项目二场地预约与支付（收束页有一句口头边界说明）。
+
+### 改稿（项目三）
+
+```bash
+# 在 BMP 仓库根目录执行
+python "C:\Users\Administrator\.claude\skills\网页pptskill\html-defense-builder\scripts\apply_blueprint.py" --blueprint "docs/presentation/project3-blueprint.json" --template "docs/presentation/project3-defense.html" --output "docs/presentation/project3-defense.html"
+```
+
+**必须加 `--template project3-defense.html`**（从 project2 复制的那份，含 demo 录屏与截图渲染逻辑）。
+
+### 项目三 · 截图清单（待补充）
+
+将截图放入 `assets/screenshots/`：
+
+| 文件名 | 章节 id | 内容 | 对应页面 |
+|--------|---------|------|----------|
+| `web-recharge.png` | `demo_member_recharge` | 会员充值页 | `vue/src/views/user/Recharge.vue` 或 `BMP-uniapp/pages/recharge/index.vue` |
+| `uniapp-course-booking.png` | `demo_course_booking` | 课程预约确认 | `BMP-uniapp/pages/course/booking.vue` |
+| `web-dashboard.png` | `dashboard_overview` | Dashboard KPI + 图表 | `vue/src/views/Dashboard.vue` |
+| `web-finance-audit.png` | `demo_finance_audit` | 财务 / 审计列表 | `vue/src/views/FinanceManagement.vue` |
+
+### 项目三 · 演示录屏（待录制）
+
+将 MP4 放入 `assets/videos/`，文件名与蓝图 `support.video` 一致：
+
+| 文件 | 章节 id | 录制要点 |
+|------|---------|----------|
+| `会员充值演示.mp4` | `demo_member_recharge` | user001 充值 → 余额变化 → 充值记录 |
+| `课程预约演示.mp4` | `demo_course_booking` | 选课 → 提交预约 → BALANCE 支付成功 |
+| `财务审计演示.mp4` | `demo_finance_audit` | admin 筛选流水 / 审计日志 / 对账或导出 |
+
+录屏与截图就绪后：只改 `project3-blueprint.json`（路径已写好），再执行上面的 `apply_blueprint.py`，浏览器 **Ctrl+F5** 强刷。
+
+### 10 分钟排练顺序
+
+1. 启动 9090 API、8080 Web、微信开发者工具  
+2. 尹晴：01–05 架构总览（~3 min）  
+3. 阿英莫：06 过渡 → 07 充值 demo → 08–09 讲解 → 10 课程 demo → 11 链路（~3.5 min）  
+4. 涂家乐：12 过渡 → 13 Dashboard → 14 财务 demo → 15 通知搜索（~3 min）  
+5. 尹晴：16 收束 + Q&A 缓冲（~0.5 min）
+
+---
+
+## 项目二（历史答辩稿）
 
 答辩文件：[`project2-defense.html`](./project2-defense.html) — **纯静态 HTML**，双击或用浏览器打开即可，无需 Node / 构建。  
 蓝图配置：[`project2-blueprint.json`](./project2-blueprint.json)

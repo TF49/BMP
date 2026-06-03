@@ -89,8 +89,19 @@ public class VenueServiceImpl implements VenueService {
         return findAllOptions();
     }
 
+    /**
+     * 场馆下拉缓存 key：场馆管理员按 venueId 隔离，其余角色共享全量列表。
+     */
+    public static String venueOptionsCacheKey() {
+        if (com.badminton.bmp.common.util.SecurityUtils.isVenueManager()) {
+            Long venueId = com.badminton.bmp.common.util.SecurityUtils.getCurrentUserVenueId();
+            return "manager:" + (venueId != null ? venueId : "none");
+        }
+        return "scope:all";
+    }
+
     @Override
-    @Cacheable(cacheNames = "venueOptions", key = "'all'")
+    @Cacheable(cacheNames = "venueOptions", key = "T(com.badminton.bmp.modules.venue.service.impl.VenueServiceImpl).venueOptionsCacheKey()")
     public List<Venue> findAllOptions() {
         if (com.badminton.bmp.common.util.SecurityUtils.isVenueManager()) {
             Long vId = com.badminton.bmp.common.util.SecurityUtils.getCurrentUserVenueId();
