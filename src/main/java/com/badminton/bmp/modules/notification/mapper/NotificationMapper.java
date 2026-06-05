@@ -12,16 +12,33 @@ import java.util.List;
 public interface NotificationMapper {
 
     /**
-     * 分页查询通知列表（按创建时间倒序）
+     * 分页查询通知列表（按创建时间倒序），并根据venueId进行数据隔离
+     * 如果 userVenueId 为 null，则查询所有通知（包含全局和场馆的） - 适用于会长
+     * 如果 userVenueId 不为 null，则只查询全局通知和该用户所在场馆的通知 - 适用于普通用户和场馆管理员
      */
-    @Select("SELECT * FROM sys_notification ORDER BY create_time DESC LIMIT #{offset}, #{limit}")
-    List<Notification> findByPage(@Param("offset") int offset, @Param("limit") int limit);
+    @Select("<script>" +
+            "SELECT * FROM sys_notification " +
+            "<where> " +
+            "   <if test='userVenueId != null'> " +
+            "       AND (venue_id IS NULL OR venue_id = #{userVenueId}) " +
+            "   </if> " +
+            "</where> " +
+            "ORDER BY create_time DESC LIMIT #{offset}, #{limit}" +
+            "</script>")
+    List<Notification> findByPage(@Param("offset") int offset, @Param("limit") int limit, @Param("userVenueId") Long userVenueId);
 
     /**
-     * 统计通知总数
+     * 统计通知总数，并根据venueId进行数据隔离
      */
-    @Select("SELECT COUNT(*) FROM sys_notification")
-    int countAll();
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM sys_notification " +
+            "<where> " +
+            "   <if test='userVenueId != null'> " +
+            "       AND (venue_id IS NULL OR venue_id = #{userVenueId}) " +
+            "   </if> " +
+            "</where>" +
+            "</script>")
+    int countAll(@Param("userVenueId") Long userVenueId);
 
     /**
      * 根据ID查找通知

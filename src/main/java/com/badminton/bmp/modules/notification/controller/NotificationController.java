@@ -10,6 +10,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.badminton.bmp.common.util.SecurityUtils;
+import com.badminton.bmp.modules.system.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -34,8 +36,14 @@ public class NotificationController extends BaseController {
             if (page < 1) page = 1;
             if (size < 1 || size > 100) size = 20;
 
-            List<Notification> data = notificationService.findByPage(page, size);
-            int total = notificationService.countAll();
+            // 获取当前用户的场馆ID，如果是会长，这里应该是 null
+            Long userVenueId = null;
+            if (!SecurityUtils.isPresident()) {
+                userVenueId = SecurityUtils.getCurrentUserVenueId();
+            }
+
+            List<Notification> data = notificationService.findByPage(page, size, userVenueId);
+            int total = notificationService.countAll(userVenueId);
 
             Map<String, Object> result = new HashMap<>();
             result.put("data", data);
@@ -54,6 +62,15 @@ public class NotificationController extends BaseController {
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER')")
     public Result<Object> create(@Valid @RequestBody Notification notification) {
         try {
+            User currentUser = SecurityUtils.getCurrentUser();
+            if (currentUser != null) {
+                notification.setPublisherId(currentUser.getId());
+                notification.setPublisherName(currentUser.getUsername());
+                // 根据当前用户的venueId判断是否需要给通知设置venueId
+                if (currentUser.getVenueId() != null) {
+                    notification.setVenueId(currentUser.getVenueId());
+                }
+            }
             int rows = notificationService.create(notification);
             if (rows > 0) {
                 Map<String, Object> data = new HashMap<>();

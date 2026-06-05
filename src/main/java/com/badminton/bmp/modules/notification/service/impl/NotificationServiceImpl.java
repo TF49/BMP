@@ -25,13 +25,18 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public List<Notification> findByPage(int page, int size) {
-        int offset = (page - 1) * size;
-        return notificationMapper.findByPage(offset, size);
+        return findByPage(page, size, null);
     }
 
     @Override
-    public int countAll() {
-        return notificationMapper.countAll();
+    public List<Notification> findByPage(int page, int size, Long userVenueId) {
+        int offset = (page - 1) * size;
+        return notificationMapper.findByPage(offset, size, userVenueId);
+    }
+
+    @Override
+    public int countAll(Long userVenueId) {
+        return notificationMapper.countAll(userVenueId);
     }
 
     @Override
