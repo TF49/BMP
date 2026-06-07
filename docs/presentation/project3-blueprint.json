@@ -1,0 +1,992 @@
+{
+  "title": "羽擎 BMP · 项目三：全系统交付答辩",
+  "subtitle": "三端一体 · 会员课程 · 运营治理 · 课程设计答辩",
+  "deckKicker": "BMP Project 3",
+  "presentationType": "academic",
+  "theme": "brand-roadshow",
+  "defaultPresenter": "尹晴",
+  "presenters": [
+    {
+      "name": "尹晴",
+      "module": "总览 · 收束"
+    },
+    {
+      "name": "王曾鹏",
+      "module": "架构权限"
+    },
+    {
+      "name": "涂家乐",
+      "module": "业务运营"
+    }
+  ],
+  "chapterOrder": [
+    "opening",
+    "background_problem",
+    "system_scale",
+    "architecture",
+    "rbac_security",
+    "module_core",
+    "demo_member_recharge",
+    "member_recharge_flow",
+    "course_booking_model",
+    "demo_course_booking",
+    "course_booking_pipeline",
+    "module_ops",
+    "dashboard_overview",
+    "demo_finance_audit",
+    "ops_capabilities",
+    "closing"
+  ],
+  "chapters": [
+    {
+      "id": "opening",
+      "step": "01 / 开场",
+      "title": "项目三：羽擎全系统交付",
+      "dotLabel": "开场",
+      "presenter": "尹晴",
+      "module": "总览 · 收束",
+      "claim": "羽擎 BMP v1.0.0 已完成单仓多端交付：Spring Boot 后端统一支撑 Web 四场景与 UniApp 三场景。",
+      "sceneRole": "hero",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "hero",
+      "eyebrow": "羽擎 Badminton Management Platform",
+      "body": [
+        "羽擎（BMP）面向羽毛球场馆经营：16 个业务域、27 张物理表、Web 51 页 + UniApp 107 页，覆盖会员、课程、赛事、器材、财务等完整链路。",
+        "今日按三层讲解：尹晴（总览）→ 王曾鹏（架构权限）→ 涂家乐（业务运营）。",
+        "答辩可说：本次聚焦全系统交付视角，不展开前期已完成的场地模块细节。"
+      ],
+      "metrics": [
+        {
+          "label": "版本",
+          "value": "v1.0.0",
+          "note": "功能开发已完成 · 约 30s"
+        },
+        {
+          "label": "联调端口",
+          "value": "9090 / 8080",
+          "note": "后端 API · Vue Web"
+        }
+      ],
+      "support": {
+        "label": "Cover",
+        "title": "三人分工 · 10 分钟",
+        "copy": "羽擎 BMP · 项目三 · 课程设计答辩。",
+        "items": [
+          {
+            "label": "尹晴",
+            "title": "总览 · 收束",
+            "body": "开场、痛点与交付规模 · ~2.5 min"
+          },
+          {
+            "label": "王曾鹏",
+            "title": "架构权限",
+            "body": "三端一体架构、RBAC与双Token鉴权 · ~3 min"
+          },
+          {
+            "label": "涂家乐",
+            "title": "业务运营",
+            "body": "会员课程主链路 + 看板与财务治理 · ~4.5 min"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 0,
+        "y": 360,
+        "width": 1280
+      }
+    },
+    {
+      "id": "background_problem",
+      "step": "02 / 痛点",
+      "title": "场馆经营的数字化复杂度",
+      "dotLabel": "痛点",
+      "presenter": "尹晴",
+      "module": "总览 · 收束",
+      "claim": "一家场馆同时服务会长、教练、会员与普通用户，业务域多、角色权限细、Web 与小程序必须共用同一套数据与规则。",
+      "sceneRole": "problem",
+      "cameraIntent": "descend",
+      "diagramNeed": "low",
+      "layout": "story",
+      "eyebrow": "Problem before solution",
+      "body": [
+        "经营侧：场馆/场地/教练/课程/赛事/器材/穿线/财务需在同一平台配置与运营，不能各端各一套账。",
+        "用户侧：充值、选课、报名、租借要在小程序完成；管理侧要在 Web Dashboard 汇总 KPI 并审计流水。",
+        "答辩可说：复杂度不在单点 CRUD，而在多端一致 + 五角色权限 + 16 域联动。"
+      ],
+      "metrics": [
+        {
+          "label": "角色",
+          "value": "5 种 RBAC",
+          "note": "会长 / 场馆方 / 用户 / 会员 / 教练"
+        },
+        {
+          "label": "端",
+          "value": "Web + UniApp",
+          "note": "共用 REST API · 约 30s"
+        }
+      ],
+      "support": {
+        "label": "Must solve",
+        "title": "系统必须同时做到",
+        "copy": "这三件事贯穿全系统架构。",
+        "items": [
+          {
+            "label": "1",
+            "title": "单后端多域",
+            "body": "Spring Boot 16 模块统一鉴权与事务"
+          },
+          {
+            "label": "2",
+            "title": "多端一致",
+            "body": "Web 与 UniApp 同一 API 与状态语义"
+          },
+          {
+            "label": "3",
+            "title": "可运营可审计",
+            "body": "Dashboard 汇总 + 财务流水 + 审计日志"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 1480,
+        "y": 1480,
+        "width": 1280
+      }
+    },
+    {
+      "id": "system_scale",
+      "step": "03 / 规模",
+      "title": "可交付规模一览",
+      "dotLabel": "规模",
+      "presenter": "尹晴",
+      "module": "总览 · 收束",
+      "claim": "BMP 已从搭骨架进入可交付阶段：后端 181 个 Java 源文件、27 Controller、数据库 27 表全量可初始化。",
+      "sceneRole": "analysis",
+      "cameraIntent": "tighten",
+      "diagramNeed": "medium",
+      "layout": "story",
+      "eyebrow": "Delivery snapshot · 2026-05-23",
+      "body": [
+        "后端：activity、booking、coach、course、court、dashboard、equipment、finance、member、notification、payment、search、stringing、system、tournament、venue 共 16 域。",
+        "前端：Vue Web 官网 + 管理端 + 用户端 + 教练端；UniApp 用户端 + 移动管理端 + 教练端。",
+        "答辩可说：构建基线已通过——后端 compile、Web build、UniApp type-check 与单测均 green。"
+      ],
+      "metrics": [
+        {
+          "label": "Java 源文件",
+          "value": "181",
+          "note": "16 业务模块"
+        },
+        {
+          "label": "REST Controller",
+          "value": "27",
+          "note": "统一 /api"
+        },
+        {
+          "label": "Web 页面",
+          "value": "51",
+          "note": "vue/src/views"
+        },
+        {
+          "label": "UniApp 页面",
+          "value": "107",
+          "note": "pages.json 注册"
+        }
+      ],
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 2600,
+        "width": 1280
+      }
+    },
+    {
+      "id": "architecture",
+      "step": "04 / 架构",
+      "title": "三端共用 Spring Boot API",
+      "dotLabel": "架构",
+      "presenter": "王曾鹏",
+      "module": "架构权限",
+      "claim": "Vue Web 四场景与 UniApp 三场景均通过 Axios / request.ts 访问 9090 端口，MySQL 存业务、Redis 可选缓存与分布式锁。",
+      "sceneRole": "diagram",
+      "cameraIntent": "compare",
+      "diagramNeed": "high",
+      "layout": "diagram-focus",
+      "eyebrow": "Multi-end architecture",
+      "body": [
+        "单仓 monorepo：vue/ + BMP-uniapp/ + Spring Boot 共用 :9090/api，Web dev proxy 8080，小程序直连 request.ts。",
+        "答辩可说：不是三套后端，是一套 Spring Security + JWT 双 Token 的无状态 API。"
+      ],
+      "metrics": [
+        {
+          "label": "后端",
+          "value": "Spring Boot 3.2",
+          "note": "Java 17 · MyBatis-Plus"
+        },
+        {
+          "label": "业务域",
+          "value": "16 模块",
+          "note": "27 REST Controller"
+        },
+        {
+          "label": "实时",
+          "value": "WebSocket",
+          "note": "STOMP + SockJS"
+        },
+        {
+          "label": "数据",
+          "value": "MySQL 27 表",
+          "note": "Redis 可选"
+        }
+      ],
+      "diagram": {
+        "type": "architecture-map",
+        "title": "BMP 全栈架构",
+        "caption": "7 端场景 → :9090/api → 16 业务域 → MySQL / Redis / WebSocket",
+        "flowEffects": false,
+        "connector": "Axios · request.ts → Bearer JWT",
+        "tiers": [
+          {
+            "tag": "Client",
+            "title": "多端场景（7）",
+            "columns": [
+              {
+                "label": "Vue Web :8080",
+                "variant": "accent-a",
+                "chips": [
+                  "site 官网",
+                  "dashboard",
+                  "user/*",
+                  "coach/*"
+                ],
+                "meta": "Element Plus · ECharts"
+              },
+              {
+                "label": "UniApp mp-weixin",
+                "variant": "accent-b",
+                "chips": [
+                  "user",
+                  "president",
+                  "coach"
+                ],
+                "meta": "Pinia · uview-plus"
+              }
+            ]
+          },
+          {
+            "tag": "Gateway",
+            "title": "Spring Boot API :9090",
+            "meta": "Axios / request.ts → Bearer JWT",
+            "chips": [
+              "Spring Security",
+              "JWT 双 Token",
+              "27 REST",
+              "STOMP /ws"
+            ]
+          },
+          {
+            "tag": "Modules",
+            "title": "16 业务域",
+            "groups": [
+              {
+                "label": "经营核心",
+                "chips": [
+                  "venue",
+                  "court",
+                  "booking",
+                  "member",
+                  "course",
+                  "coach"
+                ]
+              },
+              {
+                "label": "运营治理",
+                "chips": [
+                  "dashboard",
+                  "finance",
+                  "notification",
+                  "search",
+                  "payment"
+                ]
+              },
+              {
+                "label": "扩展服务",
+                "chips": [
+                  "equipment",
+                  "tournament",
+                  "stringing",
+                  "activity"
+                ]
+              },
+              {
+                "label": "系统支撑",
+                "chips": [
+                  "system",
+                  "auth",
+                  "user",
+                  "feedback"
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "Data",
+            "title": "数据与基础设施",
+            "variant": "end",
+            "chips": [
+              "MySQL 27 表",
+              "Redis 缓存/锁",
+              "WebSocket 推送",
+              "MyBatis-Plus"
+            ]
+          }
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 1480,
+        "y": 3720,
+        "width": 1720
+      }
+    },
+    {
+      "id": "rbac_security",
+      "step": "05 / 鉴权",
+      "title": "五角色 RBAC + JWT 双 Token",
+      "dotLabel": "鉴权",
+      "presenter": "王曾鹏",
+      "module": "架构权限",
+      "claim": "PRESIDENT / VENUE_MANAGER / USER / MEMBER / COACH 五角色分流路由与接口权限；Access + Refresh 双 Token 无状态续期。",
+      "sceneRole": "diagram",
+      "cameraIntent": "compare",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "Spring Security",
+      "body": [
+        "Web Router 与 UniApp pages 按角色注册不同入口；后端 Controller 方法级 @PreAuthorize 或 SecurityUtils 校验。",
+        "会员域数据范围：会长看全馆，场馆方看本馆，用户/会员只看本人，教练看关联学员与课程。",
+        "答辩可说：架构与权限到此结束，请涂家乐接核心业务与运营管理。"
+      ],
+      "metrics": [
+        {
+          "label": "角色码",
+          "value": "5 RBAC",
+          "note": "JWT Claims"
+        },
+        {
+          "label": "鉴权",
+          "value": "双 Token",
+          "note": "约 30s"
+        }
+      ],
+      "diagram": {
+        "type": "layer-stack",
+        "title": "权限分层",
+        "caption": "路由分流 · 接口鉴权 · 数据范围",
+        "layers": [
+          {
+            "tag": "入口",
+            "title": "多端路由",
+            "body": "Web Layout / UniApp tabBar · 按 role 跳转 dashboard / user / coach / president"
+          },
+          {
+            "tag": "网关",
+            "title": "JWT 过滤器",
+            "body": "Bearer Access Token · Refresh 续期 · 401 统一拦截"
+          },
+          {
+            "tag": "业务",
+            "title": "数据范围",
+            "body": "venueId / memberId / coachId 约束列表与写操作"
+          }
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 4840,
+        "width": 1280
+      }
+    },
+    {
+      "id": "module_core",
+      "step": "06 / 核心",
+      "title": "核心业务模块",
+      "dotLabel": "核心",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "moduleLabel": "Module A · Core Business",
+      "claim": "会员先充值形成余额与等级，再在课程域完成预约与扣款——除场地外第二条用户服务主链路。",
+      "sceneRole": "hero",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "module",
+      "eyebrow": "Member · Course",
+      "body": [
+        "07 演示：会员充值（Web 或 UniApp）。",
+        "08 充值写单 + biz_finance 联动 + 等级重算。",
+        "09–11 课程预约模型、演示与四步链路。",
+        "答辩可说：两条演示串起来——先充钱，再约课扣余额。"
+      ],
+      "metrics": [
+        {
+          "label": "充值",
+          "value": "RechargeServiceImpl",
+          "note": "约 3.5 min 本段"
+        },
+        {
+          "label": "课程",
+          "value": "CourseBookingServiceImpl",
+          "note": "CB 单号域"
+        }
+      ],
+      "scenePos": {
+        "x": 1480,
+        "y": 5960,
+        "width": 1280
+      }
+    },
+    {
+      "id": "demo_member_recharge",
+      "step": "演示 / 充值",
+      "title": "演示：会员充值",
+      "dotLabel": "演示",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "claim": "user001 在 Web 或小程序发起充值，余额更新并写入 biz_recharge_record，同步产生财务收入流水。",
+      "sceneRole": "mechanism",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "demo",
+      "eyebrow": "实机录屏 · 占位",
+      "body": [
+        "前置：后端 9090 已启动，user001 / 123456 已登录。",
+        "本段：展示充值金额输入 → 确认 → 余额变化（可选会员等级提示）。"
+      ],
+      "metrics": [
+        {
+          "label": "Web 页",
+          "value": "user/Recharge.vue",
+          "note": "或 UniApp recharge/index"
+        },
+        {
+          "label": "账号",
+          "value": "user001",
+          "note": "密码 123456"
+        }
+      ],
+      "support": {
+        "video": "assets/videos/会员充值演示.mp4",
+        "copy": "录屏占位：充值成功 → 余额更新 → 充值记录可见",
+        "image": "assets/screenshots/web-recharge.png",
+        "items": [
+          {
+            "label": "1",
+            "title": "打开充值页",
+            "body": "Web /user/recharge 或小程序 recharge/index"
+          },
+          {
+            "label": "2",
+            "title": "输入金额",
+            "body": "选择充值方式 BALANCE / 模拟支付"
+          },
+          {
+            "label": "3",
+            "title": "验证结果",
+            "body": "会员余额增加 · 充值记录列表有单号"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 0,
+        "y": 7080,
+        "width": 1360
+      }
+    },
+    {
+      "id": "member_recharge_flow",
+      "step": "07 / 充值",
+      "title": "充值写单 + 等级 + 财务",
+      "dotLabel": "充值",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "claim": "RechargeServiceImpl.doRecharge：写 biz_recharge_record → 累加 totalRecharge → 重算会员等级 → FinanceService.createFromBusiness(TYPE_RECHARGE)。",
+      "sceneRole": "diagram",
+      "cameraIntent": "descend",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "RechargeServiceImpl",
+      "body": [
+        "用户充值 userRecharge：若无会员档案可自动 createMemberForUser，再进入通用 doRecharge 事务。",
+        "管理员代充 adminRecharge 可指定 memberId；等级按累计充值只升不降（MEMBER 类型）。",
+        "答辩可说：充值不仅是改余额数字，而是会员档案 + 财务流水 + 等级三处一致写入。"
+      ],
+      "metrics": [
+        {
+          "label": "表",
+          "value": "biz_recharge_record",
+          "note": "rechargeNo 单号"
+        },
+        {
+          "label": "财务",
+          "value": "biz_finance",
+          "note": "TYPE_RECHARGE · 约 30s"
+        }
+      ],
+      "diagram": {
+        "type": "pipeline",
+        "title": "充值四步链路",
+        "caption": "RechargeController → RechargeServiceImpl.doRecharge",
+        "steps": [
+          "校验会员\nfindByUserId",
+          "写充值记录\nbiz_recharge_record",
+          "累加余额\nupdateTotalRecharge",
+          "写财务流水\n+ 等级重算"
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 1480,
+        "y": 8200,
+        "width": 1280
+      }
+    },
+    {
+      "id": "course_booking_model",
+      "step": "08 / 课程",
+      "title": "课程预约域模型",
+      "dotLabel": "模型",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "claim": "biz_course 定义课程资源；biz_course_booking 记录会员预约，单号 CByyyyMMdd###，状态与 paymentStatus 独立管理。",
+      "sceneRole": "diagram",
+      "cameraIntent": "compare",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "CourseBookingServiceImpl",
+      "body": [
+        "Course 实体：教练、场馆、价格、容量、可选时段；add 前 ensureCourseSelectableForBooking 校验可约性。",
+        "普通用户只能为自己 memberId 下单；会长/场馆方可代客创建。",
+        "答辩可说：课程域与场地域分离，但支付同样走 BALANCE 扣 Member 余额。"
+      ],
+      "metrics": [
+        {
+          "label": "课程表",
+          "value": "biz_course",
+          "note": "Course.java"
+        },
+        {
+          "label": "预约表",
+          "value": "biz_course_booking",
+          "note": "bookingNo CB* · 约 30s"
+        }
+      ],
+      "diagram": {
+        "type": "layer-stack",
+        "title": "课程预约分层",
+        "caption": "资源 · 预约单 · 支付状态",
+        "layers": [
+          {
+            "tag": "资源",
+            "title": "biz_course",
+            "body": "coachId、venueId、price、capacity、status、时段规则"
+          },
+          {
+            "tag": "预约",
+            "title": "biz_course_booking",
+            "body": "memberId、courseId、orderAmount、status、paymentStatus、bookingNo"
+          },
+          {
+            "tag": "支付",
+            "title": "processMemberPayment",
+            "body": "BALANCE 扣款 · MemberConsumeRecord · biz_finance 消费流水"
+          }
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 9320,
+        "width": 1280
+      }
+    },
+    {
+      "id": "demo_course_booking",
+      "step": "演示 / 课程",
+      "title": "演示：选课 → 预约 → 支付",
+      "dotLabel": "演示",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "claim": "小程序或 Web 浏览课程列表 → 提交预约 → 余额支付成功，CourseBooking status 进入已支付态。",
+      "sceneRole": "mechanism",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "demo",
+      "eyebrow": "实机录屏 · 占位",
+      "body": [
+        "前置：user001 已有足够余额（可先走充值演示）。",
+        "本段：选课 → 确认预约 → BALANCE 支付 → 我的预约/订单可见。"
+      ],
+      "metrics": [
+        {
+          "label": "UniApp",
+          "value": "course/booking.vue",
+          "note": "或 Web CourseBooking.vue"
+        },
+        {
+          "label": "接口",
+          "value": "POST /api/course-booking/add",
+          "note": "member/payment"
+        }
+      ],
+      "support": {
+        "video": "assets/videos/课程预约演示.mp4",
+        "copy": "录屏占位：选课 → 提交 → 余额支付成功",
+        "items": [
+          {
+            "label": "选课",
+            "title": "课程列表",
+            "image": "assets/screenshots/uniapp-course-booking.png",
+            "body": "pages/course/list → detail"
+          },
+          {
+            "label": "预约",
+            "title": "提交预约",
+            "body": "course/booking.vue · 确认金额"
+          },
+          {
+            "label": "支付",
+            "title": "余额扣款",
+            "body": "processMemberPayment · 列表显示已支付"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 1480,
+        "y": 10440,
+        "width": 1360
+      }
+    },
+    {
+      "id": "course_booking_pipeline",
+      "step": "09 / 链路",
+      "title": "课程预约四步链路",
+      "dotLabel": "链路",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "claim": "POST /api/course-booking/add 写预约单 → processMemberPayment 校验余额 → 扣款写流水 → 更新 status/paymentStatus。",
+      "sceneRole": "diagram",
+      "cameraIntent": "descend",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "Create + Pay",
+      "body": [
+        "add()：权限补全 memberId → 校验 course 可约 → 生成 bookingNo → insert biz_course_booking。",
+        "processPaymentInternal：仅 BALANCE；余额不足抛 BusinessException；成功写 MemberConsumeRecord + biz_finance。",
+        "答辩可说：核心业务到此结束，下面进入运营与治理部分。"
+      ],
+      "metrics": [
+        {
+          "label": "创建",
+          "value": "CourseBookingController.add",
+          "note": "返回 bookingNo"
+        },
+        {
+          "label": "支付",
+          "value": "processMemberPayment",
+          "note": "约 30s"
+        }
+      ],
+      "diagram": {
+        "type": "pipeline",
+        "title": "课程预约流程",
+        "caption": "UniApp/Web → CourseBookingServiceImpl",
+        "steps": [
+          "浏览选课\ncourse/list",
+          "POST /add\n写预约单",
+          "BALANCE\n余额校验",
+          "已支付\nstatus 更新"
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 11560,
+        "width": 1280
+      }
+    },
+    {
+      "id": "module_ops",
+      "step": "10 / 运营",
+      "title": "运营治理模块",
+      "dotLabel": "运营",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "moduleLabel": "Module B · Operations",
+      "claim": "Dashboard 汇总 KPI，财务模块审计与对账，通知/搜索/WebSocket 支撑日常运营与触达。",
+      "sceneRole": "hero",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "module",
+      "eyebrow": "Dashboard · Finance · Ops",
+      "body": [
+        "11 Dashboard 看板与 ECharts 图表。",
+        "12 演示：财务审计 / 对账。",
+        "13 通知 · 综合搜索 · WebSocket 推送。",
+        "答辩可说：运营层证明系统不只面向 C 端下单，也服务馆长日常决策。"
+      ],
+      "metrics": [
+        {
+          "label": "看板",
+          "value": "DashboardServiceImpl",
+          "note": "约 3 min 本段"
+        },
+        {
+          "label": "财务",
+          "value": "FinanceAuditLog",
+          "note": "EasyExcel 导出"
+        }
+      ],
+      "scenePos": {
+        "x": 1480,
+        "y": 12680,
+        "width": 1280
+      }
+    },
+    {
+      "id": "dashboard_overview",
+      "step": "11 / 看板",
+      "title": "Dashboard 汇总看板",
+      "dotLabel": "看板",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "claim": "vue/src/views/Dashboard.vue 聚合今日预约、新会员、营收结构与场地利用率等 KPI，ECharts 可视化运营态势。",
+      "sceneRole": "diagram",
+      "cameraIntent": "tighten",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "Dashboard.vue",
+      "body": [
+        "DashboardServiceImpl 多表聚合：场馆数、预约量、会员增长、财务汇总等，按 venueId 数据范围过滤。",
+        "组件化：KPIBoard、RevenueStructurePie、CourtUtilization 等 charts 复用在管理端。",
+        "答辩可说：看板是 16 域数据的「运营读模型」，不要求老师进每个子菜单。"
+      ],
+      "metrics": [
+        {
+          "label": "页面",
+          "value": "Dashboard.vue",
+          "note": "会长 / 场馆方入口"
+        },
+        {
+          "label": "图表",
+          "value": "ECharts 6",
+          "note": "约 30s"
+        }
+      ],
+      "diagram": {
+        "type": "funnel",
+        "title": "Dashboard 数据汇聚",
+        "inputs": [
+          "预约统计 booking",
+          "会员 member",
+          "财务 finance",
+          "场地 court"
+        ],
+        "output": "KPI 看板 + ECharts 可视化",
+        "caption": "多域聚合 → 单页运营态势"
+      },
+      "support": {
+        "label": "截图",
+        "title": "Web 管理端 Dashboard",
+        "image": "assets/screenshots/web-dashboard.png",
+        "copy": "截图占位：KPI 卡片 + 营收/利用率图表。",
+        "items": [
+          {
+            "label": "Tip",
+            "title": "演示建议",
+            "body": "admin 登录 · 展示今日 KPI 与快捷入口"
+          },
+          {
+            "label": "接口",
+            "title": "GET /api/dashboard/*",
+            "body": "DashboardController 汇总"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 0,
+        "y": 13800,
+        "width": 1280
+      }
+    },
+    {
+      "id": "demo_finance_audit",
+      "step": "演示 / 财务",
+      "title": "演示：财务审计与对账",
+      "dotLabel": "演示",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "claim": "FinanceManagement 筛选流水与审计日志，支持对账视图与 EasyExcel 导出，追溯充值/消费/业务扣款。",
+      "sceneRole": "mechanism",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "demo",
+      "eyebrow": "实机录屏 · 占位",
+      "body": [
+        "管理端登录 admin，进入财务管理 / 审计日志 / 对账页面。",
+        "演示：按日期筛选 → 查看审计记录 → 可选导出 Excel。"
+      ],
+      "metrics": [
+        {
+          "label": "页面",
+          "value": "FinanceManagement.vue",
+          "note": "审计 / 对账"
+        },
+        {
+          "label": "导出",
+          "value": "EasyExcel",
+          "note": "审计日志 Excel"
+        }
+      ],
+      "support": {
+        "video": "assets/videos/财务审计演示.mp4",
+        "copy": "录屏占位：筛选流水 → 审计日志 → 对账/导出",
+        "image": "assets/screenshots/web-finance-audit.png",
+        "items": [
+          {
+            "label": "1",
+            "title": "打开财务模块",
+            "body": "FinanceManagement · 流水列表"
+          },
+          {
+            "label": "2",
+            "title": "审计日志",
+            "body": "FinanceAuditLogController · 操作追溯"
+          },
+          {
+            "label": "3",
+            "title": "对账",
+            "body": "FinanceReconciliation · 差异核对"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 1480,
+        "y": 14920,
+        "width": 1360
+      }
+    },
+    {
+      "id": "ops_capabilities",
+      "step": "12 / 能力",
+      "title": "通知 · 搜索 · WebSocket",
+      "dotLabel": "能力",
+      "presenter": "涂家乐",
+      "module": "业务运营",
+      "claim": "notification 模块推送业务通知；search 综合检索场馆/课程/教练；WebSocket STOMP 支持实时消息订阅。",
+      "sceneRole": "diagram",
+      "cameraIntent": "expand",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "Ops utilities",
+      "body": [
+        "通知：UniApp notice/index + Web 消息中心，后端 NotificationService 持久化 + 已读状态。",
+        "搜索：GET /api/search 聚合多域关键词，减少用户在 107 个小程序页间盲找。",
+        "答辩可说：这三项是「全系统可运营」的辅助能力，与 Dashboard/财务形成闭环。"
+      ],
+      "metrics": [
+        {
+          "label": "通知",
+          "value": "notification",
+          "note": "Web + UniApp"
+        },
+        {
+          "label": "搜索",
+          "value": "search",
+          "note": "约 30s"
+        }
+      ],
+      "diagram": {
+        "type": "pipeline",
+        "title": "运营辅助链路",
+        "caption": "业务事件 → 通知/搜索/推送",
+        "steps": [
+          "业务写单\nbooking/course/…",
+          "通知入库\nNotification",
+          "WebSocket\nSTOMP 推送",
+          "端侧展示\nnotice/search"
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 16040,
+        "width": 1280
+      }
+    },
+    {
+      "id": "closing",
+      "step": "16 / 收束",
+      "title": "交付边界 · 演示清单 · 致谢",
+      "dotLabel": "结论",
+      "presenter": "尹晴",
+      "module": "总览 · 收束",
+      "claim": "BMP v1.0.0 全系统可交付：三端一后端、会员课程主链路、Dashboard 与财务治理均已打通。",
+      "sceneRole": "closing",
+      "cameraIntent": "land",
+      "diagramNeed": "low",
+      "layout": "closing",
+      "eyebrow": "Demo · Limits · Thanks",
+      "body": [
+        "联调：9090 + 8080 + 微信开发者工具；user001 充值 → 课程预约 → admin 看 Dashboard/财务。",
+        "局限：暂无后端集成测试；部分能力为演示占位数据；场地预约与支付已在前期模块完成，本次不展开。",
+        "感谢聆听，欢迎提问。—— 尹晴 · 王曾鹏 · 涂家乐"
+      ],
+      "metrics": [
+        {
+          "label": "演示账号",
+          "value": "user001 / admin",
+          "note": "密码 123456"
+        },
+        {
+          "label": "版本",
+          "value": "v1.0.0",
+          "note": "可交付 / 可展示"
+        }
+      ],
+      "support": {
+        "label": "Checklist",
+        "title": "现场演示清单",
+        "copy": "答辩前按顺序走一遍（约 10 分钟）。",
+        "items": [
+          {
+            "label": "1",
+            "title": "启动三端",
+            "body": "9090 API · 8080 Web · 微信开发者工具"
+          },
+          {
+            "label": "2",
+            "title": "王曾鹏",
+            "body": "展示架构层与权限校验"
+          },
+          {
+            "label": "3",
+            "title": "涂家乐",
+            "body": "充值与课程预约演示 → 运营看板与财务审计"
+          },
+          {
+            "label": "说明",
+            "title": "前期模块",
+            "body": "场地预约与支付已在前期完成，本次答辩不展开"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 1480,
+        "y": 17160,
+        "width": 1120
+      }
+    }
+  ]
+}
