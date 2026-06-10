@@ -195,12 +195,12 @@
 import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Download, View, Document } from '@element-plus/icons-vue'
-import axios from 'axios'
 import {
   getAuditLogList,
   getAuditLogDetail,
   createAuditLogExport,
-  getExportTaskStatus
+  getExportTaskStatus,
+  downloadAuditLogExport
 } from '@/api/finance'
 
 // 数据状态
@@ -213,6 +213,8 @@ const exportStatus = ref('')
 const exportMessage = ref('')
 const currentTaskId = ref('')
 let exportPollTimer = null
+let exportPollStartTime = 0
+const EXPORT_POLL_TIMEOUT = 5 * 60 * 1000 // 5分钟超时
 
 // 分页
 const pagination = reactive({
@@ -333,6 +335,7 @@ async function handleExport() {
       exportProgress.value = 0
       exportStatus.value = ''
       exportMessage.value = '正在创建导出任务...'
+      exportPollStartTime = Date.now()
       startPollingExportStatus()
     } else {
       ElMessage.error(res.message || '创建导出任务失败')
@@ -351,6 +354,14 @@ function startPollingExportStatus() {
   }
   
   exportPollTimer = setInterval(async () => {
+    // 超时保护
+    if (Date.now() - exportPollStartTime > EXPORT_POLL_TIMEOUT) {
+      clearInterval(exportPollTimer)
+      exportPollTimer = null
+      exportStatus.value = 'exception'
+      exportMessage.value = '导出超时，请关闭后重试'
+      return
+    }
     try {
       const res = await getExportTaskStatus(currentTaskId.value)
       if (res.code === 200) {
@@ -386,34 +397,11 @@ function startPollingExportStatus() {
 // 下载导出文件
 async function handleDownloadExport() {
   try {
-    const token = localStorage.getItem('token')
-    const baseURL = process.env.NODE_ENV === 'production' ? '/api' : ''
-    const response = await axios({
-      baseURL,
-      url: `/api/finance/audit/export/download/${currentTaskId.value}`,
-      method: 'get',
-      responseType: 'blob',
-      timeout: 60000,
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    const contentType = response.headers['content-type'] || ''
-    if (contentType.indexOf('application/json') !== -1) {
-      const text = await response.data.text()
-      let msg = '下载失败'
-      try {
-        const json = JSON.parse(text)
-        msg = json.message || msg
-      } catch (_) {}
-      ElMessage.error(msg)
-      return
-    }
-
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    })
+    const blobData = await downloadAuditLogExport(currentTaskId.value)
+    const blob = new Blob(
+      [blobData],
+      { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+    )
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url

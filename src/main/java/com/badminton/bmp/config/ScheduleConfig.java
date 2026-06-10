@@ -5,6 +5,8 @@ import com.badminton.bmp.modules.booking.service.BookingService;
 import com.badminton.bmp.modules.course.service.CourseBookingService;
 import com.badminton.bmp.modules.course.service.CourseService;
 import com.badminton.bmp.modules.equipment.service.EquipmentRentalService;
+import com.badminton.bmp.modules.finance.mapper.FinanceAuditLogMapper;
+import com.badminton.bmp.modules.finance.service.ExportTaskService;
 import com.badminton.bmp.modules.stringing.service.StringingServiceService;
 import com.badminton.bmp.modules.tournament.service.TournamentRegistrationService;
 import com.badminton.bmp.modules.tournament.service.TournamentService;
@@ -57,6 +59,12 @@ public class ScheduleConfig {
     @Autowired
     private StringingServiceService stringingServiceService;
 
+    @Autowired
+    private ExportTaskService exportTaskService;
+
+    @Autowired
+    private FinanceAuditLogMapper financeAuditLogMapper;
+
     @Autowired(required = false)
     private StringRedisTemplate stringRedisTemplate;
 
@@ -69,6 +77,35 @@ public class ScheduleConfig {
     @Scheduled(fixedRate = 300000)  // 300000毫秒 = 5分钟
     public void cleanupExpiredLoginRecords() {
         loginRateLimiter.cleanupExpiredRecords();
+    }
+
+    /**
+     * 每30分钟清理一次过期的导出任务（内存 + 物理文件）
+     */
+    @Scheduled(fixedRate = 1800000)
+    public void cleanupExpiredExportTasks() {
+        try {
+            exportTaskService.cleanExpiredTasks();
+        } catch (Exception e) {
+            log.warn("清理过期导出任务失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 每天凌晨2点清理超过180天的审计日志数据
+     */
+    @Scheduled(cron = "0 0 2 * * ?")
+    public void cleanupOldAuditLogs() {
+        try {
+            String beforeDate = LocalDateTime.now().minusDays(180)
+                    .toLocalDate().toString();
+            int deleted = financeAuditLogMapper.deleteBeforeDate(beforeDate);
+            if (deleted > 0) {
+                log.info("清理180天前审计日志 {} 条", deleted);
+            }
+        } catch (Exception e) {
+            log.warn("清理过期审计日志失败: {}", e.getMessage());
+        }
     }
 
     /**

@@ -131,6 +131,11 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
         if (currentUser != null) {
             auditLog.setOperator(currentUser.getUsername());
             auditLog.setOperatorId(currentUser.getId());
+        } else {
+            // 安全上下文缺失时设置默认值，避免 @NotBlank/@NotNull 导致插入失败
+            auditLog.setOperator("UNKNOWN");
+            auditLog.setOperatorId(0L);
+            log.warn("审计日志记录时无法获取当前用户信息，使用默认值");
         }
     }
 

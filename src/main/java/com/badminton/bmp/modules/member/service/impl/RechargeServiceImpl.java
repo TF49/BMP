@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -201,93 +199,30 @@ public class RechargeServiceImpl implements RechargeService {
 
         while (retryCount < maxRetries) {
             try {
-                // #region agent log
-                try {
-                    FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                    fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"充值开始-重试次数\",\"data\":{\"memberId\":%d,\"amount\":%s,\"retryCount\":%d,\"maxRetries\":%d},\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n",
-                        System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 190, memberId, amount, retryCount, maxRetries));
-                    fw.close();
-                } catch (IOException e) {}
-                // #endregion
-
                 // 获取会员信息（每次重试都重新查询，获取最新版本号）
                 member = memberMapper.findById(memberId);
                 if (member == null) {
                     throw new RuntimeException("会员不存在");
                 }
 
-                // #region agent log
-                try {
-                    FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                    fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"查询会员信息\",\"data\":{\"memberId\":%d,\"balance\":%s,\"version\":%d},\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n",
-                        System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 195, memberId, member.getBalance(), member.getVersion()));
-                    fw.close();
-                } catch (IOException e) {}
-                // #endregion
-
                 // 计算新余额
                 oldBalance = member.getBalance() != null ? member.getBalance() : BigDecimal.ZERO;
                 newBalance = oldBalance.add(amount);
                 version = member.getVersion() != null ? member.getVersion() : 0;
 
-                // #region agent log
-                try {
-                    FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                    fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"准备更新余额\",\"data\":{\"memberId\":%d,\"oldBalance\":%s,\"newBalance\":%s,\"version\":%d,\"versionFromDB\":%s},\"runId\":\"run1\",\"hypothesisId\":\"C\"}\n",
-                        System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 229, memberId, oldBalance, newBalance, version,
-                        member.getVersion() != null ? member.getVersion().toString() : "null"));
-                    fw.close();
-                } catch (IOException e) {}
-                // #endregion
-
                 // 如果数据库中 version 是 NULL，先初始化为 0
                 if (member.getVersion() == null) {
-                    // #region agent log
-                    try {
-                        FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                        fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"初始化version为0\",\"data\":{\"memberId\":%d},\"runId\":\"run1\",\"hypothesisId\":\"G\"}\n",
-                            System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 237, memberId));
-                        fw.close();
-                    } catch (IOException e) {}
-                    // #endregion
                     // 初始化 version 为 0
                     int initResult = memberMapper.updateVersionToZero(memberId);
-                    // #region agent log
-                    try {
-                        FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                        fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"初始化version结果\",\"data\":{\"memberId\":%d,\"initResult\":%d},\"runId\":\"run1\",\"hypothesisId\":\"H\"}\n",
-                            System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 240, memberId, initResult));
-                        fw.close();
-                    } catch (IOException e) {}
-                    // #endregion
                     // 重新查询获取最新的 version
                     member = memberMapper.findById(memberId);
                     if (member != null) {
                         version = member.getVersion() != null ? member.getVersion() : 0;
-                        // #region agent log
-                        try {
-                            FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                            fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"重新查询后version\",\"data\":{\"memberId\":%d,\"version\":%s},\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n",
-                                System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 245, memberId,
-                                member.getVersion() != null ? member.getVersion().toString() : "null"));
-                            fw.close();
-                        } catch (IOException e) {}
-                        // #endregion
                     }
                 }
 
                 // 更新会员余额（使用乐观锁）
                 updateResult = memberMapper.updateBalanceWithVersion(memberId, newBalance, version);
-
-                // #region agent log
-                try {
-                    FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                    fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"更新余额结果\",\"data\":{\"memberId\":%d,\"updateResult\":%d,\"version\":%s,\"versionIsNull\":%s},\"runId\":\"run1\",\"hypothesisId\":\"D\"}\n",
-                        System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 241, memberId, updateResult, 
-                        version != null ? version.toString() : "null", (version == null ? "true" : "false")));
-                    fw.close();
-                } catch (IOException e) {}
-                // #endregion
 
                 // 如果更新成功，跳出循环
                 if (updateResult > 0) {
@@ -297,14 +232,6 @@ public class RechargeServiceImpl implements RechargeService {
                 // 如果更新失败（乐观锁冲突），增加重试次数
                 retryCount++;
                 if (retryCount < maxRetries) {
-                    // #region agent log
-                    try {
-                        FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                        fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"乐观锁冲突-准备重试\",\"data\":{\"memberId\":%d,\"retryCount\":%d,\"maxRetries\":%d},\"runId\":\"run1\",\"hypothesisId\":\"E\"}\n",
-                            System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 210, memberId, retryCount, maxRetries));
-                        fw.close();
-                    } catch (IOException e) {}
-                    // #endregion
                     // 短暂等待后重试（给其他操作时间完成）
                     try {
                         Thread.sleep(50 * retryCount); // 递增等待时间：50ms, 100ms, 150ms
@@ -331,14 +258,6 @@ public class RechargeServiceImpl implements RechargeService {
 
         // 如果重试后仍然失败，抛出异常
         if (updateResult == 0) {
-            // #region agent log
-            try {
-                FileWriter fw = new FileWriter("debug-c7daf4.log", true);
-                fw.write(String.format("{\"sessionId\":\"c7daf4\",\"id\":\"log_%d_%d\",\"timestamp\":%d,\"location\":\"RechargeServiceImpl.java:%d\",\"message\":\"充值失败-重试耗尽\",\"data\":{\"memberId\":%d,\"retryCount\":%d,\"maxRetries\":%d},\"runId\":\"run1\",\"hypothesisId\":\"F\"}\n",
-                    System.currentTimeMillis(), retryCount, System.currentTimeMillis(), 240, memberId, retryCount, maxRetries));
-                fw.close();
-            } catch (IOException e) {}
-            // #endregion
             throw new RuntimeException("充值失败，数据已被其他操作修改，请重试");
         }
 

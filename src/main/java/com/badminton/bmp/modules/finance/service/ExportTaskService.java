@@ -2,8 +2,11 @@ package com.badminton.bmp.modules.finance.service;
 
 import com.badminton.bmp.common.util.ErrorMessageSanitizer;
 import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -15,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Service
 public class ExportTaskService {
+
+    private static final Logger log = LoggerFactory.getLogger(ExportTaskService.class);
 
     /**
      * 任务状态枚举
@@ -115,27 +120,46 @@ public class ExportTaskService {
     }
 
     /**
-     * 删除任务（下载后或过期后清理）
-     *
-     * @param taskId 任务ID
-     */
-    public void removeTask(String taskId) {
-        taskMap.remove(taskId);
-    }
-
-    /**
-     * 清理过期任务（24小时）
+     * 清理过期任务（24小时），同时删除物理文件
      */
     public void cleanExpiredTasks() {
         LocalDateTime expireTime = LocalDateTime.now().minusHours(24);
         taskMap.entrySet().removeIf(entry -> {
             TaskInfo taskInfo = entry.getValue();
+            boolean expired = false;
             if (taskInfo.getCompleteTime() != null && taskInfo.getCompleteTime().isBefore(expireTime)) {
-                return true;
+                expired = true;
+            } else if (taskInfo.getCreateTime().isBefore(expireTime) &&
+                       taskInfo.getStatus() != TaskStatus.PROCESSING) {
+                expired = true;
             }
-            // 如果任务创建超过24小时且未完成，也清理
-            return taskInfo.getCreateTime().isBefore(expireTime) && 
-                   taskInfo.getStatus() != TaskStatus.PROCESSING;
+            if (expired) {
+                deleteExportFile(taskInfo);
+            }
+            return expired;
         });
+    }
+
+    /**
+     * 下载完成后删除任务及其文件（可选立即清理）
+     */
+    public void removeTaskAndFile(String taskId) {
+        TaskInfo taskInfo = taskMap.remove(taskId);
+        if (taskInfo != null) {
+            deleteExportFile(taskInfo);
+        }
+    }
+
+    private void deleteExportFile(TaskInfo taskInfo) {
+        if (taskInfo.getFilePath() != null) {
+            File file = new File(taskInfo.getFilePath());
+            if (file.exists()) {
+                if (file.delete()) {
+                    log.info("已删除导出文件: {}", file.getAbsolutePath());
+                } else {
+                    log.warn("导出文件删除失败: {}", file.getAbsolutePath());
+                }
+            }
+        }
     }
 }

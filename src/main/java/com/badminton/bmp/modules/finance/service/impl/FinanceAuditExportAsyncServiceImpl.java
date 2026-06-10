@@ -3,6 +3,8 @@ package com.badminton.bmp.modules.finance.service.impl;
 import com.badminton.bmp.modules.finance.service.ExportTaskService;
 import com.badminton.bmp.modules.finance.service.FinanceAuditExportAsyncService;
 import com.badminton.bmp.modules.finance.service.FinanceAuditLogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,8 @@ import java.time.LocalDateTime;
  */
 @Service
 public class FinanceAuditExportAsyncServiceImpl implements FinanceAuditExportAsyncService {
+
+    private static final Logger log = LoggerFactory.getLogger(FinanceAuditExportAsyncServiceImpl.class);
 
     @Autowired
     private FinanceAuditLogService financeAuditLogService;
@@ -32,7 +36,9 @@ public class FinanceAuditExportAsyncServiceImpl implements FinanceAuditExportAsy
             exportTaskService.setTaskFilePath(taskId, filePath);
             exportTaskService.updateTaskStatus(taskId, ExportTaskService.TaskStatus.COMPLETED);
         } catch (Exception e) {
-            exportTaskService.setTaskError(taskId, "导出失败，请稍后重试");
+            log.error("审计日志导出失败: taskId={}", taskId, e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "导出失败，请稍后重试";
+            exportTaskService.setTaskError(taskId, errorMsg);
         }
     }
 }

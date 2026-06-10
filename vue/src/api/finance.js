@@ -157,12 +157,5 @@ export function downloadAuditLogExport(taskId) {
     url: `/api/finance/audit/export/download/${taskId}`,
     method: 'get',
     responseType: 'blob'
-  }).then(response => {
-    // 如果响应是blob类型，直接返回
-    if (response instanceof Blob) {
-      return response
-    }
-    // 否则尝试从response.data获取blob
-    return response.data || response
   })
 }

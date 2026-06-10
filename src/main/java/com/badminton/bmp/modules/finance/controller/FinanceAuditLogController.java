@@ -198,6 +198,9 @@ public class FinanceAuditLogController {
                 os.write(buffer, 0, len);
             }
             os.flush();
+        } finally {
+            // 无论下载成功与否都清理任务和文件
+            exportTaskService.removeTaskAndFile(taskId);
         }
     }
 }

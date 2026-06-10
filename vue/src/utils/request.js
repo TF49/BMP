@@ -51,6 +51,11 @@ service.interceptors.response.use(
     const res = response.data
     const skipErrorMessage = Boolean(response.config?.skipErrorMessage)
 
+    // Blob 响应（文件下载）直接返回，不做 code 检查
+    if (res instanceof Blob) {
+      return res
+    }
+
     // 如果返回的状态码不是200，则判断为错误
     if (res.code !== 200) {
       const isNonCriticalAPI = isGracefulFallbackApi(response.config?.url || '')
