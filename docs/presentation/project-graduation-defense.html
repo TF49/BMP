@@ -377,7 +377,7 @@
       }
       .copy-compact p { font-size: var(--font-body-slide); line-height: 1.52; }
       .metric-row, .support-grid { display: grid; gap: 10px; margin-top: 12px; }
-      .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .metric-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
       .metric-card, .support-card {
         min-width: 0;
         padding: 12px 14px;
@@ -2983,6 +2983,7 @@
       .scene.is-front .metric-card:nth-child(1) { --reveal-i: 3; }
       .scene.is-front .metric-card:nth-child(2) { --reveal-i: 4; }
       .scene.is-front .metric-card:nth-child(3) { --reveal-i: 5; }
+      .scene.is-front .metric-card:nth-child(4) { --reveal-i: 6; }
       .scene.is-front .support-card:nth-child(1) { --reveal-i: 4; }
       .scene.is-front .support-card:nth-child(2) { --reveal-i: 5; }
       .scene.is-front .support-card:nth-child(3) { --reveal-i: 6; }

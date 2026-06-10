@@ -442,7 +442,7 @@
       }
       .copy-compact p { font-size: var(--font-body-slide); line-height: 1.52; }
       .metric-row, .support-grid { display: grid; gap: 10px; margin-top: 12px; }
-      .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .metric-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
       .metric-card, .support-card {
         min-width: 0;
         padding: 12px 14px;
@@ -3149,6 +3149,7 @@
       .scene.is-front .metric-card:nth-child(1) { --reveal-i: 3; }
       .scene.is-front .metric-card:nth-child(2) { --reveal-i: 4; }
       .scene.is-front .metric-card:nth-child(3) { --reveal-i: 5; }
+      .scene.is-front .metric-card:nth-child(4) { --reveal-i: 6; }
       .scene.is-front .support-card:nth-child(1) { --reveal-i: 4; }
       .scene.is-front .support-card:nth-child(2) { --reveal-i: 5; }
       .scene.is-front .support-card:nth-child(3) { --reveal-i: 6; }
@@ -4154,7 +4155,6 @@
       "support": {
         "video": "assets/videos/会员充值演示.mp4",
         "copy": "录屏占位：充值成功 → 余额更新 → 充值记录可见",
-        "image": "assets/screenshots/web-recharge.png",
         "items": [
           {
             "label": "1",
@@ -4310,7 +4310,6 @@
           {
             "label": "选课",
             "title": "课程列表",
-            "image": "assets/screenshots/uniapp-course-booking.png",
             "body": "pages/course/list → detail"
           },
           {
@@ -4515,7 +4514,6 @@
       "support": {
         "video": "assets/videos/财务审计演示.mp4",
         "copy": "录屏占位：筛选流水 → 审计日志 → 对账/导出",
-        "image": "assets/screenshots/web-finance-audit.png",
         "items": [
           {
             "label": "1",
