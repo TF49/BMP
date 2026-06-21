@@ -27,6 +27,7 @@
         --font-display: "Space Grotesk", "Noto Sans SC", sans-serif;
         --font-body: "Noto Sans SC", "PingFang SC", sans-serif;
         --slide-width: min(1220px, calc(100vw - 200px));
+        --scene-prose-max-w: min(100%, calc(var(--slide-width) - 96px));
         --slide-max-h: min(86vh, 880px);
         --slide-inner-max-h: min(var(--slide-max-h), calc(100vh - 112px));
         --slide-demo-shell-h: min(var(--slide-inner-max-h), calc(100vh - 48px));
@@ -348,14 +349,78 @@
       }
       .scene-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-        gap: 22px 28px;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        gap: 16px 0;
         align-items: start;
         justify-content: center;
         justify-items: stretch;
         margin: 0 auto;
       }
       .scene-grid > * { min-width: 0; width: 100%; }
+      .scene-grid > *:first-child {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        text-align: center;
+      }
+      .scene-grid > *:first-child .scene-claim,
+      .scene-grid > *:first-child .copy {
+        width: 100%;
+        max-width: var(--scene-prose-max-w);
+        margin-inline: auto;
+        text-align: left;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+      .scene-grid > *:first-child .copy {
+        gap: 3px;
+        margin-top: 2px;
+      }
+      .scene-grid > *:first-child .copy p {
+        text-align: left;
+        word-break: keep-all;
+      }
+      .scene-grid > *:first-child .metric-row {
+        align-self: center;
+        width: 100%;
+        max-width: var(--scene-prose-max-w);
+        margin-top: 6px;
+        margin-inline: auto;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        text-align: center;
+      }
+      .scene-grid > *:first-child .metric-card {
+        text-align: center;
+      }
+      .scene-grid > *:last-child {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .scene-grid .support-label,
+      .scene-grid .support-title,
+      .scene-grid .support-copy {
+        text-align: center;
+        width: 100%;
+      }
+      .scene-grid .support-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+        max-width: min(100%, 920px);
+        margin-inline: auto;
+        align-self: center;
+      }
+      .scene-grid .support-grid:has(.support-card:nth-child(2):last-child) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .scene-grid .pipeline-diagram,
+      .scene-grid .state-machine-diagram {
+        justify-content: center;
+      }
       .scene-title {
         margin: 8px 0 0;
         font-size: var(--font-title);
@@ -590,6 +655,9 @@
       }
       @media (max-width: 900px) {
         .scene-grid { grid-template-columns: 1fr; }
+        .scene-grid .support-grid {
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
       }
       .tree-diagram {
         position: relative;
@@ -1268,6 +1336,7 @@
         font-weight: 700;
         color: var(--text);
         line-height: 1.28;
+        text-align: center;
       }
       .arch-tier-columns {
         display: grid;
@@ -1329,6 +1398,7 @@
         font-weight: 800;
         color: var(--text);
         line-height: 1.25;
+        text-align: center;
       }
       .arch-col-meta {
         display: block;
@@ -1337,6 +1407,7 @@
         font-weight: 600;
         color: var(--muted);
         line-height: 1.3;
+        text-align: center;
       }
       .arch-tier-groups {
         display: grid;
@@ -1365,11 +1436,13 @@
         letter-spacing: 0.04em;
         color: var(--muted);
         text-transform: uppercase;
+        text-align: center;
       }
       .arch-chip-row {
         display: flex;
         flex-wrap: wrap;
         gap: 5px;
+        justify-content: center;
       }
       .arch-chip {
         display: inline-flex;
@@ -1688,6 +1761,7 @@
         font-weight: 600;
         color: var(--muted);
         line-height: 1.35;
+        text-align: center;
       }
       .scene-shell.scene-diagram-focus {
         padding: 16px 22px 18px;
@@ -1740,7 +1814,7 @@
       .scene-diagram-focus-header .metric-row {
         align-self: center;
         width: 100%;
-        max-width: min(100%, 720px);
+        max-width: var(--scene-prose-max-w);
         margin-top: 6px;
         margin-left: auto;
         margin-right: auto;
@@ -1755,7 +1829,7 @@
       .scene-diagram-focus-header .arch-flow-summary {
         align-self: stretch;
         width: 100%;
-        justify-content: flex-start;
+        justify-content: center;
       }
       .scene-diagram-focus-media {
         display: flex;
@@ -1856,7 +1930,7 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       #opening .scene-diagram-focus-header .metric-row {
-        max-width: min(100%, 720px);
+        max-width: var(--scene-prose-max-w);
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
@@ -2165,7 +2239,7 @@
         gap: 16px 22px;
       }
       .scene-hero .support-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
       }
       .scene-hero .support-card { padding: 10px 12px; }
@@ -2351,9 +2425,10 @@
       }
       body.presentation-stage .scene-visual .scene-visual-layout {
         display: grid;
-        grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
-        gap: 16px 22px;
-        align-items: start;
+        grid-template-rows: auto auto;
+        grid-template-columns: 1fr;
+        gap: 12px 0;
+        align-items: stretch;
         min-height: 0;
         max-height: none;
         overflow: visible;
@@ -2362,6 +2437,7 @@
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
+        align-items: center;
         gap: 6px;
         min-width: 0;
         min-height: 0;
@@ -2369,20 +2445,46 @@
         max-height: none;
         align-self: stretch;
         overflow: visible;
+        text-align: center;
+      }
+      body.presentation-stage .scene-visual .scene-visual-copy .scene-claim,
+      body.presentation-stage .scene-visual .scene-visual-copy .copy {
+        width: 100%;
+        max-width: var(--scene-prose-max-w);
+        margin-inline: auto;
+        text-align: left;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+      body.presentation-stage .scene-visual .scene-visual-copy .copy p {
+        text-align: left;
+        word-break: keep-all;
       }
       body.presentation-stage .scene-visual .scene-visual-copy .metric-row {
         margin-top: 10px;
+        align-self: center;
+        width: 100%;
+        max-width: var(--scene-prose-max-w);
+        margin-inline: auto;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        text-align: center;
+      }
+      body.presentation-stage .scene-visual .scene-visual-copy .metric-card {
+        text-align: center;
       }
       body.presentation-stage .scene-visual .scene-visual-media {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        align-items: stretch;
+        justify-content: flex-start;
+        align-items: center;
         min-width: 0;
         min-height: 0;
         height: auto;
-        align-self: center;
-        overflow: hidden;
+        align-self: stretch;
+        width: 100%;
+        overflow: visible;
+        padding-top: 4px;
+        text-align: center;
       }
       body.presentation-stage .scene-visual .scene-visual-media > * {
         flex: 0 0 auto;
@@ -2535,7 +2637,7 @@
         text-align: center;
       }
       body.presentation-stage .scene-diagram-focus-header .arch-flow-summary {
-        justify-content: flex-start;
+        justify-content: center;
       }
       body.presentation-stage .module-divider .scene-title,
       body.presentation-stage .module-divider .scene-claim,
@@ -2611,25 +2713,65 @@
       }
       body.presentation-stage .scene-grid > *:first-child {
         justify-content: flex-start;
+        align-items: center;
         height: auto;
         align-self: stretch;
         overflow: visible;
+        text-align: center;
+      }
+      body.presentation-stage .scene-grid > *:first-child .scene-claim,
+      body.presentation-stage .scene-grid > *:first-child .copy {
+        width: 100%;
+        max-width: var(--scene-prose-max-w);
+        margin-inline: auto;
+        text-align: left;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+      body.presentation-stage .scene-grid > *:first-child .copy p {
+        text-align: left;
+        word-break: keep-all;
       }
       body.presentation-stage .scene-grid > *:first-child .metric-row {
         margin-top: 10px;
+        align-self: center;
+        width: 100%;
+        max-width: var(--scene-prose-max-w);
+        margin-inline: auto;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        text-align: center;
+      }
+      body.presentation-stage .scene-grid > *:first-child .metric-card {
+        text-align: center;
       }
       body.presentation-stage .scene-grid > *:last-child {
         align-self: stretch;
         justify-content: flex-start;
-        align-items: stretch;
+        align-items: center;
+        text-align: center;
       }
       body.presentation-stage .scene-grid > *:last-child > * {
         width: 100%;
       }
-      body.presentation-stage .scene-grid .support-grid,
+      body.presentation-stage .scene-grid .support-grid {
+        align-self: center;
+        width: 100%;
+        max-width: min(100%, 920px);
+        margin-inline: auto;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      body.presentation-stage .scene-grid .support-grid:has(.support-card:nth-child(2):last-child) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
       body.presentation-stage .scene-grid .support-title,
-      body.presentation-stage .scene-grid .support-label {
+      body.presentation-stage .scene-grid .support-label,
+      body.presentation-stage .scene-grid .support-copy {
         align-self: stretch;
+        text-align: center;
+      }
+      body.presentation-stage .scene-grid .pipeline-diagram,
+      body.presentation-stage .scene-grid .state-machine-diagram {
+        justify-content: center;
       }
       body.presentation-stage .scene-grid .diagram-panel {
         flex: 0 0 auto;
@@ -2679,8 +2821,9 @@
       }
       .scene-visual-layout {
         display: grid;
-        grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
-        gap: 22px 28px;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        gap: 16px 0;
         align-items: stretch;
         width: 100%;
         max-width: none;
@@ -2695,13 +2838,42 @@
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
+        align-items: center;
         gap: 8px;
+        text-align: center;
+      }
+      .scene-visual-copy .scene-claim,
+      .scene-visual-copy .copy {
+        width: 100%;
+        max-width: var(--scene-prose-max-w);
+        margin-inline: auto;
+        text-align: left;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+      .scene-visual-copy .copy p {
+        text-align: left;
+        word-break: keep-all;
+      }
+      .scene-visual-copy .metric-row {
+        align-self: center;
+        width: 100%;
+        max-width: var(--scene-prose-max-w);
+        margin-inline: auto;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        text-align: center;
+      }
+      .scene-visual-copy .metric-card {
+        text-align: center;
       }
       .scene-visual-media {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        align-items: stretch;
+        justify-content: flex-start;
+        align-items: center;
+        width: 100%;
+        padding-top: 4px;
+        text-align: center;
       }
       .scene-visual-media .diagram-panel {
         flex: 0 0 auto;
@@ -3521,150 +3693,224 @@
     <script>
       // AGENT: replace the following object via scripts/apply_blueprint.py (inject JSON blueprint)
       const presentationConfig = {
-  "title": "羽擎 BMP · 毕业设计答辩",
-  "subtitle": "羽毛球场馆数智化管理平台 · 三端一体全系统交付",
-  "deckKicker": "BMP 毕业答辩",
+  "title": "羽擎 BMP · 全系统交付答辩",
+  "subtitle": "三端一体 · 会员课程 · 运营治理 · 毕业设计答辩",
+  "deckKicker": "BMP Graduation",
   "presentationType": "academic",
   "theme": "brand-roadshow",
-  "defaultPresenter": "尹晴",
+  "defaultPresenter": "涂家乐",
   "presenters": [
     {
-      "name": "尹晴",
-      "module": "开场 · 痛点 · 收束"
+      "name": "涂家乐",
+      "module": "开场 · 架构"
     },
     {
       "name": "王曾鹏",
-      "module": "系统架构 · 数据库设计 · 权限安全"
+      "module": "核心业务"
     },
     {
-      "name": "涂家乐",
-      "module": "场地预约 · 会员充值 · 课程预约 · 运营管理"
+      "name": "尹晴",
+      "module": "业务运营"
     }
   ],
   "chapterOrder": [
     "opening",
-    "pain_and_goal",
-    "system_architecture",
-    "database_design",
+    "background_problem",
+    "system_scale",
+    "architecture",
     "rbac_security",
-    "venue_booking",
-    "member_recharge",
-    "course_booking",
-    "ops_management",
+    "module_core",
+    "demo_member_recharge",
+    "member_recharge_flow",
+    "course_booking_model",
+    "demo_course_booking",
+    "course_booking_pipeline",
+    "module_ops",
+    "dashboard_overview",
+    "demo_finance_audit",
+    "ops_capabilities",
     "closing"
   ],
   "chapters": [
     {
       "id": "opening",
       "step": "01 / 开场",
-      "title": "羽擎 BMP · 毕业设计答辩",
+      "title": "羽擎全系统交付",
       "dotLabel": "开场",
-      "presenter": "尹晴",
-      "module": "开场 · 痛点 · 收束",
-      "claim": "羽擎（BMP）是面向羽毛球场馆经营的三端一体数智化平台，覆盖场地、会员、课程、赛事、财务全链路。",
+      "presenter": "涂家乐",
+      "module": "总览 · 收束",
+      "claim": "羽擎 BMP v1.0.0 已完成单仓多端交付：Spring Boot 后端统一支撑 Web 四场景与 UniApp 三场景。",
       "sceneRole": "hero",
       "cameraIntent": "anchor",
-      "diagramNeed": "medium",
-      "layout": "diagram-focus",
-      "eyebrow": "Badminton Management Platform",
+      "diagramNeed": "low",
+      "layout": "hero",
+      "eyebrow": "羽擎 Badminton Management Platform",
       "body": [
-        "羽擎 BMP 由三位同学协同开发：Spring Boot 后端统一 API、Vue 3 Web 管理端、UniApp 微信小程序用户端，单仓 Monorepo 可一键交付。",
-        "今日答辩顺序：尹晴（开场 · 痛点）→ 王曾鹏（系统架构 · 数据库 · 权限安全）→ 涂家乐（核心业务 · 运营管理）→ 尹晴（总结）。"
+        "羽擎（BMP）面向羽毛球场馆经营：16 个业务域、27 张物理表、Web 51 页 + UniApp 107 页，覆盖会员、课程、赛事、器材、财务等完整链路。",
+        "今日按三层讲解：涂家乐（总览与架构权限）→ 王曾鹏（核心业务）→ 尹晴（业务运营）。",
+        "答辩可说：本次聚焦全系统交付视角，不展开前期已完成的场地模块细节。"
       ],
       "metrics": [
         {
           "label": "版本",
           "value": "v1.0.0",
-          "note": "全功能可交付"
+          "note": "功能开发已完成 · 约 30s"
         },
         {
-          "label": "端口",
+          "label": "联调端口",
           "value": "9090 / 8080",
           "note": "后端 API · Vue Web"
-        },
-        {
-          "label": "表数量",
-          "value": "27 张",
-          "note": "MySQL 全量可初始化"
         }
       ],
-      "diagram": {
-        "type": "pipeline",
-        "title": "三人分工 · 答辩总览",
-        "caption": "羽擎 BMP · 毕业设计答辩",
-        "steps": [
-          "尹晴\n开场 · 痛点\n~4 min",
-          "王曾鹏\n架构 · 权限\n~4 min",
-          "涂家乐\n业务 · 运营\n~4 min"
+      "support": {
+        "label": "Cover",
+        "title": "三人分工 · 10 分钟",
+        "copy": "羽擎 BMP · 毕业设计答辩。",
+        "items": [
+          {
+            "label": "涂家乐",
+            "title": "总览 · 收束",
+            "body": "开场、痛点与交付规模 · ~2.5 min"
+          },
+          {
+            "label": "王曾鹏",
+            "title": "核心业务",
+            "body": "会员充值与课程预约链路 · ~4.5 min"
+          },
+          {
+            "label": "尹晴",
+            "title": "业务运营",
+            "body": "Dashboard 与财务运营 · ~3 min"
+          }
         ]
       },
       "scenePos": {
         "x": 0,
         "y": 360,
-        "width": 1360
+        "width": 1280
       }
     },
     {
-      "id": "pain_and_goal",
-      "step": "02 / 痛点与目标",
-      "title": "场馆管理的数字化痛点",
+      "id": "background_problem",
+      "step": "02 / 痛点",
+      "title": "场馆经营的数字化复杂度",
       "dotLabel": "痛点",
-      "presenter": "尹晴",
-      "module": "开场 · 痛点 · 收束",
-      "claim": "传统场馆依赖人工排班、纸质记录、微信收款，导致场地冲突、账目混乱、会员流失，急需统一数字化平台。",
+      "presenter": "涂家乐",
+      "module": "总览 · 收束",
+      "claim": "一家场馆同时服务会长、教练、会员与普通用户，业务域多、角色权限细、Web 与小程序必须共用同一套数据与规则。",
       "sceneRole": "problem",
       "cameraIntent": "descend",
-      "diagramNeed": "medium",
-      "layout": "diagram-focus",
-      "eyebrow": "Problem · Goal",
+      "diagramNeed": "low",
+      "layout": "story",
+      "eyebrow": "Problem before solution",
       "body": [
-        "核心痛点：① 场地预约靠手工，拼场/包场冲突频发；② 会员余额与课程券分散管理，财务无法实时审计；③ 多角色（会长/场馆方/教练/会员/普通用户）权限混乱，操作安全隐患大。",
-        "设计目标：以 RBAC 五角色权限体系为基础，实现 Web + UniApp 双端同一 API 的统一业务闭环与可运营 Dashboard。"
+        "经营侧：场馆/场地/教练/课程/赛事/器材/穿线/财务需在同一平台配置与运营，不能各端各一套账。",
+        "用户侧：充值、选课、报名、租借要在小程序完成；管理侧要在 Web Dashboard 汇总 KPI 并审计流水。",
+        "答辩可说：复杂度不在单点 CRUD，而在多端一致 + 五角色权限 + 16 域联动。"
       ],
       "metrics": [
         {
           "label": "角色",
           "value": "5 种 RBAC",
-          "note": "会长/场馆方/教练/会员/用户"
+          "note": "会长 / 场馆方 / 用户 / 会员 / 教练"
         },
         {
-          "label": "业务域",
-          "value": "16 个",
-          "note": "场地到财务全链路覆盖"
+          "label": "端",
+          "value": "Web + UniApp",
+          "note": "共用 REST API · 约 30s"
         }
       ],
-      "diagram": {
-        "type": "pipeline",
-        "title": "三大核心目标",
-        "caption": "以统一平台消除多端数据孤岛",
-        "steps": [
-          "场地预约闭环\n冲突校验 + 超时释放",
-          "会员财务治理\n充值 · 余额 · 流水审计",
-          "可运营 Dashboard\nKPI 汇总 + 通知 + 搜索"
+      "support": {
+        "label": "Must solve",
+        "title": "系统必须同时做到",
+        "copy": "这三件事贯穿全系统架构。",
+        "items": [
+          {
+            "label": "1",
+            "title": "单后端多域",
+            "body": "Spring Boot 16 模块统一鉴权与事务"
+          },
+          {
+            "label": "2",
+            "title": "多端一致",
+            "body": "Web 与 UniApp 同一 API 与状态语义"
+          },
+          {
+            "label": "3",
+            "title": "可运营可审计",
+            "body": "Dashboard 汇总 + 财务流水 + 审计日志"
+          }
         ]
       },
       "scenePos": {
         "x": 1480,
         "y": 1480,
-        "width": 1360
+        "width": 1280
       }
     },
     {
-      "id": "system_architecture",
-      "step": "03 / 系统架构",
+      "id": "system_scale",
+      "step": "03 / 规模",
+      "title": "可交付规模一览",
+      "dotLabel": "规模",
+      "presenter": "涂家乐",
+      "module": "总览 · 收束",
+      "claim": "BMP 已从搭骨架进入可交付阶段：后端 181 个 Java 源文件、27 Controller、数据库 27 表全量可初始化。",
+      "sceneRole": "analysis",
+      "cameraIntent": "tighten",
+      "diagramNeed": "medium",
+      "layout": "story",
+      "eyebrow": "Delivery snapshot · 2026-05-23",
+      "body": [
+        "后端：activity、booking、coach、course、court、dashboard、equipment、finance、member、notification、payment、search、stringing、system、tournament、venue 共 16 域。",
+        "前端：Vue Web 官网 + 管理端 + 用户端 + 教练端；UniApp 用户端 + 移动管理端 + 教练端。",
+        "答辩可说：构建基线已通过——后端 compile、Web build、UniApp type-check 与单测均 green。"
+      ],
+      "metrics": [
+        {
+          "label": "Java 源文件",
+          "value": "181",
+          "note": "16 业务模块"
+        },
+        {
+          "label": "REST Controller",
+          "value": "27",
+          "note": "统一 /api"
+        },
+        {
+          "label": "Web 页面",
+          "value": "51",
+          "note": "vue/src/views"
+        },
+        {
+          "label": "UniApp 页面",
+          "value": "107",
+          "note": "pages.json 注册"
+        }
+      ],
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 2600,
+        "width": 1280
+      }
+    },
+    {
+      "id": "architecture",
+      "step": "04 / 架构",
       "title": "三端共用 Spring Boot API",
       "dotLabel": "架构",
-      "presenter": "王曾鹏",
-      "module": "系统架构 · 数据库设计 · 权限安全",
-      "claim": "Vue Web 四场景与 UniApp 三场景均通过 Axios / request.ts 访问 :9090 端口，Spring Security + JWT 双 Token 无状态鉴权，MySQL 存业务、Redis 可选缓存。",
+      "presenter": "涂家乐",
+      "module": "架构权限",
+      "claim": "Vue Web 四场景与 UniApp 三场景均通过 Axios / request.ts 访问 9090 端口，MySQL 存业务、Redis 可选缓存与分布式锁。",
       "sceneRole": "diagram",
       "cameraIntent": "compare",
       "diagramNeed": "high",
       "layout": "diagram-focus",
-      "eyebrow": "System Architecture",
+      "eyebrow": "Multi-end architecture",
       "body": [
-        "单仓 Monorepo：vue/ + BMP-uniapp/ + Spring Boot 共用 :9090/api，Web dev proxy 8080，UniApp 直连 request.ts。",
-        "核心分层：Client（7 场景）→ Spring Boot Gateway（JWT 鉴权）→ 16 业务域 → MySQL 27 表 / Redis / WebSocket。"
+        "单仓 monorepo：vue/ + BMP-uniapp/ + Spring Boot 共用 :9090/api，Web dev proxy 8080，小程序直连 request.ts。",
+        "答辩可说：不是三套后端，是一套 Spring Security + JWT 双 Token 的无状态 API。"
       ],
       "metrics": [
         {
@@ -3690,7 +3936,7 @@
       ],
       "diagram": {
         "type": "architecture-map",
-        "title": "BMP 全栈架构图",
+        "title": "BMP 全栈架构",
         "caption": "7 端场景 → :9090/api → 16 业务域 → MySQL / Redis / WebSocket",
         "flowEffects": false,
         "connector": "Axios · request.ts → Bearer JWT",
@@ -3738,21 +3984,14 @@
             "title": "16 业务域",
             "groups": [
               {
-                "label": "场地预约",
+                "label": "经营核心",
                 "chips": [
                   "venue",
                   "court",
                   "booking",
-                  "payment"
-                ]
-              },
-              {
-                "label": "会员课程",
-                "chips": [
                   "member",
                   "course",
-                  "coach",
-                  "activity"
+                  "coach"
                 ]
               },
               {
@@ -3761,7 +4000,8 @@
                   "dashboard",
                   "finance",
                   "notification",
-                  "search"
+                  "search",
+                  "payment"
                 ]
               },
               {
@@ -3770,7 +4010,16 @@
                   "equipment",
                   "tournament",
                   "stringing",
-                  "system"
+                  "activity"
+                ]
+              },
+              {
+                "label": "系统支撑",
+                "chips": [
+                  "system",
+                  "auth",
+                  "user",
+                  "feedback"
                 ]
               }
             ]
@@ -3790,235 +4039,144 @@
       },
       "supportHidden": true,
       "scenePos": {
-        "x": 0,
-        "y": 2600,
+        "x": 1480,
+        "y": 3720,
         "width": 1720
       }
     },
     {
-      "id": "database_design",
-      "step": "04 / 数据库设计",
-      "title": "27 张物理表 · 16 域联动",
-      "dotLabel": "数据库",
-      "presenter": "王曾鹏",
-      "module": "系统架构 · 数据库设计 · 权限安全",
-      "claim": "以 biz_ 前缀业务表 + sys_ 前缀系统表分层设计，核心链路：sys_user → biz_member → biz_booking / biz_course_booking → biz_finance_record。",
-      "sceneRole": "diagram",
-      "cameraIntent": "tighten",
-      "diagramNeed": "high",
-      "layout": "diagram-focus",
-      "eyebrow": "Database Design",
-      "body": [
-        "分层设计：sys_ 层提供用户、角色、权限基础；biz_ 层承载预约、课程、会员、财务等业务；扩展层覆盖赛事、器材、穿线、通知。",
-        "关键设计点：biz_booking 主单 + biz_booking_court 明细实现明细级冲突检测；biz_finance_record 统一记录所有资金流动并支持审计。"
-      ],
-      "metrics": [
-        {
-          "label": "物理表总计",
-          "value": "27 张",
-          "note": "badminton.sql 可一键初始化"
-        },
-        {
-          "label": "核心业务表",
-          "value": "biz_*",
-          "note": "场地/会员/课程/财务"
-        },
-        {
-          "label": "系统表",
-          "value": "sys_*",
-          "note": "用户/角色/权限/菜单"
-        }
-      ],
-      "diagram": {
-        "type": "layer-stack",
-        "title": "数据库分层架构",
-        "caption": "sys_ 系统层 → biz_ 业务层 → 扩展层 · 全量可初始化",
-        "layers": [
-          {
-            "tag": "系统层",
-            "title": "sys_* · 基础支撑",
-            "body": "sys_user · sys_role · sys_permission · sys_menu · sys_dept · sys_dict"
-          },
-          {
-            "tag": "预约核心",
-            "title": "biz_booking · 场地预约主链",
-            "body": "biz_booking（主单）+ biz_booking_court（明细）+ biz_court · biz_venue"
-          },
-          {
-            "tag": "会员课程",
-            "title": "biz_member · biz_course_booking",
-            "body": "biz_member · biz_member_recharge · biz_course · biz_course_booking · biz_coach"
-          },
-          {
-            "tag": "财务运营",
-            "title": "biz_finance_record · 审计链路",
-            "body": "biz_finance_record · biz_payment · biz_notification · biz_activity · biz_equipment"
-          }
-        ]
-      },
-      "scenePos": {
-        "x": 1480,
-        "y": 3720,
-        "width": 1360
-      }
-    },
-    {
       "id": "rbac_security",
-      "step": "05 / 权限安全",
-      "title": "Spring Security + JWT 双 Token",
-      "dotLabel": "权限",
-      "presenter": "王曾鹏",
-      "module": "系统架构 · 数据库设计 · 权限安全",
-      "claim": "五角色 RBAC 体系 + Access Token（2h）/ Refresh Token（7d）双 Token 无状态鉴权，接口级权限注解，拒绝越权操作。",
+      "step": "05 / 鉴权",
+      "title": "五角色 RBAC + JWT 双 Token",
+      "dotLabel": "鉴权",
+      "presenter": "涂家乐",
+      "module": "架构权限",
+      "claim": "PRESIDENT / VENUE_MANAGER / USER / MEMBER / COACH 五角色分流路由与接口权限；Access + Refresh 双 Token 无状态续期。",
       "sceneRole": "diagram",
       "cameraIntent": "compare",
       "diagramNeed": "high",
-      "layout": "diagram-focus",
-      "eyebrow": "RBAC · Security",
+      "layout": "visual",
+      "eyebrow": "Spring Security",
       "body": [
-        "角色hierarchy：SUPER_ADMIN > VENUE_ADMIN > COACH > MEMBER > USER，每个角色绑定不同菜单与接口权限集。",
-        "双 Token 机制：Access Token 短效（2h）用于 API 鉴权，Refresh Token 长效（7d）透明续期，避免用户频繁重登录。",
-        "接口防护：@PreAuthorize 注解配合自定义 UserDetailsService，敏感操作（财务审计、权限变更）强制 ADMIN 角色。"
+        "Web Router 与 UniApp pages 按角色注册不同入口；后端 Controller 方法级 @PreAuthorize 或 SecurityUtils 校验。",
+        "会员域数据范围：会长看全馆，场馆方看本馆，用户/会员只看本人，教练看关联学员与课程。",
+        "答辩可说：架构与权限到此结束，请王曾鹏接核心业务，请尹晴接运营管理。"
       ],
       "metrics": [
         {
-          "label": "角色数",
-          "value": "5 种",
-          "note": "RBAC 层级继承"
+          "label": "角色码",
+          "value": "5 RBAC",
+          "note": "JWT Claims"
         },
         {
-          "label": "Access Token",
-          "value": "2 小时",
-          "note": "无状态 JWT"
-        },
-        {
-          "label": "Refresh Token",
-          "value": "7 天",
-          "note": "透明续期"
+          "label": "鉴权",
+          "value": "双 Token",
+          "note": "约 30s"
         }
       ],
       "diagram": {
-        "type": "flow-rail",
-        "preset": "bmp-three-tracks",
-        "title": "JWT 双 Token 鉴权流",
-        "caption": "登录 → 签发双 Token → API 请求 → 验签 → 权限校验 → 业务响应"
+        "type": "pipeline",
+        "title": "权限分层",
+        "caption": "路由分流 · 接口鉴权 · 数据范围",
+        "steps": [
+          "多端路由\nWeb/UniApp 按 role 分流",
+          "JWT 过滤器\nBearer · Refresh · 401",
+          "数据范围\nvenueId / memberId / coachId"
+        ]
       },
       "supportHidden": true,
       "scenePos": {
         "x": 0,
         "y": 4840,
-        "width": 1360
+        "width": 1280
       }
     },
     {
-      "id": "venue_booking",
-      "step": "06 / 场地预约",
-      "title": "场地预约业务闭环",
-      "dotLabel": "场地预约",
-      "presenter": "涂家乐",
-      "module": "场地预约 · 会员充值 · 课程预约 · 运营管理",
-      "moduleLabel": "Module A · Booking",
-      "claim": "BookingServiceImpl 实现选场、明细级冲突检测、下单（status=1）与超时自动取消（ScheduleConfig），确保「占场不付」不拖垮档期。",
+      "id": "module_core",
+      "step": "06 / 核心",
+      "title": "核心业务模块",
+      "dotLabel": "核心",
+      "presenter": "王曾鹏",
+      "module": "核心业务",
+      "moduleLabel": "Module A · Core Business",
+      "claim": "会员先充值形成余额与等级，再在课程域完成预约与扣款——除场地外第二条用户服务主链路。",
       "sceneRole": "hero",
       "cameraIntent": "anchor",
-      "diagramNeed": "high",
-      "layout": "diagram-focus",
-      "eyebrow": "Venue Booking",
+      "diagramNeed": "low",
+      "layout": "module",
+      "eyebrow": "Member · Course",
       "body": [
-        "冲突检测：validateModeAndConflicts 在 biz_booking_court 明细级过滤 status∈{1,2,3} 的有效预约，SHARED（拼场）与 PACKAGE（包场）分别采用不同冲突规则。",
-        "状态机：0（已取消）→ 1（待支付）→ 2（已支付）→ 3（进行中）→ 4（已完成），超时未支付由定时任务自动 1→0 并释放场地档期。",
-        "支付闭环：UniApp confirm 页面调用 /api/booking/member/payment，BALANCE 扣款 + markPaidIfPending 乐观锁防竞态。"
+        "07 演示：会员充值（Web 或 UniApp）。",
+        "08 充值写单 + biz_finance 联动 + 等级重算。",
+        "09–11 课程预约模型、演示与四步链路。",
+        "答辩可说：两条演示串起来——先充钱，再约课扣余额。"
       ],
       "metrics": [
         {
-          "label": "预约模式",
-          "value": "SHARED / PACKAGE",
-          "note": "拼场可叠加 · 包场独占"
+          "label": "充值",
+          "value": "RechargeServiceImpl",
+          "note": "约 3.5 min 本段"
         },
         {
-          "label": "占档状态",
-          "value": "1 · 2 · 3",
-          "note": "待支付即占档"
-        },
-        {
-          "label": "超时释放",
-          "value": "ScheduleConfig",
-          "note": "可配置超时窗口"
+          "label": "课程",
+          "value": "CourseBookingServiceImpl",
+          "note": "CB 单号域"
         }
       ],
-      "diagram": {
-        "type": "state-machine",
-        "title": "预约状态机",
-        "caption": "待支付 → 已支付 → 进行中 → 已完成 / 超时取消",
-        "states": [
-          {
-            "label": "待支付",
-            "active": true
-          },
-          {
-            "label": "已支付"
-          },
-          {
-            "label": "进行中"
-          },
-          {
-            "label": "已完成"
-          },
-          {
-            "label": "已取消"
-          }
-        ]
-      },
       "scenePos": {
         "x": 1480,
         "y": 5960,
-        "width": 1360
+        "width": 1280
       }
     },
     {
-      "id": "member_recharge",
-      "step": "07 / 会员与充值",
-      "title": "会员体系与余额充值",
-      "dotLabel": "会员充值",
-      "presenter": "涂家乐",
-      "module": "场地预约 · 会员充值 · 课程预约 · 运营管理",
-      "claim": "会员开通即写入 biz_member，充值经 MemberRechargeService 校验套餐后更新余额并生成 biz_finance_record 财务流水，全程事务保证数据一致性。",
-      "sceneRole": "diagram",
-      "cameraIntent": "tighten",
-      "diagramNeed": "high",
-      "layout": "diagram-focus",
-      "eyebrow": "Member · Recharge",
+      "id": "demo_member_recharge",
+      "step": "演示 / 充值",
+      "title": "演示：会员充值",
+      "dotLabel": "演示",
+      "presenter": "王曾鹏",
+      "module": "核心业务",
+      "claim": "user001 在 Web 或小程序发起充值，余额更新并写入 biz_recharge_record，同步产生财务收入流水。",
+      "sceneRole": "mechanism",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "demo",
+      "eyebrow": "实机录屏 · 占位",
       "body": [
-        "会员开通：普通用户申请会员后，系统校验是否已有有效会员资格，通过后写入 biz_member（有效期、套餐类型）并绑定 sys_user。",
-        "余额充值：选择充值套餐 → MemberRechargeService 开启事务 → 扣减/增加 biz_member.balance → 写 biz_finance_record（type=RECHARGE）→ 确认提交。",
-        "财务联动：充值、扣款、退款均通过统一 FinanceRecordService 落账，支持 Dashboard 筛选与导出审计。"
+        "前置：后端 9090 已启动，user001 / 123456 已登录。",
+        "本段：展示充值金额输入 → 确认 → 余额变化（可选会员等级提示）。"
       ],
       "metrics": [
         {
-          "label": "主表",
-          "value": "biz_member",
-          "note": "余额 · 有效期 · 套餐"
+          "label": "Web 页",
+          "value": "user/Recharge.vue",
+          "note": "或 UniApp recharge/index"
         },
         {
-          "label": "流水表",
-          "value": "biz_finance_record",
-          "note": "type=RECHARGE / CONSUME"
-        },
-        {
-          "label": "一致性",
-          "value": "@Transactional",
-          "note": "充值 + 流水原子提交"
+          "label": "账号",
+          "value": "user001",
+          "note": "密码 123456"
         }
       ],
-      "diagram": {
-        "type": "pipeline",
-        "title": "充值闭环流程",
-        "caption": "选套餐 → 扣款/充值 → 写流水 → Dashboard 汇总",
-        "steps": [
-          "选择套餐\nUniApp 充值页",
-          "事务扣/增余额\nbiz_member.balance",
-          "写财务流水\nbiz_finance_record",
-          "Dashboard 汇总\n实时 KPI"
+      "support": {
+        "video": "assets/videos/会员充值演示.mp4",
+        "copy": "录屏占位：充值成功 → 余额更新 → 充值记录可见",
+        "items": [
+          {
+            "label": "1",
+            "title": "打开充值页",
+            "body": "Web /user/recharge 或小程序 recharge/index"
+          },
+          {
+            "label": "2",
+            "title": "输入金额",
+            "body": "选择充值方式 BALANCE / 模拟支付"
+          },
+          {
+            "label": "3",
+            "title": "验证结果",
+            "body": "会员余额增加 · 充值记录列表有单号"
+          }
         ]
       },
       "scenePos": {
@@ -4028,171 +4186,478 @@
       }
     },
     {
-      "id": "course_booking",
-      "step": "08 / 课程预约",
-      "title": "课程预约与教练排课",
-      "dotLabel": "课程预约",
-      "presenter": "涂家乐",
-      "module": "场地预约 · 会员充值 · 课程预约 · 运营管理",
-      "claim": "教练在 Web 端排课，会员/用户在 UniApp 选课下单，CourseBookingService 校验名额、扣会员课时券或余额，生成 biz_course_booking 记录。",
+      "id": "member_recharge_flow",
+      "step": "07 / 充值",
+      "title": "充值写入 + 等级 + 财务",
+      "dotLabel": "充值",
+      "presenter": "王曾鹏",
+      "module": "核心业务",
+      "claim": "RechargeServiceImpl.doRecharge：写 biz_recharge_record → 累加 totalRecharge → 重算会员等级 → FinanceService.createFromBusiness(TYPE_RECHARGE)。",
+      "sceneRole": "diagram",
+      "cameraIntent": "descend",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "RechargeServiceImpl",
+      "body": [
+        "用户充值 userRecharge：若无会员档案可自动 createMemberForUser，再进入通用 doRecharge 事务。",
+        "管理员代充 adminRecharge 可指定 memberId；等级按累计充值只升不降（MEMBER 类型）。",
+        "答辩可说：充值不仅是改余额数字，而是会员档案 + 财务流水 + 等级三处一致写入。"
+      ],
+      "metrics": [
+        {
+          "label": "表",
+          "value": "biz_recharge_record",
+          "note": "rechargeNo 单号"
+        },
+        {
+          "label": "财务",
+          "value": "biz_finance",
+          "note": "TYPE_RECHARGE · 约 30s"
+        }
+      ],
+      "diagram": {
+        "type": "pipeline",
+        "title": "充值四步链路",
+        "caption": "RechargeController → RechargeServiceImpl.doRecharge",
+        "steps": [
+          "校验会员\nfindByUserId",
+          "写充值记录\nbiz_recharge_record",
+          "累加余额\nupdateTotalRecharge",
+          "写财务流水\n+ 等级重算"
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 1480,
+        "y": 8200,
+        "width": 1280
+      }
+    },
+    {
+      "id": "course_booking_model",
+      "step": "08 / 课程",
+      "title": "课程预约域模型",
+      "dotLabel": "模型",
+      "presenter": "王曾鹏",
+      "module": "核心业务",
+      "claim": "biz_course 定义课程资源；biz_course_booking 记录会员预约，单号 CByyyyMMdd###，状态与 paymentStatus 独立管理。",
       "sceneRole": "diagram",
       "cameraIntent": "compare",
       "diagramNeed": "high",
-      "layout": "diagram-focus",
-      "eyebrow": "Course Booking",
+      "layout": "visual",
+      "eyebrow": "CourseBookingServiceImpl",
       "body": [
-        "排课端（Web Coach）：教练设置课程名称、时段、名额上限、价格与是否消耗课时券，提交后写入 biz_course 并通知符合条件会员。",
-        "预约端（UniApp User）：查看可用课程 → 校验名额（biz_course.remain_count--）→ 扣减余额或课时券 → 写入 biz_course_booking（status=0 待确认/1 已确认）。",
-        "一致性保障：CourseBookingService 加 Redis 分布式锁防止名额超卖，@Transactional 确保扣款与预约原子提交，回滚时恢复名额。"
+        "Course 实体：教练、场馆、价格、容量、可选时段；add 前 ensureCourseSelectableForBooking 校验可约性。",
+        "普通用户只能为自己 memberId 下单；会长/场馆方可代客创建。",
+        "答辩可说：课程域与场地域分离，但支付同样走 BALANCE 扣 Member 余额。"
       ],
       "metrics": [
         {
           "label": "课程表",
           "value": "biz_course",
-          "note": "名额 · 时段 · 价格"
+          "note": "Course.java"
         },
         {
           "label": "预约表",
           "value": "biz_course_booking",
-          "note": "0 待确认 · 1 已确认"
-        },
-        {
-          "label": "防超卖",
-          "value": "Redis 锁",
-          "note": "CAS + 分布式锁"
+          "note": "bookingNo CB* · 约 30s"
         }
       ],
       "diagram": {
-        "type": "funnel",
-        "title": "选课与名额治理",
-        "inputs": [
-          "教练排课\nWeb Coach",
-          "会员选课\nUniApp",
-          "名额校验\nRedis Lock"
-        ],
-        "output": "biz_course_booking 写入 + 流水",
-        "caption": "三路入口汇聚名额校验与事务提交"
+        "type": "pipeline",
+        "title": "课程预约分层",
+        "caption": "资源 · 预约单 · 支付状态",
+        "steps": [
+          "biz_course\ncoachId · venueId · capacity",
+          "biz_course_booking\nmemberId · status · bookingNo",
+          "processMemberPayment\nBALANCE 扣款 · biz_finance"
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 9320,
+        "width": 1280
+      }
+    },
+    {
+      "id": "demo_course_booking",
+      "step": "演示 / 课程",
+      "title": "演示：选课 ▸ 预约 ▸ 支付",
+      "dotLabel": "演示",
+      "presenter": "王曾鹏",
+      "module": "核心业务",
+      "claim": "小程序或 Web 浏览课程列表 → 提交预约 → 余额支付成功，CourseBooking status 进入已支付态。",
+      "sceneRole": "mechanism",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "demo",
+      "eyebrow": "实机录屏 · 占位",
+      "body": [
+        "前置：user001 已有足够余额（可先走充值演示）。",
+        "本段：选课 → 确认预约 → BALANCE 支付 → 我的预约/订单可见。"
+      ],
+      "metrics": [
+        {
+          "label": "UniApp",
+          "value": "course/booking.vue",
+          "note": "或 Web CourseBooking.vue"
+        },
+        {
+          "label": "接口",
+          "value": "POST /api/course-booking/add",
+          "note": "member/payment"
+        }
+      ],
+      "support": {
+        "video": "assets/videos/课程预约演示.mp4",
+        "copy": "录屏占位：选课 → 提交 → 余额支付成功",
+        "items": [
+          {
+            "label": "选课",
+            "title": "课程列表",
+            "body": "pages/course/list → detail"
+          },
+          {
+            "label": "预约",
+            "title": "提交预约",
+            "body": "course/booking.vue · 确认金额"
+          },
+          {
+            "label": "支付",
+            "title": "余额扣款",
+            "body": "processMemberPayment · 列表显示已支付"
+          }
+        ]
       },
       "scenePos": {
         "x": 1480,
-        "y": 8200,
+        "y": 10440,
         "width": 1360
       }
     },
     {
-      "id": "ops_management",
-      "step": "09 / 运营管理",
-      "title": "Dashboard · 财务 · 运营治理",
-      "dotLabel": "运营管理",
-      "presenter": "涂家乐",
-      "module": "场地预约 · 会员充值 · 课程预约 · 运营管理",
-      "moduleLabel": "Module C · Operations",
-      "claim": "DashboardService 聚合多域 KPI，财务模块提供流水审计与导出，通知中心支持模板推送，全文搜索覆盖核心业务实体。",
-      "sceneRole": "hero",
-      "cameraIntent": "anchor",
+      "id": "course_booking_pipeline",
+      "step": "09 / 链路",
+      "title": "课程预约四步链路",
+      "dotLabel": "链路",
+      "presenter": "王曾鹏",
+      "module": "核心业务",
+      "claim": "POST /api/course-booking/add 写预约单 → processMemberPayment 校验余额 → 扣款写流水 → 更新 status/paymentStatus。",
+      "sceneRole": "diagram",
+      "cameraIntent": "descend",
       "diagramNeed": "high",
-      "layout": "diagram-focus",
-      "eyebrow": "Operations Layer",
+      "layout": "visual",
+      "eyebrow": "Create + Pay",
       "body": [
-        "Dashboard：ECharts 图表展示今日收入、预约数、活跃会员、课程出勤率等核心 KPI，数据来源聚合查询多张 biz_ 表。",
-        "财务审计：biz_finance_record 支持按类型（RECHARGE/CONSUME/REFUND）、日期范围、操作人过滤，支持 Excel 导出。",
-        "通知 & 搜索：NotificationService 基于模板引擎推送系统消息（WebSocket 实时推送 + 数据库持久化）；SearchService 提供跨域全文检索。"
+        "add()：权限补全 memberId → 校验 course 可约 → 生成 bookingNo → insert biz_course_booking。",
+        "processPaymentInternal：仅 BALANCE；余额不足抛 BusinessException；成功写 MemberConsumeRecord + biz_finance。",
+        "答辩可说：核心业务到此结束，下面进入运营与治理部分。"
       ],
       "metrics": [
         {
-          "label": "Dashboard KPI",
-          "value": "8 项",
-          "note": "收入/预约/会员/课程"
+          "label": "创建",
+          "value": "CourseBookingController.add",
+          "note": "返回 bookingNo"
         },
         {
-          "label": "财务流水",
-          "value": "biz_finance_record",
-          "note": "支持导出 Excel"
-        },
-        {
-          "label": "通知推送",
-          "value": "WebSocket",
-          "note": "STOMP 实时 + DB 持久"
+          "label": "支付",
+          "value": "processMemberPayment",
+          "note": "约 30s"
         }
       ],
       "diagram": {
-        "type": "layer-stack",
-        "title": "运营层能力矩阵",
-        "caption": "Dashboard → 财务审计 → 通知推送 → 全文搜索",
-        "layers": [
+        "type": "pipeline",
+        "title": "课程预约流程",
+        "caption": "UniApp/Web → CourseBookingServiceImpl",
+        "steps": [
+          "浏览选课\ncourse/list",
+          "POST /add\n写预约单",
+          "BALANCE\n余额校验",
+          "已支付\nstatus 更新"
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 11560,
+        "width": 1280
+      }
+    },
+    {
+      "id": "module_ops",
+      "step": "10 / 运营",
+      "title": "运营治理模块",
+      "dotLabel": "运营",
+      "presenter": "尹晴",
+      "module": "业务运营",
+      "moduleLabel": "Module B · Operations",
+      "claim": "Dashboard 汇总 KPI，财务模块审计与对账，通知/搜索/WebSocket 支撑日常运营与触达。",
+      "sceneRole": "hero",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "module",
+      "eyebrow": "Dashboard · Finance · Ops",
+      "body": [
+        "11 Dashboard 看板与 ECharts 图表。",
+        "12 演示：财务审计 / 对账。",
+        "13 通知 · 综合搜索 · WebSocket 推送。",
+        "答辩可说：运营层证明系统不只面向 C 端下单，也服务馆长日常决策。"
+      ],
+      "metrics": [
+        {
+          "label": "看板",
+          "value": "DashboardServiceImpl",
+          "note": "约 3 min 本段"
+        },
+        {
+          "label": "财务",
+          "value": "FinanceAuditLog",
+          "note": "EasyExcel 导出"
+        }
+      ],
+      "scenePos": {
+        "x": 1480,
+        "y": 12680,
+        "width": 1280
+      }
+    },
+    {
+      "id": "dashboard_overview",
+      "step": "11 / 看板",
+      "title": "Dashboard 汇总看板",
+      "dotLabel": "看板",
+      "presenter": "尹晴",
+      "module": "业务运营",
+      "claim": "vue/src/views/Dashboard.vue 聚合今日预约、新会员、营收结构与场地利用率等 KPI，ECharts 可视化运营态势。",
+      "sceneRole": "diagram",
+      "cameraIntent": "tighten",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "Dashboard.vue",
+      "body": [
+        "DashboardServiceImpl 多表聚合：场馆数、预约量、会员增长、财务汇总等，按 venueId 数据范围过滤。",
+        "组件化：KPIBoard、RevenueStructurePie、CourtUtilization 等 charts 复用在管理端。",
+        "答辩可说：看板是 16 域数据的「运营读模型」，不要求老师进每个子菜单。"
+      ],
+      "metrics": [
+        {
+          "label": "页面",
+          "value": "Dashboard.vue",
+          "note": "会长 / 场馆方入口"
+        },
+        {
+          "label": "图表",
+          "value": "ECharts 6",
+          "note": "约 30s"
+        }
+      ],
+      "diagram": {
+        "type": "funnel",
+        "title": "Dashboard 数据汇聚",
+        "inputs": [
+          "预约统计 booking",
+          "会员 member",
+          "财务 finance",
+          "场地 court"
+        ],
+        "output": "KPI 看板 + ECharts 可视化",
+        "caption": "多域聚合 → 单页运营态势"
+      },
+      "support": {
+        "label": "截图",
+        "title": "Web 管理端 Dashboard",
+        "image": "assets/screenshots/web-dashboard.png",
+        "copy": "截图占位：KPI 卡片 + 营收/利用率图表。",
+        "items": [
           {
-            "tag": "可视化",
-            "title": "Dashboard · ECharts KPI",
-            "body": "今日收入趋势 · 预约峰值 · 会员活跃度 · 课程出勤率 · 多维度筛选"
+            "label": "Tip",
+            "title": "演示建议",
+            "body": "admin 登录 · 展示今日 KPI 与快捷入口"
           },
           {
-            "tag": "财务",
-            "title": "biz_finance_record · 审计导出",
-            "body": "流水分类（充值/消费/退款）· 日期范围 · 操作人 · Excel 导出"
-          },
-          {
-            "tag": "通知",
-            "title": "NotificationService · WebSocket",
-            "body": "模板消息推送 · STOMP 实时 · 未读计数 · 数据库持久化"
-          },
-          {
-            "tag": "搜索",
-            "title": "SearchService · 全文检索",
-            "body": "跨域搜索：场地 / 课程 / 会员 / 活动 · ElasticSearch 可接入"
+            "label": "接口",
+            "title": "GET /api/dashboard/*",
+            "body": "DashboardController 汇总"
           }
         ]
       },
       "scenePos": {
         "x": 0,
-        "y": 9320,
+        "y": 13800,
+        "width": 1280
+      }
+    },
+    {
+      "id": "demo_finance_audit",
+      "step": "演示 / 财务",
+      "title": "演示：财务审计与对账",
+      "dotLabel": "演示",
+      "presenter": "尹晴",
+      "module": "业务运营",
+      "claim": "FinanceManagement 筛选流水与审计日志，支持对账视图与 EasyExcel 导出，追溯充值/消费/业务扣款。",
+      "sceneRole": "mechanism",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "demo",
+      "eyebrow": "实机录屏 · 占位",
+      "body": [
+        "管理端登录 admin，进入财务管理 / 审计日志 / 对账页面。",
+        "演示：按日期筛选 → 查看审计记录 → 可选导出 Excel。"
+      ],
+      "metrics": [
+        {
+          "label": "页面",
+          "value": "FinanceManagement.vue",
+          "note": "审计 / 对账"
+        },
+        {
+          "label": "导出",
+          "value": "EasyExcel",
+          "note": "审计日志 Excel"
+        }
+      ],
+      "support": {
+        "video": "assets/videos/财务审计演示.mp4",
+        "copy": "录屏占位：筛选流水 → 审计日志 → 对账/导出",
+        "items": [
+          {
+            "label": "1",
+            "title": "打开财务模块",
+            "body": "FinanceManagement · 流水列表"
+          },
+          {
+            "label": "2",
+            "title": "审计日志",
+            "body": "FinanceAuditLogController · 操作追溯"
+          },
+          {
+            "label": "3",
+            "title": "对账",
+            "body": "FinanceReconciliation · 差异核对"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 1480,
+        "y": 14920,
         "width": 1360
       }
     },
     {
-      "id": "closing",
-      "step": "10 / 总结致谢",
-      "title": "羽擎 BMP · 毕业设计总结",
-      "dotLabel": "总结",
+      "id": "ops_capabilities",
+      "step": "12 / 能力",
+      "title": "通知 · 搜索 · WebSocket",
+      "dotLabel": "能力",
       "presenter": "尹晴",
-      "module": "开场 · 痛点 · 收束",
-      "claim": "BMP v1.0.0 实现了三端一体、五角色 RBAC、16 业务域完整闭环，构建基线全绿，可交付运行。",
-      "sceneRole": "closing",
-      "cameraIntent": "anchor",
-      "diagramNeed": "low",
-      "layout": "closing",
-      "eyebrow": "总结致谢",
+      "module": "业务运营",
+      "claim": "notification 模块推送业务通知；search 综合检索场馆/课程/教练；WebSocket STOMP 支持实时消息订阅。",
+      "sceneRole": "diagram",
+      "cameraIntent": "expand",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "Ops utilities",
       "body": [
-        "技术收获：Spring Boot 多模块分层 + MyBatis-Plus + Spring Security JWT 双 Token 无状态鉴权，Vue 3 + Pinia + UniApp 跨端开发，MySQL 范式设计与 Redis 分布式锁实战。",
-        "协作收获：三人 Git 协同、接口契约先行、前后端联调，体会到软件工程规范对团队交付质量的关键作用。",
-        "不足与展望：搜索模块可引入 Elasticsearch 提升全文检索性能；赛事报名支付可扩展微信/支付宝真实支付通道；移动端可进一步优化离线缓存与性能体验。",
-        "感谢指导老师的悉心指导，感谢答辩委员会老师的宝贵时间！"
+        "通知：UniApp notice/index + Web 消息中心，后端 NotificationService 持久化 + 已读状态。",
+        "搜索：GET /api/search 聚合多域关键词，减少用户在 107 个小程序页间盲找。",
+        "答辩可说：这三项是「全系统可运营」的辅助能力，与 Dashboard/财务形成闭环。"
       ],
       "metrics": [
         {
-          "label": "Java 源文件",
-          "value": "181",
-          "note": "16 业务模块"
+          "label": "通知",
+          "value": "notification",
+          "note": "Web + UniApp"
         },
         {
-          "label": "REST API",
-          "value": "27 Controller",
-          "note": "统一 /api"
-        },
-        {
-          "label": "Web 页面",
-          "value": "51",
-          "note": "vue/src/views"
-        },
-        {
-          "label": "UniApp 页面",
-          "value": "107",
-          "note": "pages.json 注册"
+          "label": "搜索",
+          "value": "search",
+          "note": "约 30s"
         }
       ],
+      "diagram": {
+        "type": "pipeline",
+        "title": "运营辅助链路",
+        "caption": "业务事件 → 通知/搜索/推送",
+        "steps": [
+          "业务写单\nbooking/course/…",
+          "通知入库\nNotification",
+          "WebSocket\nSTOMP 推送",
+          "端侧展示\nnotice/search"
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 0,
+        "y": 16040,
+        "width": 1280
+      }
+    },
+    {
+      "id": "closing",
+      "step": "16 / 收束",
+      "title": "交付边界 · 演示清单 · 致谢",
+      "dotLabel": "结论",
+      "presenter": "涂家乐",
+      "module": "总览 · 收束",
+      "claim": "BMP v1.0.0 全系统可交付：三端一后端、会员课程主链路、Dashboard 与财务治理均已打通。",
+      "sceneRole": "closing",
+      "cameraIntent": "land",
+      "diagramNeed": "low",
+      "layout": "closing",
+      "eyebrow": "Demo · Limits · Thanks",
+      "body": [
+        "联调：9090 + 8080 + 微信开发者工具；user001 充值 → 课程预约 → admin 看 Dashboard/财务。",
+        "局限：暂无后端集成测试；部分能力为演示占位数据；场地预约与支付已在前期模块完成，本次不展开。",
+        "感谢聆听，欢迎提问。—— 涂家乐 · 王曾鹏 · 尹晴"
+      ],
+      "metrics": [
+        {
+          "label": "演示账号",
+          "value": "user001 / admin",
+          "note": "密码 123456"
+        },
+        {
+          "label": "版本",
+          "value": "v1.0.0",
+          "note": "可交付 / 可展示"
+        }
+      ],
+      "support": {
+        "label": "Checklist",
+        "title": "现场演示清单",
+        "copy": "答辩前按顺序走一遍（约 10 分钟）。",
+        "items": [
+          {
+            "label": "1",
+            "title": "启动三端",
+            "body": "9090 API · 8080 Web · 微信开发者工具"
+          },
+          {
+            "label": "2",
+            "title": "涂家乐",
+            "body": "展示架构层与权限校验"
+          },
+          {
+            "label": "3",
+            "title": "王曾鹏",
+            "body": "充值与课程预约演示"
+          },
+          {
+            "label": "4",
+            "title": "尹晴",
+            "body": "运营看板与财务审计"
+          },
+          {
+            "label": "说明",
+            "title": "前期模块",
+            "body": "场地预约与支付已在前期完成，本次答辩不展开"
+          }
+        ]
+      },
       "scenePos": {
         "x": 1480,
-        "y": 10440,
-        "width": 1360
+        "y": 17160,
+        "width": 1120
       }
     }
   ]
@@ -4371,9 +4836,9 @@
                 <path class="fr-line merge" d="M342 90 C365 120, 385 155, 400 170"></path>
                 <path class="fr-line merge" d="M342 250 C365 220, 385 182, 400 170"></path>`,
           nodes: [
-            { label: "尹晴\n开场·简介", variant: "accent-a", left: "12%", top: "53%", transform: "translate(-50%, -50%)" },
+            { label: "涂家乐\n开场·简介", variant: "accent-a", left: "12%", top: "53%", transform: "translate(-50%, -50%)" },
             { label: "王曾鹏\n架构权限", variant: "accent-b", left: "38%", top: "28%", transform: "translate(-50%, -50%)" },
-            { label: "涂家乐\n业务运营", variant: "accent-b", left: "38%", top: "78%", transform: "translate(-50%, -50%)" },
+            { label: "尹晴\n业务运营", variant: "accent-b", left: "38%", top: "78%", transform: "translate(-50%, -50%)" },
             { label: "同一后端\n同一订单域", variant: "end", left: "78%", top: "53%", transform: "translate(-50%, -50%)" }
           ]
         }
@@ -4668,8 +5133,11 @@
         const support = chapter.support || {};
         const diagramBlock = diagramHtml(chapter);
         const items = support.items && support.items.length ? support.items : [];
-        if (chapter.supportHidden && diagramBlock) {
-          return `<div>${diagramBlock}${support.copy ? `<p class="support-copy">${esc(support.copy)}</p>` : ""}</div>`;
+        if (chapter.supportHidden) {
+          if (diagramBlock) {
+            return `<div>${diagramBlock}${support.copy ? `<p class="support-copy">${esc(support.copy)}</p>` : ""}</div>`;
+          }
+          return "";
         }
         const videos = support.videos && support.videos.length ? support.videos : [];
         if (!items.length && !videos.length && !support.title && !support.copy && !support.image && !support.video && diagramBlock) {
@@ -4763,7 +5231,9 @@
           return `<div class="scene-shell scene-diagram-focus"><div class="scene-diagram-focus-layout">${headerCol}${mediaCol}</div></div>`;
         }
         const shellClass = chapter.layout === "hero" ? "scene-shell scene-hero" : chapter.layout === "story" ? "scene-shell scene-story" : "scene-shell";
-        return `<div class="${shellClass}"><div class="scene-grid"><div>${bodyHtml(chapter)}</div><div>${supportHtml(chapter)}</div></div></div>`;
+        const supportBlock = supportHtml(chapter);
+        const supportCol = supportBlock ? `<div>${supportBlock}</div>` : "";
+        return `<div class="${shellClass}"><div class="scene-grid"><div>${bodyHtml(chapter)}</div>${supportCol}</div></div>`;
       }
       function bodyHtml(chapter) {
         const paragraphs = (chapter.body && chapter.body.length ? chapter.body : ["Replace chapter copy here."]).map((text) => `<p>${esc(text)}</p>`).join("");
