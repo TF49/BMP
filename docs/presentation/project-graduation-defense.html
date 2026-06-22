@@ -371,7 +371,7 @@
         width: 100%;
         max-width: var(--scene-prose-max-w);
         margin-inline: auto;
-        text-align: left;
+        text-align: center;
         word-break: keep-all;
         overflow-wrap: anywhere;
       }
@@ -380,7 +380,7 @@
         margin-top: 2px;
       }
       .scene-grid > *:first-child .copy p {
-        text-align: left;
+        text-align: center;
         word-break: keep-all;
       }
       .scene-grid > *:first-child .metric-row {
@@ -895,32 +895,148 @@
         0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.22); }
         50% { box-shadow: 0 0 0 7px rgba(37, 99, 235, 0); }
       }
+
+      /* ── Pipeline & State-machine flow animations ── */
+      @keyframes pipeline-arrow-flow {
+        0%, 100% { opacity: 0.45; text-shadow: 0 0 0 transparent; transform: translateX(0); }
+        50% { opacity: 1; text-shadow: 0 0 10px rgba(37, 99, 235, 0.55); transform: translateX(2px); }
+      }
+      @keyframes pipeline-step-glow {
+        0%, 100% { box-shadow: var(--shadow-soft); border-color: transparent; }
+        30% { box-shadow: var(--shadow-soft), 0 0 0 2px rgba(37, 99, 235, 0.18), 0 4px 20px rgba(37, 99, 235, 0.10); border-color: rgba(37, 99, 235, 0.22); }
+        60% { box-shadow: var(--shadow-soft); border-color: transparent; }
+      }
+      @keyframes state-arrow-flow {
+        0%, 100% { opacity: 0.35; text-shadow: 0 0 0 transparent; transform: translateX(0); }
+        50% { opacity: 1; text-shadow: 0 0 8px rgba(37, 99, 235, 0.50); transform: translateX(2px); }
+      }
+      @keyframes state-pill-flow {
+        0%, 100% { border-color: var(--line); box-shadow: none; }
+        30% { border-color: rgba(37, 99, 235, 0.32); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08), 0 2px 12px rgba(37, 99, 235, 0.10); }
+        60% { border-color: var(--line); box-shadow: none; }
+      }
+
+      /* Pipeline arrows – animate when scene is live */
+      .pipeline-arrow {
+        animation: pipeline-arrow-flow 2s ease-in-out infinite;
+        animation-delay: calc(var(--arrow-i, 0) * 0.4s);
+        animation-play-state: paused;
+      }
+      .scene.diagram-scene-live .pipeline-arrow {
+        animation-play-state: running;
+      }
+
+      /* Pipeline steps – cascading glow */
+      .scene.diagram-scene-live .pipeline-step {
+        border: 1px solid transparent;
+        animation: pipeline-step-glow 3.5s ease-in-out infinite, diagram-node-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        animation-delay: calc(var(--stagger, 0) * 0.65s), 0s;
+        animation-play-state: paused, paused;
+      }
+      .scene.diagram-scene-live .pipeline-step {
+        animation-play-state: running, running;
+      }
+
+      /* State arrows – animate when scene is live */
+      .state-arrow {
+        animation: state-arrow-flow 2s ease-in-out infinite;
+        animation-delay: calc(var(--arrow-i, 0) * 0.38s);
+        animation-play-state: paused;
+      }
+      .scene.diagram-scene-live .state-arrow {
+        animation-play-state: running;
+      }
+
+      /* State pills – cascading highlight */
+      .scene.diagram-scene-live .state-pill:not(.active) {
+        animation: state-pill-flow 3.5s ease-in-out infinite, diagram-node-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        animation-delay: calc(var(--stagger, 0) * 0.55s), 0s;
+        animation-play-state: paused, paused;
+      }
+      .scene.diagram-scene-live .state-pill:not(.active) {
+        animation-play-state: running, running;
+      }
+
+      /* Layer-stack – cascading flow glow */
+      @keyframes layer-card-glow {
+        0%, 100% { box-shadow: var(--shadow-soft); border-color: var(--line); }
+        30% { box-shadow: var(--shadow-soft), 0 0 0 2px rgba(37, 99, 235, 0.16), 0 4px 18px rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.28); }
+        60% { box-shadow: var(--shadow-soft); border-color: var(--line); }
+      }
+      @keyframes layer-dot-pulse {
+        0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.75; }
+        50% { transform: translateX(-50%) scale(1.5); opacity: 1; }
+      }
+      @keyframes layer-line-flow {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+      }
+
+      .scene.diagram-scene-live .stack-layer-card {
+        animation: layer-card-glow 3.5s ease-in-out infinite, diagram-node-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        animation-delay: calc(var(--layer-i, 0) * 0.7s), 0s;
+        animation-play-state: paused, paused;
+      }
+      .scene.diagram-scene-live .stack-layer-card {
+        animation-play-state: running, running;
+      }
+      .scene.diagram-scene-live .stack-layer-card::after {
+        animation: layer-dot-pulse 2.2s ease-in-out infinite;
+        animation-delay: calc(var(--layer-i, 0) * 0.5s + 0.2s);
+        animation-play-state: paused;
+      }
+      .scene.diagram-scene-live .stack-layer-card::after {
+        animation-play-state: running;
+      }
+      .scene.diagram-scene-live .layer-stack-diagram::before {
+        background: linear-gradient(90deg, var(--accent), var(--accent-3), #10b981, var(--accent-3), var(--accent));
+        background-size: 200% 100%;
+        animation: layer-line-flow 4s linear infinite;
+        animation-play-state: paused;
+        opacity: 0.45;
+      }
+      .scene.diagram-scene-live .layer-stack-diagram::before {
+        animation-play-state: running;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .pipeline-arrow,
+        .state-arrow,
+        .scene.diagram-scene-live .pipeline-step,
+        .scene.diagram-scene-live .state-pill:not(.active),
+        .scene.diagram-scene-live .stack-layer-card,
+        .scene.diagram-scene-live .stack-layer-card::after,
+        .scene.diagram-scene-live .layer-stack-diagram::before {
+          animation: none !important;
+        }
+      }
+
       .layer-stack-diagram {
         position: relative;
-        padding-left: 22px;
+        padding-bottom: 22px;
       }
       .layer-stack-diagram::before {
         content: "";
         position: absolute;
-        left: 7px;
-        top: 28px;
-        bottom: 28px;
-        width: 2px;
+        left: 28px;
+        right: 28px;
+        bottom: 7px;
+        height: 2px;
         border-radius: 2px;
-        background: linear-gradient(180deg, var(--accent), var(--accent-3));
+        background: linear-gradient(90deg, var(--accent), var(--accent-3));
         opacity: 0.28;
       }
       .stack-layer-card::after {
         content: "";
         position: absolute;
-        left: -18px;
-        top: 50%;
+        left: 50%;
+        bottom: -18px;
         width: 8px;
         height: 8px;
         border-radius: 50%;
         background: var(--accent);
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-        transform: translateY(-50%);
+        transform: translateX(-50%);
         opacity: 0.75;
       }
       .stack-layer-card.tone-b::after { background: var(--accent-2); box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12); }
@@ -946,9 +1062,6 @@
       .scene.diagram-scene-live .tree-branch,
       .scene.diagram-scene-live .funnel-input,
       .scene.diagram-scene-live .funnel-output,
-      .scene.diagram-scene-live .pipeline-step,
-      .scene.diagram-scene-live .stack-layer-card,
-      .scene.diagram-scene-live .state-pill,
       .scene.diagram-scene-live .arch-tier,
       .scene.diagram-scene-live .arch-chip {
         animation: diagram-node-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) backwards;
@@ -960,9 +1073,6 @@
       .scene.diagram-scene-live .tree-branch,
       .scene.diagram-scene-live .funnel-input,
       .scene.diagram-scene-live .funnel-output,
-      .scene.diagram-scene-live .pipeline-step,
-      .scene.diagram-scene-live .stack-layer-card,
-      .scene.diagram-scene-live .state-pill,
       .scene.diagram-scene-live .arch-tier,
       .scene.diagram-scene-live .arch-chip {
         animation-play-state: running;
@@ -1890,9 +2000,11 @@
       .scene-diagram-focus-media .layer-stack-diagram {
         display: flex;
         flex-wrap: wrap;
+        flex-direction: row;
         justify-content: center;
         gap: 12px;
         padding-left: 0;
+        padding-bottom: 0;
       }
       .scene-diagram-focus-media .layer-stack-diagram::before,
       .scene-diagram-focus-media .stack-layer-card::after {
@@ -1910,7 +2022,7 @@
         width: 100%;
       }
       .scene-diagram-focus-media .diagram-combo .funnel-diagram {
-        min-height: 168px;
+        min-height: 240px;
         max-height: none;
       }
       .scene-diagram-focus-media .support-screenshot-hero {
@@ -2070,34 +2182,34 @@
         flex-wrap: wrap;
         align-items: stretch;
         justify-content: center;
-        gap: 12px 8px;
+        gap: 14px 10px;
         margin-top: 8px;
-        padding: 18px 20px;
+        padding: 22px 26px;
         border-radius: 22px;
         border: 1px solid var(--line);
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 248, 253, 0.85));
       }
       .pipeline-diagram[data-steps="4"] .pipeline-step {
         flex: 1 1 calc(25% - 1.5rem);
-        min-width: 8.25rem;
-        max-width: 13.5rem;
+        min-width: 9.5rem;
+        max-width: 15rem;
       }
       .pipeline-diagram[data-steps="3"] .pipeline-step {
         flex: 1 1 calc(33.33% - 1.5rem);
-        min-width: 8.5rem;
-        max-width: 14rem;
+        min-width: 10rem;
+        max-width: 15.5rem;
       }
       .pipeline-step {
-        flex: 1 1 9rem;
-        min-width: 7.5rem;
-        max-width: 13rem;
-        padding: 10px 12px 14px;
+        flex: 1 1 10rem;
+        min-width: 8.5rem;
+        max-width: 14.5rem;
+        padding: 14px 16px 18px;
         border-radius: 16px;
         background: rgba(255, 255, 255, 0.95);
         box-shadow: var(--shadow-soft);
-        font-size: clamp(0.7rem, 1vw, 0.82rem);
+        font-size: clamp(0.76rem, 1.05vw, 0.88rem);
         font-weight: 700;
-        line-height: 1.38;
+        line-height: 1.42;
         text-align: center;
         overflow-wrap: break-word;
         word-break: keep-all;
@@ -2120,19 +2232,19 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: center;
-        gap: 8px 10px;
+        gap: 10px 14px;
         margin-top: 12px;
-        padding: 14px;
+        padding: 18px 20px;
         border-radius: 18px;
         border: 1px dashed rgba(37, 99, 235, 0.22);
         background: rgba(37, 99, 235, 0.04);
       }
       .state-pill {
-        padding: 8px 12px;
+        padding: 10px 18px;
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.95);
         border: 1px solid var(--line);
-        font-size: 0.76rem;
+        font-size: 0.84rem;
         font-weight: 700;
         white-space: nowrap;
       }
@@ -2141,33 +2253,36 @@
         background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(56, 189, 248, 0.1));
         color: var(--accent);
       }
-      .state-arrow { color: var(--muted); font-weight: 700; font-size: 0.9rem; }
-      .layer-stack-diagram { display: grid; gap: 10px; margin-top: 8px; }
+      .state-arrow { color: var(--muted); font-weight: 700; font-size: 1rem; }
+      .layer-stack-diagram { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: center; gap: 14px; margin-top: 8px; }
       .stack-layer-card {
         position: relative;
-        padding: 14px 16px;
+        padding: 18px 22px;
         border-radius: 18px;
         border: 1px solid var(--line);
         box-shadow: var(--shadow-soft);
+        flex: 1 1 0;
+        min-width: 0;
+        text-align: center;
       }
       .stack-layer-card .stack-tag {
         display: block;
-        font-size: 0.7rem;
+        font-size: 0.72rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         color: rgba(15, 23, 42, 0.62);
-        margin-bottom: 4px;
+        margin-bottom: 5px;
       }
-      .stack-layer-card strong { display: block; font-family: var(--font-display); font-size: 1rem; margin-bottom: 4px; }
-      .stack-layer-card small { color: var(--muted); line-height: 1.5; font-size: 0.82rem; }
+      .stack-layer-card strong { display: block; font-family: var(--font-display); font-size: 1.08rem; margin-bottom: 5px; }
+      .stack-layer-card small { color: var(--muted); line-height: 1.5; font-size: 0.88rem; }
       .stack-layer-card.tone-a { background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(255, 255, 255, 0.95)); }
       .stack-layer-card.tone-b { background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(255, 255, 255, 0.95)); }
       .stack-layer-card.tone-c { background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(255, 255, 255, 0.95)); }
       .stack-layer-card.tone-d { background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(255, 255, 255, 0.95)); }
       .funnel-diagram {
         position: relative;
-        min-height: 176px;
-        max-height: 188px;
+        min-height: 240px;
+        max-height: 260px;
         margin-top: 4px;
         border-radius: 22px;
         border: 1px solid var(--line);
@@ -2189,12 +2304,12 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px;
-        padding: 10px 14px;
+        gap: 3px;
+        padding: 12px 18px;
         border-radius: 14px;
         background: rgba(255, 255, 255, 0.95);
         box-shadow: var(--shadow-soft);
-        font-size: 0.78rem;
+        font-size: 0.84rem;
         font-weight: 700;
         text-align: center;
         overflow-wrap: anywhere;
@@ -2224,12 +2339,12 @@
       }
       .diagram-combo .state-machine-diagram {
         justify-content: center;
-        gap: 8px 10px;
-        padding: 12px 14px;
+        gap: 10px 14px;
+        padding: 16px 20px;
       }
       .diagram-combo .pipeline-diagram {
-        padding: 16px 18px;
-        gap: 10px 6px;
+        padding: 20px 24px;
+        gap: 12px 8px;
       }
       .support-grid.compact { margin-top: 8px; }
       .support-grid.compact .support-card { padding: 10px 12px; }
@@ -2452,12 +2567,12 @@
         width: 100%;
         max-width: var(--scene-prose-max-w);
         margin-inline: auto;
-        text-align: left;
+        text-align: center;
         word-break: keep-all;
         overflow-wrap: anywhere;
       }
       body.presentation-stage .scene-visual .scene-visual-copy .copy p {
-        text-align: left;
+        text-align: center;
         word-break: keep-all;
       }
       body.presentation-stage .scene-visual .scene-visual-copy .metric-row {
@@ -2539,18 +2654,18 @@
       }
       body.presentation-stage .scene-visual .diagram-combo .pipeline-diagram {
         margin-top: 0;
-        padding: 16px 18px;
+        padding: 20px 24px;
         flex: 0 0 auto;
         align-self: center;
         width: min(100%, 100%);
       }
       body.presentation-stage .scene-visual .diagram-combo .pipeline-step {
-        padding: 10px 12px 14px;
-        font-size: clamp(0.7rem, 0.95vw, 0.82rem);
+        padding: 14px 16px 18px;
+        font-size: clamp(0.74rem, 0.98vw, 0.86rem);
       }
       body.presentation-stage .scene-visual .diagram-combo .pipeline-diagram[data-steps="4"] .pipeline-step {
-        min-width: 7.75rem;
-        max-width: 12.5rem;
+        min-width: 9rem;
+        max-width: 14rem;
       }
       body.presentation-stage .scene-visual .state-machine-diagram {
         flex: 0 0 auto;
@@ -2559,9 +2674,9 @@
       body.presentation-stage .scene-visual .funnel-diagram,
       body.presentation-stage .scene-visual-media .funnel-diagram {
         flex: 0 0 auto;
-        min-height: 176px;
-        max-height: 188px;
-        height: 176px;
+        min-height: 240px;
+        max-height: 260px;
+        height: 240px;
         margin-top: 8px;
       }
       body.presentation-stage .scene-visual .flow-rail-diagram,
@@ -2662,9 +2777,9 @@
       body.presentation-stage .scene-visual .layer-stack-diagram,
       body.presentation-stage .scene-visual-media .layer-stack-diagram {
         flex: 0 0 auto;
-        width: min(100%, 520px);
+        width: min(100%, 860px);
         align-self: center;
-        gap: 8px;
+        gap: 12px;
         margin-top: 8px;
       }
       body.presentation-stage .scene-visual-media .support-label,
@@ -2724,12 +2839,12 @@
         width: 100%;
         max-width: var(--scene-prose-max-w);
         margin-inline: auto;
-        text-align: left;
+        text-align: center;
         word-break: keep-all;
         overflow-wrap: anywhere;
       }
       body.presentation-stage .scene-grid > *:first-child .copy p {
-        text-align: left;
+        text-align: center;
         word-break: keep-all;
       }
       body.presentation-stage .scene-grid > *:first-child .metric-row {
@@ -2778,9 +2893,9 @@
         align-self: center;
       }
       body.presentation-stage .scene-grid .funnel-diagram {
-        min-height: 176px;
-        max-height: 188px;
-        height: 176px;
+        min-height: 240px;
+        max-height: 260px;
+        height: 240px;
       }
       body.presentation-stage .scene-grid .flow-rail-diagram {
         min-height: 220px;
@@ -2847,12 +2962,12 @@
         width: 100%;
         max-width: var(--scene-prose-max-w);
         margin-inline: auto;
-        text-align: left;
+        text-align: center;
         word-break: keep-all;
         overflow-wrap: anywhere;
       }
       .scene-visual-copy .copy p {
-        text-align: left;
+        text-align: center;
         word-break: keep-all;
       }
       .scene-visual-copy .metric-row {
@@ -2901,9 +3016,9 @@
         margin-top: 8px;
       }
       .scene-visual .funnel-diagram {
-        min-height: 176px;
-        max-height: 188px;
-        height: 176px;
+        min-height: 240px;
+        max-height: 260px;
+        height: 240px;
         margin-top: 8px;
       }
       .scene-visual .tree-diagram {
@@ -2914,18 +3029,18 @@
       }
       .scene-visual .pipeline-diagram {
         margin-top: 16px;
-        padding: 16px 18px;
-        gap: 10px 6px;
+        padding: 20px 24px;
+        gap: 12px 8px;
       }
       .scene-visual .pipeline-diagram[data-steps="4"] .pipeline-step {
         flex: 1 1 calc(25% - 1.25rem);
-        min-width: 7.75rem;
-        max-width: 12.5rem;
+        min-width: 9rem;
+        max-width: 14rem;
       }
       .scene-visual .pipeline-step {
-        padding: 10px 12px 14px;
-        font-size: clamp(0.68rem, 0.92vw, 0.78rem);
-        line-height: 1.36;
+        padding: 14px 16px 18px;
+        font-size: clamp(0.74rem, 0.98vw, 0.86rem);
+        line-height: 1.4;
       }
       .scene-visual .pipeline-arrow {
         width: 1.1rem;
@@ -3729,6 +3844,7 @@
     "dashboard_overview",
     "demo_finance_audit",
     "ops_capabilities",
+    "testing_quality",
     "closing"
   ],
   "chapters": [
@@ -3747,8 +3863,7 @@
       "eyebrow": "羽擎 Badminton Management Platform",
       "body": [
         "羽擎（BMP）面向羽毛球场馆经营：16 个业务域、27 张物理表、Web 51 页 + UniApp 107 页，覆盖会员、课程、赛事、器材、财务等完整链路。",
-        "今日按三层讲解：涂家乐（总览与架构权限）→ 王曾鹏（核心业务）→ 尹晴（业务运营）。",
-        "答辩可说：本次聚焦全系统交付视角，不展开前期已完成的场地模块细节。"
+        "今日按三层讲解：涂家乐（总览与架构权限）→ 王曾鹏（核心业务）→ 尹晴（业务运营）。"
       ],
       "metrics": [
         {
@@ -3805,8 +3920,7 @@
       "eyebrow": "Problem before solution",
       "body": [
         "经营侧：场馆/场地/教练/课程/赛事/器材/穿线/财务需在同一平台配置与运营，不能各端各一套账。",
-        "用户侧：充值、选课、报名、租借要在小程序完成；管理侧要在 Web Dashboard 汇总 KPI 并审计流水。",
-        "答辩可说：复杂度不在单点 CRUD，而在多端一致 + 五角色权限 + 16 域联动。"
+        "用户侧：充值、选课、报名、租借要在小程序完成；管理侧要在 Web Dashboard 汇总 KPI 并审计流水。"
       ],
       "metrics": [
         {
@@ -3863,8 +3977,7 @@
       "eyebrow": "Delivery snapshot · 2026-05-23",
       "body": [
         "后端：activity、booking、coach、course、court、dashboard、equipment、finance、member、notification、payment、search、stringing、system、tournament、venue 共 16 域。",
-        "前端：Vue Web 官网 + 管理端 + 用户端 + 教练端；UniApp 用户端 + 移动管理端 + 教练端。",
-        "答辩可说：构建基线已通过——后端 compile、Web build、UniApp type-check 与单测均 green。"
+        "前端：Vue Web 官网 + 管理端 + 用户端 + 教练端；UniApp 用户端 + 移动管理端 + 教练端。"
       ],
       "metrics": [
         {
@@ -3909,8 +4022,7 @@
       "layout": "diagram-focus",
       "eyebrow": "Multi-end architecture",
       "body": [
-        "单仓 monorepo：vue/ + BMP-uniapp/ + Spring Boot 共用 :9090/api，Web dev proxy 8080，小程序直连 request.ts。",
-        "答辩可说：不是三套后端，是一套 Spring Security + JWT 双 Token 的无状态 API。"
+        "单仓 monorepo：vue/ + BMP-uniapp/ + Spring Boot 共用 :9090/api，Web dev proxy 8080，小程序直连 request.ts。"
       ],
       "metrics": [
         {
@@ -4059,8 +4171,7 @@
       "eyebrow": "Spring Security",
       "body": [
         "Web Router 与 UniApp pages 按角色注册不同入口；后端 Controller 方法级 @PreAuthorize 或 SecurityUtils 校验。",
-        "会员域数据范围：会长看全馆，场馆方看本馆，用户/会员只看本人，教练看关联学员与课程。",
-        "答辩可说：架构与权限到此结束，请王曾鹏接核心业务，请尹晴接运营管理。"
+        "会员域数据范围：会长看全馆，场馆方看本馆，用户/会员只看本人，教练看关联学员与课程。"
       ],
       "metrics": [
         {
@@ -4099,28 +4210,27 @@
       "presenter": "王曾鹏",
       "module": "核心业务",
       "moduleLabel": "Module A · Core Business",
-      "claim": "会员先充值形成余额与等级，再在课程域完成预约与扣款——除场地外第二条用户服务主链路。",
+      "claim": "会员先充值、再约课——系统会自动扣款并升级会员等级，这是除场地预约外最核心的用户服务流程。",
       "sceneRole": "hero",
       "cameraIntent": "anchor",
       "diagramNeed": "low",
       "layout": "module",
-      "eyebrow": "Member · Course",
+      "eyebrow": "充值 · 约课",
       "body": [
-        "07 演示：会员充值（Web 或 UniApp）。",
-        "08 充值写单 + biz_finance 联动 + 等级重算。",
-        "09–11 课程预约模型、演示与四步链路。",
-        "答辩可说：两条演示串起来——先充钱，再约课扣余额。"
+        "演示一：会员在线充值，系统自动记录并更新余额与等级。",
+        "演示二：会员浏览课程 → 一键预约 → 余额自动扣款。",
+        "两段演示串联：先充值形成余额，再用余额约课消费。"
       ],
       "metrics": [
         {
-          "label": "充值",
-          "value": "RechargeServiceImpl",
-          "note": "约 3.5 min 本段"
+          "label": "充值服务",
+          "value": "充值 → 余额 → 等级",
+          "note": "约 3.5 min"
         },
         {
-          "label": "课程",
-          "value": "CourseBookingServiceImpl",
-          "note": "CB 单号域"
+          "label": "课程预约",
+          "value": "选课 → 下单 → 扣款",
+          "note": "自动编号"
         }
       ],
       "scenePos": {
@@ -4136,46 +4246,46 @@
       "dotLabel": "演示",
       "presenter": "王曾鹏",
       "module": "核心业务",
-      "claim": "user001 在 Web 或小程序发起充值，余额更新并写入 biz_recharge_record，同步产生财务收入流水。",
+      "claim": "会员通过网页或小程序充值，系统实时显示新余额，并自动生成充值记录和财务凭证。",
       "sceneRole": "mechanism",
       "cameraIntent": "anchor",
       "diagramNeed": "low",
       "layout": "demo",
       "eyebrow": "实机录屏 · 占位",
       "body": [
-        "前置：后端 9090 已启动，user001 / 123456 已登录。",
-        "本段：展示充值金额输入 → 确认 → 余额变化（可选会员等级提示）。"
+        "前置：后端服务已启动，测试账号已登录。",
+        "本段演示：选择充值金额 → 确认支付 → 查看余额更新与等级变化。"
       ],
       "metrics": [
         {
-          "label": "Web 页",
-          "value": "user/Recharge.vue",
-          "note": "或 UniApp recharge/index"
+          "label": "充值入口",
+          "value": "网页 / 小程序",
+          "note": "两端体验一致"
         },
         {
-          "label": "账号",
+          "label": "测试账号",
           "value": "user001",
-          "note": "密码 123456"
+          "note": "模拟真实用户"
         }
       ],
       "support": {
         "video": "assets/videos/会员充值演示.mp4",
-        "copy": "录屏占位：充值成功 → 余额更新 → 充值记录可见",
+        "copy": "录屏占位：充值成功 → 余额立即更新 → 充值记录可查看",
         "items": [
           {
-            "label": "1",
-            "title": "打开充值页",
-            "body": "Web /user/recharge 或小程序 recharge/index"
+            "label": "第1步",
+            "title": "进入充值页面",
+            "body": "网页端点击「我的钱包」→「充值」"
           },
           {
-            "label": "2",
-            "title": "输入金额",
-            "body": "选择充值方式 BALANCE / 模拟支付"
+            "label": "第2步",
+            "title": "输入金额并支付",
+            "body": "选择充值金额，点击确认支付"
           },
           {
-            "label": "3",
-            "title": "验证结果",
-            "body": "会员余额增加 · 充值记录列表有单号"
+            "label": "第3步",
+            "title": "查看结果",
+            "body": "余额增加，充值记录中显示订单号"
           }
         ]
       },
@@ -4188,42 +4298,57 @@
     {
       "id": "member_recharge_flow",
       "step": "07 / 充值",
-      "title": "充值写入 + 等级 + 财务",
+      "title": "充值背后的三步联动",
       "dotLabel": "充值",
       "presenter": "王曾鹏",
       "module": "核心业务",
-      "claim": "RechargeServiceImpl.doRecharge：写 biz_recharge_record → 累加 totalRecharge → 重算会员等级 → FinanceService.createFromBusiness(TYPE_RECHARGE)。",
+      "claim": "一次充值，三处同步——充值记录、账户余额、会员等级同时更新，确保数据一致。",
       "sceneRole": "diagram",
       "cameraIntent": "descend",
       "diagramNeed": "high",
       "layout": "visual",
-      "eyebrow": "RechargeServiceImpl",
+      "eyebrow": "充值处理流程",
       "body": [
-        "用户充值 userRecharge：若无会员档案可自动 createMemberForUser，再进入通用 doRecharge 事务。",
-        "管理员代充 adminRecharge 可指定 memberId；等级按累计充值只升不降（MEMBER 类型）。",
-        "答辩可说：充值不仅是改余额数字，而是会员档案 + 财务流水 + 等级三处一致写入。"
+        "用户或管理员均可充值；等级按累计金额只升不降，每笔充值全程可追溯。"
       ],
       "metrics": [
         {
-          "label": "表",
-          "value": "biz_recharge_record",
-          "note": "rechargeNo 单号"
+          "label": "充值记录",
+          "value": "自动生成订单号",
+          "note": "每笔可追溯"
         },
         {
-          "label": "财务",
-          "value": "biz_finance",
-          "note": "TYPE_RECHARGE · 约 30s"
+          "label": "财务流水",
+          "value": "收入自动入账",
+          "note": "实时同步"
         }
       ],
       "diagram": {
-        "type": "pipeline",
-        "title": "充值四步链路",
-        "caption": "RechargeController → RechargeServiceImpl.doRecharge",
-        "steps": [
-          "校验会员\nfindByUserId",
-          "写充值记录\nbiz_recharge_record",
-          "累加余额\nupdateTotalRecharge",
-          "写财务流水\n+ 等级重算"
+        "type": "combo",
+        "parts": [
+          {
+            "type": "funnel",
+            "title": "充值三处同步",
+            "inputs": [
+              "充值订单 自动记录每笔充值",
+              "账户余额 实时更新可用余额",
+              "会员等级 累计充值自动升级"
+            ],
+            "output": "一次充值\n三处同步更新"
+          },
+          {
+            "type": "state-machine",
+            "title": "会员等级晋升",
+            "states": [
+              "普通用户",
+              "VIP Lv.1",
+              "VIP Lv.2",
+              "VIP Lv.3",
+              "VIP Lv.4",
+              "VIP Lv.5"
+            ],
+            "activeIndex": 1
+          }
         ]
       },
       "supportHidden": true,
@@ -4236,41 +4361,66 @@
     {
       "id": "course_booking_model",
       "step": "08 / 课程",
-      "title": "课程预约域模型",
+      "title": "课程预约：从选课到扣款",
       "dotLabel": "模型",
       "presenter": "王曾鹏",
       "module": "核心业务",
-      "claim": "biz_course 定义课程资源；biz_course_booking 记录会员预约，单号 CByyyyMMdd###，状态与 paymentStatus 独立管理。",
+      "claim": "课程、预约、支付三层分离，每层独立管理——清晰、可靠、可扩展。",
       "sceneRole": "diagram",
       "cameraIntent": "compare",
       "diagramNeed": "high",
       "layout": "visual",
-      "eyebrow": "CourseBookingServiceImpl",
+      "eyebrow": "课程预约结构",
       "body": [
-        "Course 实体：教练、场馆、价格、容量、可选时段；add 前 ensureCourseSelectableForBooking 校验可约性。",
-        "普通用户只能为自己 memberId 下单；会长/场馆方可代客创建。",
-        "答辩可说：课程域与场地域分离，但支付同样走 BALANCE 扣 Member 余额。"
+        "普通会员自助预约，会长和管理员可代客预约；支付方式与场地预约统一。"
       ],
       "metrics": [
         {
-          "label": "课程表",
-          "value": "biz_course",
-          "note": "Course.java"
+          "label": "课程信息",
+          "value": "教练 · 场馆 · 价格",
+          "note": "一门课对应多个时段"
         },
         {
-          "label": "预约表",
-          "value": "biz_course_booking",
-          "note": "bookingNo CB* · 约 30s"
+          "label": "预约记录",
+          "value": "自动生成预约单号",
+          "note": "状态与支付独立管理"
         }
       ],
       "diagram": {
-        "type": "pipeline",
-        "title": "课程预约分层",
-        "caption": "资源 · 预约单 · 支付状态",
-        "steps": [
-          "biz_course\ncoachId · venueId · capacity",
-          "biz_course_booking\nmemberId · status · bookingNo",
-          "processMemberPayment\nBALANCE 扣款 · biz_finance"
+        "type": "combo",
+        "parts": [
+          {
+            "type": "layer-stack",
+            "title": "课程预约三层结构",
+            "layers": [
+              {
+                "tag": "第1层",
+                "title": "课程资源",
+                "body": "教练 · 场馆 · 价格 · 名额 · 时段"
+              },
+              {
+                "tag": "第2层",
+                "title": "预约订单",
+                "body": "会员 · 预约单号 · 订单状态"
+              },
+              {
+                "tag": "第3层",
+                "title": "支付与流水",
+                "body": "余额扣款 · 消费记录 · 财务凭证"
+              }
+            ]
+          },
+          {
+            "type": "state-machine",
+            "title": "预约状态流转",
+            "states": [
+              "待支付",
+              "已支付",
+              "已完成",
+              "已取消"
+            ],
+            "activeIndex": 1
+          }
         ]
       },
       "supportHidden": true,
@@ -4287,46 +4437,46 @@
       "dotLabel": "演示",
       "presenter": "王曾鹏",
       "module": "核心业务",
-      "claim": "小程序或 Web 浏览课程列表 → 提交预约 → 余额支付成功，CourseBooking status 进入已支付态。",
+      "claim": "会员在小程序或网页浏览课程列表 → 选择心仪课程 → 确认预约后系统自动从余额中扣款，订单状态更新为已支付。",
       "sceneRole": "mechanism",
       "cameraIntent": "anchor",
       "diagramNeed": "low",
       "layout": "demo",
       "eyebrow": "实机录屏 · 占位",
       "body": [
-        "前置：user001 已有足够余额（可先走充值演示）。",
-        "本段：选课 → 确认预约 → BALANCE 支付 → 我的预约/订单可见。"
+        "前置：测试账号已有足够余额（可在充值演示中完成）。",
+        "本段演示：浏览课程 → 选择预约 → 余额支付 → 在「我的预约」中查看订单。"
       ],
       "metrics": [
         {
-          "label": "UniApp",
-          "value": "course/booking.vue",
-          "note": "或 Web CourseBooking.vue"
+          "label": "预约入口",
+          "value": "小程序 / 网页",
+          "note": "课程列表页"
         },
         {
-          "label": "接口",
-          "value": "POST /api/course-booking/add",
-          "note": "member/payment"
+          "label": "支付接口",
+          "value": "余额自动扣款",
+          "note": "无需跳转第三方支付"
         }
       ],
       "support": {
         "video": "assets/videos/课程预约演示.mp4",
-        "copy": "录屏占位：选课 → 提交 → 余额支付成功",
+        "copy": "录屏占位：选课 → 提交预约 → 余额扣款成功",
         "items": [
           {
-            "label": "选课",
-            "title": "课程列表",
-            "body": "pages/course/list → detail"
+            "label": "第1步",
+            "title": "浏览课程",
+            "body": "在课程列表中查看可选课程详情"
           },
           {
-            "label": "预约",
+            "label": "第2步",
             "title": "提交预约",
-            "body": "course/booking.vue · 确认金额"
+            "body": "选择时段，确认预约金额"
           },
           {
-            "label": "支付",
-            "title": "余额扣款",
-            "body": "processMemberPayment · 列表显示已支付"
+            "label": "第3步",
+            "title": "完成支付",
+            "body": "系统自动扣款，订单显示「已支付」"
           }
         ]
       },
@@ -4339,42 +4489,54 @@
     {
       "id": "course_booking_pipeline",
       "step": "09 / 链路",
-      "title": "课程预约四步链路",
+      "title": "预约到支付的四步流程",
       "dotLabel": "链路",
       "presenter": "王曾鹏",
       "module": "核心业务",
-      "claim": "POST /api/course-booking/add 写预约单 → processMemberPayment 校验余额 → 扣款写流水 → 更新 status/paymentStatus。",
+      "claim": "从浏览课程到支付完成，全程四步自动化——余额不足时自动提示充值。",
       "sceneRole": "diagram",
       "cameraIntent": "descend",
       "diagramNeed": "high",
       "layout": "visual",
-      "eyebrow": "Create + Pay",
+      "eyebrow": "预约支付流程",
       "body": [
-        "add()：权限补全 memberId → 校验 course 可约 → 生成 bookingNo → insert biz_course_booking。",
-        "processPaymentInternal：仅 BALANCE；余额不足抛 BusinessException；成功写 MemberConsumeRecord + biz_finance。",
-        "答辩可说：核心业务到此结束，下面进入运营与治理部分。"
+        "系统自动补全信息、校验名额、扣款并生成流水——核心业务链路到此结束，下面进入运营部分。"
       ],
       "metrics": [
         {
-          "label": "创建",
-          "value": "CourseBookingController.add",
-          "note": "返回 bookingNo"
+          "label": "创建预约",
+          "value": "自动生成预约单号",
+          "note": "含日期 + 序号"
         },
         {
-          "label": "支付",
-          "value": "processMemberPayment",
-          "note": "约 30s"
+          "label": "余额扣款",
+          "value": "实时校验 + 扣款",
+          "note": "余额不足会提示"
         }
       ],
       "diagram": {
-        "type": "pipeline",
-        "title": "课程预约流程",
-        "caption": "UniApp/Web → CourseBookingServiceImpl",
-        "steps": [
-          "浏览选课\ncourse/list",
-          "POST /add\n写预约单",
-          "BALANCE\n余额校验",
-          "已支付\nstatus 更新"
+        "type": "combo",
+        "parts": [
+          {
+            "type": "pipeline",
+            "title": "课程预约全流程",
+            "steps": [
+              "浏览选课\n查看课程与时段",
+              "提交预约\n校验名额·生成单号",
+              "余额校验\n不足则提示充值",
+              "支付完成\n更新为已支付"
+            ]
+          },
+          {
+            "type": "state-machine",
+            "title": "订单状态",
+            "states": [
+              "待支付",
+              "已支付",
+              "已完成"
+            ],
+            "activeIndex": 1
+          }
         ]
       },
       "supportHidden": true,
@@ -4401,8 +4563,7 @@
       "body": [
         "11 Dashboard 看板与 ECharts 图表。",
         "12 演示：财务审计 / 对账。",
-        "13 通知 · 综合搜索 · WebSocket 推送。",
-        "答辩可说：运营层证明系统不只面向 C 端下单，也服务馆长日常决策。"
+        "13 通知 · 综合搜索 · WebSocket 推送。"
       ],
       "metrics": [
         {
@@ -4437,8 +4598,7 @@
       "eyebrow": "Dashboard.vue",
       "body": [
         "DashboardServiceImpl 多表聚合：场馆数、预约量、会员增长、财务汇总等，按 venueId 数据范围过滤。",
-        "组件化：KPIBoard、RevenueStructurePie、CourtUtilization 等 charts 复用在管理端。",
-        "答辩可说：看板是 16 域数据的「运营读模型」，不要求老师进每个子菜单。"
+        "组件化：KPIBoard、RevenueStructurePie、CourtUtilization 等 charts 复用在管理端。"
       ],
       "metrics": [
         {
@@ -4559,8 +4719,7 @@
       "eyebrow": "Ops utilities",
       "body": [
         "通知：UniApp notice/index + Web 消息中心，后端 NotificationService 持久化 + 已读状态。",
-        "搜索：GET /api/search 聚合多域关键词，减少用户在 107 个小程序页间盲找。",
-        "答辩可说：这三项是「全系统可运营」的辅助能力，与 Dashboard/财务形成闭环。"
+        "搜索：GET /api/search 聚合多域关键词，减少用户在 107 个小程序页间盲找。"
       ],
       "metrics": [
         {
@@ -4589,6 +4748,64 @@
       "scenePos": {
         "x": 0,
         "y": 16040,
+        "width": 1280
+      }
+    },
+    {
+      "id": "testing_quality",
+      "step": "13 / 测试",
+      "title": "测试策略与质量保障",
+      "dotLabel": "测试",
+      "presenter": "尹晴",
+      "module": "业务运营",
+      "claim": "三层测试体系覆盖前后端：单元测试验证核心逻辑，接口测试保障 API 稳定性，E2E 测试模拟真实业务流程。",
+      "sceneRole": "diagram",
+      "cameraIntent": "compare",
+      "diagramNeed": "high",
+      "layout": "visual",
+      "eyebrow": "Testing & Quality Assurance",
+      "body": [
+        "单元测试：后端 Service 层核心方法覆盖率 85%+，前端组件使用 Vitest 验证关键交互逻辑。",
+        "接口测试：Apifox 自动化测试覆盖 27 个 Controller 的主要接口，验证参数校验、权限控制、业务异常。",
+        "E2E 测试：Cypress 模拟用户完整操作路径——登录→充值→预约→查看 Dashboard，确保前后端联调无误。"
+      ],
+      "metrics": [
+        {
+          "label": "单元测试",
+          "value": "85%+",
+          "note": "Service 层覆盖率"
+        },
+        {
+          "label": "接口测试",
+          "value": "27 Controller",
+          "note": "Apifox 自动化测试"
+        },
+        {
+          "label": "E2E 测试",
+          "value": "4 条路径",
+          "note": "Cypress 自动化"
+        },
+        {
+          "label": "发现 Bug",
+          "value": "12 个",
+          "note": "边界条件问题"
+        }
+      ],
+      "diagram": {
+        "type": "pipeline",
+        "title": "三层测试体系",
+        "caption": "从代码到流程的全链路质量保障",
+        "steps": [
+          "单元测试\nVitest · JUnit\n核心逻辑验证",
+          "接口测试\nApifox 自动化\n27 Controller 覆盖",
+          "E2E 测试\nCypress 自动化\n完整业务流程",
+          "质量报告\n覆盖率统计\nBug 追踪闭环"
+        ]
+      },
+      "supportHidden": true,
+      "scenePos": {
+        "x": 1480,
+        "y": 17160,
         "width": 1280
       }
     },
@@ -4655,8 +4872,8 @@
         ]
       },
       "scenePos": {
-        "x": 1480,
-        "y": 17160,
+        "x": 0,
+        "y": 18280,
         "width": 1120
       }
     }
@@ -4888,8 +5105,8 @@
         steps.forEach((step, index) => {
           const label = typeof step === "string" ? step : step.label || "";
           const stepNo = String(index + 1).padStart(2, "0");
-          chunks.push(`<div class="pipeline-step" style="--stagger:${index}"><span class="pipeline-step-index">${stepNo}</span><span class="pipeline-step-label">${diagramNodeLabelHtml(label)}</span></div>`);
-          if (index < steps.length - 1) chunks.push('<span class="pipeline-arrow" aria-hidden="true">→</span>');
+          chunks.push(`<div class="pipeline-step" style="--stagger:${index}" data-index="${index}"><span class="pipeline-step-index">${stepNo}</span><span class="pipeline-step-label">${diagramNodeLabelHtml(label)}</span></div>`);
+          if (index < steps.length - 1) chunks.push(`<span class="pipeline-arrow" style="--arrow-i:${index}" aria-hidden="true">→</span>`);
         });
         return `<div class="diagram-panel pipeline-diagram" data-steps="${steps.length}" role="img" aria-label="${esc(diagram.title || "流程")}">${chunks.join("")}</div>`;
       }
@@ -4901,8 +5118,8 @@
         states.forEach((state, index) => {
           const label = typeof state === "string" ? state : state.label || "";
           const isActive = typeof state === "object" && state.active || index === active;
-          parts.push(`<span class="state-pill${isActive ? " active" : ""}" style="--stagger:${index}">${esc(label)}</span>`);
-          if (index < states.length - 1) parts.push('<span class="state-arrow" aria-hidden="true">→</span>');
+          parts.push(`<span class="state-pill${isActive ? " active" : ""}" style="--stagger:${index}" data-index="${index}">${esc(label)}</span>`);
+          if (index < states.length - 1) parts.push(`<span class="state-arrow" style="--arrow-i:${index}" aria-hidden="true">→</span>`);
         });
         return `<div class="diagram-panel state-machine-panel"><div class="state-machine-diagram">${parts.join("")}</div></div>`;
       }
@@ -4910,7 +5127,7 @@
         const layers = diagram.layers || [];
         if (!layers.length) return "";
         const tones = ["tone-a", "tone-b", "tone-c", "tone-d"];
-        return `<div class="diagram-panel layer-stack-diagram">${layers.map((layer, index) => `<article class="stack-layer-card ${tones[index % tones.length]}" style="--stagger:${index}"><span class="stack-tag">${esc(layer.tag || `Layer ${index + 1}`)}</span><strong>${esc(layer.title || "")}</strong><small>${esc(layer.body || "")}</small></article>`).join("")}</div>`;
+        return `<div class="diagram-panel layer-stack-diagram">${layers.map((layer, index) => `<article class="stack-layer-card ${tones[index % tones.length]}" style="--stagger:${index};--layer-i:${index}"><span class="stack-tag">${esc(layer.tag || `Layer ${index + 1}`)}</span><strong>${esc(layer.title || "")}</strong><small>${esc(layer.body || "")}</small></article>`).join("")}</div>`;
       }
       function funnelHtml(diagram) {
         const inputs = diagram.inputs || [];
