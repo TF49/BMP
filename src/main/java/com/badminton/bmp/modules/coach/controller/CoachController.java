@@ -15,6 +15,8 @@ import org.springframework.security.access.AccessDeniedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,15 +32,6 @@ public class CoachController extends BaseController {
 
     @Autowired
     private VenueService venueService;
-
-    /**
-     * 检查当前用户是否为管理员
-     * @return 是否为管理员
-     */
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
 
     @Operation(summary = "教练列表", description = "支持场馆/状态/关键词搜索与分页")
     @GetMapping("/list")
@@ -61,28 +54,15 @@ public class CoachController extends BaseController {
                 keyword = keyword.trim();
             }
 
-            // 验证分页参数
-            if (page < 1) {
-                page = 1;
-            }
-            if (size < 1 || size > 1000) {
-                size = 10;
-            }
+            page = normalizePage(page);
+            size = normalizeSize(size);
 
             // 调用查询方法
             List<Coach> coaches = coachService.findAll(venueId, status, keyword, gender, page, size);
             // 统计符合条件的教练总数
             int total = coachService.count(venueId, status, keyword, gender);
 
-            // 构造分页响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", coaches);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-
-            return success(result);
+            return success(PageResult.of(coaches, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {

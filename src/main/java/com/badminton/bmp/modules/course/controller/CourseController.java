@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +46,6 @@ public class CourseController extends BaseController {
     @Autowired
     private CourseBookingService courseBookingService;
 
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
-
     @Operation(summary = "我的课程", description = "COACH 角色：仅返回当前教练的课程列表，支持时间范围与分页")
     @GetMapping("/my")
     @PreAuthorize("hasRole('COACH')")
@@ -65,21 +62,15 @@ public class CourseController extends BaseController {
             if (coachId == null) {
                 return error(COACH_UNBOUND_MESSAGE);
             }
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 10;
-            if (keyword != null && keyword.trim().isEmpty()) keyword = null;
-            if (startTime != null && startTime.trim().isEmpty()) startTime = null;
-            if (endTime != null && endTime.trim().isEmpty()) endTime = null;
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
+            startTime = blankToNull(startTime);
+            endTime = blankToNull(endTime);
             List<Course> courses = courseService.findAll(coachId, courtId, status, keyword, startTime, endTime, page, size);
             enrichCurrentUserViewBatch(courses);
             int total = courseService.count(coachId, courtId, status, keyword, startTime, endTime);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", courses);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(courses, total, page, size));
         } catch (Exception e) {
             return error("获取我的课程时发生错误：" + e.getMessage());
         }
@@ -98,21 +89,15 @@ public class CourseController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 10;
-            if (keyword != null && keyword.trim().isEmpty()) keyword = null;
-            if (startTime != null && startTime.trim().isEmpty()) startTime = null;
-            if (endTime != null && endTime.trim().isEmpty()) endTime = null;
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
+            startTime = blankToNull(startTime);
+            endTime = blankToNull(endTime);
             List<Course> courses = courseService.findAll(coachId, courtId, status, keyword, startTime, endTime, page, size);
             enrichCurrentUserViewBatch(courses);
             int total = courseService.count(coachId, courtId, status, keyword, startTime, endTime);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", courses);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(courses, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {

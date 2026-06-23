@@ -17,6 +17,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -33,16 +35,6 @@ public class CourtController extends BaseController {
     @Autowired
     private VenueService venueService;
 
-    /**
-     * 检查当前用户是否为管理员
-     * @return 是否为管理员
-     */
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
-
-
     @Operation(summary = "场地列表", description = "支持按场馆、状态、关键词搜索与分页")
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
@@ -53,33 +45,16 @@ public class CourtController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            // 验证分页参数
-            if (page < 1) {
-                page = 1;
-            }
-            if (size < 1 || size > 100) {
-                size = 10;
-            }
-
-            // 将空字符串转换为null，便于后端查询
-            if (keyword != null && keyword.trim().isEmpty()) {
-                keyword = null;
-            }
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
 
             // 调用查询方法
             List<Court> courts = courtService.findAll(venueId, status, keyword, page, size);
             // 统计符合条件的场地总数
             int total = courtService.count(venueId, status, keyword);
 
-            // 构造分页响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", courts);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-
-            return success(result);
+            return success(PageResult.of(courts, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {

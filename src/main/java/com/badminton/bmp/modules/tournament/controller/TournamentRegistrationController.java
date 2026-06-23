@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -43,11 +45,6 @@ public class TournamentRegistrationController extends BaseController {
     @Autowired
     private MemberMapper memberMapper;
 
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
-
     @Operation(summary = "赛事报名列表", description = "支持赛事/会员/状态/单号/时间筛选与分页")
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
@@ -62,15 +59,10 @@ public class TournamentRegistrationController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 10;
-            // 清理参数：去除空字符串和空格
-            if (registrationNo != null && registrationNo.trim().isEmpty()) {
-                registrationNo = null;
-            }
-            if (memberKeyword != null && memberKeyword.trim().isEmpty()) {
-                memberKeyword = null;
-            }
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            registrationNo = blankToNull(registrationNo);
+            memberKeyword = blankToNull(memberKeyword);
             LocalDateTime start = null;
             LocalDateTime end = null;
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -90,13 +82,7 @@ public class TournamentRegistrationController extends BaseController {
                             registrationNo, memberKeyword, start, end, page, size);
             int total = tournamentRegistrationService.count(tournamentId, memberId, status,
                     registrationNo, memberKeyword, start, end);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", registrations);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(registrations, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
@@ -316,18 +302,9 @@ public class TournamentRegistrationController extends BaseController {
                 return error("权限不足，仅管理员可执行此操作");
             }
 
-            if (registrationId == null) {
-                return error("报名ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
+            Result<Object> validation = validateBalancePayment(registrationId, "报名ID", paymentMethod);
+            if (validation != null) return validation;
 
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
-
-            // 处理支付
             int result = tournamentRegistrationService.processPayment(registrationId, paymentMethod);
 
             if (result > 0) {
@@ -348,15 +325,8 @@ public class TournamentRegistrationController extends BaseController {
     public Result<Object> processMemberPayment(@RequestParam("registrationId") Long registrationId,
                                                @RequestParam("paymentMethod") String paymentMethod) {
         try {
-            if (registrationId == null) {
-                return error("报名ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
+            Result<Object> memberValidation = validateBalancePayment(registrationId, "报名ID", paymentMethod);
+            if (memberValidation != null) return memberValidation;
 
             if (isAdmin()) {
                 int result = tournamentRegistrationService.processPayment(registrationId, paymentMethod);

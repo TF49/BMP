@@ -20,6 +20,8 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -40,15 +42,6 @@ public class EquipmentRentalController extends BaseController {
     private MemberService memberService;
 
     /**
-     * 检查当前用户是否为管理员
-     * @return 是否为管理员
-     */
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
-
-    /**
      * 获取所有器材租借记录，支持搜索和分页
      */
     @Operation(summary = "租借列表", description = "支持分页与筛选")
@@ -62,33 +55,16 @@ public class EquipmentRentalController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            // 验证分页参数
-            if (page < 1) {
-                page = 1;
-            }
-            if (size < 1 || size > 100) {
-                size = 10;
-            }
-
-            // 将空字符串转换为null，便于后端查询
-            if (keyword != null && keyword.trim().isEmpty()) {
-                keyword = null;
-            }
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
 
             // 调用查询方法
             List<EquipmentRental> rentals = equipmentRentalService.findAll(memberId, equipmentId, status, keyword, page, size);
             // 统计符合条件的租借记录总数
             int total = equipmentRentalService.count(memberId, equipmentId, status, keyword);
 
-            // 构造分页响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", rentals);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-
-            return success(result);
+            return success(PageResult.of(rentals, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
@@ -259,18 +235,9 @@ public class EquipmentRentalController extends BaseController {
     @PreAuthorize("hasAnyRole('PRESIDENT','VENUE_MANAGER','USER','MEMBER')")
     public Result<Object> processPayment(@RequestParam("rentalId") Long rentalId, @RequestParam("paymentMethod") String paymentMethod) {
         try {
-            if (rentalId == null) {
-                return error("租借ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
+            Result<Object> validation = validateBalancePayment(rentalId, "租借ID", paymentMethod);
+            if (validation != null) return validation;
 
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
-
-            // 处理支付
             int result = equipmentRentalService.processPayment(rentalId, paymentMethod);
 
             if (result > 0) {

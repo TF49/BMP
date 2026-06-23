@@ -13,6 +13,8 @@ import org.springframework.security.access.AccessDeniedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,24 +38,11 @@ public class UserController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            // 验证分页参数
-            if (page < 1) {
-                page = 1;
-            }
-            if (size < 1 || size > 100) {
-                size = 10;
-            }
-
-            // 将空字符串转换为null，便于后端查询
-            if (username != null && username.trim().isEmpty()) {
-                username = null;
-            }
-            if (idCard != null && idCard.trim().isEmpty()) {
-                idCard = null;
-            }
-            if (role != null && role.trim().isEmpty()) {
-                role = null;
-            }
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            username = blankToNull(username);
+            idCard = blankToNull(idCard);
+            role = blankToNull(role);
 
             // 调用搜索方法
             List<User> users = userService.findByUsernameOrIdCard(username, idCard, role, status, page, size);
@@ -63,15 +52,7 @@ public class UserController extends BaseController {
             // 隐藏所有用户的密码
             users.forEach(user -> user.setPassword(null));
 
-            // 构造分页响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", users);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-
-            return success(result);
+            return success(PageResult.of(users, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {

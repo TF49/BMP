@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -32,11 +34,6 @@ public class TournamentController extends BaseController {
     @Autowired
     private VenueService venueService;
 
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
-
     @Operation(summary = "赛事列表", description = "支持场馆/状态/类型/关键词/时间筛选与分页")
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
@@ -50,10 +47,10 @@ public class TournamentController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 10;
-            if (keyword != null && keyword.trim().isEmpty()) keyword = null;
-            if (type != null && type.trim().isEmpty()) type = null;
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
+            type = blankToNull(type);
             LocalDateTime start = null;
             LocalDateTime end = null;
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -69,13 +66,7 @@ public class TournamentController extends BaseController {
             }
             List<Tournament> tournaments = tournamentService.findAll(venueId, status, type, keyword, start, end, page, size);
             int total = tournamentService.count(venueId, status, type, keyword, start, end);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", tournaments);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(tournaments, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {

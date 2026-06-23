@@ -15,6 +15,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.badminton.bmp.common.PageResult;
+
 import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -37,15 +39,6 @@ public class RechargeController extends BaseController {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
-
-    /**
-     * 检查当前用户是否为管理员
-     * @return 是否为管理员
-     */
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
 
     /**
      * 从请求头中获取当前用户ID
@@ -218,15 +211,7 @@ public class RechargeController extends BaseController {
                 total = rechargeService.countRechargeRecordsByMemberId(member.getId());
             }
 
-            // 3. 构造分页响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", records);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-
-            return success(result);
+            return success(PageResult.of(records, total, page, size));
         } catch (Exception e) {
             return error("查询充值记录失败：" + e.getMessage());
         }
@@ -239,24 +224,14 @@ public class RechargeController extends BaseController {
                                                        @RequestParam(value = "page", defaultValue = "1") int page,
                                                        @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            // 1. 检查管理员权限
             if (!isAdmin()) {
                 return error("无权限执行此操作");
             }
 
-            // 2. 查询充值记录
             List<RechargeRecord> records = rechargeService.getRechargeRecordsByMemberId(memberId, page, size);
             int total = rechargeService.countRechargeRecordsByMemberId(memberId);
 
-            // 3. 构造分页响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", records);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-
-            return success(result);
+            return success(PageResult.of(records, total, page, size));
         } catch (Exception e) {
             return error("查询充值记录失败：" + e.getMessage());
         }

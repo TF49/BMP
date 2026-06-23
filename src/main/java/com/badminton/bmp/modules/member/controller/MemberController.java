@@ -16,6 +16,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -49,13 +51,7 @@ public class MemberController extends BaseController {
         try {
             List<Member> data = memberService.findByConditions(memberName, phone, memberId, memberType, status, page, size);
             int total = memberService.countByConditions(memberName, phone, memberId, memberType, status);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", data);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(data, total, page, size));
         } catch (Exception e) {
             return error("获取会员列表失败：" + e.getMessage());
         }
@@ -306,14 +302,8 @@ public class MemberController extends BaseController {
                                          @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             Map<String, Object> data = memberService.getConsumeRecords(id, page, size);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", data.get("data"));
-            result.put("total", data.get("total"));
-            result.put("page", page);
-            result.put("size", size);
             int total = (data.get("total") instanceof Number) ? ((Number) data.get("total")).intValue() : 0;
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of((List<?>) data.get("data"), total, page, size));
         } catch (Exception e) {
             return error("获取消费记录失败：" + e.getMessage());
         }
