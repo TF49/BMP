@@ -75,7 +75,7 @@ public class UserController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("获取用户列表时发生错误：" + e.getMessage());
+            return logAndError("获取用户列表", e);
         }
     }
 
@@ -94,7 +94,7 @@ public class UserController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("获取用户信息时发生错误：" + e.getMessage());
+            return logAndError("获取用户信息", e);
         }
     }
 
@@ -113,7 +113,7 @@ public class UserController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("按角色查询用户失败：" + e.getMessage());
+            return logAndError("按角色查询用户", e);
         }
     }
 
@@ -128,7 +128,7 @@ public class UserController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("获取可绑定会员账号失败：" + e.getMessage());
+            return logAndError("获取可绑定会员账号", e);
         }
     }
 
@@ -161,7 +161,7 @@ public class UserController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("添加用户时发生错误：" + e.getMessage());
+            return logAndError("添加用户", e);
         }
     }
 
@@ -198,7 +198,7 @@ public class UserController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("更新用户信息时发生错误：" + e.getMessage());
+            return logAndError("更新用户信息", e);
         }
     }
 
@@ -224,7 +224,7 @@ public class UserController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("删除用户时发生错误：" + e.getMessage());
+            return logAndError("删除用户", e);
         }
     }
 
@@ -241,8 +241,10 @@ public class UserController extends BaseController {
             } else {
                 return error("用户不存在");
             }
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            return error("获取个人资料失败：" + e.getMessage());
+            return logAndError("获取个人资料", e);
         }
     }
 
@@ -283,8 +285,10 @@ public class UserController extends BaseController {
             } else {
                 return error("更新个人资料失败");
             }
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            return error("更新个人资料时发生错误：" + e.getMessage());
+            return logAndError("更新个人资料", e);
         }
     }
 

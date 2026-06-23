@@ -67,7 +67,7 @@ public class FinanceController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("获取财务记录时发生错误：" + e.getMessage());
+            return logAndError("获取财务记录列表", e);
         }
     }
 
@@ -81,7 +81,7 @@ public class FinanceController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("获取财务记录信息时发生错误：" + e.getMessage());
+            return logAndError("获取财务记录详情", e);
         }
     }
 
@@ -104,7 +104,7 @@ public class FinanceController extends BaseController {
         } catch (RuntimeException e) {
             return error(e.getMessage());
         } catch (Exception e) {
-            return error("添加财务记录时发生错误：" + e.getMessage());
+            return logAndError("添加财务记录", e);
         }
     }
 
@@ -128,7 +128,7 @@ public class FinanceController extends BaseController {
         } catch (RuntimeException e) {
             return error(e.getMessage());
         } catch (Exception e) {
-            return error("更新财务记录时发生错误：" + e.getMessage());
+            return logAndError("更新财务记录", e);
         }
     }
 
@@ -148,7 +148,7 @@ public class FinanceController extends BaseController {
         } catch (RuntimeException e) {
             return error(e.getMessage());
         } catch (Exception e) {
-            return error("删除财务记录时发生错误：" + e.getMessage());
+            return logAndError("删除财务记录", e);
         }
     }
 
@@ -165,7 +165,7 @@ public class FinanceController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("获取统计数据时发生错误：" + e.getMessage());
+            return logAndError("获取财务统计", e);
         }
     }
 
@@ -182,7 +182,7 @@ public class FinanceController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("获取趋势数据时发生错误：" + e.getMessage());
+            return logAndError("获取财务趋势", e);
         }
     }
 
@@ -221,7 +221,7 @@ public class FinanceController extends BaseController {
                     java.math.BigDecimal amt = java.math.BigDecimal.ZERO;
                     Object amtObj = row.get("amount");
                     if (amtObj != null) {
-                        try { amt = new java.math.BigDecimal(amtObj.toString()); } catch (Exception ignored) {}
+                        try { amt = new java.math.BigDecimal(amtObj.toString()); } catch (Exception e) { log.debug("金额解析失败, amtObj={}", amtObj, e); }
                     }
 
                     venueDateAmount.computeIfAbsent(venueId, k -> new HashMap<>()).put(d, amt);
@@ -272,7 +272,7 @@ public class FinanceController extends BaseController {
 
             return success(result);
         } catch (Exception e) {
-            return error("获取场馆收入趋势时发生错误：" + e.getMessage());
+            return logAndError("获取场馆收入趋势", e);
         }
     }
 
@@ -295,7 +295,7 @@ public class FinanceController extends BaseController {
         if (v instanceof java.sql.Date) return ((java.sql.Date) v).toLocalDate();
         String s = v.toString();
         if (s.length() >= 10) s = s.substring(0, 10);
-        try { return java.time.LocalDate.parse(s); } catch (Exception e) { return null; }
+        try { return java.time.LocalDate.parse(s); } catch (Exception e) { log.debug("日期解析失败, input={}", s, e); return null; }
     }
 
     private Long toLong(Object v) {
@@ -317,7 +317,7 @@ public class FinanceController extends BaseController {
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
-            return error("获取业务占比数据时发生错误：" + e.getMessage());
+            return logAndError("获取业务占比数据", e);
         }
     }
 
@@ -337,7 +337,7 @@ public class FinanceController extends BaseController {
                     .collect(Collectors.toList());
             return success(venueList);
         } catch (Exception e) {
-            return error("获取场馆列表时发生错误：" + e.getMessage());
+            return logAndError("获取场馆列表", e);
         }
     }
 

@@ -110,7 +110,8 @@ public class AuthServiceImpl implements AuthService {
             return result > 0;
 
         } catch (Exception e) {
-            return false;
+            logger.error("注册过程中发生异常, username={}", user.getUsername(), e);
+            throw e;
         }
     }
 

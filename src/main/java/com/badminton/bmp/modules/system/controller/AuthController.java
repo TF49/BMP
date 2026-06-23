@@ -91,7 +91,7 @@ public class AuthController extends BaseController {
                 return error(result.getMessage());
             }
         } catch (Exception e) {
-            return error("登录失败，请稍后重试");
+            return logAndError("登录", e);
         }
     }
 
@@ -138,7 +138,7 @@ public class AuthController extends BaseController {
                 return error("Token无效或已过期");
             }
         } catch (Exception e) {
-            return error("获取用户信息失败：" + e.getMessage());
+            return logAndError("获取用户信息", e);
         }
     }
 
@@ -161,7 +161,7 @@ public class AuthController extends BaseController {
             }
             return error("更新失败");
         } catch (Exception e) {
-            return error("更新失败：" + e.getMessage());
+            return logAndError("更新用户信息", e);
         }
     }
 
@@ -182,7 +182,7 @@ public class AuthController extends BaseController {
             if (n > 0) return success("密码修改成功");
             return error("修改失败");
         } catch (Exception e) {
-            return error("修改失败：" + e.getMessage());
+            return logAndError("修改密码", e);
         }
     }
 
@@ -215,7 +215,7 @@ public class AuthController extends BaseController {
             result.put("url", url);
             return success(result);
         } catch (Exception e) {
-            return error("上传失败：" + e.getMessage());
+            return logAndError("上传头像", e);
         }
     }
 
@@ -243,7 +243,7 @@ public class AuthController extends BaseController {
             }
             return success(map);
         } catch (Exception e) {
-            return error("获取设置失败：" + e.getMessage());
+            return logAndError("获取设置", e);
         }
     }
 
@@ -268,7 +268,7 @@ public class AuthController extends BaseController {
             }
             return success("保存成功");
         } catch (Exception e) {
-            return error("保存失败：" + e.getMessage());
+            return logAndError("保存设置", e);
         }
     }
 
@@ -319,7 +319,7 @@ public class AuthController extends BaseController {
                 return error("注册失败，请稍后重试");
             }
         } catch (Exception e) {
-            return error("注册失败，请稍后重试");
+            return logAndError("注册", e);
         }
     }
 
@@ -330,7 +330,7 @@ public class AuthController extends BaseController {
             // 退出登录逻辑（可选实现）
             return success("退出登录成功");
         } catch (Exception e) {
-            return error("退出登录失败");
+            return logAndError("退出登录", e);
         }
     }
 
@@ -357,7 +357,7 @@ public class AuthController extends BaseController {
                 return error(result.getMessage());
             }
         } catch (Exception e) {
-            return error("Token刷新失败，请重新登录");
+            return logAndError("Token刷新", e);
         }
     }
 
@@ -371,7 +371,7 @@ public class AuthController extends BaseController {
 
             return success(new AccountLockStatus(locked, remainingTime));
         } catch (Exception e) {
-            return error("检查账户锁定状态失败");
+            return logAndError("检查账户锁定状态", e);
         }
     }
 
@@ -383,7 +383,7 @@ public class AuthController extends BaseController {
             loginRateLimiter.unlockAccount(username);
             return success("账户已解锁");
         } catch (Exception e) {
-            return error("解锁账户失败");
+            return logAndError("解锁账户", e);
         }
     }
 
@@ -415,7 +415,7 @@ public class AuthController extends BaseController {
             if (n > 0) return success("密码重置成功，请使用新密码登录");
             return error("重置失败，请稍后重试");
         } catch (Exception e) {
-            return error("重置失败：" + e.getMessage());
+            return logAndError("重置密码", e);
         }
     }
 
@@ -441,7 +441,7 @@ public class AuthController extends BaseController {
             }
             return error("注销失败");
         } catch (Exception e) {
-            return error("注销失败：" + e.getMessage());
+            return logAndError("注销账户", e);
         }
     }
 }

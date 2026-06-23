@@ -85,15 +85,15 @@ public class BookingController extends BaseController {
                 if (startTime != null && !startTime.trim().isEmpty()) {
                     startDate = LocalDateTime.parse(startTime, dtf).toLocalDate();
                 }
-            } catch (Exception ignored) {
-                // 格式异常时忽略时间过滤，避免直接报错
+            } catch (Exception e) {
+                log.debug("预约查询startTime解析失败, input={}", startTime, e);
             }
             try {
                 if (endTime != null && !endTime.trim().isEmpty()) {
                     endDate = LocalDateTime.parse(endTime, dtf).toLocalDate();
                 }
-            } catch (Exception ignored) {
-                // 同上
+            } catch (Exception e) {
+                log.debug("预约查询endTime解析失败, input={}", endTime, e);
             }
 
             List<Booking> bookings = bookingService.findAll(
