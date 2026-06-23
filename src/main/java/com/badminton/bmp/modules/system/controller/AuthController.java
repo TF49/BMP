@@ -278,6 +278,8 @@ public class AuthController extends BaseController {
         return authService.getCurrentUser(token);
     }
 
+    private static final Set<String> SELF_REGISTER_ALLOWED_ROLES = new HashSet<>(Arrays.asList("USER", "MEMBER"));
+
     @Operation(summary = "用户注册")
     @SecurityRequirements()
     @PostMapping("/register")
@@ -288,26 +290,27 @@ public class AuthController extends BaseController {
                 return error("两次输入的密码不一致，请重新输入");
             }
 
+            // 自注册仅允许普通用户角色，特权角色需管理员分配
+            String role = registerBody.getRole();
+            if (role == null || role.isEmpty()) {
+                role = "USER";
+            }
+            if (!SELF_REGISTER_ALLOWED_ROLES.contains(role.toUpperCase())) {
+                return error("注册仅支持普通用户角色，特权角色请联系管理员分配");
+            }
+
             // 创建用户对象
             User user = new User();
             user.setUsername(registerBody.getUsername());
             user.setPassword(registerBody.getPassword());
             user.setIdCard(registerBody.getIdCard());
-            user.setRole(registerBody.getRole());
+            user.setRole(role.toUpperCase());
             user.setStatus(1); // 设置为启用状态
 
             // 先检查用户名是否已存在
             User existingUser = userService.findByUsername(registerBody.getUsername());
             if (existingUser != null) {
                 return error("该用户名已被注册，请选择其他用户名");
-            }
-
-            // 检查协会会长（PRESIDENT）唯一性
-            if ("PRESIDENT".equals(registerBody.getRole())) {
-                User existingPresident = userService.findByRole("PRESIDENT");
-                if (existingPresident != null) {
-                    return error("系统中已存在协会会长账户，无法创建新的协会会长");
-                }
             }
 
             // 调用认证服务进行注册

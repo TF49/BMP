@@ -8,7 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+import org.springframework.core.env.Environment;
 import javax.crypto.SecretKey;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,12 +29,16 @@ public class JwtUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
+    private static final String INSECURE_DEFAULT_SECRET = "12345678901234567890123456789012";
+
     private final JwtProperties jwtProperties;
+    private final Environment environment;
 
     private SecretKey signingKey;
 
-    public JwtUtils(JwtProperties jwtProperties) {
+    public JwtUtils(JwtProperties jwtProperties, Environment environment) {
         this.jwtProperties = jwtProperties;
+        this.environment = environment;
     }
 
     /**
@@ -42,8 +48,17 @@ public class JwtUtils {
     @PostConstruct
     public void init() {
         String secretKey = jwtProperties.getSecret();
+        boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod");
+
+        if (INSECURE_DEFAULT_SECRET.equals(secretKey) && isProd) {
+            throw new IllegalStateException(
+                    "生产环境禁止使用默认JWT密钥！请通过环境变量 JWT_SECRET 配置一个安全的随机密钥（至少32字节）");
+        }
         if (secretKey == null || secretKey.length() < 32) {
             logger.warn("JWT密钥长度不足32字节，可能存在安全风险，请检查jwt.secret配置");
+        }
+        if (INSECURE_DEFAULT_SECRET.equals(secretKey)) {
+            logger.warn("正在使用默认JWT密钥，仅适用于本地开发。生产部署前请务必通过 JWT_SECRET 环境变量配置安全密钥");
         }
         this.signingKey = Keys.hmacShaKeyFor(secretKey.getBytes());
         logger.info(
