@@ -166,9 +166,9 @@ const customAmount = ref('')
 const selectedPay = ref(0)
 
 const payMethods = [
-  { code: 'WECHAT' as const, title: '业务充值', sub: '按当前业务模型即时入账', icon: 'wallet', iconBg: 'green', iconColor: '#16a34a' },
-  { code: 'ALIPAY' as const, title: '余额补充', sub: '用于记录不同充值来源', icon: 'compose', iconBg: 'blue', iconColor: '#2563eb' },
-  { code: 'BANK' as const, title: '线下收款登记', sub: '保留后续扩展的充值来源标记', icon: 'wallet', iconBg: 'slate', iconColor: '#475569' }
+  { code: 'ALIPAY' as const, title: '支付宝', sub: '通过支付宝进行充值', icon: 'compose', iconBg: 'blue', iconColor: '#2563eb' },
+  { code: 'WECHAT' as const, title: '微信', sub: '通过微信支付进行充值', icon: 'wallet', iconBg: 'green', iconColor: '#16a34a' },
+  { code: 'BANK' as const, title: '银行卡', sub: '通过银行卡转账进行充值', icon: 'wallet', iconBg: 'slate', iconColor: '#475569' }
 ]
 
 const avatarUrl = computed(() => getAvatarImage(userStore.userInfo?.avatar))
