@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,11 +44,6 @@ public class CourseBookingController extends BaseController {
     @Autowired
     private CoachService coachService;
 
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
-
     @Operation(summary = "我的课程预约明细", description = "COACH 角色：仅返回当前教练所教课程的预约记录")
     @GetMapping("/for-coach")
     @PreAuthorize("hasRole('COACH')")
@@ -61,18 +58,12 @@ public class CourseBookingController extends BaseController {
             if (coachId == null) {
                 return error(COACH_UNBOUND_MESSAGE);
             }
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 10;
-            if (keyword != null && keyword.trim().isEmpty()) keyword = null;
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
             List<CourseBooking> bookings = courseBookingService.findAllForCoach(coachId, courseId, status, keyword, page, size);
             int total = courseBookingService.countForCoach(coachId, courseId, status, keyword);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", bookings);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(bookings, total, page, size));
         } catch (Exception e) {
             return error("获取预约明细时发生错误：" + e.getMessage());
         }
@@ -128,18 +119,12 @@ public class CourseBookingController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 10;
-            if (keyword != null && keyword.trim().isEmpty()) keyword = null;
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
             List<CourseBooking> bookings = courseBookingService.findAll(memberId, courseId, status, keyword, page, size);
             int total = courseBookingService.count(memberId, courseId, status, keyword);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", bookings);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(bookings, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
@@ -306,18 +291,9 @@ public class CourseBookingController extends BaseController {
                 return error("权限不足，仅管理员可执行此操作");
             }
 
-            if (bookingId == null) {
-                return error("预约ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
+            Result<Object> validation = validateBalancePayment(bookingId, "预约ID", paymentMethod);
+            if (validation != null) return validation;
 
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
-
-            // 处理支付
             int result = courseBookingService.processPayment(bookingId, paymentMethod);
 
             if (result > 0) {
@@ -338,16 +314,8 @@ public class CourseBookingController extends BaseController {
     public Result<Object> processMemberPayment(@RequestParam("bookingId") Long bookingId,
                                                @RequestParam("paymentMethod") String paymentMethod) {
         try {
-            if (bookingId == null) {
-                return error("预约ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
-
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
+            Result<Object> memberValidation = validateBalancePayment(bookingId, "预约ID", paymentMethod);
+            if (memberValidation != null) return memberValidation;
 
             if (isAdmin()) {
                 int result = courseBookingService.processPayment(bookingId, paymentMethod);

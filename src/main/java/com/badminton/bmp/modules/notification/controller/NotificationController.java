@@ -15,6 +15,8 @@ import com.badminton.bmp.modules.system.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +35,8 @@ public class NotificationController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
         try {
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 20;
+            page = normalizePage(page);
+            size = (size < 1 || size > 100) ? 20 : size;
 
             // 获取当前用户的场馆ID，如果是会长，这里应该是 null
             Long userVenueId = null;
@@ -45,13 +47,7 @@ public class NotificationController extends BaseController {
             List<Notification> data = notificationService.findByPage(page, size, userVenueId);
             int total = notificationService.countAll(userVenueId);
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", data);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", total == 0 ? 0 : (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(data, total, page, size));
         } catch (Exception e) {
             return error("获取通知列表失败：" + e.getMessage());
         }

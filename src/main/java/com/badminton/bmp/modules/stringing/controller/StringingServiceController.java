@@ -24,12 +24,14 @@ import org.springframework.security.access.AccessDeniedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.badminton.bmp.common.PageResult;
+import com.badminton.bmp.common.util.SecurityUtils;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import com.badminton.bmp.common.util.SecurityUtils;
 import lombok.Data;
 
 @Tag(name = "穿线服务模块", description = "穿线服务 CRUD、统计")
@@ -42,15 +44,6 @@ public class StringingServiceController extends BaseController {
 
     @Autowired
     private EquipmentService equipmentService;
-
-    /**
-     * 检查当前用户是否为管理员
-     * @return 是否为管理员
-     */
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
 
     /**
      * 获取所有穿线服务记录，支持搜索和分页
@@ -72,18 +65,9 @@ public class StringingServiceController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            // 验证分页参数
-            if (page < 1) {
-                page = 1;
-            }
-            if (size < 1 || size > 100) {
-                size = 10;
-            }
-
-            // 将空字符串转换为null，便于后端查询
-            if (keyword != null && keyword.trim().isEmpty()) {
-                keyword = null;
-            }
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
 
             // 调用查询方法（Service会自动进行权限过滤）
             List<StringingService> services = stringingServiceService.findAll(
@@ -91,15 +75,7 @@ public class StringingServiceController extends BaseController {
             int total = stringingServiceService.count(
                     memberId, userId, status, keyword, venueId, createTimeStart, createTimeEnd);
 
-            // 构造分页响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", services);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-
-            return success(result);
+            return success(PageResult.of(services, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
@@ -487,15 +463,8 @@ public class StringingServiceController extends BaseController {
             if (!isAdmin()) {
                 return error("权限不足，仅管理员可执行此操作");
             }
-            if (serviceId == null) {
-                return error("服务ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
+            Result<Object> validation = validateBalancePayment(serviceId, "服务ID", paymentMethod);
+            if (validation != null) return validation;
             int result = stringingServiceService.processPayment(serviceId, paymentMethod);
             if (result > 0) {
                 return success(null);
@@ -515,15 +484,8 @@ public class StringingServiceController extends BaseController {
     public Result<Object> processMemberPayment(@RequestParam("serviceId") Long serviceId,
                                                @RequestParam("paymentMethod") String paymentMethod) {
         try {
-            if (serviceId == null) {
-                return error("服务ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
+            Result<Object> memberValidation = validateBalancePayment(serviceId, "服务ID", paymentMethod);
+            if (memberValidation != null) return memberValidation;
 
             if (isAdmin()) {
                 int result = stringingServiceService.processPayment(serviceId, paymentMethod);

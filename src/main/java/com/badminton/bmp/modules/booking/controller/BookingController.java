@@ -20,6 +20,8 @@ import org.springframework.security.access.AccessDeniedException;
 
 import com.badminton.bmp.modules.court.dto.CourtBookingUserDTO;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -51,11 +53,6 @@ public class BookingController extends BaseController {
     @Autowired
     private VenueService venueService;
 
-    private boolean isAdmin() {
-        return com.badminton.bmp.common.util.SecurityUtils.isPresident()
-                || com.badminton.bmp.common.util.SecurityUtils.isVenueManager();
-    }
-
     @Operation(summary = "预约列表", description = "支持场馆/会员/场地/状态/时间范围筛选与分页")
     @GetMapping("/list")
     @PreAuthorize("isAuthenticated()")
@@ -70,12 +67,9 @@ public class BookingController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 10;
-
-            if (memberKeyword != null && memberKeyword.trim().isEmpty()) {
-                memberKeyword = null;
-            }
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            memberKeyword = blankToNull(memberKeyword);
 
             // 前端传的是完整日期时间范围，这里按日期维度做过滤（预约日期在范围内）
             LocalDate startDate = null;
@@ -114,13 +108,7 @@ public class BookingController extends BaseController {
                     memberKeyword,
                     startDate,
                     endDate);
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", bookings);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(bookings, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {
@@ -297,25 +285,11 @@ public class BookingController extends BaseController {
                 return error("权限不足，仅管理员可执行此操作");
             }
 
-            if (bookingId == null) {
-                return error("预约ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
+            Result<Object> validation = validateBalancePayment(bookingId, "预约ID", paymentMethod);
+            if (validation != null) return validation;
 
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
-
-            // 处理支付
             int result = bookingService.processPayment(bookingId, paymentMethod);
-
-            if (result > 0) {
-                return success(null);
-            } else {
-                return error("支付处理失败");
-            }
+            return result > 0 ? success(null) : error("支付处理失败");
         } catch (RuntimeException e) {
             return error(e.getMessage());
         } catch (Exception e) {
@@ -329,15 +303,8 @@ public class BookingController extends BaseController {
     public Result<Object> processMemberPayment(@RequestParam("bookingId") Long bookingId,
                                                @RequestParam("paymentMethod") String paymentMethod) {
         try {
-            if (bookingId == null) {
-                return error("预约ID不能为空");
-            }
-            if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
-                return error("支付方式不能为空");
-            }
-            if (!"BALANCE".equals(paymentMethod)) {
-                return error("业务订单仅支持余额支付");
-            }
+            Result<Object> validation = validateBalancePayment(bookingId, "预约ID", paymentMethod);
+            if (validation != null) return validation;
 
             if (isAdmin()) {
                 int result = bookingService.processPayment(bookingId, paymentMethod);

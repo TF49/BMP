@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.badminton.bmp.common.PageResult;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,22 +50,16 @@ public class FinanceController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            if (page < 1) page = 1;
-            if (size < 1 || size > 100) size = 10;
-            if (keyword != null && keyword.trim().isEmpty()) keyword = null;
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            keyword = blankToNull(keyword);
 
             List<Finance> list = financeService.findAll(venueId, businessType, incomeExpenseType,
                     startDate, endDate, keyword, page, size);
             int total = financeService.count(venueId, businessType, incomeExpenseType,
                     startDate, endDate, keyword);
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", list);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-            return success(result);
+            return success(PageResult.of(list, total, page, size));
         } catch (AccessDeniedException e) {
             throw e;
         } catch (Exception e) {

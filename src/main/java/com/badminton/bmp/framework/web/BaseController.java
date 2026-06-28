@@ -2,6 +2,7 @@ package com.badminton.bmp.framework.web;
 
 import com.badminton.bmp.common.Result;
 import com.badminton.bmp.common.util.ErrorMessageSanitizer;
+import com.badminton.bmp.common.util.SecurityUtils;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -52,5 +53,36 @@ public class BaseController {
 
     protected String userFriendlyErrorText(String action, Throwable throwable) {
         return ErrorMessageSanitizer.userFriendlyError(action, throwable);
+    }
+
+    // ---- shared helpers extracted from multiple controllers ----
+
+    protected boolean isAdmin() {
+        return SecurityUtils.isPresident() || SecurityUtils.isVenueManager();
+    }
+
+    protected int normalizePage(int page) {
+        return page < 1 ? 1 : page;
+    }
+
+    protected int normalizeSize(int size) {
+        return (size < 1 || size > 100) ? 10 : size;
+    }
+
+    protected String blankToNull(String value) {
+        return (value != null && value.trim().isEmpty()) ? null : value;
+    }
+
+    protected <T> Result<T> validateBalancePayment(Long id, String idLabel, String paymentMethod) {
+        if (id == null) {
+            return error(idLabel + "不能为空");
+        }
+        if (paymentMethod == null || paymentMethod.trim().isEmpty()) {
+            return error("支付方式不能为空");
+        }
+        if (!"BALANCE".equals(paymentMethod)) {
+            return error("业务订单仅支持余额支付");
+        }
+        return null;
     }
 }

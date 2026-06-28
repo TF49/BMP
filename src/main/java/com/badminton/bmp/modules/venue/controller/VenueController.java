@@ -10,6 +10,8 @@ import com.badminton.bmp.modules.venue.service.VenueImageService;
 import com.badminton.bmp.modules.venue.service.VenueScheduleService;
 import com.badminton.bmp.modules.venue.service.VenueService;
 import com.badminton.bmp.modules.venue.service.VenueStatusLogService;
+import com.badminton.bmp.common.PageResult;
+import com.badminton.bmp.common.util.ImageUploadHelper;
 import com.badminton.bmp.utils.ImageUtils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,11 +63,8 @@ public class VenueController extends BaseController {
     @Value("${bmp.upload-dir:./uploads}")
     private String uploadDir;
 
-    /**
-     * 检查当前用户是否为管理员
-     * @return 是否为管理员
-     */
-    private boolean isAdmin() {
+    @Override
+    protected boolean isAdmin() {
         return com.badminton.bmp.common.util.SecurityUtils.isPresident();
     }
 
@@ -99,55 +98,17 @@ public class VenueController extends BaseController {
                 return error("权限不足，仅管理员可执行此操作");
             }
 
-            if (file == null || file.isEmpty()) {
-                return error("请选择要上传的图片文件");
-            }
-
-            // 基础校验：必须是图片
-            String contentType = file.getContentType();
-            if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
-                return error("文件类型不支持，请上传图片文件");
-            }
-
-            String originalFilename = file.getOriginalFilename();
-            String ext = "";
-            if (originalFilename != null) {
-                int dot = originalFilename.lastIndexOf('.');
-                if (dot >= 0 && dot < originalFilename.length() - 1) {
-                    ext = originalFilename.substring(dot + 1).toLowerCase();
-                }
+            String validationError = ImageUploadHelper.validate(file);
+            if (validationError != null) {
+                return error(validationError);
             }
 
             if (venueId != null && !canManageVenue(venueId)) {
                 return error("权限不足，无法为该场馆上传图片");
             }
 
-            Set<String> allowedExt = new HashSet<>(Arrays.asList("jpg", "jpeg", "png", "webp"));
-            if (ext.isEmpty() || !allowedExt.contains(ext)) {
-                return error("图片格式不支持，请上传 jpg/jpeg/png/webp 格式");
-            }
-
-            Path venueDir = Paths.get(uploadDir, "venues").toAbsolutePath().normalize();
-            Files.createDirectories(venueDir);
-
-            String filename = UUID.randomUUID().toString().replace("-", "") + "." + ext;
-            Path target = venueDir.resolve(filename).normalize();
-
-            // 防止路径穿越
-            if (!target.startsWith(venueDir)) {
-                return error("非法文件路径");
-            }
-
-            file.transferTo(target.toFile());
-
-            // 生成缩略图
-            String thumbnailPath = ImageUtils.getThumbnailPath(target.toString());
-            ImageUtils.generateThumbnail(target.toString(), thumbnailPath);
-
-            String url = "/api/uploads/venues/" + filename;
-            Map<String, Object> result = new HashMap<>();
-            result.put("url", url);
-            result.put("thumbnailUrl", url.replace(filename, filename.replace("." + ext, "_thumb." + ext)));
+            Map<String, Object> result = ImageUploadHelper.store(
+                    file, uploadDir, "venues", "/api/uploads/venues/");
             return success(result);
         } catch (Exception e) {
             return error("上传图片时发生错误：" + e.getMessage());
@@ -172,15 +133,11 @@ public class VenueController extends BaseController {
                 return error("请选择要上传的图片文件");
             }
 
-            Set<String> allowedExt = new HashSet<>(Arrays.asList("jpg", "jpeg", "png", "webp"));
             if (venueId != null && !canManageVenue(venueId)) {
                 return error("权限不足，无法为该场馆上传图片");
             }
             List<Map<String, Object>> uploadedImages = new ArrayList<>();
             List<String> errors = new ArrayList<>();
-
-            Path venueDir = Paths.get(uploadDir, "venues").toAbsolutePath().normalize();
-            Files.createDirectories(venueDir);
 
             for (MultipartFile file : files) {
                 if (file.isEmpty()) {
@@ -188,56 +145,21 @@ public class VenueController extends BaseController {
                 }
 
                 try {
-                    // 基础校验：必须是图片
-                    String contentType = file.getContentType();
-                    if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
-                        errors.add(file.getOriginalFilename() + ": 文件类型不支持");
+                    String validationErr = ImageUploadHelper.validate(file);
+                    if (validationErr != null) {
+                        errors.add(file.getOriginalFilename() + ": " + validationErr);
                         continue;
                     }
 
-                    String originalFilename = file.getOriginalFilename();
-                    String ext = "";
-                    if (originalFilename != null) {
-                        int dot = originalFilename.lastIndexOf('.');
-                        if (dot >= 0 && dot < originalFilename.length() - 1) {
-                            ext = originalFilename.substring(dot + 1).toLowerCase();
-                        }
-                    }
-
-                    if (ext.isEmpty() || !allowedExt.contains(ext)) {
-                        errors.add(originalFilename + ": 图片格式不支持");
-                        continue;
-                    }
-
-                    String filename = UUID.randomUUID().toString().replace("-", "") + "." + ext;
-                    Path target = venueDir.resolve(filename).normalize();
-
-                    // 防止路径穿越
-                    if (!target.startsWith(venueDir)) {
-                        errors.add(originalFilename + ": 非法文件路径");
-                        continue;
-                    }
-
-                    file.transferTo(target.toFile());
-
-                    // 生成缩略图
-                    String thumbnailPath = ImageUtils.getThumbnailPath(target.toString());
-                    ImageUtils.generateThumbnail(target.toString(), thumbnailPath);
-
-                    String url = "/api/uploads/venues/" + filename;
-                    String thumbnailUrl = url.replace(filename, filename.replace("." + ext, "_thumb." + ext));
-
-                    Map<String, Object> imageInfo = new HashMap<>();
-                    imageInfo.put("url", url);
-                    imageInfo.put("thumbnailUrl", thumbnailUrl);
-                    imageInfo.put("filename", filename);
+                    Map<String, Object> imageInfo = ImageUploadHelper.store(
+                            file, uploadDir, "venues", "/api/uploads/venues/");
                     uploadedImages.add(imageInfo);
 
                     // 如果提供了venueId，直接保存到数据库
                     if (venueId != null) {
                         VenueImage venueImage = new VenueImage();
                         venueImage.setVenueId(venueId);
-                        venueImage.setImageUrl(url);
+                        venueImage.setImageUrl((String) imageInfo.get("url"));
                         venueImage.setImageType(imageType);
                         venueImage.setSortOrder(uploadedImages.size() - 1);
                         venueImage.setCreateTime(LocalDateTime.now());
@@ -423,21 +345,10 @@ public class VenueController extends BaseController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
-            // 验证分页参数
-            if (page < 1) {
-                page = 1;
-            }
-            if (size < 1 || size > 100) {
-                size = 10;
-            }
-
-            // 将空字符串转换为null，便于后端查询
-            if (venueName != null && venueName.trim().isEmpty()) {
-                venueName = null;
-            }
-            if (address != null && address.trim().isEmpty()) {
-                address = null;
-            }
+            page = normalizePage(page);
+            size = normalizeSize(size);
+            venueName = blankToNull(venueName);
+            address = blankToNull(address);
 
             // 根据角色控制可见场馆范围
             List<Venue> venues;
@@ -484,15 +395,7 @@ public class VenueController extends BaseController {
                 total = venueService.countByVenueNameOrAddress(venueName, address, queryStatus);
             }
 
-            // 构造分页响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("data", venues);
-            result.put("total", total);
-            result.put("page", page);
-            result.put("size", size);
-            result.put("pages", (total + size - 1) / size);
-
-            return success(result);
+            return success(PageResult.of(venues, total, page, size));
         } catch (Exception e) {
             return error("获取场馆列表时发生错误：" + e.getMessage());
         }
