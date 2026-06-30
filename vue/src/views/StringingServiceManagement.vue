@@ -431,9 +431,9 @@
           </el-form-item>
           <el-form-item label="穿线法" prop="stringingMethod" class="modern-form-item">
             <el-radio-group v-model="editForm.stringingMethod">
-              <el-radio label="TWO_SECTION">两节</el-radio>
-              <el-radio label="FOUR_SECTION">四节</el-radio>
-              <el-radio label="AUTO">视球拍而定</el-radio>
+              <el-radio value="TWO_SECTION">两节</el-radio>
+              <el-radio value="FOUR_SECTION">四节</el-radio>
+              <el-radio value="AUTO">视球拍而定</el-radio>
             </el-radio-group>
           </el-form-item>
           <el-form-item label="是否存在断裂" class="modern-form-item">

@@ -39,9 +39,9 @@
         <el-col :xs="24" :sm="12">
           <el-form-item label="性别" prop="gender">
             <el-radio-group v-model="profileForm.gender">
-              <el-radio label="MALE">男</el-radio>
-              <el-radio label="FEMALE">女</el-radio>
-              <el-radio label="OTHER">其他</el-radio>
+              <el-radio value="MALE">男</el-radio>
+              <el-radio value="FEMALE">女</el-radio>
+              <el-radio value="OTHER">其他</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>

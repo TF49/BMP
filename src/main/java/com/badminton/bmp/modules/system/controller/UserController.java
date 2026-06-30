@@ -1,11 +1,14 @@
 package com.badminton.bmp.modules.system.controller;
 
 import com.badminton.bmp.common.Result;
+import com.badminton.bmp.common.validation.groups.Create;
+import com.badminton.bmp.common.validation.groups.Update;
 import com.badminton.bmp.framework.web.BaseController;
 import com.badminton.bmp.modules.system.entity.User;
 import com.badminton.bmp.modules.system.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
@@ -135,7 +138,7 @@ public class UserController extends BaseController {
     @Operation(summary = "添加用户")
     @PostMapping("/add")
     @PreAuthorize("hasRole('PRESIDENT')")
-    public Result<Object> addUser(@Valid @RequestBody User user) {
+    public Result<Object> addUser(@Validated(Create.class) @RequestBody User user) {
         try {
             // 检查用户名是否已存在
             User existingUser = userService.findByUsername(user.getUsername());
@@ -168,7 +171,7 @@ public class UserController extends BaseController {
     @Operation(summary = "更新用户信息")
     @PutMapping("/update")
     @PreAuthorize("hasRole('PRESIDENT')")
-    public Result<Object> updateUser(@Valid @RequestBody User user) {
+    public Result<Object> updateUser(@Validated(Update.class) @RequestBody User user) {
         try {
             if (user.getId() == null) {
                 return error("用户ID不能为空");

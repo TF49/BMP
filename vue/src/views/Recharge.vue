@@ -39,10 +39,10 @@
             </el-form-item>
             <el-form-item label="支付方式">
               <el-radio-group v-model="form.method">
-                <el-radio label="ALIPAY">支付宝</el-radio>
-                <el-radio label="WECHAT">微信</el-radio>
-                <el-radio label="CASH">现金</el-radio>
-                <el-radio label="BANK">银行卡</el-radio>
+                <el-radio value="ALIPAY">支付宝</el-radio>
+                <el-radio value="WECHAT">微信</el-radio>
+                <el-radio value="CASH">现金</el-radio>
+                <el-radio value="BANK">银行卡</el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="备注">

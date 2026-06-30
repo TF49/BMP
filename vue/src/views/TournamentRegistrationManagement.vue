@@ -294,7 +294,7 @@
         </el-form-item>
         <el-form-item label="支付方式" required>
           <el-radio-group v-model="paymentForm.paymentMethod">
-            <el-radio label="BALANCE">余额支付</el-radio>
+            <el-radio value="BALANCE">余额支付</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>

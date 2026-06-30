@@ -299,7 +299,7 @@
           <el-form-item label="会员状态" prop="status" class="form-item-enhanced modern-form-item">
             <div class="status-selector modern-status-selector">
               <el-radio-group v-model="memberForm.status" class="radio-group-enhanced modern-radio-group">
-                <el-radio :label="1" class="radio-item modern-radio-item">
+                <el-radio :value="1" class="radio-item modern-radio-item">
                   <span class="radio-label modern-radio-label">
                     <el-icon class="status-icon enabled modern-status-icon">
                       <SuccessFilled />
@@ -307,7 +307,7 @@
                     正常
                   </span>
                 </el-radio>
-                <el-radio :label="2" class="radio-item modern-radio-item">
+                <el-radio :value="2" class="radio-item modern-radio-item">
                   <span class="radio-label modern-radio-label">
                     <el-icon class="status-icon warning modern-status-icon">
                       <Warning />
@@ -315,7 +315,7 @@
                     到期
                   </span>
                 </el-radio>
-                <el-radio :label="0" class="radio-item modern-radio-item">
+                <el-radio :value="0" class="radio-item modern-radio-item">
                   <span class="radio-label modern-radio-label">
                     <el-icon class="status-icon disabled modern-status-icon">
                       <CircleCloseFilled />

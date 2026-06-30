@@ -177,6 +177,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int update(User user) {
         // 先查询原有用户信息
         User existingUser = userMapper.findById(user.getId());
@@ -215,8 +216,46 @@ public class UserServiceImpl implements UserService {
             }
             user.setUpdateTime(LocalDateTime.now());
         }
-        return userMapper.update(user);
+
+        int result = userMapper.update(user);
+
+        // ── 角色变更联动会员档案处理 ──────────────────────────────────────────
+        if (result > 0 && existingUser != null) {
+            String oldRole = existingUser.getRole() == null ? "" : existingUser.getRole().trim();
+            String newRole = user.getRole() == null ? "" : user.getRole().trim();
+            boolean wasUserSide = isUserSideRole(oldRole);
+            boolean isUserSide  = isUserSideRole(newRole);
+
+            if (wasUserSide && !isUserSide) {
+                // 场景：USER/MEMBER → VENUE_MANAGER / COACH / PRESIDENT
+                // 会员档案逻辑删除并解绑，避免孤悬数据残留在 sys_member
+                com.badminton.bmp.modules.member.entity.Member member =
+                        memberMapper.findAnyByUserId(user.getId());
+                if (member != null) {
+                    memberMapper.deleteAndUnbindById(member.getId(), LocalDateTime.now());
+                }
+            } else if (!wasUserSide && isUserSide) {
+                // 场景：VENUE_MANAGER / COACH / PRESIDENT → USER/MEMBER
+                // 自动创建或恢复会员档案（createDefaultMemberForUser 内部已做幂等处理）
+                try {
+                    // 将新角色写入 user 对象以便 createDefaultMemberForUser 判断
+                    existingUser.setRole(newRole);
+                    memberService.createDefaultMemberForUser(existingUser);
+                } catch (Exception ignore) {
+                    // 防御性处理，会员档案创建失败不回滚主操作
+                }
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        return result;
     }
+
+    /** 判断角色是否属于用户端（需要创建会员档案的角色） */
+    private static boolean isUserSideRole(String role) {
+        return "USER".equalsIgnoreCase(role) || "MEMBER".equalsIgnoreCase(role);
+    }
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)

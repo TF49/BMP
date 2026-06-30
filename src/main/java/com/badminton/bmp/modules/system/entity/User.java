@@ -3,6 +3,7 @@ package com.badminton.bmp.modules.system.entity;
 import com.badminton.bmp.common.validation.IdCardValid;
 import com.badminton.bmp.common.validation.PhoneValid;
 import com.badminton.bmp.common.validation.StatusValid;
+import com.badminton.bmp.common.validation.groups.Create;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -21,8 +22,9 @@ public class User {
     @Size(min = 3, max = 50, message = "用户名长度必须在3-50个字符之间")
     private String username;
 
-    @NotBlank(message = "密码不能为空")
-    @Size(min = 6, message = "密码长度不能少于6个字符")
+    // 密码仅在新增场景下必填；更新时若不传则后端保持原密码不变
+    @NotBlank(groups = Create.class, message = "密码不能为空")
+    @Size(groups = Create.class, min = 6, message = "密码长度不能少于6个字符")
     private String password;
 
     @PhoneValid

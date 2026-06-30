@@ -367,13 +367,13 @@
           <el-form-item label="账户状态" prop="status" class="form-item-enhanced modern-form-item">
             <div class="status-selector modern-status-selector">
               <el-radio-group v-model="userForm.status" class="radio-group-enhanced modern-radio-group">
-                <el-radio :label="1" class="radio-item modern-radio-item">
+                <el-radio :value="1" class="radio-item modern-radio-item">
                   <span class="radio-label modern-radio-label">
                     <el-icon class="status-icon enabled modern-status-icon"><SuccessFilled /></el-icon>
                     启用
                   </span>
                 </el-radio>
-                <el-radio :label="0" class="radio-item modern-radio-item">
+                <el-radio :value="0" class="radio-item modern-radio-item">
                   <span class="radio-label modern-radio-label">
                     <el-icon class="status-icon disabled modern-status-icon"><CircleCloseFilled /></el-icon>
                     禁用
