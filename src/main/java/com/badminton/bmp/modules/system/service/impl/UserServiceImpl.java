@@ -132,6 +132,11 @@ public class UserServiceImpl implements UserService {
             user.setPassword(encodedPassword);
         }
         
+        // 场馆管理者以外的角色，venueId 强制置为空
+        if (!"VENUE_MANAGER".equalsIgnoreCase(user.getRole())) {
+            user.setVenueId(null);
+        }
+
         // ID 使用数据库自增生成（AUTO_INCREMENT）
         int inserted = userMapper.insert(user);
 
@@ -190,6 +195,10 @@ public class UserServiceImpl implements UserService {
             if (user.getStatus() == null) {
                 user.setStatus(existingUser.getStatus());
             }
+            // 场馆管理者以外的角色，venueId 强制置为空
+            if (!"VENUE_MANAGER".equalsIgnoreCase(user.getRole())) {
+                user.setVenueId(null);
+            }
             // 处理密码：如果提供了新密码，使用BCrypt加密；否则保持原密码
             if (user.getPassword() != null && !user.getPassword().isEmpty()) {
                 // 如果新密码与旧密码不同，使用BCrypt加密
@@ -213,6 +222,10 @@ public class UserServiceImpl implements UserService {
             }
             if (user.getStatus() == null) {
                 user.setStatus(1);
+            }
+            // 场馆管理者以外的角色，venueId 强制置为空
+            if (!"VENUE_MANAGER".equalsIgnoreCase(user.getRole())) {
+                user.setVenueId(null);
             }
             user.setUpdateTime(LocalDateTime.now());
         }
@@ -243,6 +256,16 @@ public class UserServiceImpl implements UserService {
                     memberService.createDefaultMemberForUser(existingUser);
                 } catch (Exception ignore) {
                     // 防御性处理，会员档案创建失败不回滚主操作
+                }
+            }
+
+            // 场景：COACH → 其他角色
+            // 联动解绑教练档案，避免产生“幽灵教练绑在非COACH用户上”
+            if ("COACH".equalsIgnoreCase(oldRole) && !"COACH".equalsIgnoreCase(newRole)) {
+                try {
+                    coachMapper.unbindUser(user.getId());
+                } catch (Exception ignore) {
+                    // 防御性处理，解绑失败不影响用户更新
                 }
             }
         }

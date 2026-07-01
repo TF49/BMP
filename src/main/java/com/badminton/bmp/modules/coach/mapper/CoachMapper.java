@@ -203,4 +203,11 @@ public interface CoachMapper {
             "WHERE id = #{id} AND del_flag = 0")
     int updateSelfProfile(@Param("id") Long id, @Param("coachName") String coachName, @Param("phone") String phone,
                           @Param("specialty") String specialty, @Param("experience") String experience, @Param("avatar") String avatar);
+
+    /**
+     * 按 userId 解绑教练档案与系统账号的关系（user_id 置 NULL）。
+     * 用于用户角色从 COACH 变更为其他角色时，防止产生"幽灵 COACH"绑定。
+     */
+    @Update("UPDATE sys_coach SET user_id = NULL, update_time = NOW() WHERE user_id = #{userId} AND del_flag = 0")
+    int unbindUser(@Param("userId") Long userId);
 }

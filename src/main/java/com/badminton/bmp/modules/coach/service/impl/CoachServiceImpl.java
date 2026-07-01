@@ -391,6 +391,13 @@ public class CoachServiceImpl implements CoachService {
             );
         }
 
+        // 若教练绑定了系统账号，先解绑（user_id 置 NULL），
+        // 避免绑定账号在 /api/coach/me 等接口中出现"幽灵教练"状态。
+        // 注意：不在此处修改 sys_user.role，role 降级应由管理员在用户管理中操作。
+        if (coach.getUserId() != null) {
+            coachMapper.unbindUser(coach.getUserId());
+        }
+
         return coachMapper.deleteById(id);
     }
 
@@ -418,6 +425,17 @@ public class CoachServiceImpl implements CoachService {
         // 验证状态值是否有效
         if (status == null || (status != 0 && status != 1)) {
             throw new BusinessException("请选择有效的状态：正常或停用");
+        }
+
+        // 停用教练时，检查名下是否有未完成的课程，有则拒绝
+        if (status == 0) {
+            List<Integer> activeStatuses = Arrays.asList(1, 2); // 报名中、进行中
+            int activeCourseCount = courseMapper.countByCoachIdAndStatusIn(id, activeStatuses);
+            if (activeCourseCount > 0) {
+                throw new BusinessException(
+                    String.format("该教练存在%d条未完成的课程，停用后学员将无法正常上课。请先处理这些课程后再停用。", activeCourseCount)
+                );
+            }
         }
 
         return coachMapper.updateStatus(id, status);
