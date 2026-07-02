@@ -28,8 +28,13 @@ public class SecurityConfig {
         http
             // 启用CORS配置
             .cors(cors -> cors.disable())
-            // SockJS 可能会用 iframe transport；DENY 会导致浏览器控制台报错并影响降级策略
-            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+            // 安全响应头
+            .headers(headers -> headers
+                // SockJS 可能会用 iframe transport；DENY 会导致浏览器控制台报错并影响降级策略
+                .frameOptions(frame -> frame.sameOrigin())
+                .contentTypeOptions(contentType -> {})
+                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+            )
             // 关闭CSRF保护
             .csrf(csrf -> csrf.disable())
             // 不使用Session
