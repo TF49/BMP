@@ -144,7 +144,8 @@ public class ActivityController extends BaseController {
             // 兼容 2026-02-18T12:34:56 / 2026-02-18 12:34:56
             if (s.contains("T")) return LocalDateTime.parse(s);
             return LocalDateTime.parse(s, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.debug("日期时间解析失败, input={}", s, e);
             return null;
         }
     }

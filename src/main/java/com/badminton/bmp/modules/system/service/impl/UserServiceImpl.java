@@ -88,8 +88,9 @@ public class UserServiceImpl implements UserService {
         // 仅使用BCrypt验证，不再支持明文密码
         try {
             return passwordEncoder.matches(rawPassword, encodedPassword);
-        } catch (Exception e) {
-            // BCrypt验证异常，返回false
+        } catch (IllegalArgumentException e) {
+            org.slf4j.LoggerFactory.getLogger(UserServiceImpl.class)
+                .warn("BCrypt验证失败（密码格式异常）", e);
             return false;
         }
     }
@@ -145,8 +146,9 @@ public class UserServiceImpl implements UserService {
         if ("USER".equalsIgnoreCase(role) || "MEMBER".equalsIgnoreCase(role)) {
             try {
                 memberService.createDefaultMemberForUser(user);
-            } catch (Exception ignore) {
-                // 防御性处理，避免因会员创建失败影响用户注册
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(UserServiceImpl.class)
+                    .warn("注册用户时默认会员创建失败, userId={}", user.getId(), e);
             }
         }
 

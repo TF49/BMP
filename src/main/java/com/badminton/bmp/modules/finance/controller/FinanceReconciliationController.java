@@ -4,6 +4,8 @@ import com.badminton.bmp.common.Result;
 import com.badminton.bmp.modules.finance.service.FinanceReconciliationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,8 @@ import java.util.Map;
 @RequestMapping("/api/finance/reconciliation")
 public class FinanceReconciliationController {
 
+    private static final Logger logger = LoggerFactory.getLogger(FinanceReconciliationController.class);
+
     @Autowired
     private FinanceReconciliationService reconciliationService;
 
@@ -28,6 +32,7 @@ public class FinanceReconciliationController {
             Map<String, Object> result = reconciliationService.performFullReconciliation();
             return Result.success(result);
         } catch (Exception e) {
+            logger.error("全面对账失败", e);
             return Result.error("对账失败，请稍后重试");
         }
     }
@@ -40,6 +45,7 @@ public class FinanceReconciliationController {
             Map<String, Object> result = reconciliationService.reconcileBookingFinance();
             return Result.success(result);
         } catch (Exception e) {
+            logger.error("场地预约对账失败", e);
             return Result.error("对账失败，请稍后重试");
         }
     }
@@ -52,6 +58,7 @@ public class FinanceReconciliationController {
             Map<String, Object> result = reconciliationService.reconcileCourseFinance();
             return Result.success(result);
         } catch (Exception e) {
+            logger.error("课程预约对账失败", e);
             return Result.error("对账失败，请稍后重试");
         }
     }
@@ -64,6 +71,7 @@ public class FinanceReconciliationController {
             Map<String, Object> result = reconciliationService.reconcileEquipmentFinance();
             return Result.success(result);
         } catch (Exception e) {
+            logger.error("器材租借对账失败", e);
             return Result.error("对账失败，请稍后重试");
         }
     }
@@ -76,6 +84,7 @@ public class FinanceReconciliationController {
             Map<String, Object> result = reconciliationService.reconcileTournamentFinance();
             return Result.success(result);
         } catch (Exception e) {
+            logger.error("赛事报名对账失败", e);
             return Result.error("对账失败，请稍后重试");
         }
     }
@@ -88,6 +97,7 @@ public class FinanceReconciliationController {
             Map<String, Object> result = reconciliationService.reconcileStringingFinance();
             return Result.success(result);
         } catch (Exception e) {
+            logger.error("穿线服务对账失败", e);
             return Result.error("对账失败，请稍后重试");
         }
     }
@@ -100,6 +110,7 @@ public class FinanceReconciliationController {
             Map<String, Object> result = reconciliationService.reconcileRechargeFinance();
             return Result.success(result);
         } catch (Exception e) {
+            logger.error("会员充值对账失败", e);
             return Result.error("对账失败，请稍后重试");
         }
     }

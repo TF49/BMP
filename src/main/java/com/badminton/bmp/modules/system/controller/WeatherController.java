@@ -90,7 +90,7 @@ public class WeatherController extends BaseController {
                 return success(result);
             }
         } catch (Exception e) {
-            // 异常时返回默认城市
+            log.warn("获取城市定位失败，返回默认城市", e);
             Map<String, Object> result = new HashMap<>();
             result.put("city", "北京");
             return success(result);
@@ -168,21 +168,16 @@ public class WeatherController extends BaseController {
                 return error("天气服务暂时不可用，请稍后重试");
             }
         } catch (java.net.SocketTimeoutException e) {
-            // 超时异常
+            log.warn("wttr.in天气接口超时", e);
             return error("获取天气失败：连接超时，请稍后重试");
         } catch (java.net.ConnectException e) {
-            // 连接异常
+            log.warn("wttr.in天气接口连接失败", e);
             return error("获取天气失败：无法连接到天气服务");
         } catch (java.io.IOException e) {
-            // IO异常
-            String errorMsg = e.getMessage();
-            if (errorMsg != null && errorMsg.contains("timeout")) {
-                return error("获取天气失败：请求超时，请稍后重试");
-            }
-            return error("获取天气失败：" + errorMsg);
+            log.warn("wttr.in天气接口IO异常", e);
+            return error("获取天气失败，请稍后重试");
         } catch (Exception e) {
-            // 其他异常
-            return error("获取天气失败：" + e.getMessage());
+            return logAndError("获取天气(wttr)", e);
         }
     }
 
@@ -250,17 +245,16 @@ public class WeatherController extends BaseController {
 
             return success(data);
         } catch (java.net.SocketTimeoutException e) {
+            log.warn("和风天气接口超时", e);
             return error("获取天气失败：请求超时，请稍后重试");
         } catch (java.net.ConnectException e) {
+            log.warn("和风天气接口连接失败", e);
             return error("获取天气失败：无法连接到天气服务");
         } catch (java.io.IOException e) {
-            String errorMsg = e.getMessage();
-            if (errorMsg != null && errorMsg.contains("timeout")) {
-                return error("获取天气失败：请求超时，请稍后重试");
-            }
-            return error("获取天气失败：" + errorMsg);
+            log.warn("和风天气接口IO异常", e);
+            return error("获取天气失败，请稍后重试");
         } catch (Exception e) {
-            return error("获取天气失败：" + e.getMessage());
+            return logAndError("获取天气(和风)", e);
         }
     }
 
@@ -281,7 +275,8 @@ public class WeatherController extends BaseController {
                 if (conn.getErrorStream() != null) {
                     errBody = readResponseBody(conn, conn.getErrorStream());
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                log.debug("读取错误响应体失败", e);
             }
 
             String safeUrl = redactUrlSecrets(urlStr);
@@ -362,7 +357,8 @@ public class WeatherController extends BaseController {
         int tempNum;
         try {
             tempNum = Integer.parseInt(temp);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.debug("温度解析失败，默认为0, temp={}", temp, e);
             tempNum = 0;
         }
 
@@ -399,7 +395,8 @@ public class WeatherController extends BaseController {
             if (m.find()) {
                 return m.group(1);
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.debug("JSON字段提取失败, field={}", fieldName, e);
         }
         return null;
     }

@@ -5,6 +5,7 @@ import com.badminton.bmp.framework.web.BaseController;
 import com.badminton.bmp.modules.system.entity.UserSetting;
 import com.badminton.bmp.modules.system.service.UserSettingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,8 +31,10 @@ public class UserSettingController extends BaseController {
             Long userId = getCurrentUserId();
             List<UserSetting> settings = userSettingService.getUserSettings(userId);
             return success(settings);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            return error("获取用户设置失败：" + e.getMessage());
+            return logAndError("获取用户设置", e);
         }
     }
 
@@ -50,8 +53,10 @@ public class UserSettingController extends BaseController {
             setting.setSettingKey(key);
             setting.setSettingValue(value);
             return success(setting);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            return error("获取设置失败：" + e.getMessage());
+            return logAndError("获取设置", e);
         }
     }
 
@@ -78,8 +83,10 @@ public class UserSettingController extends BaseController {
             Long userId = getCurrentUserId();
             userSettingService.updateSetting(userId, key, value);
             return success(null);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            return error("更新设置失败：" + e.getMessage());
+            return logAndError("更新设置", e);
         }
     }
 
@@ -95,8 +102,10 @@ public class UserSettingController extends BaseController {
             Long userId = getCurrentUserId();
             userSettingService.deleteSetting(userId, key);
             return success(null);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            return error("删除设置失败：" + e.getMessage());
+            return logAndError("删除设置", e);
         }
     }
 
@@ -108,8 +117,10 @@ public class UserSettingController extends BaseController {
             Long userId = getCurrentUserId();
             userSettingService.deleteAllSettings(userId);
             return success(null);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            return error("删除所有设置失败：" + e.getMessage());
+            return logAndError("删除所有设置", e);
         }
     }
 
@@ -131,8 +142,10 @@ public class UserSettingController extends BaseController {
             Long userId = getCurrentUserId();
             userSettingService.batchUpdateSettings(userId, settings);
             return success(null);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            return error("批量更新设置失败：" + e.getMessage());
+            return logAndError("批量更新设置", e);
         }
     }
 

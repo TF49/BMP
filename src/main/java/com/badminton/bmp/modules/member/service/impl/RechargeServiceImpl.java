@@ -302,7 +302,10 @@ public class RechargeServiceImpl implements RechargeService {
                 if (operator != null) venueId = operator.getVenueId();
             }
             record.setVenueId(venueId);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(RechargeServiceImpl.class)
+                .warn("充值记录推导venueId失败, operatorId={}", operatorId, e);
+        }
 
         rechargeRecordMapper.insert(record);
 

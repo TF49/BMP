@@ -2,6 +2,8 @@ package com.badminton.bmp.framework.web;
 
 import com.badminton.bmp.common.Result;
 import com.badminton.bmp.common.util.ErrorMessageSanitizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -9,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class BaseController {
+
+    protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected <T> Result<T> success(T data) {
         return Result.success(data);
@@ -52,5 +56,10 @@ public class BaseController {
 
     protected String userFriendlyErrorText(String action, Throwable throwable) {
         return ErrorMessageSanitizer.userFriendlyError(action, throwable);
+    }
+
+    protected <T> Result<T> logAndError(String action, Exception e) {
+        log.error("{}失败", action, e);
+        return error(action + "失败，请稍后重试");
     }
 }

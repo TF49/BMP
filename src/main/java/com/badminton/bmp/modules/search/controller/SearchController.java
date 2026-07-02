@@ -122,7 +122,8 @@ public class SearchController extends BaseController {
                 addSuggestion(suggestions, venue != null ? venue.getVenueName() : null);
                 if (suggestions.size() >= 8) return;
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("搜索建议收集失败(venue), keyword={}", keyword, e);
         }
     }
 
@@ -134,7 +135,8 @@ public class SearchController extends BaseController {
                 addSuggestion(suggestions, course != null ? course.getCourseName() : null);
                 if (suggestions.size() >= 8) return;
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("搜索建议收集失败(course), keyword={}", keyword, e);
         }
     }
 
@@ -146,7 +148,8 @@ public class SearchController extends BaseController {
                 addSuggestion(suggestions, tournament != null ? tournament.getTournamentName() : null);
                 if (suggestions.size() >= 8) return;
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("搜索建议收集失败(tournament), keyword={}", keyword, e);
         }
     }
 
@@ -158,7 +161,8 @@ public class SearchController extends BaseController {
                 addSuggestion(suggestions, equipment != null ? equipment.getEquipmentName() : null);
                 if (suggestions.size() >= 8) return;
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("搜索建议收集失败(equipment), keyword={}", keyword, e);
         }
     }
 
