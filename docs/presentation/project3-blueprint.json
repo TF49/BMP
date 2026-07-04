@@ -29,7 +29,6 @@
     "demo_member_recharge",
     "member_recharge_flow",
     "course_booking_model",
-    "demo_course_booking",
     "course_booking_pipeline",
     "module_ops",
     "dashboard_overview",
@@ -424,10 +423,10 @@
       "layout": "module",
       "eyebrow": "Member · Course",
       "body": [
-        "07 演示：会员充值（Web 或 UniApp）。",
+        "07 演示：充值 → 预约完整链路（单段录屏串讲）。",
         "08 充值写单 + biz_finance 联动 + 等级重算。",
-        "09–11 课程预约模型、演示与四步链路。",
-        "答辩可说：两条演示串起来——先充钱，再约课扣余额。"
+        "09–10 课程预约模型与四步链路。",
+        "答辩可说：先充值，再约课，完整业务主链路已在上一页实机演示。"
       ],
       "metrics": [
         {
@@ -450,25 +449,25 @@
     {
       "id": "demo_member_recharge",
       "step": "演示 / 充值",
-      "title": "演示：会员充值",
+      "title": "演示：充值 → 预约完整链路",
       "dotLabel": "演示",
       "presenter": "涂家乐",
       "module": "业务运营",
-      "claim": "user001 在 Web 或小程序发起充值，余额更新并写入 biz_recharge_record，同步产生财务收入流水。",
+      "claim": "user001 先完成会员充值，再进入课程预约并使用余额支付，系统同步更新余额、预约订单与财务流水。",
       "sceneRole": "mechanism",
       "cameraIntent": "anchor",
       "diagramNeed": "low",
       "layout": "demo",
-      "eyebrow": "实机录屏 · 占位",
+      "eyebrow": "实机录屏 · 完整链路",
       "body": [
         "前置：后端 9090 已启动，user001 / 123456 已登录。",
-        "本段：展示充值金额输入 → 确认 → 余额变化（可选会员等级提示）。"
+        "本段：充值金额确认 → 余额到账 → 选择课程预约 → 自动扣款 → 在我的预约中查看结果。"
       ],
       "metrics": [
         {
-          "label": "Web 页",
-          "value": "user/Recharge.vue",
-          "note": "或 UniApp recharge/index"
+          "label": "演示链路",
+          "value": "充值 → 预约 → 扣款",
+          "note": "单视频串联完整业务"
         },
         {
           "label": "账号",
@@ -477,24 +476,28 @@
         }
       ],
       "support": {
-        "video": "assets/videos/会员充值演示.mp4",
-        "copy": "录屏占位：充值成功 → 余额更新 → 充值记录可见",
-        "image": "assets/screenshots/web-recharge.png",
+        "video": "assets/videos/毕设视频.mp4",
+        "copy": "完整录屏：会员充值成功后继续预约课程，并使用余额自动扣款",
         "items": [
           {
             "label": "1",
-            "title": "打开充值页",
-            "body": "Web /user/recharge 或小程序 recharge/index"
+            "title": "完成充值",
+            "body": "输入或选择充值金额，提交后余额实时更新"
           },
           {
             "label": "2",
-            "title": "输入金额",
-            "body": "选择充值方式 BALANCE / 模拟支付"
+            "title": "进入约课",
+            "body": "浏览课程列表，选择合适课程与时段"
           },
           {
             "label": "3",
-            "title": "验证结果",
-            "body": "会员余额增加 · 充值记录列表有单号"
+            "title": "确认预约",
+            "body": "提交预约单，系统校验余额与名额"
+          },
+          {
+            "label": "4",
+            "title": "扣款完成",
+            "body": "自动余额支付，并在我的预约中查看已支付订单"
           }
         ]
       },
@@ -609,63 +612,6 @@
         "x": 0,
         "y": 9320,
         "width": 1280
-      }
-    },
-    {
-      "id": "demo_course_booking",
-      "step": "演示 / 课程",
-      "title": "演示：选课 → 预约 → 支付",
-      "dotLabel": "演示",
-      "presenter": "涂家乐",
-      "module": "业务运营",
-      "claim": "小程序或 Web 浏览课程列表 → 提交预约 → 余额支付成功，CourseBooking status 进入已支付态。",
-      "sceneRole": "mechanism",
-      "cameraIntent": "anchor",
-      "diagramNeed": "low",
-      "layout": "demo",
-      "eyebrow": "实机录屏 · 占位",
-      "body": [
-        "前置：user001 已有足够余额（可先走充值演示）。",
-        "本段：选课 → 确认预约 → BALANCE 支付 → 我的预约/订单可见。"
-      ],
-      "metrics": [
-        {
-          "label": "UniApp",
-          "value": "course/booking.vue",
-          "note": "或 Web CourseBooking.vue"
-        },
-        {
-          "label": "接口",
-          "value": "POST /api/course-booking/add",
-          "note": "member/payment"
-        }
-      ],
-      "support": {
-        "video": "assets/videos/课程预约演示.mp4",
-        "copy": "录屏占位：选课 → 提交 → 余额支付成功",
-        "items": [
-          {
-            "label": "选课",
-            "title": "课程列表",
-            "image": "assets/screenshots/uniapp-course-booking.png",
-            "body": "pages/course/list → detail"
-          },
-          {
-            "label": "预约",
-            "title": "提交预约",
-            "body": "course/booking.vue · 确认金额"
-          },
-          {
-            "label": "支付",
-            "title": "余额扣款",
-            "body": "processMemberPayment · 列表显示已支付"
-          }
-        ]
-      },
-      "scenePos": {
-        "x": 1480,
-        "y": 10440,
-        "width": 1360
       }
     },
     {

@@ -26,10 +26,10 @@
         --grid-line: rgba(20, 20, 30, 0.06);
         --font-display: "Space Grotesk", "Noto Sans SC", sans-serif;
         --font-body: "Noto Sans SC", "PingFang SC", sans-serif;
-        --slide-width: min(1220px, calc(100vw - 200px));
+        --slide-width: min(1400px, calc(100vw - 200px));
         --scene-prose-max-w: min(100%, calc(var(--slide-width) - 96px));
-        --slide-max-h: min(86vh, 880px);
-        --slide-inner-max-h: min(var(--slide-max-h), calc(100vh - 112px));
+        --slide-max-h: min(86vh, 10000000px);
+        --slide-inner-max-h: var(--slide-max-h);
         --slide-demo-shell-h: min(var(--slide-inner-max-h), calc(100vh - 48px));
         --slide-demo-width: min(1480px, calc(100vw - 176px));
         --demo-video-max-h: min(62vh, 640px);
@@ -37,6 +37,11 @@
         --font-claim: clamp(1rem, 1.45vw, 1.15rem);
         --font-body-slide: clamp(0.95rem, 1.35vw, 1.08rem);
         --font-metric: clamp(1.2rem, 2vw, 1.65rem);
+        --card-pad-y: 20px;
+        --card-pad-x: 22px;
+        --card-min-h: 128px;
+        --card-grid-gap: 16px;
+        --card-grid-max-w: min(100%, 1180px);
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; min-height: 100%; }
@@ -323,7 +328,7 @@
         box-sizing: border-box;
         width: 100%;
         margin: 0 auto;
-        padding: 28px 32px;
+        padding: 32px 40px;
         border-radius: 26px;
         border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
         background: var(--panel-strong);
@@ -386,10 +391,10 @@
       .scene-grid > *:first-child .metric-row {
         align-self: center;
         width: 100%;
-        max-width: var(--scene-prose-max-w);
+        max-width: var(--card-grid-max-w);
         margin-top: 6px;
         margin-inline: auto;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
         text-align: center;
       }
       .scene-grid > *:first-child .metric-card {
@@ -410,7 +415,7 @@
       .scene-grid .support-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         width: 100%;
-        max-width: min(100%, 920px);
+        max-width: var(--card-grid-max-w);
         margin-inline: auto;
         align-self: center;
       }
@@ -441,11 +446,12 @@
         line-height: 1.62;
       }
       .copy-compact p { font-size: var(--font-body-slide); line-height: 1.52; }
-      .metric-row, .support-grid { display: grid; gap: 10px; margin-top: 12px; }
-      .metric-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+      .metric-row, .support-grid { display: grid; gap: var(--card-grid-gap); margin-top: 14px; }
+      .metric-row { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
       .metric-card, .support-card {
         min-width: 0;
-        padding: 12px 14px;
+        min-height: var(--card-min-h);
+        padding: var(--card-pad-y) var(--card-pad-x);
         border-radius: 16px;
         border: 1px solid var(--line);
         background: var(--card-bg);
@@ -599,7 +605,8 @@
         gap: 8px;
       }
       .closing-col-side .metric-card {
-        padding: 10px 12px;
+        min-height: 108px;
+        padding: 14px 16px;
       }
       .closing-col-side .metric-value {
         font-size: 1.1rem;
@@ -1924,16 +1931,17 @@
       .scene-diagram-focus-header .metric-row {
         align-self: center;
         width: 100%;
-        max-width: var(--scene-prose-max-w);
+        max-width: var(--card-grid-max-w);
         margin-top: 6px;
         margin-left: auto;
         margin-right: auto;
         gap: 8px;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         text-align: center;
       }
       .scene-diagram-focus-header .metric-card {
-        padding: 8px 10px;
+        min-height: 110px;
+        padding: 16px 18px;
         text-align: center;
       }
       .scene-diagram-focus-header .arch-flow-summary {
@@ -2038,19 +2046,21 @@
         background: var(--card-bg);
       }
       #background_problem .scene-diagram-focus-header .metric-row {
-        max-width: min(100%, 560px);
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: min(100%, 760px);
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
       }
       #opening .scene-diagram-focus-header .metric-row {
-        max-width: var(--scene-prose-max-w);
+        max-width: min(100%, 1120px);
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 8px;
+        gap: 16px;
       }
       #opening .scene-diagram-focus-header .metric-card {
-        flex: 0 1 220px;
-        width: 220px;
+        flex: 0 1 320px;
+        width: min(100%, 420px);
+        min-height: 136px;
+        padding: 18px 22px;
         text-align: center;
       }
       .scene-diagram-focus-media .pipeline-diagram[data-steps="3"] {
@@ -2347,7 +2357,7 @@
         gap: 12px 8px;
       }
       .support-grid.compact { margin-top: 8px; }
-      .support-grid.compact .support-card { padding: 10px 12px; }
+      .support-grid.compact .support-card { padding: 18px 20px; }
       .scene-hero.scene-shell { padding: 24px 28px 26px; }
       .scene-hero .scene-grid {
         align-items: start;
@@ -2355,16 +2365,40 @@
       }
       .scene-hero .support-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
+        gap: 16px;
       }
-      .scene-hero .support-card { padding: 10px 12px; }
+      .scene-hero .support-card {
+        min-height: 132px;
+        padding: 18px 20px;
+      }
       .scene-hero .metric-row { margin-top: 10px; }
-      .scene-hero .metric-card { padding: 10px 12px; }
+      .scene-hero .metric-card {
+        min-height: 140px;
+        padding: 20px 24px;
+      }
+      .cover-logo-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: min(220px, 38vw);
+        margin: 0 auto 16px;
+        padding: 10px;
+        border-radius: 24px;
+        border: 1px solid rgba(15, 98, 254, 0.12);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 248, 255, 0.9));
+        box-shadow: 0 18px 42px rgba(37, 99, 235, 0.12);
+      }
+      .cover-logo-image {
+        display: block;
+        width: 100%;
+        border-radius: 18px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+      }
       .scene-hero .scene-title {
         font-size: clamp(1.9rem, 3.5vw, 3rem);
       }
       body.presentation-stage {
-        --slide-width: min(1240px, calc(100vw - 220px));
+        --slide-width: min(1500px, calc(100vw - 180px));
         --font-title: clamp(2rem, 3.65vw, 3.35rem);
         --font-claim: clamp(1.05rem, 1.55vw, 1.22rem);
         --font-body-slide: clamp(1.02rem, 1.5vw, 1.18rem);
@@ -2372,7 +2406,7 @@
       }
       body.presentation-stage .canvas-shell {
         box-sizing: border-box;
-        padding: 22px 32px 30px 192px;
+        padding: 22px 30px 30px 176px;
       }
       body.presentation-stage .scene-shell {
         min-height: 0;
@@ -2390,6 +2424,10 @@
         margin-top: 6px;
         line-height: 1.42;
       }
+      body.presentation-stage .cover-logo-badge {
+        width: min(200px, 34vw);
+        margin-bottom: 14px;
+      }
       body.presentation-stage .copy {
         gap: 6px;
         margin-top: 8px;
@@ -2399,10 +2437,11 @@
       }
       body.presentation-stage .metric-row {
         margin-top: 10px;
-        gap: 8px;
+        gap: 10px;
       }
       body.presentation-stage .metric-card {
-        padding: 10px 12px;
+        min-height: 120px;
+        padding: 18px 20px;
       }
       body.presentation-stage .metric-value {
         margin-top: 4px;
@@ -2579,9 +2618,9 @@
         margin-top: 10px;
         align-self: center;
         width: 100%;
-        max-width: var(--scene-prose-max-w);
+        max-width: min(100%, 1220px);
         margin-inline: auto;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         text-align: center;
       }
       body.presentation-stage .scene-visual .scene-visual-copy .metric-card {
@@ -2628,11 +2667,12 @@
       }
       body.presentation-stage .scene-visual .metric-row {
         margin-top: 10px;
-        gap: 8px;
+        gap: 10px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       body.presentation-stage .scene-visual .metric-card {
-        padding: 10px 12px;
+        min-height: 120px;
+        padding: 18px 20px;
       }
       body.presentation-stage .scene-visual .metric-value {
         font-size: clamp(1.05rem, 1.55vw, 1.35rem);
@@ -2699,10 +2739,10 @@
         padding: 14px 20px 16px;
       }
       body.presentation-stage .scene-diagram-focus-header .metric-row {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         align-self: center;
         width: 100%;
-        max-width: min(100%, 920px);
+        max-width: min(100%, 1180px);
         margin-left: auto;
         margin-right: auto;
         text-align: center;
@@ -2851,9 +2891,9 @@
         margin-top: 10px;
         align-self: center;
         width: 100%;
-        max-width: var(--scene-prose-max-w);
+        max-width: min(100%, 1220px);
         margin-inline: auto;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         text-align: center;
       }
       body.presentation-stage .scene-grid > *:first-child .metric-card {
@@ -2871,7 +2911,7 @@
       body.presentation-stage .scene-grid .support-grid {
         align-self: center;
         width: 100%;
-        max-width: min(100%, 920px);
+        max-width: min(100%, 1220px);
         margin-inline: auto;
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
@@ -2908,7 +2948,8 @@
         height: 220px;
       }
       body.presentation-stage .support-card {
-        padding: 12px 14px;
+        min-height: 120px;
+        padding: 18px 20px;
       }
       body.presentation-stage .support-card strong {
         font-size: 1rem;
@@ -2973,10 +3014,53 @@
       .scene-visual-copy .metric-row {
         align-self: center;
         width: 100%;
-        max-width: var(--scene-prose-max-w);
+        max-width: min(100%, 1220px);
         margin-inline: auto;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         text-align: center;
+      }
+      #opening .scene-grid > *:first-child .metric-row {
+        max-width: min(100%, 1200px);
+        grid-template-columns: repeat(2, minmax(360px, 1fr));
+        gap: 18px;
+      }
+      #opening .scene-grid > *:first-child .metric-card {
+        min-height: 152px;
+        padding: 22px 26px;
+      }
+      #opening .scene-grid .support-grid {
+        max-width: min(100%, 1220px);
+        gap: 18px;
+      }
+      #opening .support-card {
+        min-height: 140px;
+        padding: 20px 22px;
+      }
+      #background_problem .scene-grid > *:first-child .metric-row {
+        max-width: min(100%, 1140px);
+        grid-template-columns: repeat(2, minmax(340px, 1fr));
+        gap: 18px;
+      }
+      #background_problem .scene-grid > *:first-child .metric-card {
+        min-height: 148px;
+        padding: 20px 24px;
+      }
+      #background_problem .scene-grid .support-grid {
+        max-width: min(100%, 1180px);
+        gap: 18px;
+      }
+      #background_problem .support-card {
+        min-height: 136px;
+        padding: 18px 20px;
+      }
+      #system_scale .scene-grid > *:first-child .metric-row {
+        max-width: min(100%, 1260px);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      #system_scale .scene-grid > *:first-child .metric-card {
+        min-height: 144px;
+        padding: 20px 22px;
       }
       .scene-visual-copy .metric-card {
         text-align: center;
@@ -3572,6 +3656,16 @@
       }
       body.theme-dark .mesh-grid { opacity: 0.28; }
       body.theme-dark .mesh-noise { opacity: 0.12; }
+      @media (max-width: 900px) {
+        .cover-logo-badge {
+          width: min(176px, 56vw);
+          padding: 8px;
+          border-radius: 20px;
+        }
+        .cover-logo-image {
+          border-radius: 14px;
+        }
+      }
 
       /* —— Auto finale: letterbox + scrolling credits —— */
       .finale-layer {
@@ -3786,12 +3880,12 @@
       </div>
       <p class="finale-exit-hint">Esc · 空格 · 点击退出</p>
     </div>
-    <aside class="brand-dock">
+    <aside class="brand-dock" style="display: none;" aria-hidden="true">
       <div class="deck-kicker" id="deckKicker">HTML Defense</div>
       <div class="deck-title" id="deckTitle">Replace me</div>
       <div class="deck-subtitle" id="deckSubtitle">Use `presentationConfig` to define title, subtitle, chapters, and theme.</div>
     </aside>
-    <aside class="chapter-dock">
+    <aside class="chapter-dock" style="display: none;" aria-hidden="true">
       <div class="chapter-step" id="chapterStep">01 / 开场</div>
       <div class="chapter-title" id="chapterTitle">开场章节</div>
       <p class="chapter-claim" id="chapterClaim">先把听众带到问题发生的现场。</p>
@@ -3829,6 +3923,7 @@
     }
   ],
   "chapterOrder": [
+    "cover",
     "opening",
     "background_problem",
     "system_scale",
@@ -3838,7 +3933,6 @@
     "demo_member_recharge",
     "member_recharge_flow",
     "course_booking_model",
-    "demo_course_booking",
     "course_booking_pipeline",
     "module_ops",
     "dashboard_overview",
@@ -3848,6 +3942,62 @@
     "closing"
   ],
   "chapters": [
+    {
+      "id": "cover",
+      "step": "00 / 封面",
+      "title": "羽擎 BMP · 全系统交付答辩",
+      "dotLabel": "封面",
+      "presenter": "涂家乐",
+      "module": "封面",
+      "claim": "羽擎 Badminton Management Platform · 毕业设计答辩",
+      "sceneRole": "hero",
+      "cameraIntent": "anchor",
+      "diagramNeed": "low",
+      "layout": "hero",
+      "eyebrow": "BMP Graduation Defense",
+      "brandLogo": {
+        "src": "../../logo/ChatGPT Image 2026年5月8日 14_00_11.png",
+        "alt": "羽擎 BMP Logo"
+      },
+      "body": [
+        "面向羽毛球场馆经营的全栈管理系统",
+        "Spring Boot + Vue + UniApp"
+      ],
+      "metrics": [
+        {
+          "label": "版本",
+          "value": "v1.0.0",
+          "note": "毕业设计答辩"
+        }
+      ],
+      "support": {
+        "label": "答辩团队",
+        "title": "答辩人",
+        "copy": "羽擎 BMP · 毕业设计答辩团队",
+        "items": [
+          {
+            "label": "涂家乐",
+            "title": "总览 · 架构",
+            "body": "开场、痛点与交付规模"
+          },
+          {
+            "label": "王曾鹏",
+            "title": "核心业务",
+            "body": "会员充值与课程预约链路"
+          },
+          {
+            "label": "尹晴",
+            "title": "业务运营",
+            "body": "Dashboard 与财务运营"
+          }
+        ]
+      },
+      "scenePos": {
+        "x": 0,
+        "y": 0,
+        "width": 1280
+      }
+    },
     {
       "id": "opening",
       "step": "01 / 开场",
@@ -4217,9 +4367,10 @@
       "layout": "module",
       "eyebrow": "充值 · 约课",
       "body": [
-        "演示一：会员在线充值，系统自动记录并更新余额与等级。",
-        "演示二：会员浏览课程 → 一键预约 → 余额自动扣款。",
-        "两段演示串联：先充值形成余额，再用余额约课消费。"
+        "07 演示：充值 → 预约完整链路（单段录屏串讲）。",
+        "08 充值写单 + biz_finance 联动 + 等级重算。",
+        "09–10 课程预约模型与四步链路。",
+        "答辩可说：先充值，再约课，完整业务主链路已在上一页实机演示。"
       ],
       "metrics": [
         {
@@ -4242,50 +4393,55 @@
     {
       "id": "demo_member_recharge",
       "step": "演示 / 充值",
-      "title": "演示：会员充值",
+      "title": "演示：充值 → 预约完整链路",
       "dotLabel": "演示",
       "presenter": "王曾鹏",
       "module": "核心业务",
-      "claim": "会员通过网页或小程序充值，系统实时显示新余额，并自动生成充值记录和财务凭证。",
+      "claim": "user001 先完成会员充值，再进入课程预约并使用余额支付，系统同步更新余额、预约订单与财务流水。",
       "sceneRole": "mechanism",
       "cameraIntent": "anchor",
       "diagramNeed": "low",
       "layout": "demo",
-      "eyebrow": "实机录屏 · 占位",
+      "eyebrow": "实机录屏 · 完整链路",
       "body": [
-        "前置：后端服务已启动，测试账号已登录。",
-        "本段演示：选择充值金额 → 确认支付 → 查看余额更新与等级变化。"
+        "前置：后端 9090 已启动，user001 / 123456 已登录。",
+        "本段：充值金额确认 → 余额到账 → 选择课程预约 → 自动扣款 → 在我的预约中查看结果。"
       ],
       "metrics": [
         {
-          "label": "充值入口",
-          "value": "网页 / 小程序",
-          "note": "两端体验一致"
+          "label": "演示链路",
+          "value": "充值 → 预约 → 扣款",
+          "note": "单视频串联完整业务"
         },
         {
-          "label": "测试账号",
+          "label": "账号",
           "value": "user001",
-          "note": "模拟真实用户"
+          "note": "密码 123456"
         }
       ],
       "support": {
-        "video": "assets/videos/会员充值演示.mp4",
-        "copy": "录屏占位：充值成功 → 余额立即更新 → 充值记录可查看",
+        "video": "assets/videos/毕设视频.mp4",
+        "copy": "完整录屏：会员充值成功后继续预约课程，并使用余额自动扣款",
         "items": [
           {
-            "label": "第1步",
-            "title": "进入充值页面",
-            "body": "网页端点击「我的钱包」→「充值」"
+            "label": "1",
+            "title": "完成充值",
+            "body": "输入或选择充值金额，提交后余额实时更新"
           },
           {
-            "label": "第2步",
-            "title": "输入金额并支付",
-            "body": "选择充值金额，点击确认支付"
+            "label": "2",
+            "title": "进入约课",
+            "body": "浏览课程列表，选择合适课程与时段"
           },
           {
-            "label": "第3步",
-            "title": "查看结果",
-            "body": "余额增加，充值记录中显示订单号"
+            "label": "3",
+            "title": "确认预约",
+            "body": "提交预约单，系统校验余额与名额"
+          },
+          {
+            "label": "4",
+            "title": "扣款完成",
+            "body": "自动余额支付，并在我的预约中查看已支付订单"
           }
         ]
       },
@@ -4431,62 +4587,6 @@
       }
     },
     {
-      "id": "demo_course_booking",
-      "step": "演示 / 课程",
-      "title": "演示：选课 ▸ 预约 ▸ 支付",
-      "dotLabel": "演示",
-      "presenter": "王曾鹏",
-      "module": "核心业务",
-      "claim": "会员在小程序或网页浏览课程列表 → 选择心仪课程 → 确认预约后系统自动从余额中扣款，订单状态更新为已支付。",
-      "sceneRole": "mechanism",
-      "cameraIntent": "anchor",
-      "diagramNeed": "low",
-      "layout": "demo",
-      "eyebrow": "实机录屏 · 占位",
-      "body": [
-        "前置：测试账号已有足够余额（可在充值演示中完成）。",
-        "本段演示：浏览课程 → 选择预约 → 余额支付 → 在「我的预约」中查看订单。"
-      ],
-      "metrics": [
-        {
-          "label": "预约入口",
-          "value": "小程序 / 网页",
-          "note": "课程列表页"
-        },
-        {
-          "label": "支付接口",
-          "value": "余额自动扣款",
-          "note": "无需跳转第三方支付"
-        }
-      ],
-      "support": {
-        "video": "assets/videos/课程预约演示.mp4",
-        "copy": "录屏占位：选课 → 提交预约 → 余额扣款成功",
-        "items": [
-          {
-            "label": "第1步",
-            "title": "浏览课程",
-            "body": "在课程列表中查看可选课程详情"
-          },
-          {
-            "label": "第2步",
-            "title": "提交预约",
-            "body": "选择时段，确认预约金额"
-          },
-          {
-            "label": "第3步",
-            "title": "完成支付",
-            "body": "系统自动扣款，订单显示「已支付」"
-          }
-        ]
-      },
-      "scenePos": {
-        "x": 1480,
-        "y": 10440,
-        "width": 1360
-      }
-    },
-    {
       "id": "course_booking_pipeline",
       "step": "09 / 链路",
       "title": "预约到支付的四步流程",
@@ -4612,18 +4712,6 @@
           "note": "约 30s"
         }
       ],
-      "diagram": {
-        "type": "funnel",
-        "title": "Dashboard 数据汇聚",
-        "inputs": [
-          "预约统计 booking",
-          "会员 member",
-          "财务 finance",
-          "场地 court"
-        ],
-        "output": "KPI 看板 + ECharts 可视化",
-        "caption": "多域聚合 → 单页运营态势"
-      },
       "support": {
         "label": "截图",
         "title": "Web 管理端 Dashboard",
@@ -4758,16 +4846,16 @@
       "dotLabel": "测试",
       "presenter": "尹晴",
       "module": "业务运营",
-      "claim": "三层测试体系覆盖前后端：单元测试验证核心逻辑，接口测试保障 API 稳定性，E2E 测试模拟真实业务流程。",
+      "claim": "三层测试覆盖核心链路，保障系统稳定运行。",
       "sceneRole": "diagram",
       "cameraIntent": "compare",
       "diagramNeed": "high",
       "layout": "visual",
       "eyebrow": "Testing & Quality Assurance",
       "body": [
-        "单元测试：后端 Service 层核心方法覆盖率 85%+，前端组件使用 Vitest 验证关键交互逻辑。",
-        "接口测试：Apifox 自动化测试覆盖 27 个 Controller 的主要接口，验证参数校验、权限控制、业务异常。",
-        "E2E 测试：Cypress 模拟用户完整操作路径——登录→充值→预约→查看 Dashboard，确保前后端联调无误。"
+        "单元测试覆盖核心逻辑",
+        "接口测试覆盖主要 API",
+        "E2E 测试验证关键流程"
       ],
       "metrics": [
         {
@@ -4972,7 +5060,7 @@
           const chapter = chapterMap.get(name);
           const p = scenePos(chapter, index);
           const visibility = Object.fromEntries(sceneNames.map((sceneName) => [sceneName, sceneName === name ? 1 : 0]));
-          if (index > 0) visibility[sceneNames[index - 1]] = 0.08;
+          if (index > 0 && index > 1) visibility[sceneNames[index - 1]] = 0.08;
           const scale = index === 0 || index === n - 1 ? 1.02 : 0.98;
           return {
             p: n === 1 ? 0 : index / (n - 1),
@@ -5455,7 +5543,10 @@
       function bodyHtml(chapter) {
         const paragraphs = (chapter.body && chapter.body.length ? chapter.body : ["Replace chapter copy here."]).map((text) => `<p>${esc(text)}</p>`).join("");
         const metrics = chapter.metrics && chapter.metrics.length ? `<div class="metric-row">${chapter.metrics.map((item) => `<article class="metric-card"><div class="metric-label">${esc(item.label || "Metric")}</div><div class="metric-value">${esc(item.value || "--")}</div>${item.note ? `<div class="metric-note">${esc(item.note)}</div>` : ""}</article>`).join("")}</div>` : "";
-        return `<div><div class="eyebrow">${esc(chapter.eyebrow || chapter.step || "")}</div><h1 class="scene-title">${esc(chapter.title || "Untitled")}</h1><p class="scene-claim">${esc(chapter.claim || "")}</p><div class="copy">${paragraphs}</div>${metrics}</div>`;
+        const brandLogo = chapter.brandLogo && chapter.brandLogo.src
+          ? `<div class="cover-logo-badge"><img class="cover-logo-image" src="${esc(mediaSrc(chapter.brandLogo.src))}" alt="${esc(chapter.brandLogo.alt || chapter.title || "品牌 Logo")}" loading="eager" /></div>`
+          : "";
+        return `<div>${brandLogo}<div class="eyebrow">${esc(chapter.eyebrow || chapter.step || "")}</div><h1 class="scene-title">${esc(chapter.title || "Untitled")}</h1><p class="scene-claim">${esc(chapter.claim || "")}</p><div class="copy">${paragraphs}</div>${metrics}</div>`;
       }
       function buildScene(chapter, index) {
         const p = scenePos(chapter, index);

@@ -3838,7 +3838,6 @@
     "demo_member_recharge",
     "member_recharge_flow",
     "course_booking_model",
-    "demo_course_booking",
     "course_booking_pipeline",
     "module_ops",
     "dashboard_overview",
@@ -4217,9 +4216,10 @@
       "layout": "module",
       "eyebrow": "充值 · 约课",
       "body": [
-        "演示一：会员在线充值，系统自动记录并更新余额与等级。",
-        "演示二：会员浏览课程 → 一键预约 → 余额自动扣款。",
-        "两段演示串联：先充值形成余额，再用余额约课消费。"
+        "07 演示：充值 → 预约完整链路（单段录屏串讲）。",
+        "08 充值写单 + biz_finance 联动 + 等级重算。",
+        "09–10 课程预约模型与四步链路。",
+        "答辩可说：先充值，再约课，完整业务主链路已在上一页实机演示。"
       ],
       "metrics": [
         {
@@ -4242,50 +4242,55 @@
     {
       "id": "demo_member_recharge",
       "step": "演示 / 充值",
-      "title": "演示：会员充值",
+      "title": "演示：充值 → 预约完整链路",
       "dotLabel": "演示",
       "presenter": "阿英莫",
       "module": "核心业务",
-      "claim": "会员通过网页或小程序充值，系统实时显示新余额，并自动生成充值记录和财务凭证。",
+      "claim": "user001 先完成会员充值，再进入课程预约并使用余额支付，系统同步更新余额、预约订单与财务流水。",
       "sceneRole": "mechanism",
       "cameraIntent": "anchor",
       "diagramNeed": "low",
       "layout": "demo",
-      "eyebrow": "实机录屏 · 占位",
+      "eyebrow": "实机录屏 · 完整链路",
       "body": [
-        "前置：后端服务已启动，测试账号已登录。",
-        "本段演示：选择充值金额 → 确认支付 → 查看余额更新与等级变化。"
+        "前置：后端 9090 已启动，user001 / 123456 已登录。",
+        "本段：充值金额确认 → 余额到账 → 选择课程预约 → 自动扣款 → 在我的预约中查看结果。"
       ],
       "metrics": [
         {
-          "label": "充值入口",
-          "value": "网页 / 小程序",
-          "note": "两端体验一致"
+          "label": "演示链路",
+          "value": "充值 → 预约 → 扣款",
+          "note": "单视频串联完整业务"
         },
         {
-          "label": "测试账号",
+          "label": "账号",
           "value": "user001",
-          "note": "模拟真实用户"
+          "note": "密码 123456"
         }
       ],
       "support": {
-        "video": "assets/videos/会员充值演示.mp4",
-        "copy": "录屏占位：充值成功 → 余额立即更新 → 充值记录可查看",
+        "video": "assets/videos/毕设视频.mp4",
+        "copy": "完整录屏：会员充值成功后继续预约课程，并使用余额自动扣款",
         "items": [
           {
-            "label": "第1步",
-            "title": "进入充值页面",
-            "body": "网页端点击「我的钱包」→「充值」"
+            "label": "1",
+            "title": "完成充值",
+            "body": "输入或选择充值金额，提交后余额实时更新"
           },
           {
-            "label": "第2步",
-            "title": "输入金额并支付",
-            "body": "选择充值金额，点击确认支付"
+            "label": "2",
+            "title": "进入约课",
+            "body": "浏览课程列表，选择合适课程与时段"
           },
           {
-            "label": "第3步",
-            "title": "查看结果",
-            "body": "余额增加，充值记录中显示订单号"
+            "label": "3",
+            "title": "确认预约",
+            "body": "提交预约单，系统校验余额与名额"
+          },
+          {
+            "label": "4",
+            "title": "扣款完成",
+            "body": "自动余额支付，并在我的预约中查看已支付订单"
           }
         ]
       },
@@ -4428,62 +4433,6 @@
         "x": 0,
         "y": 9320,
         "width": 1280
-      }
-    },
-    {
-      "id": "demo_course_booking",
-      "step": "演示 / 课程",
-      "title": "演示：选课 ▸ 预约 ▸ 支付",
-      "dotLabel": "演示",
-      "presenter": "阿英莫",
-      "module": "核心业务",
-      "claim": "会员在小程序或网页浏览课程列表 → 选择心仪课程 → 确认预约后系统自动从余额中扣款，订单状态更新为已支付。",
-      "sceneRole": "mechanism",
-      "cameraIntent": "anchor",
-      "diagramNeed": "low",
-      "layout": "demo",
-      "eyebrow": "实机录屏 · 占位",
-      "body": [
-        "前置：测试账号已有足够余额（可在充值演示中完成）。",
-        "本段演示：浏览课程 → 选择预约 → 余额支付 → 在「我的预约」中查看订单。"
-      ],
-      "metrics": [
-        {
-          "label": "预约入口",
-          "value": "小程序 / 网页",
-          "note": "课程列表页"
-        },
-        {
-          "label": "支付接口",
-          "value": "余额自动扣款",
-          "note": "无需跳转第三方支付"
-        }
-      ],
-      "support": {
-        "video": "assets/videos/课程预约演示.mp4",
-        "copy": "录屏占位：选课 → 提交预约 → 余额扣款成功",
-        "items": [
-          {
-            "label": "第1步",
-            "title": "浏览课程",
-            "body": "在课程列表中查看可选课程详情"
-          },
-          {
-            "label": "第2步",
-            "title": "提交预约",
-            "body": "选择时段，确认预约金额"
-          },
-          {
-            "label": "第3步",
-            "title": "完成支付",
-            "body": "系统自动扣款，订单显示「已支付」"
-          }
-        ]
-      },
-      "scenePos": {
-        "x": 1480,
-        "y": 10440,
-        "width": 1360
       }
     },
     {

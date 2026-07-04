@@ -2,13 +2,11 @@
 ================================
 
 录屏（放入 assets/videos/）：
-  [ ] 会员充值演示.mp4      → 章节 demo_member_recharge
-  [ ] 课程预约演示.mp4      → 章节 demo_course_booking
+  [ ] 毕设视频.mp4          → 章节 demo_member_recharge
   [ ] 财务审计演示.mp4      → 章节 demo_finance_audit
 
 截图（放入 assets/screenshots/）：
   [ ] web-recharge.png           → demo_member_recharge
-  [ ] uniapp-course-booking.png  → demo_course_booking
   [ ] web-dashboard.png          → dashboard_overview
   [ ] web-finance-audit.png      → demo_finance_audit
 

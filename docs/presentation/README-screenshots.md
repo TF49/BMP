@@ -14,10 +14,10 @@
 | 姓名 | 模块 | 章节 | 建议时长 |
 |------|------|------|----------|
 | 尹晴 | 总览 · 架构 · 收束 | 01–05、16 | ~3 min |
-| 阿英莫 | 会员充值 · 课程预约 | 06–11 | ~3.5 min |
-| 涂家乐 | Dashboard · 财务 · 通知搜索 | 12–15 | ~3 min |
+| 阿英莫 | 会员充值 · 课程预约 | 06–10 | ~3.5 min |
+| 涂家乐 | Dashboard · 财务 · 通知搜索 | 11–15 | ~3 min |
 
-**章节结构**：总览 5 章 → 核心业务 6 章（含 2 段 demo）→ 运营治理 5 章 → 收束 1 章。  
+**章节结构**：总览 5 章 → 核心业务 5 章（含 1 段完整链路 demo）→ 运营治理 5 章 → 收束 1 章。  
 **范围说明**：全系统交付视角，**不展开**项目二场地预约与支付（收束页有一句口头边界说明）。
 
 ### 改稿（项目三）
@@ -36,7 +36,6 @@ python "C:\Users\Administrator\.claude\skills\网页pptskill\html-defense-builde
 | 文件名 | 章节 id | 内容 | 对应页面 |
 |--------|---------|------|----------|
 | `web-recharge.png` | `demo_member_recharge` | 会员充值页 | `vue/src/views/user/Recharge.vue` 或 `BMP-uniapp/pages/recharge/index.vue` |
-| `uniapp-course-booking.png` | `demo_course_booking` | 课程预约确认 | `BMP-uniapp/pages/course/booking.vue` |
 | `web-dashboard.png` | `dashboard_overview` | Dashboard KPI + 图表 | `vue/src/views/Dashboard.vue` |
 | `web-finance-audit.png` | `demo_finance_audit` | 财务 / 审计列表 | `vue/src/views/FinanceManagement.vue` |
 
@@ -46,8 +45,7 @@ python "C:\Users\Administrator\.claude\skills\网页pptskill\html-defense-builde
 
 | 文件 | 章节 id | 录制要点 |
 |------|---------|----------|
-| `会员充值演示.mp4` | `demo_member_recharge` | user001 充值 → 余额变化 → 充值记录 |
-| `课程预约演示.mp4` | `demo_course_booking` | 选课 → 提交预约 → BALANCE 支付成功 |
+| `毕设视频.mp4` | `demo_member_recharge` | user001 充值 → 课程预约 → 余额扣款成功 |
 | `财务审计演示.mp4` | `demo_finance_audit` | admin 筛选流水 / 审计日志 / 对账或导出 |
 
 录屏与截图就绪后：只改 `project3-blueprint.json`（路径已写好），再执行上面的 `apply_blueprint.py`，浏览器 **Ctrl+F5** 强刷。
@@ -56,8 +54,8 @@ python "C:\Users\Administrator\.claude\skills\网页pptskill\html-defense-builde
 
 1. 启动 9090 API、8080 Web、微信开发者工具  
 2. 尹晴：01–05 架构总览（~3 min）  
-3. 阿英莫：06 过渡 → 07 充值 demo → 08–09 讲解 → 10 课程 demo → 11 链路（~3.5 min）  
-4. 涂家乐：12 过渡 → 13 Dashboard → 14 财务 demo → 15 通知搜索（~3 min）  
+3. 阿英莫：06 过渡 → 07 充值到预约整链路 demo → 08–09 讲解（~3.5 min）  
+4. 涂家乐：11 过渡 → 12 Dashboard → 13 财务 demo → 14 通知搜索 → 15 测试质量（~3 min）  
 5. 尹晴：16 收束 + Q&A 缓冲（~0.5 min）
 
 ---
