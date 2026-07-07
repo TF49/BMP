@@ -14,15 +14,15 @@ export interface ContactInfo {
 }
 
 export const contactInfo: ContactInfo = {
-  // 客服电话（演示）
-  phone: '400-000-0000',
-  phoneDisplay: '400-000-0000',
+  // 客服电话
+  phone: '17378406511',
+  phoneDisplay: '17378406511',
 
-  // 联系邮箱（演示）
-  email: 'contact@example.com',
+  // 联系邮箱
+  email: '2131969030@qq.com',
 
-  // 微信客服号（演示）
-  wechat: 'BMP_Demo_Service',
+  // 微信客服号
+  wechat: '涂夫',
 
   // 微信二维码图片路径（可选）
   wechatQrCode: '/images/wechat-qrcode.png',

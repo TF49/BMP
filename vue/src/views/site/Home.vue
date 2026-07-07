@@ -435,7 +435,7 @@
               :key="index" 
               class="module-item"
               :class="{ 'is-visible': visibleModules.has(index) }"
-              :ref="el => { if (el) moduleRefs[index] = el }"
+              :ref="(el) => setModuleRef(el, index)"
             >
               <span class="module-item__num">{{ String(index + 1).padStart(2, '0') }}</span>
               <div class="module-item__content">
@@ -461,23 +461,8 @@
         <article class="screenshot-card glass-card" @click="openScreenshot('dashboard')">
           <div class="card-shine" aria-hidden="true" />
           <div class="screenshot-card__image screenshot-card__image--enhanced">
-            <div class="screenshot-placeholder screenshot-placeholder--dashboard">
-              <div class="screenshot-mock">
-                <div class="screenshot-mock__header">
-                  <span></span><span></span><span></span>
-                </div>
-                <div class="screenshot-mock__content">
-                  <div class="screenshot-mock__sidebar"></div>
-                  <div class="screenshot-mock__main">
-                    <div class="screenshot-mock__card"></div>
-                    <div class="screenshot-mock__card"></div>
-                    <div class="screenshot-mock__chart"></div>
-                  </div>
-                </div>
-              </div>
-              <span class="screenshot-placeholder__label">Dashboard 数据看板</span>
-              <span class="screenshot-placeholder__cta">点击预览</span>
-            </div>
+            <img src="/images/screenshots/数据看板.png" alt="数据看板" class="screenshot-img" />
+            <span class="screenshot-img-cta">点击预览</span>
           </div>
           <div class="screenshot-card__content">
             <h3 class="screenshot-card__title">数据看板</h3>
@@ -488,21 +473,8 @@
         <article class="screenshot-card glass-card" @click="openScreenshot('booking')">
           <div class="card-shine" aria-hidden="true" />
           <div class="screenshot-card__image screenshot-card__image--enhanced">
-            <div class="screenshot-placeholder screenshot-placeholder--booking">
-              <div class="screenshot-mock">
-                <div class="screenshot-mock__header">
-                  <span></span><span></span><span></span>
-                </div>
-                <div class="screenshot-mock__content">
-                  <div class="screenshot-mock__calendar">
-                    <div></div><div></div><div></div><div></div>
-                    <div></div><div></div><div></div><div></div>
-                  </div>
-                </div>
-              </div>
-              <span class="screenshot-placeholder__label">预约管理界面</span>
-              <span class="screenshot-placeholder__cta">点击预览</span>
-            </div>
+            <img src="/images/screenshots/预约管理.png" alt="预约管理" class="screenshot-img" />
+            <span class="screenshot-img-cta">点击预览</span>
           </div>
           <div class="screenshot-card__content">
             <h3 class="screenshot-card__title">预约管理</h3>
@@ -513,20 +485,8 @@
         <article class="screenshot-card glass-card" @click="openScreenshot('finance')">
           <div class="card-shine" aria-hidden="true" />
           <div class="screenshot-card__image screenshot-card__image--enhanced">
-            <div class="screenshot-placeholder screenshot-placeholder--finance">
-              <div class="screenshot-mock">
-                <div class="screenshot-mock__header">
-                  <span></span><span></span><span></span>
-                </div>
-                <div class="screenshot-mock__content">
-                  <div class="screenshot-mock__bars">
-                    <div></div><div></div><div></div><div></div><div></div>
-                  </div>
-                </div>
-              </div>
-              <span class="screenshot-placeholder__label">财务统计报表</span>
-              <span class="screenshot-placeholder__cta">点击预览</span>
-            </div>
+            <img src="/images/screenshots/财务统计.png" alt="财务统计" class="screenshot-img" />
+            <span class="screenshot-img-cta">点击预览</span>
           </div>
           <div class="screenshot-card__content">
             <h3 class="screenshot-card__title">财务统计</h3>
@@ -537,20 +497,8 @@
         <article class="screenshot-card glass-card" @click="openScreenshot('member')">
           <div class="card-shine" aria-hidden="true" />
           <div class="screenshot-card__image screenshot-card__image--enhanced">
-            <div class="screenshot-placeholder screenshot-placeholder--member">
-              <div class="screenshot-mock">
-                <div class="screenshot-mock__header">
-                  <span></span><span></span><span></span>
-                </div>
-                <div class="screenshot-mock__content">
-                  <div class="screenshot-mock__table">
-                    <div></div><div></div><div></div>
-                  </div>
-                </div>
-              </div>
-              <span class="screenshot-placeholder__label">会员管理界面</span>
-              <span class="screenshot-placeholder__cta">点击预览</span>
-            </div>
+            <img src="/images/screenshots/会员管理.png" alt="会员管理" class="screenshot-img" />
+            <span class="screenshot-img-cta">点击预览</span>
           </div>
           <div class="screenshot-card__content">
             <h3 class="screenshot-card__title">会员管理</h3>
@@ -892,14 +840,12 @@
   <el-dialog
     v-model="screenshotDialogVisible"
     :title="screenshotDialog.title"
-    width="60%"
+    width="70%"
     class="screenshot-dialog"
   >
     <div class="screenshot-dialog__content">
       <div class="screenshot-dialog__preview glass-card">
-        <div class="screenshot-dialog__placeholder">
-          <span class="screenshot-dialog__label">{{ screenshotDialog.title }}</span>
-        </div>
+        <img :src="screenshotDialog.image" :alt="screenshotDialog.title" class="screenshot-dialog__img" />
       </div>
       <p class="screenshot-dialog__desc">
         {{ screenshotDialog.desc }}
@@ -909,7 +855,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, type ComponentPublicInstance } from 'vue'
 import { getSiteOverview } from '@/api/site'
 import { useIntersectionObserver } from '@/composables/useIntersectionObserver'
 import { contactInfo } from '@/config/contact'
@@ -965,27 +911,32 @@ const toggleFaq = (index: number) => {
 type ScreenshotKey = 'dashboard' | 'booking' | 'finance' | 'member'
 
 const screenshotDialogVisible = ref(false)
-const screenshotDialog = ref<{ title: string; desc: string }>({
+const screenshotDialog = ref<{ title: string; desc: string; image: string }>({
   title: '',
-  desc: ''
+  desc: '',
+  image: ''
 })
 
-const screenshotMap: Record<ScreenshotKey, { title: string; desc: string }> = {
+const screenshotMap: Record<ScreenshotKey, { title: string; desc: string; image: string }> = {
   dashboard: {
     title: '数据看板',
-    desc: '一屏掌握会员总数、场地利用率、今日收入与预约情况，可用于日常例会或运营复盘。'
+    desc: '一屏掌握会员总数、场地利用率、今日收入与预约情况，可用于日常例会或运营复盘。',
+    image: '/images/screenshots/数据看板.png'
   },
   booking: {
     title: '预约管理',
-    desc: '以日历视图管理场地预约，支持快速查看空闲时段、修改预约与处理冲突。'
+    desc: '以日历视图管理场地预约，支持快速查看空闲时段、修改预约与处理冲突。',
+    image: '/images/screenshots/预约管理.png'
   },
   finance: {
     title: '财务统计',
-    desc: '汇总各业务模块的收入构成，支持按时间、模块、场馆查看收入趋势与占比。'
+    desc: '汇总各业务模块的收入构成，支持按时间、模块、场馆查看收入趋势与占比。',
+    image: '/images/screenshots/财务统计.png'
   },
   member: {
     title: '会员管理',
-    desc: '集中管理会员资料、充值与消费记录，可结合会员等级做精细化运营。'
+    desc: '集中管理会员资料、充值与消费记录，可结合会员等级做精细化运营。',
+    image: '/images/screenshots/会员管理.png'
   }
 }
 
@@ -998,6 +949,14 @@ const openScreenshot = (key: ScreenshotKey) => {
 // 滚动动画相关
 const moduleRefs = ref<(Element | null)[]>([])
 const visibleModules = ref<Set<number>>(new Set())
+
+const setModuleRef = (el: Element | ComponentPublicInstance | null, index: number) => {
+  if (!el) return
+  const target = el instanceof Element ? el : el.$el
+  if (target instanceof Element) {
+    moduleRefs.value[index] = target
+  }
+}
 
 // -------- 运营概览真实数据 --------
 // 默认值与原硬编码保持一致，避免加载期间出现空白
@@ -2171,6 +2130,68 @@ onUnmounted(() => {
 .screenshot-card__image--enhanced {
   background: linear-gradient(135deg, var(--site-bg-elevated) 0%, var(--site-surface) 100%);
   overflow: hidden;
+}
+
+/* 真实截图展示 */
+.screenshot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.4s ease;
+}
+
+.screenshot-card:hover .screenshot-img {
+  transform: scale(1.03);
+}
+
+.screenshot-img-cta {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.screenshot-card:hover .screenshot-img-cta {
+  opacity: 1;
+}
+
+/* 截图弹窗 */
+.screenshot-dialog__content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.screenshot-dialog__preview {
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--site-radius-lg);
+}
+
+.screenshot-dialog__img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--site-radius-lg);
+}
+
+.screenshot-dialog__desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--site-text-secondary);
+  text-align: center;
 }
 
 /* 截图模拟 UI */
