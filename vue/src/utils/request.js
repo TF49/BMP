@@ -4,7 +4,7 @@ import { ElMessage } from 'element-plus'
 /** 可选降级类接口：减少 Toast（天气失败、Dashboard 汇总未部署时前端会回退） */
 function isGracefulFallbackApi(url) {
   if (!url || typeof url !== 'string') return false
-  return url.includes('/api/weather') || url.includes('/api/dashboard/summary')
+  return url.includes('/api/weather') || url.includes('/api/dashboard/summary') || url.includes('/api/site/overview')
 }
 
 // 是否正在刷新Token

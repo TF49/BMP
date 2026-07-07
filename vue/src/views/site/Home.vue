@@ -67,10 +67,11 @@
                     </svg>
                     <span>场地利用率</span>
                   </div>
-                  <span class="hero__card-percent">76%</span>
+                  <span class="hero__card-percent">{{ overview.courtUtilizationRate }}%</span>
                 </div>
                 <div class="hero__card-bar">
-                  <span class="hero__card-fill hero__card-fill--animated" />
+                  <span class="hero__card-fill hero__card-fill--animated"
+                        :style="{ '--fill-width': overview.courtUtilizationRate + '%' }" />
                   <span class="hero__card-bar-glow" aria-hidden="true" />
                 </div>
                 <div class="hero__card-bar-labels">
@@ -88,13 +89,13 @@
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   </div>
-                  <span class="hero__card-num hero__card-num--highlight">98.6%</span>
+                  <span class="hero__card-num hero__card-num--highlight">{{ overview.bookingSuccessRate }}%</span>
                   <span class="hero__card-tag">预约成功率</span>
-                  <span class="hero__card-trend hero__card-trend--up">
+                  <span :class="['hero__card-trend', overview.bookingTrend >= 0 ? 'hero__card-trend--up' : 'hero__card-trend--down']">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <polyline points="18 15 12 9 6 15" />
+                      <polyline :points="overview.bookingTrend >= 0 ? '18 15 12 9 6 15' : '6 9 12 15 18 9'" />
                     </svg>
-                    +2.3%
+                    {{ overview.bookingTrend >= 0 ? '+' : '' }}{{ overview.bookingTrend }}%
                   </span>
                 </div>
                 <div class="hero__card-cell hero__card-cell--info">
@@ -104,10 +105,10 @@
                       <path d="M12 6v6l4 2" />
                     </svg>
                   </div>
-                  <span class="hero__card-num">24</span>
+                  <span class="hero__card-num">{{ overview.equipmentAvailable }}</span>
                   <span class="hero__card-tag">器材可用</span>
                   <span class="hero__card-trend hero__card-trend--neutral">
-                    共32件
+                    共{{ overview.equipmentTotal }}件
                   </span>
                 </div>
                 <div class="hero__card-cell hero__card-cell--accent">
@@ -117,13 +118,13 @@
                       <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                     </svg>
                   </div>
-                  <span class="hero__card-num hero__card-num--accent">¥3,820</span>
+                  <span class="hero__card-num hero__card-num--accent">¥{{ Number(overview.todayIncome).toLocaleString() }}</span>
                   <span class="hero__card-tag">当日收入</span>
-                  <span class="hero__card-trend hero__card-trend--up">
+                  <span :class="['hero__card-trend', overview.incomeTrend >= 0 ? 'hero__card-trend--up' : 'hero__card-trend--down']">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <polyline points="18 15 12 9 6 15" />
+                      <polyline :points="overview.incomeTrend >= 0 ? '18 15 12 9 6 15' : '6 9 12 15 18 9'" />
                     </svg>
-                    +12%
+                    {{ overview.incomeTrend >= 0 ? '+' : '' }}{{ overview.incomeTrend }}%
                   </span>
                 </div>
               </div>
@@ -908,7 +909,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { getSiteOverview } from '@/api/site'
 import { useIntersectionObserver } from '@/composables/useIntersectionObserver'
 import { contactInfo } from '@/config/contact'
 
@@ -997,7 +999,45 @@ const openScreenshot = (key: ScreenshotKey) => {
 const moduleRefs = ref<(Element | null)[]>([])
 const visibleModules = ref<Set<number>>(new Set())
 
+// -------- 运营概览真实数据 --------
+// 默认值与原硬编码保持一致，避免加载期间出现空白
+const overview = reactive({
+  courtUtilizationRate: 76,
+  courtTotal: 0,
+  bookingSuccessRate: 98.6,
+  bookingTrend: 2.3,
+  equipmentAvailable: 24,
+  equipmentTotal: 32,
+  todayIncome: '3820',
+  incomeTrend: 12.0
+})
+
+let overviewTimer: ReturnType<typeof setInterval> | null = null
+
+const fetchOverview = async () => {
+  try {
+    const res = await getSiteOverview()
+    if (res && res.data) {
+      const d = res.data
+      overview.courtUtilizationRate = d.courtUtilizationRate ?? overview.courtUtilizationRate
+      overview.courtTotal = d.courtTotal ?? overview.courtTotal
+      overview.bookingSuccessRate = d.bookingSuccessRate ?? overview.bookingSuccessRate
+      overview.bookingTrend = d.bookingTrend ?? overview.bookingTrend
+      overview.equipmentAvailable = d.equipmentAvailable ?? overview.equipmentAvailable
+      overview.equipmentTotal = d.equipmentTotal ?? overview.equipmentTotal
+      overview.todayIncome = d.todayIncome ?? overview.todayIncome
+      overview.incomeTrend = d.incomeTrend ?? overview.incomeTrend
+    }
+  } catch {
+    // 静默降级：保留上一次的值（或初始默认值）
+  }
+}
+
 onMounted(() => {
+  // 拉取一次概览数据，之后每 30 秒自动刷新
+  fetchOverview()
+  overviewTimer = setInterval(fetchOverview, 30000)
+
   // 为各个 section 添加滚动动画
   const sections = document.querySelectorAll('.landing-section, .block')
   sections.forEach((section) => {
@@ -1028,6 +1068,10 @@ onMounted(() => {
       }
     })
   })
+})
+
+onUnmounted(() => {
+  if (overviewTimer !== null) clearInterval(overviewTimer)
 })
 </script>
 
@@ -1528,7 +1572,8 @@ onMounted(() => {
 
 .hero__card-fill {
   display: block;
-  width: 76%;
+  /* 宿主 CSS 变量，默认 76%，由 Vue 动态绑定覆盖 */
+  width: var(--fill-width, 76%);
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, #2563eb, #3b82f6, #f97316);
@@ -1555,7 +1600,7 @@ onMounted(() => {
 
 @keyframes barFillIn {
   from { width: 0; }
-  to { width: 76%; }
+  to { width: var(--fill-width, 76%); }
 }
 
 @keyframes barGlowPulse {
@@ -1718,6 +1763,11 @@ onMounted(() => {
 .hero__card-trend--up {
   color: #10b981;
   background: rgba(16, 185, 129, 0.1);
+}
+
+.hero__card-trend--down {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .hero__card-trend--neutral {
@@ -3183,7 +3233,7 @@ onMounted(() => {
   }
 
   .hero__card-fill--animated {
-    width: 76% !important;
+    width: var(--fill-width, 76%) !important;
   }
 
   .block,

@@ -50,6 +50,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // 支付超时只读配置（倒计时对齐服务端时间，无需登录）
                 .requestMatchers(HttpMethod.GET, "/api/payment/auto-cancel/config").permitAll()
+                // 官网首页「运营概览」展示性汇总（无敏感信息，无需登录）
+                .requestMatchers(HttpMethod.GET, "/api/site/overview").permitAll()
                 // 其余 /api/auth 及其他接口需要认证
                 .anyRequest().authenticated()
             );
