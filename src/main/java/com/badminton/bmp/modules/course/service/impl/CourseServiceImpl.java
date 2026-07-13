@@ -2,6 +2,7 @@ package com.badminton.bmp.modules.course.service.impl;
 
 import com.badminton.bmp.modules.coach.mapper.CoachMapper;
 import com.badminton.bmp.modules.course.cache.CourseEntityCache;
+import com.badminton.bmp.modules.course.cache.CoachStudentRelationCacheInvalidator;
 import com.badminton.bmp.modules.course.entity.Course;
 import com.badminton.bmp.modules.course.mapper.CourseMapper;
 import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
@@ -41,6 +42,14 @@ public class CourseServiceImpl implements CourseService {
     private CoachMapper coachMapper;
     @Autowired
     private CourtMapper courtMapper;
+    @Autowired(required = false)
+    private CoachStudentRelationCacheInvalidator coachStudentRelationCacheInvalidator;
+
+    private void invalidateForCourse(Long courseId) {
+        if (coachStudentRelationCacheInvalidator != null) {
+            coachStudentRelationCacheInvalidator.invalidateForCourse(courseId);
+        }
+    }
 
     @Override
     public Course findById(Long id) {
@@ -208,7 +217,9 @@ public class CourseServiceImpl implements CourseService {
             course.setMaxStudents(10);
         }
         
-        return courseMapper.insert(course);
+        int result = courseMapper.insert(course);
+        if (result > 0) invalidateForCourse(course.getId());
+        return result;
     }
 
     /**
@@ -327,7 +338,9 @@ public class CourseServiceImpl implements CourseService {
         
         // 设置更新时间
         course.setUpdateTime(LocalDateTime.now());
-        return courseMapper.update(course);
+        int result = courseMapper.update(course);
+        if (result > 0) invalidateForCourse(course.getId());
+        return result;
     }
 
     /**
@@ -371,7 +384,9 @@ public class CourseServiceImpl implements CourseService {
             throw new BusinessException("权限不足：只有会长和场馆管理员可以删除课程");
         }
 
-        return courseMapper.deleteById(id);
+        int result = courseMapper.deleteById(id);
+        if (result > 0) invalidateForCourse(id);
+        return result;
     }
 
     /**
@@ -428,7 +443,9 @@ public class CourseServiceImpl implements CourseService {
                 throw new BusinessException("进行中的课程只能改为「结束」或「取消」");
             }
         }
-        return courseMapper.updateStatus(id, status);
+        int result = courseMapper.updateStatus(id, status);
+        if (result > 0) invalidateForCourse(id);
+        return result;
     }
 
     /**

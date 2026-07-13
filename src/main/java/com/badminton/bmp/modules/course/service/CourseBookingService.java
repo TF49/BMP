@@ -1,6 +1,8 @@
 package com.badminton.bmp.modules.course.service;
 
 import com.badminton.bmp.modules.course.entity.CourseBooking;
+import com.badminton.bmp.modules.course.dto.AttendanceCommand;
+import com.badminton.bmp.modules.course.dto.AttendanceCommandResult;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ public interface CourseBookingService {
     /** 批量查询会员在各课程下的最新有效预约（courseId -> booking） */
     java.util.Map<Long, CourseBooking> findLatestActiveByMemberAndCourses(Long memberId, java.util.List<Long> courseIds);
     int updateStatusForCoach(Long coachId, Long id, Integer status, String remark);
+    AttendanceCommandResult updateAttendanceForCoach(Long coachId, AttendanceCommand command);
     int add(CourseBooking booking);
     int update(CourseBooking booking);
     int deleteById(Long id);

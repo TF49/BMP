@@ -37,6 +37,15 @@ public class CourseBooking {
     @Min(0) @Max(4)
     private Integer status;
 
+    @Min(0) @Max(3)
+    private Integer attendanceStatus;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime actualCheckinTime;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime actualFinishTime;
+
     @Size(max = 500)
     private String remark;
 

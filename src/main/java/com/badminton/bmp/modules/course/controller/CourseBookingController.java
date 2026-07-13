@@ -1,12 +1,16 @@
 package com.badminton.bmp.modules.course.controller;
 
 import com.badminton.bmp.common.Result;
+import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.framework.web.BaseController;
 import com.badminton.bmp.modules.coach.service.CoachService;
 import com.badminton.bmp.modules.course.entity.Course;
 import com.badminton.bmp.modules.course.entity.CourseBooking;
+import com.badminton.bmp.modules.course.dto.AttendanceCommand;
+import com.badminton.bmp.modules.course.dto.AttendanceCommandResult;
 import com.badminton.bmp.modules.course.service.CourseBookingService;
 import com.badminton.bmp.modules.course.service.CourseService;
+import com.badminton.bmp.modules.course.support.CoachAttendanceRateLimiter;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.service.MemberService;
 import com.badminton.bmp.modules.system.entity.User;
@@ -41,6 +45,8 @@ public class CourseBookingController extends BaseController {
     private MemberService memberService;
     @Autowired
     private CoachService coachService;
+    @Autowired
+    private CoachAttendanceRateLimiter coachAttendanceRateLimiter;
 
     private boolean isAdmin() {
         return com.badminton.bmp.common.util.SecurityUtils.isPresident()
@@ -96,25 +102,37 @@ public class CourseBookingController extends BaseController {
         }
     }
 
-    @Operation(summary = "教练端更新预约状态", description = "COACH 角色：仅可对自己课程的预约执行签到、完成或取消")
+    @Operation(summary = "教练端取消预约", description = "COACH 角色：仅可在课程开始前取消自己课程的预约")
     @PutMapping("/for-coach/status")
     @PreAuthorize("hasRole('COACH')")
     public Result<Object> updateBookingStatusForCoach(@RequestBody CoachBookingStatusRequest request) {
-        try {
-            Long coachId = coachService.getCurrentCoachIdOrNull();
-            if (coachId == null) {
-                return error(COACH_UNBOUND_MESSAGE);
-            }
-            if (request == null || request.getId() == null) {
-                return error("预约记录ID不能为空");
-            }
-            int result = courseBookingService.updateStatusForCoach(coachId, request.getId(), request.getStatus(), request.getRemark());
-            return result > 0 ? success(null) : error("更新预约状态失败");
-        } catch (RuntimeException e) {
-            return error(e.getMessage());
-        } catch (Exception e) {
-            return error("更新预约状态时发生错误：" + e.getMessage());
+        Long coachId = coachService.getCurrentCoachIdOrNull();
+        if (coachId == null) {
+            throw new BusinessException(COACH_UNBOUND_MESSAGE);
         }
+        if (request == null || request.getId() == null) {
+            throw new BusinessException("预约记录ID不能为空");
+        }
+        if (request.getStatus() == null || request.getStatus() != 0) {
+            throw new BusinessException("该接口仅允许在课程开始前取消预约");
+        }
+        courseBookingService.updateStatusForCoach(coachId, request.getId(), 0, request.getRemark());
+        return success(null);
+    }
+
+    @Operation(summary = "教练端登记考勤", description = "COACH 角色：按 CHECK_IN、COMPLETE、ABSENT 状态机登记考勤")
+    @PutMapping("/for-coach/attendance")
+    @PreAuthorize("hasRole('COACH')")
+    public Result<AttendanceCommandResult> updateAttendanceForCoach(
+            @Valid @RequestBody AttendanceCommand command) {
+        Long coachId = coachService.getCurrentCoachIdOrNull();
+        if (coachId == null) {
+            throw new BusinessException(COACH_UNBOUND_MESSAGE);
+        }
+        if (!coachAttendanceRateLimiter.tryAcquire(coachId)) {
+            throw new BusinessException(429, "考勤操作过于频繁，请稍后重试");
+        }
+        return success(courseBookingService.updateAttendanceForCoach(coachId, command));
     }
 
     @Operation(summary = "课程预约列表", description = "支持会员/课程/状态/关键词筛选与分页")
@@ -462,7 +480,7 @@ public class CourseBookingController extends BaseController {
     }
 
     @Data
-    private static class CoachBookingStatusRequest {
+    public static class CoachBookingStatusRequest {
         @NotNull(message = "预约ID不能为空")
         private Long id;
         @NotNull(message = "状态不能为空")

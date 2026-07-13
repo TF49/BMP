@@ -7,6 +7,7 @@ import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberService;
 import com.badminton.bmp.modules.coach.mapper.CoachMapper;
 import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
+import com.badminton.bmp.modules.course.cache.CoachStudentRelationCacheInvalidator;
 import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.common.exception.ResourceNotFoundException;
 import com.badminton.bmp.modules.system.entity.User;
@@ -49,6 +50,14 @@ public class MemberServiceImpl implements MemberService {
 
     @Autowired
     private UserMapper userMapper;
+    @Autowired(required = false)
+    private CoachStudentRelationCacheInvalidator coachStudentRelationCacheInvalidator;
+
+    private void invalidateForMember(Long memberId) {
+        if (coachStudentRelationCacheInvalidator != null) {
+            coachStudentRelationCacheInvalidator.invalidateForMember(memberId);
+        }
+    }
 
     private void ensurePresidentAnalyticsAccess() {
         if (!SecurityUtils.isPresident()) {
@@ -372,6 +381,7 @@ public class MemberServiceImpl implements MemberService {
         if (result == 0) {
             throw new BusinessException("更新失败，数据可能已被其他操作修改，请刷新后重试");
         }
+        invalidateForMember(member.getId());
         return result;
     }
 
@@ -389,7 +399,9 @@ public class MemberServiceImpl implements MemberService {
         if (existing.getUserId() != null) {
             throw new BusinessException("该会员已绑定用户账号，不能直接删除。请改为冻结会员或禁用对应用户账号");
         }
-        return memberMapper.deleteById(id);
+        int result = memberMapper.deleteById(id);
+        if (result > 0) invalidateForMember(id);
+        return result;
     }
 
     @Override

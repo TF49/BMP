@@ -1,7 +1,12 @@
 package com.badminton.bmp.modules.course.service.impl;
 
 import com.badminton.bmp.common.util.AutoCancelRemarkUtil;
+import com.badminton.bmp.common.exception.BusinessException;
 import com.badminton.bmp.config.PaymentAutoCancelProperties;
+import com.badminton.bmp.modules.course.dto.AttendanceAction;
+import com.badminton.bmp.modules.course.dto.AttendanceCommand;
+import com.badminton.bmp.modules.course.dto.AttendanceCommandResult;
+import com.badminton.bmp.modules.course.cache.CoachStudentRelationCacheInvalidator;
 import com.badminton.bmp.modules.course.entity.Course;
 import com.badminton.bmp.modules.course.entity.CourseBooking;
 import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
@@ -31,6 +36,7 @@ import com.badminton.bmp.modules.notification.service.NotificationService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Clock;
 import java.time.temporal.TemporalAdjusters;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -73,6 +79,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     private NotificationService notificationService;
     @Autowired
     private PlatformTransactionManager transactionManager;
+    @Autowired(required = false)
+    private CoachStudentRelationCacheInvalidator coachStudentRelationCacheInvalidator;
+    private Clock clock = Clock.systemDefaultZone();
 
     /**
      * 根据ID查找课程预约记录
@@ -244,7 +253,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     }
 
     private void evictCourseCache(Long courseId) {
-        if (courseId == null) {
+        if (courseId == null || cacheManager == null) {
             return;
         }
         Cache cache = cacheManager.getCache("course");
@@ -257,58 +266,174 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     @Transactional
     public int updateStatusForCoach(Long coachId, Long id, Integer status, String remark) {
         if (coachId == null) {
-            throw new RuntimeException("未绑定教练档案，请联系管理员处理");
+            throw new BusinessException("未绑定教练档案，请联系管理员处理");
         }
         if (id == null) {
-            throw new RuntimeException("预约记录ID不能为空");
+            throw new BusinessException("预约记录ID不能为空");
         }
-        if (status == null || (status != 0 && status != 3 && status != 4)) {
-            throw new RuntimeException("教练仅可更新为已取消、进行中或已完成");
+        if (status == null || status != 0) {
+            throw new BusinessException("该接口仅允许在课程开始前取消预约");
         }
 
         CourseBooking booking = courseBookingMapper.findByIdAndCoachId(coachId, id);
         if (booking == null) {
-            throw new RuntimeException("预约记录不存在或无权操作");
+            throw new org.springframework.security.access.AccessDeniedException("预约记录不存在或无权操作");
         }
 
         Integer oldStatus = booking.getStatus();
         if (oldStatus == null) {
-            throw new RuntimeException("预约状态异常，无法操作");
+            throw new BusinessException("预约状态异常，无法操作");
         }
         if (oldStatus == 0) {
-            throw new RuntimeException("该预约已取消，不能重复处理");
+            return 0;
         }
         if (oldStatus == 4) {
-            throw new RuntimeException("该预约已完成，不能重复处理");
+            throw new BusinessException("该预约已完成，不能取消");
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime start = resolveCourseDateTime(booking.getCourseDate(), booking.getCourseStartTime(), "课程开始时间缺失");
+        if (!now.isBefore(start)) {
+            throw new BusinessException("课程开始后不能取消预约，请使用独立考勤操作");
         }
 
-        boolean legalTransition =
-                (oldStatus == 2 && (status == 0 || status == 3)) ||
-                (oldStatus == 3 && (status == 0 || status == 4));
-        if (!legalTransition) {
-            throw new RuntimeException("当前预约状态不允许执行该操作");
-        }
-
-        String nextRemark = remark != null ? remark.trim() : booking.getRemark();
-        int result = courseBookingMapper.updateStatusAndRemark(id, status, nextRemark);
+        String nextRemark = normalizeRemark(remark);
+        int result = courseBookingMapper.cancelBeforeStartForCoach(id, coachId, oldStatus, nextRemark, now);
         if (result > 0) {
-            if ((oldStatus >= 1 && oldStatus <= 3) && !(status >= 1 && status <= 3)) {
+            if (oldStatus >= 1 && oldStatus <= 3 && courseMapper != null) {
                 decrementCourseCurrentStudents(booking.getCourseId());
             }
             evictCourseCache(booking.getCourseId());
-            try {
-                Long userId = null;
-                Member member = memberMapper.findById(booking.getMemberId());
-                if (member != null && member.getUserId() != null) {
-                    userId = member.getUserId();
-                }
-                webSocketPushService.pushOrderStatusToUser(userId, "courseBooking", id, status, courseBookingStatusText(status), "课程预约");
-                webSocketPushService.pushDashboardRefresh();
-            } catch (Exception e) {
-                org.slf4j.LoggerFactory.getLogger(CourseBookingServiceImpl.class).warn("WebSocket 推送失败: {}", e.getMessage());
-            }
+            invalidateForBooking(booking);
+            return result;
         }
-        return result;
+        CourseBooking current = courseBookingMapper.findByIdAndCoachId(coachId, id);
+        if (current != null && Integer.valueOf(0).equals(current.getStatus())) {
+            return 0;
+        }
+        throw new BusinessException(409, "预约状态已变化，请刷新后重试");
+    }
+
+    @Override
+    @Transactional
+    public AttendanceCommandResult updateAttendanceForCoach(Long coachId, AttendanceCommand command) {
+        if (coachId == null) {
+            throw new BusinessException("未绑定教练档案，请联系管理员处理");
+        }
+        if (command == null || command.getBookingId() == null || command.getAction() == null) {
+            throw new BusinessException("预约ID和考勤操作不能为空");
+        }
+
+        CourseBooking booking = courseBookingMapper.findByIdAndCoachId(coachId, command.getBookingId());
+        if (booking == null) {
+            throw new org.springframework.security.access.AccessDeniedException("预约记录不存在或无权操作");
+        }
+        AttendanceAction action = command.getAction();
+        int attendanceStatus = booking.getAttendanceStatus() == null ? 0 : booking.getAttendanceStatus();
+        if ((action == AttendanceAction.CHECK_IN && attendanceStatus == 1)
+                || (action == AttendanceAction.COMPLETE && attendanceStatus == 2)
+                || (action == AttendanceAction.ABSENT && attendanceStatus == 3)) {
+            return AttendanceCommandResult.from(booking);
+        }
+        if (Integer.valueOf(0).equals(booking.getCourseStatus())) {
+            throw new BusinessException("课程已取消，不能登记考勤");
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime start = resolveCourseDateTime(booking.getCourseDate(), booking.getCourseStartTime(), "课程开始时间缺失");
+        LocalDateTime end = resolveCourseDateTime(booking.getCourseDate(), booking.getCourseEndTime(), "课程结束时间缺失");
+        if (now.isBefore(start)) {
+            throw new BusinessException("课程开始前不能登记考勤");
+        }
+        if (now.isAfter(end.plusHours(24))) {
+            throw new BusinessException("已超过课程结束后24小时纠错窗口，请联系管理员处理");
+        }
+
+        int bookingStatus = booking.getStatus() == null ? -1 : booking.getStatus();
+        int targetBookingStatus;
+        int targetAttendanceStatus;
+        LocalDateTime checkinTime = null;
+        LocalDateTime finishTime = null;
+        boolean clearActualTimes = false;
+
+        switch (action) {
+            case CHECK_IN -> {
+                if (attendanceStatus == 1) {
+                    return AttendanceCommandResult.from(booking);
+                }
+                if (attendanceStatus != 0 || (bookingStatus != 2 && bookingStatus != 3)) {
+                    throw new BusinessException("当前状态不允许签到");
+                }
+                targetBookingStatus = 3;
+                targetAttendanceStatus = 1;
+                checkinTime = now;
+            }
+            case COMPLETE -> {
+                if (attendanceStatus == 2) {
+                    return AttendanceCommandResult.from(booking);
+                }
+                if ((attendanceStatus != 1 && attendanceStatus != 3)
+                        || (bookingStatus != 3 && bookingStatus != 4)) {
+                    throw new BusinessException("当前状态不允许完成考勤");
+                }
+                targetBookingStatus = 4;
+                targetAttendanceStatus = 2;
+                finishTime = now;
+            }
+            case ABSENT -> {
+                if (attendanceStatus == 3) {
+                    return AttendanceCommandResult.from(booking);
+                }
+                if (attendanceStatus < 0 || attendanceStatus > 2
+                        || (bookingStatus != 2 && bookingStatus != 3 && bookingStatus != 4)) {
+                    throw new BusinessException("当前状态不允许登记缺席");
+                }
+                targetBookingStatus = bookingStatus;
+                targetAttendanceStatus = 3;
+                clearActualTimes = true;
+            }
+            default -> throw new BusinessException("不支持的考勤操作");
+        }
+
+        int updated = courseBookingMapper.updateAttendanceWithExpectedState(
+                booking.getId(), bookingStatus, attendanceStatus,
+                targetBookingStatus, targetAttendanceStatus, normalizeRemark(command.getRemark()),
+                checkinTime, finishTime, clearActualTimes);
+        CourseBooking current = courseBookingMapper.findByIdAndCoachId(coachId, booking.getId());
+        if (current == null) {
+            throw new org.springframework.security.access.AccessDeniedException("预约记录不存在或无权操作");
+        }
+        if (updated == 0 && (!Integer.valueOf(targetBookingStatus).equals(current.getStatus())
+                || !Integer.valueOf(targetAttendanceStatus).equals(normalizeAttendanceStatus(current.getAttendanceStatus())))) {
+            throw new BusinessException(409, "考勤状态已被其他操作修改，请刷新后重试");
+        }
+        evictCourseCache(booking.getCourseId());
+        invalidateForBooking(booking);
+        return AttendanceCommandResult.from(current);
+    }
+
+    private Integer normalizeAttendanceStatus(Integer status) {
+        return status == null ? 0 : status;
+    }
+
+    private String normalizeRemark(String remark) {
+        if (remark == null) {
+            return null;
+        }
+        String normalized = remark.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private LocalDateTime resolveCourseDateTime(LocalDate date, LocalTime time, String message) {
+        if (date == null || time == null) {
+            throw new BusinessException(message);
+        }
+        return LocalDateTime.of(date, time);
+    }
+
+    private void invalidateForBooking(CourseBooking booking) {
+        if (coachStudentRelationCacheInvalidator != null && booking != null) {
+            coachStudentRelationCacheInvalidator.invalidateForBooking(booking.getMemberId());
+        }
     }
 
     /**
@@ -1059,26 +1184,31 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void autoUpdateCourseBookingStatusByTime() {
-        LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
+        LocalDateTime current = LocalDateTime.now(clock);
+        LocalDate today = current.toLocalDate();
+        LocalTime now = current.toLocalTime();
         List<Long> toStart = courseBookingMapper.findBookingIdsToStart(today, now);
         if (toStart != null) {
             for (Long id : toStart) {
-                courseBookingMapper.updateStatus(id, 3); // 进行中
+                courseBookingMapper.startBookingIfPaid(id);
             }
         }
         List<Long> toFinish = courseBookingMapper.findBookingIdsToFinish(today, now);
         if (toFinish != null) {
             for (Long id : toFinish) {
-                CourseBooking booking = courseBookingMapper.findById(id);
-                courseBookingMapper.updateStatus(id, 4); // 已完成
-                if (booking != null) {
+                int updated = courseBookingMapper.finishBookingAndAttendanceIfOngoing(id, current);
+                if (updated > 0) {
+                    CourseBooking booking = courseBookingMapper.findById(id);
+                    if (booking == null) {
+                        continue;
+                    }
                     decrementCourseCurrentStudents(booking.getCourseId());
                     evictCourseCache(booking.getCourseId());
                 }
             }
         }
-        if ((toStart != null && !toStart.isEmpty()) || (toFinish != null && !toFinish.isEmpty())) {
+        if (webSocketPushService != null
+                && ((toStart != null && !toStart.isEmpty()) || (toFinish != null && !toFinish.isEmpty()))) {
             try {
                 webSocketPushService.pushDashboardRefresh();
             } catch (Exception e) {

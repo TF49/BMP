@@ -22,7 +22,7 @@ public interface CourseBookingMapper {
             "WHERE cb.id = #{id} AND cb.del_flag = 0")
     CourseBooking findById(@Param("id") Long id);
 
-    @Select("SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+    @Select("SELECT cb.*, m.member_name, c.course_name, c.status AS course_status, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
             "LEFT JOIN sys_member m ON cb.member_id = m.id " +
             "INNER JOIN biz_course c ON cb.course_id = c.id " +
             "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
@@ -103,6 +103,44 @@ public interface CourseBookingMapper {
                               @Param("status") Integer status,
                               @Param("remark") String remark);
 
+    @Update("<script>" +
+            "UPDATE biz_course_booking SET status = #{newBookingStatus}, " +
+            "attendance_status = #{newAttendanceStatus}, remark = COALESCE(#{remark}, remark), " +
+            "actual_checkin_time = CASE " +
+            "WHEN #{clearActualTimes} THEN NULL " +
+            "WHEN #{checkinTime} IS NOT NULL THEN COALESCE(actual_checkin_time, #{checkinTime}) " +
+            "ELSE actual_checkin_time END, " +
+            "actual_finish_time = CASE " +
+            "WHEN #{clearActualTimes} THEN NULL " +
+            "WHEN #{finishTime} IS NOT NULL THEN COALESCE(actual_finish_time, #{finishTime}) " +
+            "ELSE actual_finish_time END, update_time = NOW() " +
+            "WHERE id = #{id} AND del_flag = 0 " +
+            "AND status = #{expectedBookingStatus} " +
+            "AND COALESCE(attendance_status, 0) = #{expectedAttendanceStatus}" +
+            "</script>")
+    int updateAttendanceWithExpectedState(
+            @Param("id") Long id,
+            @Param("expectedBookingStatus") Integer expectedBookingStatus,
+            @Param("expectedAttendanceStatus") Integer expectedAttendanceStatus,
+            @Param("newBookingStatus") Integer newBookingStatus,
+            @Param("newAttendanceStatus") Integer newAttendanceStatus,
+            @Param("remark") String remark,
+            @Param("checkinTime") java.time.LocalDateTime checkinTime,
+            @Param("finishTime") java.time.LocalDateTime finishTime,
+            @Param("clearActualTimes") boolean clearActualTimes);
+
+    @Update("UPDATE biz_course_booking cb INNER JOIN biz_course c ON cb.course_id = c.id " +
+            "SET cb.status = 0, cb.cancel_time = #{cancelledAt}, " +
+            "cb.remark = COALESCE(#{remark}, cb.remark), cb.update_time = #{cancelledAt} " +
+            "WHERE cb.id = #{id} AND cb.del_flag = 0 AND c.del_flag = 0 " +
+            "AND c.coach_id = #{coachId} AND cb.status = #{expectedStatus} " +
+            "AND TIMESTAMP(c.course_date, c.start_time) &gt; #{cancelledAt}")
+    int cancelBeforeStartForCoach(@Param("id") Long id,
+                                  @Param("coachId") Long coachId,
+                                  @Param("expectedStatus") Integer expectedStatus,
+                                  @Param("remark") String remark,
+                                  @Param("cancelledAt") java.time.LocalDateTime cancelledAt);
+
     @Select("<script>" +
             "SELECT COUNT(*) > 0 FROM biz_course_booking " +
             "WHERE booking_no = #{bookingNo} AND del_flag = 0 " +
@@ -152,7 +190,7 @@ public interface CourseBookingMapper {
 
     /** 按教练过滤：当前教练所教课程的预约列表（教练端用） */
     @Select("<script>" +
-            "SELECT cb.*, m.member_name, c.course_name, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
+            "SELECT cb.*, m.member_name, c.course_name, c.status AS course_status, co.coach_name, ct.court_name, c.course_date, c.start_time AS course_start_time, c.end_time AS course_end_time FROM biz_course_booking cb " +
             "LEFT JOIN sys_member m ON cb.member_id = m.id " +
             "INNER JOIN biz_course c ON cb.course_id = c.id " +
             "LEFT JOIN sys_court ct ON c.court_id = ct.id " +
@@ -235,6 +273,18 @@ public interface CourseBookingMapper {
             "WHERE cb.del_flag = 0 AND cb.status = 3 " +
             "AND (c.course_date < #{today} OR (c.course_date = #{today} AND c.end_time <= #{nowTime}))")
     List<Long> findBookingIdsToFinish(@Param("today") LocalDate today, @Param("nowTime") LocalTime nowTime);
+
+    @Update("UPDATE biz_course_booking SET status = 3, update_time = NOW() " +
+            "WHERE id = #{id} AND del_flag = 0 AND status = 2")
+    int startBookingIfPaid(@Param("id") Long id);
+
+    @Update("UPDATE biz_course_booking SET status = 4, " +
+            "actual_finish_time = CASE WHEN attendance_status = 1 " +
+            "THEN COALESCE(actual_finish_time, #{finishedAt}) ELSE actual_finish_time END, " +
+            "attendance_status = CASE WHEN attendance_status = 1 THEN 2 ELSE COALESCE(attendance_status, 0) END, " +
+            "update_time = #{finishedAt} WHERE id = #{id} AND del_flag = 0 AND status = 3")
+    int finishBookingAndAttendanceIfOngoing(@Param("id") Long id,
+                                             @Param("finishedAt") java.time.LocalDateTime finishedAt);
 
     /**
      * 查询已超时且仍未支付的课程预约ID（创建时间早于等于 cutoff）

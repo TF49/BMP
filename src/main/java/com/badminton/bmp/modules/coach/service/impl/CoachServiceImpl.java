@@ -8,6 +8,7 @@ import com.badminton.bmp.modules.system.entity.User;
 import com.badminton.bmp.modules.system.mapper.UserMapper;
 import org.springframework.cache.annotation.CacheEvict;
 import com.badminton.bmp.modules.course.mapper.CourseMapper;
+import com.badminton.bmp.modules.course.cache.CoachStudentRelationCacheInvalidator;
 import com.badminton.bmp.modules.venue.entity.Venue;
 import com.badminton.bmp.modules.venue.mapper.VenueMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,14 @@ public class CoachServiceImpl implements CoachService {
 
     @Autowired
     private UserMapper userMapper;
+    @Autowired(required = false)
+    private CoachStudentRelationCacheInvalidator coachStudentRelationCacheInvalidator;
+
+    private void invalidateForCoach(Long coachId) {
+        if (coachStudentRelationCacheInvalidator != null) {
+            coachStudentRelationCacheInvalidator.invalidateForCoach(coachId);
+        }
+    }
 
     @Override
     public Coach findById(Long id) {
@@ -357,7 +366,9 @@ public class CoachServiceImpl implements CoachService {
         // 设置更新时间
         coach.setUpdateTime(LocalDateTime.now());
 
-        return coachMapper.update(coach);
+        int result = coachMapper.update(coach);
+        if (result > 0) invalidateForCoach(coach.getId());
+        return result;
     }
 
     @Override
@@ -398,7 +409,9 @@ public class CoachServiceImpl implements CoachService {
             coachMapper.unbindUser(coach.getUserId());
         }
 
-        return coachMapper.deleteById(id);
+        int result = coachMapper.deleteById(id);
+        if (result > 0) invalidateForCoach(id);
+        return result;
     }
 
     @Override
@@ -438,7 +451,9 @@ public class CoachServiceImpl implements CoachService {
             }
         }
 
-        return coachMapper.updateStatus(id, status);
+        int result = coachMapper.updateStatus(id, status);
+        if (result > 0) invalidateForCoach(id);
+        return result;
     }
 
     @Override
