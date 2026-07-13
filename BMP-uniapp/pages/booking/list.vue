@@ -304,7 +304,7 @@ const switchTab = (index: number) => {
   currentTab.value = index
 }
 
-const getStatusText = (status: number, item?: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => {
+const getStatusText = (status: number, item?: Pick<BookingCard, 'id' | 'status' | 'paymentStatus' | 'createTime'>) => {
   if (status === 1 && item && isPaymentExpired(item)) {
     return '已超时'
   }
@@ -318,7 +318,7 @@ const getStatusText = (status: number, item?: Pick<BookingCard, 'status' | 'paym
   return statusMap[status] || '未知'
 }
 
-const getStatusClass = (status: number, item?: Pick<BookingCard, 'status' | 'paymentStatus' | 'createTime'>) => {
+const getStatusClass = (status: number, item?: Pick<BookingCard, 'id' | 'status' | 'paymentStatus' | 'createTime'>) => {
   if (status === 1 && item && isPaymentExpired(item)) {
     return 'cancelled'
   }
