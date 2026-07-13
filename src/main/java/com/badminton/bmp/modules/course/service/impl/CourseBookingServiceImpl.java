@@ -527,6 +527,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (result > 0) {
             incrementCourseCurrentStudents(booking.getCourseId());
             evictCourseCache(booking.getCourseId());
+            invalidateForBooking(booking);
         }
         
         return result;
@@ -619,6 +620,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (result > 0) {
             evictCourseCache(originalCourseId);
             evictCourseCache(courseId);
+            invalidateForBooking(existing);
         }
         return result;
     }
@@ -673,6 +675,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         int result = courseBookingMapper.deleteById(id);
         if (result > 0) {
             evictCourseCache(booking.getCourseId());
+            invalidateForBooking(booking);
         }
         return result;
     }
@@ -758,6 +761,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         }
         if (result > 0) {
             evictCourseCache(booking.getCourseId());
+            invalidateForBooking(booking);
         }
         try {
             Long userId = null;
@@ -1190,7 +1194,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         List<Long> toStart = courseBookingMapper.findBookingIdsToStart(today, now);
         if (toStart != null) {
             for (Long id : toStart) {
-                courseBookingMapper.startBookingIfPaid(id);
+                if (courseBookingMapper.startBookingIfPaid(id) > 0) {
+                    invalidateForBooking(courseBookingMapper.findById(id));
+                }
             }
         }
         List<Long> toFinish = courseBookingMapper.findBookingIdsToFinish(today, now);
@@ -1204,6 +1210,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
                     }
                     decrementCourseCurrentStudents(booking.getCourseId());
                     evictCourseCache(booking.getCourseId());
+                    invalidateForBooking(booking);
                 }
             }
         }

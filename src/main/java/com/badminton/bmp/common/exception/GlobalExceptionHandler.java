@@ -8,6 +8,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -16,9 +17,11 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * 全局异常处理，统一给前端返回用户可理解的错误信息。
@@ -27,6 +30,13 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public Result<Object> handleServiceUnavailableException(ServiceUnavailableException e) {
+        log.error("查询服务暂时不可用, traceId={}: {}", e.getTraceId(), e.getMessage(), e);
+        return new Result<>(503, ErrorMessageSanitizer.sanitize(e.getMessage()),
+                Map.of("traceId", e.getTraceId(), "retryable", true));
+    }
 
     @ExceptionHandler(BusinessException.class)
     public Result<Object> handleBusinessException(BusinessException e) {
@@ -117,6 +127,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
     public Result<Object> handleAccessDeniedException(AccessDeniedException e) {
         log.error("权限不足: {}", e.getMessage(), e);
         return Result.forbidden("权限不足，无法访问该资源");

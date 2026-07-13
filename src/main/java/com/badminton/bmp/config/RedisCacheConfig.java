@@ -44,6 +44,10 @@ public class RedisCacheConfig {
         cacheConfigurations.put("coach", defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigurations.put("course", defaultConfig.entryTtl(Duration.ofMinutes(30)));
         cacheConfigurations.put("user", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+        cacheConfigurations.put("coachStudentRelation", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigurations.put("coachStudentProgress", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigurations.put("coachStudentAttendance", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigurations.put("coachStudentLastSuccess", defaultConfig.entryTtl(Duration.ofMinutes(15)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

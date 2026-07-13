@@ -2,6 +2,7 @@ package com.badminton.bmp.modules.course.controller;
 
 import com.badminton.bmp.common.Result;
 import com.badminton.bmp.common.exception.BusinessException;
+import com.badminton.bmp.common.exception.RateLimitException;
 import com.badminton.bmp.framework.web.BaseController;
 import com.badminton.bmp.modules.coach.service.CoachService;
 import com.badminton.bmp.modules.course.entity.Course;
@@ -130,7 +131,7 @@ public class CourseBookingController extends BaseController {
             throw new BusinessException(COACH_UNBOUND_MESSAGE);
         }
         if (!coachAttendanceRateLimiter.tryAcquire(coachId)) {
-            throw new BusinessException(429, "考勤操作过于频繁，请稍后重试");
+            throw new RateLimitException("考勤操作过于频繁，请稍后重试");
         }
         return success(courseBookingService.updateAttendanceForCoach(coachId, command));
     }
