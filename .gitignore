@@ -21,6 +21,7 @@ target/
 
 ### Tooling / build caches ###
 .codex/
+.worktrees/
 .parcel-cache/
 
 ### NetBeans ###
