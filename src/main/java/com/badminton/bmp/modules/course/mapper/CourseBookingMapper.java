@@ -104,22 +104,27 @@ public interface CourseBookingMapper {
                               @Param("remark") String remark);
 
     @Update("<script>" +
-            "UPDATE biz_course_booking SET status = #{newBookingStatus}, " +
-            "attendance_status = #{newAttendanceStatus}, remark = COALESCE(#{remark}, remark), " +
-            "actual_checkin_time = CASE " +
+            "UPDATE biz_course_booking cb INNER JOIN biz_course c ON cb.course_id = c.id " +
+            "SET cb.status = #{newBookingStatus}, " +
+            "cb.attendance_status = #{newAttendanceStatus}, cb.remark = COALESCE(#{remark}, cb.remark), " +
+            "cb.actual_checkin_time = CASE " +
             "WHEN #{clearActualTimes} THEN NULL " +
-            "WHEN #{checkinTime} IS NOT NULL THEN COALESCE(actual_checkin_time, #{checkinTime}) " +
-            "ELSE actual_checkin_time END, " +
-            "actual_finish_time = CASE " +
+            "WHEN #{checkinTime} IS NOT NULL THEN COALESCE(cb.actual_checkin_time, #{checkinTime}) " +
+            "ELSE cb.actual_checkin_time END, " +
+            "cb.actual_finish_time = CASE " +
             "WHEN #{clearActualTimes} THEN NULL " +
-            "WHEN #{finishTime} IS NOT NULL THEN COALESCE(actual_finish_time, #{finishTime}) " +
-            "ELSE actual_finish_time END, update_time = NOW() " +
-            "WHERE id = #{id} AND del_flag = 0 " +
-            "AND status = #{expectedBookingStatus} " +
-            "AND COALESCE(attendance_status, 0) = #{expectedAttendanceStatus}" +
+            "WHEN #{finishTime} IS NOT NULL THEN COALESCE(cb.actual_finish_time, #{finishTime}) " +
+            "ELSE cb.actual_finish_time END, cb.update_time = #{operatedAt} " +
+            "WHERE cb.id = #{id} AND cb.del_flag = 0 " +
+            "AND c.del_flag = 0 AND c.status != 0 AND c.coach_id = #{coachId} " +
+            "AND TIMESTAMP(c.course_date, c.start_time) &lt;= #{operatedAt} " +
+            "AND TIMESTAMP(c.course_date, c.end_time) &gt;= DATE_SUB(#{operatedAt}, INTERVAL 24 HOUR) " +
+            "AND cb.status = #{expectedBookingStatus} " +
+            "AND COALESCE(cb.attendance_status, 0) = #{expectedAttendanceStatus}" +
             "</script>")
     int updateAttendanceWithExpectedState(
             @Param("id") Long id,
+            @Param("coachId") Long coachId,
             @Param("expectedBookingStatus") Integer expectedBookingStatus,
             @Param("expectedAttendanceStatus") Integer expectedAttendanceStatus,
             @Param("newBookingStatus") Integer newBookingStatus,
@@ -127,7 +132,8 @@ public interface CourseBookingMapper {
             @Param("remark") String remark,
             @Param("checkinTime") java.time.LocalDateTime checkinTime,
             @Param("finishTime") java.time.LocalDateTime finishTime,
-            @Param("clearActualTimes") boolean clearActualTimes);
+            @Param("clearActualTimes") boolean clearActualTimes,
+            @Param("operatedAt") java.time.LocalDateTime operatedAt);
 
     @Update("UPDATE biz_course_booking cb INNER JOIN biz_course c ON cb.course_id = c.id " +
             "SET cb.status = 0, cb.cancel_time = #{cancelledAt}, " +
@@ -261,7 +267,7 @@ public interface CourseBookingMapper {
      * 条件：cb.status=2 且 (course_date &lt; 今日 或 (course_date=今日 且 start_time &lt;= 当前时间))
      */
     @Select("SELECT cb.id FROM biz_course_booking cb INNER JOIN biz_course c ON cb.course_id = c.id " +
-            "WHERE cb.del_flag = 0 AND cb.status = 2 " +
+            "WHERE cb.del_flag = 0 AND c.del_flag = 0 AND c.status != 0 AND cb.status = 2 " +
             "AND (c.course_date < #{today} OR (c.course_date = #{today} AND c.start_time <= #{nowTime}))")
     List<Long> findBookingIdsToStart(@Param("today") LocalDate today, @Param("nowTime") LocalTime nowTime);
 
@@ -270,19 +276,26 @@ public interface CourseBookingMapper {
      * 条件：cb.status=3 且 (course_date &lt; 今日 或 (course_date=今日 且 end_time &lt;= 当前时间))
      */
     @Select("SELECT cb.id FROM biz_course_booking cb INNER JOIN biz_course c ON cb.course_id = c.id " +
-            "WHERE cb.del_flag = 0 AND cb.status = 3 " +
+            "WHERE cb.del_flag = 0 AND c.del_flag = 0 AND c.status != 0 AND cb.status = 3 " +
             "AND (c.course_date < #{today} OR (c.course_date = #{today} AND c.end_time <= #{nowTime}))")
     List<Long> findBookingIdsToFinish(@Param("today") LocalDate today, @Param("nowTime") LocalTime nowTime);
 
-    @Update("UPDATE biz_course_booking SET status = 3, update_time = NOW() " +
-            "WHERE id = #{id} AND del_flag = 0 AND status = 2")
-    int startBookingIfPaid(@Param("id") Long id);
+    @Update("UPDATE biz_course_booking cb INNER JOIN biz_course c ON cb.course_id = c.id " +
+            "SET cb.status = 3, cb.update_time = #{startedAt} " +
+            "WHERE cb.id = #{id} AND cb.del_flag = 0 AND cb.status = 2 " +
+            "AND c.del_flag = 0 AND c.status != 0 " +
+            "AND TIMESTAMP(c.course_date, c.start_time) &lt;= #{startedAt}")
+    int startBookingIfPaid(@Param("id") Long id,
+                           @Param("startedAt") java.time.LocalDateTime startedAt);
 
-    @Update("UPDATE biz_course_booking SET status = 4, " +
-            "actual_finish_time = CASE WHEN attendance_status = 1 " +
-            "THEN COALESCE(actual_finish_time, #{finishedAt}) ELSE actual_finish_time END, " +
-            "attendance_status = CASE WHEN attendance_status = 1 THEN 2 ELSE COALESCE(attendance_status, 0) END, " +
-            "update_time = #{finishedAt} WHERE id = #{id} AND del_flag = 0 AND status = 3")
+    @Update("UPDATE biz_course_booking cb INNER JOIN biz_course c ON cb.course_id = c.id " +
+            "SET cb.status = 4, " +
+            "cb.actual_finish_time = CASE WHEN cb.attendance_status = 1 " +
+            "THEN COALESCE(cb.actual_finish_time, #{finishedAt}) ELSE cb.actual_finish_time END, " +
+            "cb.attendance_status = CASE WHEN cb.attendance_status = 1 THEN 2 ELSE COALESCE(cb.attendance_status, 0) END, " +
+            "cb.update_time = #{finishedAt} WHERE cb.id = #{id} AND cb.del_flag = 0 AND cb.status = 3 " +
+            "AND c.del_flag = 0 AND c.status != 0 " +
+            "AND TIMESTAMP(c.course_date, c.end_time) &lt;= #{finishedAt}")
     int finishBookingAndAttendanceIfOngoing(@Param("id") Long id,
                                              @Param("finishedAt") java.time.LocalDateTime finishedAt);
 

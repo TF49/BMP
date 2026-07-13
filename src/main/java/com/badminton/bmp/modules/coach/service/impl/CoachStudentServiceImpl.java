@@ -24,9 +24,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -42,6 +44,8 @@ public class CoachStudentServiceImpl implements CoachStudentService {
     private CoachStudentRelationService relationService;
     @Autowired
     private CoachStudentLastSuccessCache lastSuccessCache;
+    @Autowired(required = false)
+    private CacheManager cacheManager;
 
     @Value("${coach.risk-threshold.attendance-rate:70}")
     private int riskAttendanceRate = 70;
@@ -52,57 +56,57 @@ public class CoachStudentServiceImpl implements CoachStudentService {
     public CoachStudentListResponseVO listStudents(Long coachId, CoachStudentListQuery query) {
         requireCoachId(coachId);
         CoachStudentListQuery normalized = validateListQuery(query);
-        int offset = (normalized.getPage() - 1) * normalized.getSize();
-        List<CoachStudentListItemVO> students = coachStudentMapper.findStudents(
-                coachId, normalized, RELATION_RETENTION_DAYS, offset);
-        if (students == null) students = List.of();
-        students.forEach(this::applyRisk);
-        int total = coachStudentMapper.countStudents(coachId, normalized, RELATION_RETENTION_DAYS);
-        Map<String, Object> summary = coachStudentMapper.summarizeStudents(coachId, RELATION_RETENTION_DAYS);
+        String key = "list:" + coachId + ':' + normalized;
+        return queryWithFallback(key, "学员列表查询暂时不可用，请稍后重试", () -> {
+            int offset = (normalized.getPage() - 1) * normalized.getSize();
+            List<CoachStudentListItemVO> students = coachStudentMapper.findStudents(
+                    coachId, normalized, RELATION_RETENTION_DAYS, riskAttendanceRate, riskInactiveDays, offset);
+            if (students == null) students = List.of();
+            students.forEach(this::applyRisk);
+            int total = coachStudentMapper.countStudents(
+                    coachId, normalized, RELATION_RETENTION_DAYS, riskAttendanceRate, riskInactiveDays);
+            Map<String, Object> summary = coachStudentMapper.summarizeStudents(coachId, RELATION_RETENTION_DAYS);
 
-        CoachStudentListResponseVO response = new CoachStudentListResponseVO();
-        response.setPage(page(students, total, normalized.getPage(), normalized.getSize()));
-        response.setTotalStudents(number(summary, "totalStudents", total));
-        response.setTodayStudents(number(summary, "todayStudents", 0));
-        response.setRiskStudents(coachStudentMapper.countRiskStudents(coachId, RELATION_RETENTION_DAYS));
-        BigDecimal pageAverage = students.isEmpty() ? BigDecimal.ZERO : students.stream()
-                .map(item -> item.getAttendanceRate() == null ? BigDecimal.ZERO : item.getAttendanceRate())
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(students.size()), 2, RoundingMode.HALF_UP);
-        response.setAverageAttendanceRate(decimal(summary, "averageAttendanceRate", pageAverage));
-        return response;
+            CoachStudentListResponseVO response = new CoachStudentListResponseVO();
+            response.setPage(page(students, total, normalized.getPage(), normalized.getSize()));
+            response.setTotalStudents(number(summary, "totalStudents", total));
+            response.setTodayStudents(number(summary, "todayStudents", 0));
+            response.setRiskStudents(coachStudentMapper.countRiskStudents(
+                    coachId, RELATION_RETENTION_DAYS, riskAttendanceRate, riskInactiveDays));
+            BigDecimal pageAverage = students.isEmpty() ? BigDecimal.ZERO : students.stream()
+                    .map(item -> item.getAttendanceRate() == null ? BigDecimal.ZERO : item.getAttendanceRate())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .divide(BigDecimal.valueOf(students.size()), 2, RoundingMode.HALF_UP);
+            response.setAverageAttendanceRate(decimal(summary, "averageAttendanceRate", pageAverage));
+            return response;
+        });
     }
 
     @Override
     public CoachStudentDetailVO getStudentDetail(Long coachId, Long memberId) {
         ensureCoachCanViewStudent(coachId, memberId);
-        CoachStudentDetailVO detail = coachStudentMapper.findStudentDetail(coachId, memberId);
-        if (detail == null) throw new BusinessException(404, "学员不存在");
-        detail.setRisk(isRisk(detail.getAttendedCount(), detail.getAbsentCount(),
-                detail.getAttendanceRate(), detail.getLastLessonTime()));
-        return detail;
+        String key = "detail:" + coachId + ':' + memberId;
+        return queryWithFallback(key, "学员详情查询暂时不可用，请稍后重试", () -> {
+            CoachStudentDetailVO detail = coachStudentMapper.findStudentDetail(coachId, memberId);
+            if (detail == null) throw new BusinessException(404, "学员不存在");
+            detail.setRisk(isRisk(detail.getAttendedCount(), detail.getAbsentCount(),
+                    detail.getAttendanceRate(), detail.getLastLessonTime()));
+            return detail;
+        });
     }
 
     @Override
-    @Cacheable(cacheNames = "coachStudentProgress",
-            key = "'coachStudentProgress::' + #coachId + ':' + #memberId")
     public List<CoachStudentProgressVO> getStudentProgress(Long coachId, Long memberId) {
         ensureCoachCanViewStudent(coachId, memberId);
         String key = "progress:" + coachId + ':' + memberId;
-        try {
+        List<CoachStudentProgressVO> cached = cacheValue("coachStudentProgress", key);
+        if (cached != null) return cached;
+        List<CoachStudentProgressVO> result = queryWithFallback(key, "训练进度查询暂时不可用，请稍后重试", () -> {
             List<CoachStudentProgressVO> rows = coachStudentMapper.findProgress(coachId, memberId);
-            List<CoachStudentProgressVO> result = rows == null ? List.of() : rows;
-            lastSuccessCache.remember(key, result);
-            return result;
-        } catch (RuntimeException databaseFailure) {
-            Object cached = lastSuccessCache.get(key);
-            if (cached instanceof List<?> list) {
-                @SuppressWarnings("unchecked")
-                List<CoachStudentProgressVO> stale = (List<CoachStudentProgressVO>) list;
-                return stale;
-            }
-            throw new ServiceUnavailableException("训练进度查询暂时不可用，请稍后重试");
-        }
+            return rows == null ? List.of() : rows;
+        });
+        putCacheValue("coachStudentProgress", key, result);
+        return result;
     }
 
     @Override
@@ -110,40 +114,35 @@ public class CoachStudentServiceImpl implements CoachStudentService {
             Long coachId, Long memberId, CoachStudentScheduleQuery query) {
         ensureCoachCanViewStudent(coachId, memberId);
         CoachStudentScheduleQuery normalized = validateScheduleQuery(query);
-        int offset = (normalized.getPage() - 1) * normalized.getSize();
-        List<CoachStudentScheduleVO> rows = coachStudentMapper.findSchedule(
-                coachId, memberId, normalized, offset);
-        int total = coachStudentMapper.countSchedule(coachId, memberId, normalized);
-        return page(rows == null ? List.of() : rows, total, normalized.getPage(), normalized.getSize());
+        String key = "schedule:" + coachId + ':' + memberId + ':' + normalized;
+        return queryWithFallback(key, "课程安排查询暂时不可用，请稍后重试", () -> {
+            int offset = (normalized.getPage() - 1) * normalized.getSize();
+            List<CoachStudentScheduleVO> rows = coachStudentMapper.findSchedule(
+                    coachId, memberId, normalized, offset);
+            int total = coachStudentMapper.countSchedule(coachId, memberId, normalized);
+            return page(rows == null ? List.of() : rows, total, normalized.getPage(), normalized.getSize());
+        });
     }
 
     @Override
-    @Cacheable(cacheNames = "coachStudentAttendance",
-            key = "'coachStudentAttendance::' + #coachId + ':' + #memberId + ':' + (#query == null ? 'default' : #query.toString())")
     public CoachStudentPageVO<CoachStudentAttendanceVO> getStudentAttendance(
             Long coachId, Long memberId, CoachStudentScheduleQuery query) {
         ensureCoachCanViewStudent(coachId, memberId);
         CoachStudentScheduleQuery normalized = validateScheduleQuery(query);
-        int offset = (normalized.getPage() - 1) * normalized.getSize();
         String key = "attendance:" + coachId + ':' + memberId + ':' + normalized;
-        try {
+        CoachStudentPageVO<CoachStudentAttendanceVO> cached = cacheValue("coachStudentAttendance", key);
+        if (cached != null) return cached;
+        CoachStudentPageVO<CoachStudentAttendanceVO> result = queryWithFallback(
+                key, "出勤记录查询暂时不可用，请稍后重试", () -> {
+            int offset = (normalized.getPage() - 1) * normalized.getSize();
             List<CoachStudentAttendanceVO> rows = coachStudentMapper.findAttendance(
                     coachId, memberId, normalized, offset);
-            int total = coachStudentMapper.countAttendance(coachId, memberId);
-            CoachStudentPageVO<CoachStudentAttendanceVO> result = page(
+            int total = coachStudentMapper.countAttendance(coachId, memberId, normalized);
+            return page(
                     rows == null ? List.of() : rows, total, normalized.getPage(), normalized.getSize());
-            lastSuccessCache.remember(key, result);
-            return result;
-        } catch (RuntimeException databaseFailure) {
-            Object cached = lastSuccessCache.get(key);
-            if (cached instanceof CoachStudentPageVO<?> page) {
-                @SuppressWarnings("unchecked")
-                CoachStudentPageVO<CoachStudentAttendanceVO> stale =
-                        (CoachStudentPageVO<CoachStudentAttendanceVO>) page;
-                return stale;
-            }
-            throw new ServiceUnavailableException("出勤记录查询暂时不可用，请稍后重试");
-        }
+        });
+        putCacheValue("coachStudentAttendance", key, result);
+        return result;
     }
 
     @Override
@@ -151,10 +150,13 @@ public class CoachStudentServiceImpl implements CoachStudentService {
             Long coachId, Long memberId, int page, int size) {
         ensureCoachCanViewStudent(coachId, memberId);
         validatePage(page, size);
-        List<CoachStudentConsumeRecordVO> rows = coachStudentMapper.findConsumeRecordsForCoach(
-                coachId, memberId, (page - 1) * size, size);
-        int total = coachStudentMapper.countConsumeRecordsForCoach(coachId, memberId);
-        return page(rows == null ? List.of() : rows, total, page, size);
+        String key = "consume:" + coachId + ':' + memberId + ':' + page + ':' + size;
+        return queryWithFallback(key, "消费记录查询暂时不可用，请稍后重试", () -> {
+            List<CoachStudentConsumeRecordVO> rows = coachStudentMapper.findConsumeRecordsForCoach(
+                    coachId, memberId, (page - 1) * size, size);
+            int total = coachStudentMapper.countConsumeRecordsForCoach(coachId, memberId);
+            return page(rows == null ? List.of() : rows, total, page, size);
+        });
     }
 
     private void ensureCoachCanViewStudent(Long coachId, Long memberId) {
@@ -237,6 +239,41 @@ public class CoachStudentServiceImpl implements CoachStudentService {
         if (value instanceof BigDecimal decimal) return decimal;
         if (value instanceof Number number) return BigDecimal.valueOf(number.doubleValue());
         return fallback;
+    }
+
+    private <T> T queryWithFallback(String key, String unavailableMessage, Supplier<T> query) {
+        try {
+            T result = query.get();
+            if (lastSuccessCache != null) lastSuccessCache.remember(key, result);
+            return result;
+        } catch (BusinessException | AccessDeniedException expected) {
+            throw expected;
+        } catch (RuntimeException databaseFailure) {
+            Object cached = lastSuccessCache == null ? null : lastSuccessCache.get(key);
+            if (cached != null) {
+                @SuppressWarnings("unchecked")
+                T stale = (T) cached;
+                return stale;
+            }
+            throw new ServiceUnavailableException(unavailableMessage);
+        }
+    }
+
+    private <T> T cacheValue(String cacheName, String key) {
+        if (cacheManager == null) return null;
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache == null) return null;
+        Object value = cache.get(key, Object.class);
+        if (value == null) return null;
+        @SuppressWarnings("unchecked")
+        T typed = (T) value;
+        return typed;
+    }
+
+    private void putCacheValue(String cacheName, String key, Object value) {
+        if (cacheManager == null || value == null) return;
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) cache.put(key, value);
     }
 
     private <T> CoachStudentPageVO<T> page(List<T> rows, int total, int page, int size) {

@@ -395,9 +395,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         }
 
         int updated = courseBookingMapper.updateAttendanceWithExpectedState(
-                booking.getId(), bookingStatus, attendanceStatus,
+                booking.getId(), coachId, bookingStatus, attendanceStatus,
                 targetBookingStatus, targetAttendanceStatus, normalizeRemark(command.getRemark()),
-                checkinTime, finishTime, clearActualTimes);
+                checkinTime, finishTime, clearActualTimes, now);
         CourseBooking current = courseBookingMapper.findByIdAndCoachId(coachId, booking.getId());
         if (current == null) {
             throw new org.springframework.security.access.AccessDeniedException("预约记录不存在或无权操作");
@@ -405,6 +405,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (updated == 0 && (!Integer.valueOf(targetBookingStatus).equals(current.getStatus())
                 || !Integer.valueOf(targetAttendanceStatus).equals(normalizeAttendanceStatus(current.getAttendanceStatus())))) {
             throw new BusinessException(409, "考勤状态已被其他操作修改，请刷新后重试");
+        }
+        if (updated > 0 && bookingStatus == 3 && targetBookingStatus == 4) {
+            decrementCourseCurrentStudents(booking.getCourseId());
         }
         evictCourseCache(booking.getCourseId());
         invalidateForBooking(booking);
@@ -1194,7 +1197,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         List<Long> toStart = courseBookingMapper.findBookingIdsToStart(today, now);
         if (toStart != null) {
             for (Long id : toStart) {
-                if (courseBookingMapper.startBookingIfPaid(id) > 0) {
+                if (courseBookingMapper.startBookingIfPaid(id, current) > 0) {
                     invalidateForBooking(courseBookingMapper.findById(id));
                 }
             }

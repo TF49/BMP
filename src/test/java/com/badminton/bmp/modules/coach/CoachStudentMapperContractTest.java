@@ -52,4 +52,44 @@ class CoachStudentMapperContractTest {
         assertTrue(sql.contains("c.coach_id = #{coachid}"));
         assertTrue(sql.contains("left join (biz_course_booking cb"));
     }
+
+    @Test
+    void countQueriesUseTheSameRiskDateAndAttendanceFiltersAsTheirDataQueries() {
+        String studentCount = selectSql("countStudents");
+        assertTrue(studentCount.contains("query.riskonly"));
+        assertTrue(studentCount.contains("#{riskattendancerate}"));
+        assertTrue(studentCount.contains("#{riskinactivedays}"));
+
+        String attendanceCount = selectSql("countAttendance");
+        assertTrue(attendanceCount.contains("query.startdate"));
+        assertTrue(attendanceCount.contains("query.enddate"));
+        assertTrue(attendanceCount.contains("query.attendancestatus"));
+    }
+
+    @Test
+    void riskQueriesUseConfiguredThresholdParametersInsteadOfFrozenSqlLiterals() {
+        String students = selectSql("findStudents");
+        String riskCount = selectSql("countRiskStudents");
+        assertTrue(students.contains("#{riskattendancerate}"));
+        assertTrue(students.contains("#{riskinactivedays}"));
+        assertTrue(riskCount.contains("#{riskattendancerate}"));
+        assertTrue(riskCount.contains("#{riskinactivedays}"));
+    }
+
+    @Test
+    void todayOnlyFilterExcludesCancelledAndPendingPaymentBookings() {
+        String students = selectSql("findStudents");
+        String count = selectSql("countStudents");
+        assertTrue(students.contains("tcb.status in (2, 3, 4)"));
+        assertTrue(students.contains("coalesce(tcb.attendance_status, 0) in (1, 2, 3)"));
+        assertTrue(count.contains("tcb.status in (2, 3, 4)"));
+        assertTrue(count.contains("coalesce(tcb.attendance_status, 0) in (1, 2, 3)"));
+    }
+
+    private String selectSql(String methodName) {
+        Method method = Arrays.stream(CoachStudentMapper.class.getDeclaredMethods())
+                .filter(candidate -> candidate.getName().equals(methodName))
+                .findFirst().orElseThrow();
+        return String.join(" ", method.getAnnotation(Select.class).value()).toLowerCase(Locale.ROOT);
+    }
 }

@@ -28,6 +28,18 @@ public interface CoachStudentMapper {
                                         @Param("memberId") Long memberId,
                                         @Param("retentionDays") int retentionDays);
 
+    @Select("SELECT MAX(DATE_ADD(TIMESTAMP(c.course_date, c.end_time), " +
+            "INTERVAL #{retentionDays} DAY)) " +
+            "FROM biz_course_booking cb " +
+            "INNER JOIN biz_course c ON cb.course_id = c.id " +
+            "INNER JOIN sys_member m ON cb.member_id = m.id " +
+            "WHERE cb.del_flag = 0 AND c.del_flag = 0 AND m.del_flag = 0 " +
+            "AND c.status != 0 AND c.coach_id = #{coachId} AND m.id = #{memberId} " +
+            "AND (cb.status IN (2, 3, 4) OR COALESCE(cb.attendance_status, 0) IN (1, 2, 3))")
+    java.time.LocalDateTime findCoachStudentRelationValidUntil(@Param("coachId") Long coachId,
+                                                               @Param("memberId") Long memberId,
+                                                               @Param("retentionDays") int retentionDays);
+
     @Select("""
             <script>
             SELECT m.id, m.member_name, m.gender,
@@ -91,13 +103,16 @@ public interface CoachStudentMapper {
                           INNER JOIN biz_course tc ON tcb.course_id = tc.id
                           WHERE tcb.member_id = m.id AND tcb.del_flag = 0 AND tc.del_flag = 0
                             AND tc.status != 0 AND tc.coach_id = #{coachId}
+                            AND (tcb.status IN (2, 3, 4)
+                                 OR COALESCE(tcb.attendance_status, 0) IN (1, 2, 3))
                             AND tc.course_date = CURRENT_DATE)
             </if>
             GROUP BY m.id, m.member_name, m.gender, u.avatar, m.phone, m.member_type,
                      m.member_level, m.status, m.expire_time
             <if test='query.riskOnly != null and query.riskOnly'>
-            HAVING ((attended_count + absent_count > 0 AND attendance_rate &lt; 70)
-                    OR (last_lesson_time IS NOT NULL AND last_lesson_time &lt; DATE_SUB(NOW(), INTERVAL 14 DAY)))
+            HAVING ((attended_count + absent_count > 0 AND attendance_rate &lt; #{riskAttendanceRate})
+                    OR (last_lesson_time IS NOT NULL
+                        AND last_lesson_time &lt; DATE_SUB(NOW(), INTERVAL #{riskInactiveDays} DAY)))
             </if>
             ORDER BY
             <choose>
@@ -114,31 +129,65 @@ public interface CoachStudentMapper {
     List<CoachStudentListItemVO> findStudents(@Param("coachId") Long coachId,
                                               @Param("query") CoachStudentListQuery query,
                                               @Param("retentionDays") int retentionDays,
+                                              @Param("riskAttendanceRate") int riskAttendanceRate,
+                                              @Param("riskInactiveDays") int riskInactiveDays,
                                               @Param("offset") int offset);
 
     @Select("""
             <script>
-            SELECT COUNT(DISTINCT m.id)
+            SELECT COUNT(*) FROM (
+            SELECT m.id,
+                   SUM(CASE WHEN COALESCE(cb.attendance_status, 0) = 2 THEN 1 ELSE 0 END) AS attended_count,
+                   SUM(CASE WHEN COALESCE(cb.attendance_status, 0) = 3 THEN 1 ELSE 0 END) AS absent_count,
+                   COALESCE(ROUND(
+                       SUM(CASE WHEN COALESCE(cb.attendance_status, 0) = 2 THEN 1 ELSE 0 END) * 100.0 /
+                       NULLIF(SUM(CASE WHEN COALESCE(cb.attendance_status, 0) IN (2, 3) THEN 1 ELSE 0 END), 0), 2
+                   ), 0) AS attendance_rate,
+                   MAX(CASE WHEN COALESCE(cb.attendance_status, 0) = 2
+                            THEN TIMESTAMP(c.course_date, c.end_time) END) AS last_lesson_time
             FROM sys_member m
-            INNER JOIN biz_course_booking cb ON cb.member_id = m.id
-            INNER JOIN biz_course c ON cb.course_id = c.id
-            WHERE m.del_flag = 0 AND cb.del_flag = 0 AND c.del_flag = 0 AND c.status != 0
-              AND c.coach_id = #{coachId}
-              AND (cb.status IN (2, 3, 4) OR COALESCE(cb.attendance_status, 0) IN (1, 2, 3))
-              AND TIMESTAMP(c.course_date, c.end_time) >= DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)
+            INNER JOIN (
+                SELECT DISTINCT vb.member_id
+                FROM biz_course_booking vb
+                INNER JOIN biz_course vc ON vb.course_id = vc.id
+                WHERE vb.del_flag = 0 AND vc.del_flag = 0 AND vc.status != 0
+                  AND vc.coach_id = #{coachId}
+                  AND (vb.status IN (2, 3, 4) OR COALESCE(vb.attendance_status, 0) IN (1, 2, 3))
+                  AND TIMESTAMP(vc.course_date, vc.end_time) >= DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)
+            ) relation ON relation.member_id = m.id
+            LEFT JOIN (biz_course_booking cb
+                INNER JOIN biz_course c ON cb.course_id = c.id AND c.del_flag = 0
+                    AND c.status != 0 AND c.coach_id = #{coachId})
+                ON cb.member_id = m.id AND cb.del_flag = 0
+            WHERE m.del_flag = 0
             <if test='query.keyword != null and query.keyword != ""'>
               AND (m.member_name LIKE CONCAT('%', #{query.keyword}, '%')
                    OR m.phone LIKE CONCAT('%', #{query.keyword}, '%'))
             </if>
             <if test='query.memberType != null and query.memberType != ""'>AND m.member_type = #{query.memberType}</if>
             <if test='query.todayOnly != null and query.todayOnly'>
-              AND c.course_date = CURRENT_DATE
+              AND EXISTS (SELECT 1 FROM biz_course_booking tcb
+                          INNER JOIN biz_course tc ON tcb.course_id = tc.id
+                          WHERE tcb.member_id = m.id AND tcb.del_flag = 0 AND tc.del_flag = 0
+                            AND tc.status != 0 AND tc.coach_id = #{coachId}
+                            AND (tcb.status IN (2, 3, 4)
+                                 OR COALESCE(tcb.attendance_status, 0) IN (1, 2, 3))
+                            AND tc.course_date = CURRENT_DATE)
             </if>
+            GROUP BY m.id
+            <if test='query.riskOnly != null and query.riskOnly'>
+            HAVING ((attended_count + absent_count > 0 AND attendance_rate &lt; #{riskAttendanceRate})
+                    OR (last_lesson_time IS NOT NULL
+                        AND last_lesson_time &lt; DATE_SUB(NOW(), INTERVAL #{riskInactiveDays} DAY)))
+            </if>
+            ) filtered_students
             </script>
             """)
     int countStudents(@Param("coachId") Long coachId,
                       @Param("query") CoachStudentListQuery query,
-                      @Param("retentionDays") int retentionDays);
+                      @Param("retentionDays") int retentionDays,
+                      @Param("riskAttendanceRate") int riskAttendanceRate,
+                      @Param("riskInactiveDays") int riskInactiveDays);
 
     @Select("""
             SELECT COUNT(DISTINCT m.id) AS totalStudents,
@@ -170,13 +219,17 @@ public interface CoachStudentMapper {
                 GROUP BY cb.member_id
                 HAVING ((SUM(CASE WHEN COALESCE(cb.attendance_status, 0) IN (2, 3) THEN 1 ELSE 0 END) > 0
                          AND COALESCE(ROUND(SUM(CASE WHEN COALESCE(cb.attendance_status, 0) = 2 THEN 1 ELSE 0 END) * 100.0 /
-                             NULLIF(SUM(CASE WHEN COALESCE(cb.attendance_status, 0) IN (2, 3) THEN 1 ELSE 0 END), 0), 2), 0) < 70)
+                             NULLIF(SUM(CASE WHEN COALESCE(cb.attendance_status, 0) IN (2, 3) THEN 1 ELSE 0 END), 0), 2), 0)
+                             &lt; #{riskAttendanceRate})
                     OR MAX(CASE WHEN COALESCE(cb.attendance_status, 0) = 2
-                                THEN TIMESTAMP(c.course_date, c.end_time) END) < DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                THEN TIMESTAMP(c.course_date, c.end_time) END)
+                                &lt; DATE_SUB(NOW(), INTERVAL #{riskInactiveDays} DAY))
             ) risk_students
             """)
     int countRiskStudents(@Param("coachId") Long coachId,
-                          @Param("retentionDays") int retentionDays);
+                          @Param("retentionDays") int retentionDays,
+                          @Param("riskAttendanceRate") int riskAttendanceRate,
+                          @Param("riskInactiveDays") int riskInactiveDays);
 
     @Select("""
             SELECT m.id, m.member_name, m.gender,
@@ -280,11 +333,20 @@ public interface CoachStudentMapper {
                                                   @Param("offset") int offset);
 
     @Select("""
+            <script>
             SELECT COUNT(*) FROM biz_course_booking cb INNER JOIN biz_course c ON cb.course_id = c.id
             WHERE cb.del_flag = 0 AND c.del_flag = 0 AND c.status != 0
               AND c.coach_id = #{coachId} AND cb.member_id = #{memberId}
+            <if test='query.startDate != null'>AND c.course_date &gt;= #{query.startDate}</if>
+            <if test='query.endDate != null'>AND c.course_date &lt;= #{query.endDate}</if>
+            <if test='query.attendanceStatus != null'>
+              AND COALESCE(cb.attendance_status, 0) = #{query.attendanceStatus}
+            </if>
+            </script>
             """)
-    int countAttendance(@Param("coachId") Long coachId, @Param("memberId") Long memberId);
+    int countAttendance(@Param("coachId") Long coachId,
+                        @Param("memberId") Long memberId,
+                        @Param("query") CoachStudentScheduleQuery query);
 
     @Select("""
             SELECT r.id, r.business_id AS booking_id, c.course_name, r.amount,

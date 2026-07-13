@@ -7,6 +7,7 @@ import {
   getStudentAvatarWithFallback,
   maskPhone
 } from '@/utils/coachStudents'
+import { canCompleteBooking } from '@/utils/coachView'
 
 describe('coach student routes and privacy helpers', () => {
   it('builds dedicated list and detail routes', () => {
@@ -38,6 +39,19 @@ describe('coach student routes and privacy helpers', () => {
     expect((tabBar.match(/\{ key: '[^']+', label:/g) || [])).toHaveLength(4)
   })
 
+  it('uses attendance actions on the booking list and keeps cancellation separate', () => {
+    const bookings = readFileSync('pages/coach/bookings.vue', 'utf8')
+
+    expect(bookings).toContain('updateCoachBookingAttendance')
+    expect(bookings).toContain("'CHECK_IN'")
+    expect(bookings).toContain("'COMPLETE'")
+    expect(bookings).toContain("'ABSENT'")
+    expect(bookings).toContain('取消预约')
+    expect(bookings).not.toContain('缺席/取消')
+    expect(bookings).not.toContain('updateStatus(item, 3)')
+    expect(bookings).not.toContain('updateStatus(item, 4)')
+  })
+
   it('implements list/detail states, refresh, privacy, avatar fallback and four detail tabs', () => {
     const list = readFileSync('pages/coach/student-list.vue', 'utf8')
     const detail = readFileSync('pages/coach/student-detail.vue', 'utf8')
@@ -59,5 +73,23 @@ describe('coach student routes and privacy helpers', () => {
     expect(detail).toContain('uni.makePhoneCall')
     expect(detail).not.toContain('totalRecharge')
     expect(detail).not.toContain('balance')
+  })
+
+  it('allows an absent finished booking to be corrected to completed within 24 hours', () => {
+    expect(canCompleteBooking({
+      status: 4,
+      attendanceStatus: 3,
+      courseDate: '2026-07-13',
+      courseEndTime: '11:00:00'
+    }, new Date('2026-07-14T10:59:59'))).toBe(true)
+    expect(canCompleteBooking({
+      status: 4,
+      attendanceStatus: 3,
+      courseDate: '2026-07-13',
+      courseEndTime: '11:00:00'
+    }, new Date('2026-07-14T11:00:01'))).toBe(false)
+
+    const sessionStudents = readFileSync('pages/coach/students.vue', 'utf8')
+    expect(sessionStudents).toContain('更正为完成')
   })
 })

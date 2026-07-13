@@ -8,7 +8,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CoachStudentRelationCacheInvalidator {
     private static final List<String> COACH_STUDENT_CACHES = List.of(
-            "coachStudentRelation", "coachStudentProgress", "coachStudentAttendance");
+            "coachStudentRelation", "coachStudentProgress", "coachStudentAttendance",
+            "coachStudentLastSuccess");
 
     private final CacheManager cacheManager;
 

@@ -23,7 +23,7 @@ public class CoachStudentQueryRateLimiter {
     }
 
     public boolean tryAcquireDetail(Long coachId, Long memberId) {
-        return acquire("detail:" + coachId + ':' + memberId, 10);
+        return acquire("detail:" + coachId, 10);
     }
 
     private boolean acquire(String key, int limit) {

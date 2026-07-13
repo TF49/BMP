@@ -19,6 +19,7 @@ class CoachStudentQueryRateLimiterTest {
 
         for (int i = 0; i < 10; i++) assertTrue(limiter.tryAcquireDetail(9L, 100L));
         assertFalse(limiter.tryAcquireDetail(9L, 100L));
-        assertTrue(limiter.tryAcquireDetail(9L, 101L));
+        assertFalse(limiter.tryAcquireDetail(9L, 101L));
+        assertTrue(limiter.tryAcquireDetail(10L, 101L));
     }
 }

@@ -91,7 +91,9 @@
 
                 <view class="status-actions">
                   <button v-if="canStart(student)" class="checkin-btn" @tap.stop="updateAttendance(student, 'CHECK_IN')">签到</button>
-                  <button v-if="canComplete(student)" class="checkin-btn checkin-btn-blue" @tap.stop="updateAttendance(student, 'COMPLETE')">完成</button>
+                  <button v-if="canComplete(student)" class="checkin-btn checkin-btn-blue" @tap.stop="updateAttendance(student, 'COMPLETE')">
+                    {{ student.attendanceStatus === 3 ? '更正为完成' : '完成' }}
+                  </button>
                   <button v-if="canCancel(student)" class="checkin-btn checkin-btn-muted" @tap.stop="cancelBooking(student)">取消预约</button>
                   <button v-if="canMarkAbsent(student)" class="checkin-btn checkin-btn-danger" @tap.stop="updateAttendance(student, 'ABSENT')">登记缺席</button>
                   <button v-if="student.memberId" class="detail-btn" @tap.stop="goStudentDetail(student.memberId)">查看学员详情 →</button>

@@ -19,7 +19,9 @@ import com.badminton.bmp.modules.course.dto.AttendanceAction;
 import com.badminton.bmp.modules.course.dto.AttendanceCommand;
 import com.badminton.bmp.modules.course.dto.AttendanceCommandResult;
 import com.badminton.bmp.modules.course.entity.CourseBooking;
+import com.badminton.bmp.modules.course.entity.Course;
 import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
+import com.badminton.bmp.modules.course.mapper.CourseMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -36,13 +38,16 @@ class CourseBookingAttendanceServiceTest {
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private static final LocalDate COURSE_DATE = LocalDate.of(2026, 7, 13);
     private CourseBookingMapper mapper;
+    private CourseMapper courseMapper;
     private CourseBookingServiceImpl service;
 
     @BeforeEach
     void setUp() {
         mapper = mock(CourseBookingMapper.class);
+        courseMapper = mock(CourseMapper.class);
         service = new CourseBookingServiceImpl();
         ReflectionTestUtils.setField(service, "courseBookingMapper", mapper);
+        ReflectionTestUtils.setField(service, "courseMapper", courseMapper);
         setNow(LocalDateTime.of(2026, 7, 13, 10, 30));
     }
 
@@ -53,7 +58,7 @@ class CourseBookingAttendanceServiceTest {
         after.setActualCheckinTime(LocalDateTime.of(2026, 7, 13, 10, 30));
         when(mapper.findByIdAndCoachId(9L, 100L)).thenReturn(before, after);
         when(mapper.updateAttendanceWithExpectedState(
-                eq(100L), eq(2), eq(0), eq(3), eq(1), any(), any(), eq(null), eq(false)))
+                eq(100L), eq(9L), eq(2), eq(0), eq(3), eq(1), any(), any(), eq(null), eq(false), any()))
                 .thenReturn(1);
 
         AttendanceCommandResult result = service.updateAttendanceForCoach(9L, command(AttendanceAction.CHECK_IN));
@@ -74,7 +79,7 @@ class CourseBookingAttendanceServiceTest {
         assertEquals(1, result.getAttendanceStatus());
         assertEquals(checkedIn.getActualCheckinTime(), result.getActualCheckinTime());
         verify(mapper, never()).updateAttendanceWithExpectedState(
-                anyLong(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any(), anyBoolean());
+                anyLong(), anyLong(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -86,14 +91,21 @@ class CourseBookingAttendanceServiceTest {
         after.setActualFinishTime(LocalDateTime.of(2026, 7, 13, 10, 30));
         when(mapper.findByIdAndCoachId(9L, 100L)).thenReturn(before, after);
         when(mapper.updateAttendanceWithExpectedState(
-                eq(100L), eq(3), eq(1), eq(4), eq(2), any(), eq(null), any(), eq(false)))
+                eq(100L), eq(9L), eq(3), eq(1), eq(4), eq(2), any(), eq(null), any(), eq(false), any()))
                 .thenReturn(1);
+        Course course = new Course();
+        course.setId(200L);
+        course.setCurrentStudents(5);
+        course.setVersion(3);
+        when(courseMapper.findById(200L)).thenReturn(course);
+        when(courseMapper.updateCurrentStudentsWithVersion(200L, 4, 3)).thenReturn(1);
 
         AttendanceCommandResult result = service.updateAttendanceForCoach(9L, command(AttendanceAction.COMPLETE));
 
         assertEquals(2, result.getAttendanceStatus());
         assertEquals(4, result.getBookingStatus());
         assertEquals(after.getActualFinishTime(), result.getActualFinishTime());
+        verify(courseMapper, times(1)).updateCurrentStudentsWithVersion(200L, 4, 3);
     }
 
     @Test
@@ -104,7 +116,7 @@ class CourseBookingAttendanceServiceTest {
         after.setActualFinishTime(LocalDateTime.of(2026, 7, 14, 11, 0));
         when(mapper.findByIdAndCoachId(9L, 100L)).thenReturn(before, after);
         when(mapper.updateAttendanceWithExpectedState(
-                eq(100L), eq(4), eq(3), eq(4), eq(2), any(), eq(null), any(), eq(false)))
+                eq(100L), eq(9L), eq(4), eq(3), eq(4), eq(2), any(), eq(null), any(), eq(false), any()))
                 .thenReturn(1);
 
         AttendanceCommandResult result = service.updateAttendanceForCoach(9L, command(AttendanceAction.COMPLETE));
@@ -120,7 +132,7 @@ class CourseBookingAttendanceServiceTest {
         CourseBooking after = booking(4, 3);
         when(mapper.findByIdAndCoachId(9L, 100L)).thenReturn(before, after);
         when(mapper.updateAttendanceWithExpectedState(
-                eq(100L), eq(4), eq(2), eq(4), eq(3), any(), eq(null), eq(null), eq(true)))
+                eq(100L), eq(9L), eq(4), eq(2), eq(4), eq(3), any(), eq(null), eq(null), eq(true), any()))
                 .thenReturn(1);
 
         AttendanceCommandResult result = service.updateAttendanceForCoach(9L, command(AttendanceAction.ABSENT));
@@ -139,7 +151,7 @@ class CourseBookingAttendanceServiceTest {
         assertThrows(BusinessException.class,
                 () -> service.updateAttendanceForCoach(9L, command(AttendanceAction.CHECK_IN)));
         verify(mapper, never()).updateAttendanceWithExpectedState(
-                anyLong(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any(), anyBoolean());
+                anyLong(), anyLong(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -165,7 +177,7 @@ class CourseBookingAttendanceServiceTest {
         assertEquals(3, service.updateAttendanceForCoach(9L, command(AttendanceAction.ABSENT))
                 .getAttendanceStatus());
         verify(mapper, never()).updateAttendanceWithExpectedState(
-                anyLong(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any(), anyBoolean());
+                anyLong(), anyLong(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -175,13 +187,14 @@ class CourseBookingAttendanceServiceTest {
         winner.setActualFinishTime(LocalDateTime.of(2026, 7, 13, 10, 30));
         when(mapper.findByIdAndCoachId(9L, 100L)).thenReturn(before, winner);
         when(mapper.updateAttendanceWithExpectedState(
-                eq(100L), eq(3), eq(1), eq(4), eq(2), any(), eq(null), any(), eq(false)))
+                eq(100L), eq(9L), eq(3), eq(1), eq(4), eq(2), any(), eq(null), any(), eq(false), any()))
                 .thenReturn(0);
 
         AttendanceCommandResult result = service.updateAttendanceForCoach(9L, command(AttendanceAction.COMPLETE));
 
         assertEquals(2, result.getAttendanceStatus());
         assertEquals(4, result.getBookingStatus());
+        verify(courseMapper, never()).updateCurrentStudentsWithVersion(anyLong(), anyInt(), anyInt());
     }
 
     @Test
@@ -190,7 +203,7 @@ class CourseBookingAttendanceServiceTest {
         CourseBooking winner = booking(3, 3);
         when(mapper.findByIdAndCoachId(9L, 100L)).thenReturn(before, winner);
         when(mapper.updateAttendanceWithExpectedState(
-                eq(100L), eq(3), eq(1), eq(4), eq(2), any(), eq(null), any(), eq(false)))
+                eq(100L), eq(9L), eq(3), eq(1), eq(4), eq(2), any(), eq(null), any(), eq(false), any()))
                 .thenReturn(0);
 
         BusinessException error = assertThrows(BusinessException.class,
@@ -225,12 +238,12 @@ class CourseBookingAttendanceServiceTest {
     void automaticStartAndFinishUseConditionalMapperUpdates() {
         when(mapper.findBookingIdsToStart(COURSE_DATE, LocalTime.of(10, 30))).thenReturn(List.of(1L));
         when(mapper.findBookingIdsToFinish(COURSE_DATE, LocalTime.of(10, 30))).thenReturn(List.of(2L));
-        when(mapper.startBookingIfPaid(1L)).thenReturn(1);
+        when(mapper.startBookingIfPaid(eq(1L), any(LocalDateTime.class))).thenReturn(1);
         when(mapper.finishBookingAndAttendanceIfOngoing(eq(2L), any(LocalDateTime.class))).thenReturn(0);
 
         service.autoUpdateCourseBookingStatusByTime();
 
-        verify(mapper).startBookingIfPaid(1L);
+        verify(mapper).startBookingIfPaid(eq(1L), any(LocalDateTime.class));
         verify(mapper).finishBookingAndAttendanceIfOngoing(eq(2L), any(LocalDateTime.class));
         verify(mapper, never()).updateStatus(anyLong(), anyInt());
     }

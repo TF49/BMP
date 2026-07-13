@@ -22,6 +22,8 @@ class CoachStudentRelationCacheHookContractTest {
                 "invalidateForMember");
         assertTrue(Files.exists(Path.of(
                 "src/main/java/com/badminton/bmp/modules/course/cache/CoachStudentRelationCacheInvalidator.java")));
+        assertContains("src/main/java/com/badminton/bmp/modules/course/cache/CoachStudentRelationCacheInvalidator.java",
+                "coachStudentLastSuccess");
     }
 
     @Test

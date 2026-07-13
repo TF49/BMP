@@ -103,9 +103,12 @@
 
             <view class="action-row">
               <button class="ghost-btn ghost-btn-light" @tap="openDetail(item)">详情</button>
-              <button v-if="canStart(item)" class="ghost-btn ghost-btn-green" @tap="updateStatus(item, 3)">签到</button>
-              <button v-if="canComplete(item)" class="ghost-btn ghost-btn-blue" @tap="updateStatus(item, 4)">完成</button>
-              <button v-if="canCancel(item)" class="ghost-btn ghost-btn-danger" @tap="updateStatus(item, 0)">缺席/取消</button>
+              <button v-if="canStart(item)" class="ghost-btn ghost-btn-green" @tap="updateAttendance(item, 'CHECK_IN')">签到</button>
+              <button v-if="canComplete(item)" class="ghost-btn ghost-btn-blue" @tap="updateAttendance(item, 'COMPLETE')">
+                {{ item.attendanceStatus === 3 ? '更正为完成' : '完成' }}
+              </button>
+              <button v-if="canCancel(item)" class="ghost-btn ghost-btn-light" @tap="cancelBooking(item)">取消预约</button>
+              <button v-if="canMarkAbsent(item)" class="ghost-btn ghost-btn-danger" @tap="updateAttendance(item, 'ABSENT')">登记缺席</button>
             </view>
           </view>
         </view>
@@ -196,6 +199,8 @@ import {
   getBookingDetailForCoach,
   getBookingsForCoach,
   updateBookingStatusForCoach,
+  updateCoachBookingAttendance,
+  type AttendanceAction,
   type CoachBookingItem
 } from '@/api/coachSelf'
 import { COACH_UNBOUND_PATH, isCoachUnboundError } from '@/utils/coachAccess'
@@ -257,15 +262,48 @@ function statusClass(status?: number) {
 }
 
 function canStart(item: CoachBookingItem) {
+  const start = courseStartAt(item)
   return canStartBooking(item)
+    && Number(item.attendanceStatus ?? 0) === 0
+    && Boolean(start && Date.now() >= start.getTime())
+    && isWithinAttendanceWindow(item)
 }
 
 function canComplete(item: CoachBookingItem) {
-  return canCompleteBooking(item)
+  return canCompleteBooking(item) && isWithinAttendanceWindow(item)
 }
 
 function canCancel(item: CoachBookingItem) {
-  return canCancelBooking(item)
+  const start = courseStartAt(item)
+  return canCancelBooking(item) && Boolean(start && Date.now() < start.getTime())
+}
+
+function canMarkAbsent(item: CoachBookingItem) {
+  const start = courseStartAt(item)
+  const status = Number(item.status ?? -1)
+  return Boolean(start && Date.now() >= start.getTime())
+    && (status === 2 || status === 3 || status === 4)
+    && Number(item.attendanceStatus ?? 0) !== 3
+    && isWithinAttendanceWindow(item)
+}
+
+function courseStartAt(item: CoachBookingItem) {
+  return courseDateTime(item.courseDate, item.courseStartTime || item.startTime)
+}
+
+function courseEndAt(item: CoachBookingItem) {
+  return courseDateTime(item.courseDate, item.courseEndTime || item.endTime)
+}
+
+function courseDateTime(date?: string, time?: string) {
+  if (!date || !time) return null
+  const value = new Date(`${date}T${String(time).slice(0, 8)}`)
+  return Number.isNaN(value.getTime()) ? null : value
+}
+
+function isWithinAttendanceWindow(item: CoachBookingItem) {
+  const end = courseEndAt(item)
+  return Boolean(end && Date.now() <= end.getTime() + 24 * 60 * 60 * 1000)
 }
 
 async function loadList() {
@@ -315,32 +353,26 @@ function closeDetail() {
   detailVisible.value = false
 }
 
-async function updateStatus(item: CoachBookingItem, status: number) {
-  const titleMap: Record<number, string> = {
-    0: '确认登记缺席/取消吗？已支付订单如需退款，请联系管理员处理。',
-    3: '确认将该预约更新为签到上课吗？',
-    4: '确认将该预约更新为已完成吗？'
+async function updateAttendance(item: CoachBookingItem, action: AttendanceAction) {
+  const titleMap: Record<AttendanceAction, string> = {
+    CHECK_IN: '确认将该预约登记为已签到吗？',
+    COMPLETE: item.attendanceStatus === 3 ? '确认将缺席记录更正为已完成吗？' : '确认将该预约登记为已完成吗？',
+    ABSENT: '确认将该预约登记为缺席吗？'
   }
 
   uni.showModal({
-    title: '更新预约状态',
-    content: titleMap[status] || '确认更新状态吗？',
+    title: '更新考勤',
+    content: titleMap[action],
     confirmColor: '#ff6600',
     success: async (result) => {
       if (!result.confirm) return
       try {
-        await updateBookingStatusForCoach({
-          id: item.id,
-          status
-        })
+        await updateCoachBookingAttendance({ id: item.id, action })
         uni.showToast({
-          title: status === 0 ? '已登记，请联系管理员处理退款' : '状态已更新',
+          title: action === 'ABSENT' ? '已登记缺席' : '考勤已更新',
           icon: 'success'
         })
-        await loadList()
-        if (detailVisible.value && detail.value?.id === item.id) {
-          await openDetail(item)
-        }
+        await refreshAfterWrite(item)
       } catch (error) {
         uni.showToast({
           title: error instanceof Error ? error.message : '更新失败',
@@ -349,6 +381,34 @@ async function updateStatus(item: CoachBookingItem, status: number) {
       }
     }
   })
+}
+
+async function cancelBooking(item: CoachBookingItem) {
+  uni.showModal({
+    title: '取消预约',
+    content: '确认在课程开始前取消该预约吗？已支付订单如需退款，请联系管理员处理。',
+    confirmColor: '#ff6600',
+    success: async (result) => {
+      if (!result.confirm) return
+      try {
+        await updateBookingStatusForCoach({ id: item.id, status: 0 })
+        uni.showToast({ title: '预约已取消', icon: 'success' })
+        await refreshAfterWrite(item)
+      } catch (error) {
+        uni.showToast({
+          title: error instanceof Error ? error.message : '取消失败',
+          icon: 'none'
+        })
+      }
+    }
+  })
+}
+
+async function refreshAfterWrite(item: CoachBookingItem) {
+  await loadList()
+  if (detailVisible.value && detail.value?.id === item.id) {
+    await openDetail(item)
+  }
 }
 
 function applyFilters() {

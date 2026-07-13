@@ -114,8 +114,28 @@ export function canStartBooking(item: Pick<CoachBookingItem, 'status'>) {
   return Number(item.status ?? -1) === 2
 }
 
-export function canCompleteBooking(item: Pick<CoachBookingItem, 'status'>) {
-  return Number(item.status ?? -1) === 3
+export function canCompleteBooking(
+  item: Pick<CoachBookingItem,
+    'status' | 'attendanceStatus' | 'courseDate' | 'startTime' | 'endTime' | 'courseStartTime' | 'courseEndTime'>,
+  now: Date = new Date()
+) {
+  const status = Number(item.status ?? -1)
+  const attendanceStatus = Number(item.attendanceStatus ?? 0)
+  if (status === 3 && attendanceStatus === 1) return true
+  if ((status !== 3 && status !== 4) || attendanceStatus !== 3) return false
+
+  const startAt = bookingCourseDateTime(item.courseDate, item.courseStartTime || item.startTime)
+  const endAt = bookingCourseDateTime(item.courseDate, item.courseEndTime || item.endTime)
+  if (!endAt) return false
+  const nowTime = now.getTime()
+  const courseHasStarted = startAt ? nowTime >= startAt.getTime() : status === 4
+  return courseHasStarted && nowTime <= endAt.getTime() + 24 * 60 * 60 * 1000
+}
+
+function bookingCourseDateTime(courseDate?: string, time?: string) {
+  if (!courseDate || !time) return null
+  const value = new Date(`${courseDate}T${normalizeTime(time)}:00`)
+  return Number.isNaN(value.getTime()) ? null : value
 }
 
 export function canCancelBooking(item: Pick<CoachBookingItem, 'status'>) {
