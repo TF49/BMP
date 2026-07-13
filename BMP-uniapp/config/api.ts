@@ -70,7 +70,8 @@ export const API_PATHS = {
       MEMBER_PAYMENT: '/course/booking/member/payment',
       COACH_LIST: '/course/booking/for-coach',
       COACH_DETAIL: '/course/booking/for-coach',
-      COACH_STATUS: '/course/booking/for-coach/status'
+      COACH_STATUS: '/course/booking/for-coach/status',
+      COACH_ATTENDANCE: '/course/booking/for-coach/attendance'
     },
     COACHES: '/course/coaches',
     COURTS: '/course/courts'
@@ -82,7 +83,13 @@ export const API_PATHS = {
     ME: '/coach/me',
     ADD: '/coach/add',
     UPDATE: '/coach/update',
-    DELETE: '/coach'
+    DELETE: '/coach',
+    STUDENTS: '/coach/students',
+    STUDENT_DETAIL: (id: number) => `/coach/students/${id}`,
+    STUDENT_PROGRESS: (id: number) => `/coach/students/${id}/progress`,
+    STUDENT_SCHEDULE: (id: number) => `/coach/students/${id}/schedule`,
+    STUDENT_ATTENDANCE: (id: number) => `/coach/students/${id}/attendance`,
+    STUDENT_CONSUME_RECORDS: (id: number) => `/coach/students/${id}/consume-records`
   },
   // 器材相关
   EQUIPMENT: {
