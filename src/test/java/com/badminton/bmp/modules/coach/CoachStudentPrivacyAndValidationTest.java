@@ -70,10 +70,13 @@ class CoachStudentPrivacyAndValidationTest {
         CoachStudentListQuery query = new CoachStudentListQuery();
         when(mapper.findStudents(9L, query, 180, 0)).thenReturn(List.of());
         when(mapper.countStudents(9L, query, 180)).thenReturn(28);
-        when(mapper.summarizeStudents(9L, 180)).thenReturn(Map.of("totalStudents", 28));
+        when(mapper.summarizeStudents(9L, 180)).thenReturn(Map.of(
+                "totalStudents", 28, "averageAttendanceRate", new java.math.BigDecimal("76.50")));
         when(mapper.countRiskStudents(9L, 180)).thenReturn(6);
 
-        assertEquals(6, service.listStudents(9L, query).getRiskStudents());
+        var response = service.listStudents(9L, query);
+        assertEquals(6, response.getRiskStudents());
+        assertEquals(new java.math.BigDecimal("76.50"), response.getAverageAttendanceRate());
         verify(mapper).countRiskStudents(9L, 180);
     }
 }

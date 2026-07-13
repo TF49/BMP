@@ -142,7 +142,11 @@ public interface CoachStudentMapper {
 
     @Select("""
             SELECT COUNT(DISTINCT m.id) AS totalStudents,
-                   COUNT(DISTINCT CASE WHEN DATE(c.course_date) = CURRENT_DATE THEN m.id END) AS todayStudents
+                   COUNT(DISTINCT CASE WHEN DATE(c.course_date) = CURRENT_DATE THEN m.id END) AS todayStudents,
+                   COALESCE(ROUND(
+                       SUM(CASE WHEN COALESCE(cb.attendance_status, 0) = 2 THEN 1 ELSE 0 END) * 100.0 /
+                       NULLIF(SUM(CASE WHEN COALESCE(cb.attendance_status, 0) IN (2, 3) THEN 1 ELSE 0 END), 0), 2
+                   ), 0) AS averageAttendanceRate
             FROM sys_member m
             INNER JOIN biz_course_booking cb ON cb.member_id = m.id AND cb.del_flag = 0
             INNER JOIN biz_course c ON cb.course_id = c.id AND c.del_flag = 0

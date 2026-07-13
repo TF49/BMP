@@ -729,6 +729,22 @@
       }
     },
     {
+      "path": "pages/coach/student-list",
+      "style": {
+        "navigationBarTitleText": "我的学员",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/coach/student-detail",
+      "style": {
+        "navigationBarTitleText": "学员详情",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/coach/history",
       "style": {
         "navigationBarTitleText": "课程历史记录",

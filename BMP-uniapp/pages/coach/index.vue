@@ -92,6 +92,18 @@
             </view>
           </view>
 
+          <view class="student-card-section" @tap="handleQuickAction('students')">
+            <view class="student-card-left">
+              <text class="student-card-title">我的学员</text>
+              <text class="student-card-desc">
+                已服务 {{ metrics.totalStudents }} 人 · 风险关注 {{ metrics.riskStudents }} 人
+              </text>
+            </view>
+            <view class="student-card-icon">
+              <uni-icons type="person-filled" size="28" color="#ff6600" />
+            </view>
+          </view>
+
           <view class="agenda-head">
             <text class="agenda-title">今日日程</text>
             <text class="agenda-date">{{ agendaDate }}</text>
@@ -143,9 +155,10 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import CoachTabBar from '@/components/coach/CoachTabBar.vue'
 import CoachTopBar from '@/components/coach/CoachTopBar.vue'
-import { getBookingsForCoach, getCurrentCoach, getMyCourses, type CoachCourseItem, type CoachProfile } from '@/api/coachSelf'
+import { getBookingsForCoach, getCoachStudents, getCurrentCoach, getMyCourses, type CoachCourseItem, type CoachProfile } from '@/api/coachSelf'
 import { COACH_UNBOUND_PATH, isCoachUnboundError, resolveCoachAvatar } from '@/utils/coachAccess'
 import { safeReLaunch } from '@/utils/safeRoute'
+import { buildCoachStudentListUrl } from '@/utils/coachStudents'
 import {
   buildCoachBookingsUrl,
   compareCoachCourseTime,
@@ -172,7 +185,8 @@ const coach = ref<CoachProfile | null>(null)
 const metrics = ref({
   todayCourses: 0,
   pendingBookings: 0,
-  totalStudents: 0
+  totalStudents: 0,
+  riskStudents: 0
 })
 const scheduleList = ref<ScheduleCard[]>([])
 
@@ -197,7 +211,7 @@ async function loadDashboard() {
 
   const today = formatDateKey(new Date())
   try {
-    const [coachInfo, todayCourses, pendingBookings] = await Promise.all([
+    const [coachInfo, todayCourses, pendingBookings, studentSummary] = await Promise.all([
       getCurrentCoach(),
       getMyCourses({
         page: 1,
@@ -209,14 +223,16 @@ async function loadDashboard() {
         page: 1,
         size: 1,
         status: 2
-      })
+      }),
+      getCoachStudents({ page: 1, size: 1 })
     ])
 
     coach.value = coachInfo
     metrics.value = {
       todayCourses: Number(todayCourses.total || 0),
       pendingBookings: Number(pendingBookings.total || 0),
-      totalStudents: Number(coachInfo.totalStudents || 0)
+      totalStudents: Number(studentSummary.totalStudents || 0),
+      riskStudents: Number(studentSummary.riskStudents || 0)
     }
     scheduleList.value = [...(todayCourses.data || [])]
       .sort(compareCoachCourseTime)
@@ -242,11 +258,12 @@ async function loadDashboard() {
   }
 }
 
-function handleQuickAction(type: 'courses' | 'bookings' | 'profile') {
+function handleQuickAction(type: 'courses' | 'bookings' | 'profile' | 'students') {
   const urlMap: Record<typeof type, string> = {
     courses: '/pages/coach/courses',
     bookings: buildCoachBookingsUrl(undefined, undefined, 2),
-    profile: '/pages/coach/profile'
+    profile: '/pages/coach/profile',
+    students: buildCoachStudentListUrl()
   }
   safeReLaunch(urlMap[type], '/pages/coach/index')
 }
@@ -408,6 +425,45 @@ onShow(() => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14rpx;
+}
+
+.student-card-section {
+  margin-top: 24rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #fff2eb 0%, #ffffff 100%);
+  padding: 30rpx 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(163, 62, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.student-card-title {
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1a1c1c;
+}
+
+.student-card-desc {
+  font-size: 23rpx;
+  color: #a33e00;
+  font-weight: 700;
+}
+
+.student-card-icon {
+  width: 78rpx;
+  height: 78rpx;
+  border-radius: 22rpx;
+  background: #ffdbcd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .action-card {

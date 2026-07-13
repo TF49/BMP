@@ -1,0 +1,236 @@
+<template>
+  <view class="student-detail-page">
+    <scroll-view class="page-scroll" scroll-y :show-scrollbar="false" refresher-enabled :refresher-triggered="refreshing" @refresherrefresh="handleRefresh">
+      <view class="page-shell">
+        <CoachTopBar :status-bar-height="statusBarHeight" :avatar="coachAvatar" brand="KINETIC LOGIC" />
+
+        <view v-if="loading" class="state-card"><view class="spinner" /><text class="state-title">正在加载学员详情</text></view>
+        <view v-else-if="loadFailed" class="state-card"><text class="state-title">学员详情加载失败</text><text class="state-desc">{{ errorMessage }}</text><view class="state-action" @tap="loadAll">重新加载</view></view>
+        <template v-else-if="student">
+          <view v-if="student.risk" class="risk-banner">该学员出勤率偏低或已超过14天无完成课程，请及时关注</view>
+          <view class="profile-card">
+            <image class="profile-avatar" :src="profileAvatar" mode="aspectFill" @error="avatarFailed = true" />
+            <view class="profile-main">
+              <view class="profile-name-row"><text class="profile-name">{{ student.memberName }}</text><text class="member-tag">{{ memberLabel }}</text></view>
+              <text class="profile-phone">{{ maskPhone(student.phone) }}</text>
+              <text class="expire-text" :class="expireClass">{{ expireText }}</text>
+            </view>
+            <view v-if="student.phone" class="phone-button" @tap="callStudent"><uni-icons type="phone-filled" size="24" color="#fff" /></view>
+          </view>
+
+          <scroll-view class="tab-scroll" scroll-x :show-scrollbar="false">
+            <view class="tab-row">
+              <view v-for="tab in tabs" :key="tab.key" class="tab-item" :class="{ active: activeTab === tab.key }" @tap="selectTab(tab.key)">{{ tab.label }}</view>
+            </view>
+          </scroll-view>
+
+          <view v-if="tabLoading" class="state-card compact"><view class="spinner" /></view>
+          <view v-else-if="activeTab === 'overview'" class="tab-panel">
+            <view class="kpi-grid">
+              <view class="kpi-card"><text class="kpi-label">累计课时</text><text class="kpi-value">{{ numberText(student.totalHours) }}h</text></view>
+              <view class="kpi-card"><text class="kpi-label">出勤率</text><text class="kpi-value">{{ numberText(student.attendanceRate) }}%</text></view>
+              <view class="kpi-card"><text class="kpi-label">我带课消费</text><text class="kpi-value">¥{{ moneyText(student.totalConsumptionForCoach) }}</text></view>
+              <view class="kpi-card"><text class="kpi-label">累计预约</text><text class="kpi-value">{{ student.totalBookings || 0 }}</text></view>
+            </view>
+            <view class="info-card"><text class="info-title">课程时间线</text><text>最近一次：{{ formatDateTime(student.lastLessonTime) }}</text><text>下一次：{{ formatDateTime(student.nextLessonTime) }}</text></view>
+          </view>
+
+          <view v-else-if="activeTab === 'progress'" class="tab-panel">
+            <view v-if="progress.length" class="stack-list">
+              <view v-for="item in progress" :key="item.courseName" class="data-card">
+                <view class="data-head"><text class="data-title">{{ item.courseName }}</text><text>{{ item.completedLessons }}/{{ item.totalBookings }}</text></view>
+                <view class="progress-track"><view class="progress-fill" :style="{ width: progressWidth(item.completedLessons, item.totalBookings) }" /></view>
+                <text class="data-meta">累计 {{ numberText(item.totalHours) }}h · 最近 {{ formatDateTime(item.lastLessonTime) }}</text>
+              </view>
+            </view>
+            <view v-else class="state-card compact"><text class="state-title">暂无系统课包进度</text></view>
+            <view class="notice-card"><uni-icons type="info" size="18" color="#ff6600" /><text>进度基于课程名称自动聚合统计，非正式课程包。如需购买1v1私教包，请联系管理员。</text></view>
+          </view>
+
+          <view v-else-if="activeTab === 'schedule'" class="tab-panel">
+            <view v-if="schedule.length" class="stack-list">
+              <view v-for="item in schedule" :key="item.bookingId" class="data-card" @tap="openBooking(item.bookingId)">
+                <view class="data-head"><text class="data-title">{{ item.courseName }}</text><text class="status-text">{{ bookingStatusText(item.bookingStatus) }}</text></view>
+                <text class="data-meta">{{ item.courseDate }} {{ shortTime(item.startTime) }}—{{ shortTime(item.endTime) }}</text>
+                <text class="data-meta">考勤：{{ attendanceStatusText(item.attendanceStatus) }}</text>
+              </view>
+            </view>
+            <view v-else class="state-card compact"><text class="state-title">暂无课程安排</text></view>
+          </view>
+
+          <view v-else-if="activeTab === 'attendance'" class="tab-panel">
+            <view class="month-summary">本页完成 {{ completedOnPage }} · 缺席 {{ absentOnPage }}</view>
+            <view v-if="attendance.length" class="stack-list">
+              <view v-for="item in attendance" :key="item.bookingId" class="data-card">
+                <view class="data-head"><text class="data-title">{{ item.courseDate }} · {{ item.courseName }}</text><text class="status-text">{{ attendanceStatusText(item.attendanceStatus) }}</text></view>
+                <text class="data-meta">预约：{{ bookingStatusText(item.bookingStatus) }} · {{ item.durationMinutes || 0 }}分钟</text>
+                <text v-if="item.remark" class="data-meta">备注：{{ item.remark }}</text>
+              </view>
+            </view>
+            <view v-else class="state-card compact"><text class="state-title">暂无出勤记录</text></view>
+          </view>
+        </template>
+        <view class="bottom-space" />
+      </view>
+    </scroll-view>
+    <CoachTabBar current="home" />
+  </view>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
+import CoachTabBar from '@/components/coach/CoachTabBar.vue'
+import CoachTopBar from '@/components/coach/CoachTopBar.vue'
+import {
+  getCoachStudentAttendance,
+  getCoachStudentDetail,
+  getCoachStudentProgress,
+  getCoachStudentSchedule,
+  getCurrentCoach,
+  type CoachStudentAttendanceItem,
+  type CoachStudentDetail,
+  type CoachStudentProgress,
+  type CoachStudentScheduleItem
+} from '@/api/coachSelf'
+import { resolveCoachAvatar } from '@/utils/coachAccess'
+import { DEFAULT_COACH_STUDENT_AVATAR, getStudentAvatarWithFallback, maskPhone } from '@/utils/coachStudents'
+
+type TabKey = 'overview' | 'progress' | 'schedule' | 'attendance'
+const statusBarHeight = ref(uni.getSystemInfoSync().statusBarHeight || 20)
+const coachAvatar = ref(DEFAULT_COACH_STUDENT_AVATAR)
+const memberId = ref(0)
+const loading = ref(true)
+const refreshing = ref(false)
+const loadFailed = ref(false)
+const errorMessage = ref('请稍后重试')
+const tabLoading = ref(false)
+const avatarFailed = ref(false)
+const student = ref<CoachStudentDetail | null>(null)
+const progress = ref<CoachStudentProgress[]>([])
+const schedule = ref<CoachStudentScheduleItem[]>([])
+const attendance = ref<CoachStudentAttendanceItem[]>([])
+const activeTab = ref<TabKey>('overview')
+const tabs: Array<{ key: TabKey; label: string }> = [
+  { key: 'overview', label: '概览' }, { key: 'progress', label: '训练进度' },
+  { key: 'schedule', label: '课程安排' }, { key: 'attendance', label: '出勤记录' }
+]
+
+const profileAvatar = computed(() => avatarFailed.value ? DEFAULT_COACH_STUDENT_AVATAR : getStudentAvatarWithFallback(student.value?.avatar))
+const memberLabel = computed(() => student.value?.memberType === 'MEMBER' ? `会员 Lv.${student.value.memberLevel || 1}` : '普通学员')
+const expireText = computed(() => {
+  if (student.value?.memberType !== 'MEMBER') return '普通学员'
+  if (!student.value.expireTime) return '未设置到期时间'
+  const days = Math.ceil((new Date(student.value.expireTime).getTime() - Date.now()) / 86400000)
+  if (days < 0) return '会员已过期'
+  if (days <= 30) return `会员将在 ${days} 天后到期`
+  return `会员有效期至 ${student.value.expireTime.slice(0, 10)}`
+})
+const expireClass = computed(() => expireText.value.includes('已过期') ? 'danger' : expireText.value.includes('天后') ? 'warning' : '')
+const completedOnPage = computed(() => attendance.value.filter(item => item.attendanceStatus === 2).length)
+const absentOnPage = computed(() => attendance.value.filter(item => item.attendanceStatus === 3).length)
+
+async function loadAll() {
+  if (!memberId.value) return
+  loading.value = true
+  loadFailed.value = false
+  try {
+    const [coach, detail] = await Promise.all([getCurrentCoach(), getCoachStudentDetail(memberId.value)])
+    coachAvatar.value = resolveCoachAvatar(coach.avatar)
+    student.value = detail
+    avatarFailed.value = false
+    await loadActiveTab()
+  } catch (error) {
+    loadFailed.value = true
+    errorMessage.value = error instanceof Error ? error.message : '请稍后重试'
+  } finally {
+    loading.value = false
+    refreshing.value = false
+  }
+}
+
+async function loadActiveTab() {
+  if (!memberId.value || activeTab.value === 'overview') return
+  tabLoading.value = true
+  try {
+    if (activeTab.value === 'progress') progress.value = await getCoachStudentProgress(memberId.value)
+    if (activeTab.value === 'schedule') schedule.value = (await getCoachStudentSchedule(memberId.value, { page: 1, size: 100 })).data || []
+    if (activeTab.value === 'attendance') attendance.value = (await getCoachStudentAttendance(memberId.value, { page: 1, size: 100 })).data || []
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' })
+  } finally {
+    tabLoading.value = false
+  }
+}
+
+function selectTab(key: TabKey) { activeTab.value = key; loadActiveTab() }
+function handleRefresh() { refreshing.value = true; loadAll() }
+function callStudent() {
+  const phone = student.value?.phone
+  if (!phone) return
+  uni.showModal({
+    title: '确认拨打',
+    content: `即将拨打 ${phone}`,
+    confirmText: '拨打',
+    success: (result) => { if (result.confirm) uni.makePhoneCall({ phoneNumber: phone }) }
+  })
+}
+function openBooking(bookingId: number) { uni.navigateTo({ url: `/pages/coach/bookings?id=${bookingId}` }) }
+function formatDateTime(value?: string) { return value ? value.slice(0, 16) : '暂无记录' }
+function numberText(value?: number) { return Number(value || 0).toFixed(value && value % 1 ? 1 : 0) }
+function moneyText(value?: number) { return Number(value || 0).toFixed(2) }
+function shortTime(value?: string) { return value ? value.slice(0, 5) : '--:--' }
+function progressWidth(done?: number, total?: number) { return `${Math.min(100, total ? Number(done || 0) * 100 / total : 0)}%` }
+function bookingStatusText(status?: number) { return ['已取消', '待支付', '已支付', '进行中', '已完成'][Number(status ?? -1)] || '未知' }
+function attendanceStatusText(status?: number) { return ['未登记', '已签到', '已完成', '缺席'][Number(status ?? 0)] || '未知' }
+
+onLoad(options => {
+  memberId.value = Number(options?.id || 0)
+  if (!Number.isFinite(memberId.value) || memberId.value <= 0) {
+    loading.value = false
+    loadFailed.value = true
+    errorMessage.value = '缺少有效的学员ID'
+  }
+})
+onShow(loadAll)
+</script>
+
+<style lang="scss" scoped>
+.student-detail-page { min-height: 100vh; background: #f9f9f9; color: #1a1c1c; }
+.page-scroll { min-height: 100vh; }
+.page-shell { padding: 0 24rpx; }
+.risk-banner { margin-top: 24rpx; padding: 20rpx 24rpx; border-radius: 20rpx; background: #ffe5e5; color: #9f1010; font-size: 22rpx; font-weight: 800; }
+.profile-card, .state-card, .kpi-card, .info-card, .data-card, .notice-card, .month-summary { background: #fff; border-radius: 26rpx; box-shadow: 0 8rpx 24rpx rgba(26,28,28,.05); }
+.profile-card { margin-top: 26rpx; padding: 26rpx; display: flex; align-items: center; gap: 20rpx; }
+.profile-avatar { width: 120rpx; height: 120rpx; border-radius: 30rpx; background: #ededed; }
+.profile-main { flex: 1; min-width: 0; }
+.profile-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10rpx; }
+.profile-name { font-size: 38rpx; font-weight: 900; }
+.member-tag { padding: 7rpx 12rpx; border-radius: 999rpx; background: #fff1e8; color: #a33e00; font-size: 19rpx; font-weight: 800; }
+.profile-phone, .expire-text { display: block; margin-top: 10rpx; color: #5f5e5e; font-size: 22rpx; }
+.expire-text.warning { color: #a33e00; }.expire-text.danger { color: #ba1a1a; }
+.phone-button { width: 72rpx; height: 72rpx; border-radius: 22rpx; background: #ff6600; display: flex; align-items: center; justify-content: center; }
+.tab-scroll { margin-top: 24rpx; white-space: nowrap; }
+.tab-row { display: inline-flex; gap: 12rpx; }
+.tab-item { padding: 16rpx 24rpx; border-radius: 999rpx; background: #ededed; color: #5f5e5e; font-size: 23rpx; }
+.tab-item.active { background: #1a1c1c; color: #fff; font-weight: 800; }
+.tab-panel { margin-top: 22rpx; }
+.kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14rpx; }
+.kpi-card { min-height: 150rpx; padding: 22rpx; display: flex; flex-direction: column; justify-content: space-between; }
+.kpi-label { color: #5f5e5e; font-size: 22rpx; }.kpi-value { font-size: 38rpx; font-weight: 900; }
+.info-card { margin-top: 16rpx; padding: 24rpx; display: flex; flex-direction: column; gap: 12rpx; color: #5f5e5e; font-size: 23rpx; }
+.info-title { color: #1a1c1c; font-size: 28rpx; font-weight: 900; }
+.stack-list { display: flex; flex-direction: column; gap: 14rpx; }
+.data-card { padding: 24rpx; }
+.data-head { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
+.data-title { flex: 1; font-size: 28rpx; font-weight: 900; }.status-text { color: #a33e00; font-size: 21rpx; font-weight: 800; }
+.data-meta { display: block; margin-top: 12rpx; color: #5f5e5e; font-size: 22rpx; }
+.progress-track { height: 10rpx; margin-top: 18rpx; border-radius: 999rpx; background: #ededed; overflow: hidden; }.progress-fill { height: 100%; background: #ff6600; }
+.notice-card { margin-top: 16rpx; padding: 22rpx; display: flex; gap: 12rpx; color: #5f5e5e; font-size: 22rpx; line-height: 1.6; background: #fff5ef; }
+.month-summary { margin-bottom: 14rpx; padding: 20rpx 24rpx; color: #a33e00; font-size: 23rpx; font-weight: 800; }
+.state-card { margin-top: 28rpx; padding: 72rpx 32rpx; text-align: center; display: flex; flex-direction: column; align-items: center; }.state-card.compact { padding: 40rpx 24rpx; }
+.state-title { margin-top: 16rpx; font-size: 30rpx; font-weight: 900; }.state-desc { margin-top: 12rpx; color: #5f5e5e; font-size: 23rpx; }.state-action { margin-top: 22rpx; padding: 18rpx 28rpx; border-radius: 999rpx; background: #ff6600; color: #fff; }
+.spinner { width: 48rpx; height: 48rpx; border: 5rpx solid #ededed; border-top-color: #ff6600; border-radius: 50%; animation: spin .8s linear infinite; }
+.bottom-space { height: 180rpx; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>

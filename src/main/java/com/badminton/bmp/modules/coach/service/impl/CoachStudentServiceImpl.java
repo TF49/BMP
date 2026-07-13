@@ -65,10 +65,11 @@ public class CoachStudentServiceImpl implements CoachStudentService {
         response.setTotalStudents(number(summary, "totalStudents", total));
         response.setTodayStudents(number(summary, "todayStudents", 0));
         response.setRiskStudents(coachStudentMapper.countRiskStudents(coachId, RELATION_RETENTION_DAYS));
-        response.setAverageAttendanceRate(students.isEmpty() ? BigDecimal.ZERO : students.stream()
+        BigDecimal pageAverage = students.isEmpty() ? BigDecimal.ZERO : students.stream()
                 .map(item -> item.getAttendanceRate() == null ? BigDecimal.ZERO : item.getAttendanceRate())
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(students.size()), 2, RoundingMode.HALF_UP));
+                .divide(BigDecimal.valueOf(students.size()), 2, RoundingMode.HALF_UP);
+        response.setAverageAttendanceRate(decimal(summary, "averageAttendanceRate", pageAverage));
         return response;
     }
 
@@ -227,6 +228,15 @@ public class CoachStudentServiceImpl implements CoachStudentService {
         Object value = map.get(key);
         if (value == null) value = map.get(key.toUpperCase());
         return value instanceof Number ? ((Number) value).intValue() : fallback;
+    }
+
+    private BigDecimal decimal(Map<String, Object> map, String key, BigDecimal fallback) {
+        if (map == null) return fallback;
+        Object value = map.get(key);
+        if (value == null) value = map.get(key.toUpperCase());
+        if (value instanceof BigDecimal decimal) return decimal;
+        if (value instanceof Number number) return BigDecimal.valueOf(number.doubleValue());
+        return fallback;
     }
 
     private <T> CoachStudentPageVO<T> page(List<T> rows, int total, int page, int size) {

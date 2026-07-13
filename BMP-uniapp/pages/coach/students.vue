@@ -90,9 +90,11 @@
                 </view>
 
                 <view class="status-actions">
-                  <button v-if="canStart(student)" class="checkin-btn" @tap.stop="updateStatus(student, 3)">签到</button>
-                  <button v-if="canComplete(student)" class="checkin-btn checkin-btn-blue" @tap.stop="updateStatus(student, 4)">完成</button>
-                  <button v-if="canCancel(student)" class="checkin-btn checkin-btn-danger" @tap.stop="updateStatus(student, 0)">缺席/取消</button>
+                  <button v-if="canStart(student)" class="checkin-btn" @tap.stop="updateAttendance(student, 'CHECK_IN')">签到</button>
+                  <button v-if="canComplete(student)" class="checkin-btn checkin-btn-blue" @tap.stop="updateAttendance(student, 'COMPLETE')">完成</button>
+                  <button v-if="canCancel(student)" class="checkin-btn checkin-btn-muted" @tap.stop="cancelBooking(student)">取消预约</button>
+                  <button v-if="canMarkAbsent(student)" class="checkin-btn checkin-btn-danger" @tap.stop="updateAttendance(student, 'ABSENT')">登记缺席</button>
+                  <button v-if="student.memberId" class="detail-btn" @tap.stop="goStudentDetail(student.memberId)">查看学员详情 →</button>
                 </view>
               </view>
             </view>
@@ -117,9 +119,10 @@ import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import CoachTabBar from '@/components/coach/CoachTabBar.vue'
 import CoachTopBar from '@/components/coach/CoachTopBar.vue'
-import { getBookingsForCoach, getCurrentCoach, updateBookingStatusForCoach, type CoachBookingItem } from '@/api/coachSelf'
+import { getBookingsForCoach, getCurrentCoach, updateBookingStatusForCoach, updateCoachBookingAttendance, type AttendanceAction, type CoachBookingItem } from '@/api/coachSelf'
 import { COACH_UNBOUND_PATH, isCoachUnboundError, resolveCoachAvatar } from '@/utils/coachAccess'
 import { safeReLaunch } from '@/utils/safeRoute'
+import { buildCoachStudentDetailUrl } from '@/utils/coachStudents'
 import {
   canCancelBooking,
   canCompleteBooking,
@@ -167,7 +170,24 @@ function canComplete(item: CoachBookingItem) {
 }
 
 function canCancel(item: CoachBookingItem) {
-  return canCancelBooking(item)
+  if (!canCancelBooking(item)) return false
+  const start = courseStartAt(item)
+  return start ? Date.now() < start.getTime() : false
+}
+
+function canMarkAbsent(item: CoachBookingItem) {
+  const start = courseStartAt(item)
+  return Boolean(start && Date.now() >= start.getTime())
+    && (item.status === 2 || item.status === 3 || item.status === 4)
+    && item.attendanceStatus !== 3
+}
+
+function courseStartAt(item: CoachBookingItem) {
+  const date = item.courseDate
+  const time = item.courseStartTime || item.startTime
+  if (!date || !time) return null
+  const value = new Date(`${date}T${time}`)
+  return Number.isNaN(value.getTime()) ? null : value
 }
 
 async function loadStudents() {
@@ -201,14 +221,14 @@ async function loadStudents() {
   }
 }
 
-async function updateStatus(item: CoachBookingItem, status: number) {
+async function updateAttendance(item: CoachBookingItem, action: AttendanceAction) {
   try {
-    await updateBookingStatusForCoach({
+    await updateCoachBookingAttendance({
       id: item.id,
-      status
+      action
     })
     uni.showToast({
-      title: status === 0 ? '已登记缺席/取消' : '状态已更新',
+      title: action === 'ABSENT' ? '已登记缺席' : '考勤已更新',
       icon: 'success'
     })
     await loadStudents()
@@ -218,6 +238,20 @@ async function updateStatus(item: CoachBookingItem, status: number) {
       icon: 'none'
     })
   }
+}
+
+async function cancelBooking(item: CoachBookingItem) {
+  try {
+    await updateBookingStatusForCoach({ id: item.id, status: 0 })
+    uni.showToast({ title: '预约已取消', icon: 'success' })
+    await loadStudents()
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '取消失败', icon: 'none' })
+  }
+}
+
+function goStudentDetail(memberId: number) {
+  uni.navigateTo({ url: buildCoachStudentDetailUrl(memberId) })
 }
 
 function handleRefresh() {
@@ -420,6 +454,20 @@ onShow(() => {
 
 .checkin-btn-danger {
   background: #ba1a1a;
+}
+
+.checkin-btn-muted {
+  background: #5f5e5e;
+}
+
+.detail-btn {
+  margin: 0;
+  padding: 0 10rpx;
+  border: 0;
+  background: transparent;
+  color: #a33e00;
+  font-size: 24rpx;
+  font-weight: 800;
 }
 
 .state-card {

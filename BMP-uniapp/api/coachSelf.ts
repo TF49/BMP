@@ -168,6 +168,7 @@ export function getCoachStudentConsumeRecords(id: number, params?: Pick<CoachStu
 }
 
 export type {
+  AttendanceAction,
   CoachAttendanceCommand,
   CoachStudentAttendanceItem,
   CoachStudentConsumeRecord,
