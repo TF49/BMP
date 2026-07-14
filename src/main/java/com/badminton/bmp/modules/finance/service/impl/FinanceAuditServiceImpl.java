@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -31,10 +30,10 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
 
     /**
      * 记录财务创建操作
-     * 使用REQUIRES_NEW传播级别，确保审计日志独立提交
+     * 使用默认传播级别，确保SecurityContext可用
      */
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void logCreate(Finance finance) {
         try {
             FinanceAuditLog auditLog = new FinanceAuditLog();
@@ -59,7 +58,7 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
      * 记录财务更新操作
      */
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void logUpdate(Finance oldFinance, Finance newFinance) {
         try {
             FinanceAuditLog auditLog = new FinanceAuditLog();
@@ -83,7 +82,7 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
      * 记录财务删除操作
      */
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void logDelete(Finance finance) {
         try {
             FinanceAuditLog auditLog = new FinanceAuditLog();
@@ -104,7 +103,7 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void logSystemAutoCancel(String businessType, Long businessId, String businessNo, Object beforeData, String summary) {
         try {
             FinanceAuditLog auditLog = new FinanceAuditLog();

@@ -578,6 +578,13 @@ CREATE TABLE `biz_finance_audit_log`  (
 -- ----------------------------
 -- Records of biz_finance_audit_log
 -- ----------------------------
+INSERT INTO `biz_finance_audit_log` VALUES (1, 1, 'FN20250115001', 'CREATE', 'admin', 1, '2025-01-15 09:00:00', NULL, '{\"id\":1,\"financeNo\":\"FN20250115001\",\"businessType\":\"BOOKING\",\"businessId\":1,\"amount\":160.00,\"paymentMethod\":\"ALIPAY\",\"venueId\":1,\"operator\":\"系统\"}', '创建财务记录：FN20250115001', '127.0.0.1', 'Mozilla/5.0', '系统自动生成');
+INSERT INTO `biz_finance_audit_log` VALUES (2, 2, 'FN20250115002', 'CREATE', 'admin', 1, '2025-01-15 14:00:00', NULL, NULL, '{\"id\":2,\"financeNo\":\"FN20250115002\",\"businessType\":\"BOOKING\",\"businessId\":2,\"amount\":160.00,\"paymentMethod\":\"WECHAT\",\"venueId\":1,\"operator\":\"系统\"}', '创建财务记录：FN20250115002', '127.0.0.1', 'Mozilla/5.0', '系统自动生成');
+INSERT INTO `biz_finance_audit_log` VALUES (3, 18, 'FN20250115004', 'CREATE', 'admin', 1, '2025-01-15 10:00:00', NULL, NULL, '{\"id\":18,\"financeNo\":\"FN20250115004\",\"businessType\":\"COURSE\",\"businessId\":1,\"amount\":200.00,\"paymentMethod\":\"ALIPAY\",\"venueId\":1,\"operator\":\"系统\"}', '创建财务记录：FN20250115004', '127.0.0.1', 'Mozilla/5.0', '系统自动生成');
+INSERT INTO `biz_finance_audit_log` VALUES (4, 33, 'FN20250115009', 'UPDATE', 'admin', 1, '2025-01-16 10:30:00', '{\"id\":33,\"financeNo\":\"FN20250115009\",\"amount\":50.00}', '{\"id\":33,\"financeNo\":\"FN20250115009\",\"amount\":55.00}', '修改财务记录：金额从50.00改为55.00; ', '127.0.0.1', 'Mozilla/5.0', '手动调整金额');
+INSERT INTO `biz_finance_audit_log` VALUES (5, 38, 'FN20250101001', 'CREATE', 'admin', 1, '2025-01-01 10:00:00', NULL, NULL, '{\"id\":38,\"financeNo\":\"FN20250101001\",\"businessType\":\"RECHARGE\",\"amount\":500.00,\"paymentMethod\":\"ALIPAY\",\"venueId\":1,\"operator\":\"系统\"}', '创建财务记录：FN20250101001', '127.0.0.1', 'Mozilla/5.0', '会员充值');
+INSERT INTO `biz_finance_audit_log` VALUES (6, 43, 'FN20260207001', 'CREATE', 'admin', 1, '2026-02-07 16:13:32', NULL, NULL, '{\"id\":43,\"financeNo\":\"FN20260207001\",\"businessType\":\"RECHARGE\",\"businessId\":6,\"amount\":300.00,\"paymentMethod\":\"ALIPAY\",\"venueId\":1,\"operator\":\"admin\"}', '创建财务记录：FN20260207001', '127.0.0.1', 'Mozilla/5.0', '会员充值：钱十一');
+INSERT INTO `biz_finance_audit_log` VALUES (7, 121, 'FN20260222003', 'CREATE', 'admin', 1, '2026-02-22 15:39:00', NULL, NULL, '{\"id\":121,\"financeNo\":\"FN20260222003\",\"businessType\":\"RECHARGE\",\"businessId\":38,\"amount\":1000.00,\"paymentMethod\":\"BALANCE\",\"venueId\":1,\"operator\":\"佘建鹏\"}', '创建财务记录：FN20260222003', '127.0.0.1', 'Mozilla/5.0', '会员充值：佘建鹏');
 
 -- ----------------------------
 -- Table structure for biz_finance_reconciliation

@@ -279,6 +279,14 @@ public class FinanceServiceImpl implements FinanceService {
         }
 
         financeMapper.insert(finance);
+
+        // 记录审计日志
+        try {
+            financeAuditService.logCreate(finance);
+        } catch (Exception e) {
+            // 审计日志失败不影响主业务
+            log.error("记录财务审计日志失败: financeId={}", finance.getId(), e);
+        }
     }
 
     @Override
