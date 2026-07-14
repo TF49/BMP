@@ -283,6 +283,28 @@ INSERT INTO `biz_course_booking` VALUES (27, 'CB20260216004', 3, 20, 500.00, 'BA
 INSERT INTO `biz_course_booking` VALUES (28, 'CB20260216005', 45, 20, 500.00, 'BALANCE', 1, 4, NULL, '2026-02-16 22:03:20', '2026-02-16 22:04:01', NULL, NULL, 0.00, 0.00, 0);
 
 -- ----------------------------
+-- 教练学员考勤字段、查询索引与历史数据初始化
+-- 说明：老库迁移所需的幂等判断和断点表不属于新库最终结构，因此不在初始化脚本中保留
+-- ----------------------------
+ALTER TABLE `biz_course_booking`
+  ADD COLUMN `attendance_status` tinyint NOT NULL DEFAULT 0 COMMENT '考勤状态：0未登记、1已签到、2已完成、3缺席' AFTER `status`,
+  ADD COLUMN `actual_checkin_time` datetime NULL DEFAULT NULL COMMENT '实际签到时间' AFTER `attendance_status`,
+  ADD COLUMN `actual_finish_time` datetime NULL DEFAULT NULL COMMENT '实际完成时间' AFTER `actual_checkin_time`,
+  ADD INDEX `idx_cb_course_member_status`(`course_id` ASC, `member_id` ASC, `status` ASC, `attendance_status` ASC, `del_flag` ASC) USING BTREE,
+  ADD INDEX `idx_cb_member_attendance`(`member_id` ASC, `attendance_status` ASC, `status` ASC, `del_flag` ASC, `course_id` ASC) USING BTREE,
+  ADD INDEX `idx_cb_course_attendance`(`course_id` ASC, `attendance_status` ASC, `status` ASC, `del_flag` ASC) USING BTREE;
+
+ALTER TABLE `biz_course`
+  ADD INDEX `idx_c_coach_date_range`(`coach_id` ASC, `course_date` ASC, `start_time` ASC, `end_time` ASC, `status` ASC, `del_flag` ASC) USING BTREE;
+
+UPDATE `biz_course_booking`
+SET `attendance_status` = 2,
+    `actual_finish_time` = COALESCE(`actual_finish_time`, `update_time`)
+WHERE `del_flag` = 0
+  AND `status` = 4
+  AND COALESCE(`attendance_status`, 0) = 0;
+
+-- ----------------------------
 -- Table structure for biz_equipment_rental
 -- ----------------------------
 DROP TABLE IF EXISTS `biz_equipment_rental`;
