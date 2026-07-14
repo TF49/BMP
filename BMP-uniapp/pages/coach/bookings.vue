@@ -213,7 +213,8 @@ import {
   formatCoachBookingStatus,
   formatCoachBookingStatusClass,
   formatCoachBookingTime,
-  formatCoachPaymentStatus
+  formatCoachPaymentStatus,
+  normalizeCoachBookingId
 } from '@/utils/coachView'
 
 const systemInfo = uni.getSystemInfoSync()
@@ -335,13 +336,14 @@ async function loadList() {
   }
 }
 
-async function openDetail(item: CoachBookingItem) {
+async function openDetail(item: CoachBookingItem | number) {
+  const bookingId = typeof item === 'number' ? item : item.id
   detailVisible.value = true
   detailLoading.value = true
   detailError.value = ''
   detail.value = null
   try {
-    detail.value = await getBookingDetailForCoach(item.id)
+    detail.value = await getBookingDetailForCoach(bookingId)
   } catch (error) {
     detailError.value = error instanceof Error ? error.message : '加载详情失败'
   } finally {
@@ -448,6 +450,8 @@ function handleRefresh() {
 }
 
 onLoad((options) => {
+  const bookingId = normalizeCoachBookingId(options?.id)
+  if (bookingId) void openDetail(bookingId)
   const courseId = Number(options?.courseId || 0)
   activeCourseId.value = Number.isFinite(courseId) && courseId > 0 ? courseId : null
   activeCourseName.value = options?.courseName ? decodeURIComponent(options.courseName) : ''

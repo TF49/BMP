@@ -7,16 +7,20 @@ import {
   getStudentAvatarWithFallback,
   maskPhone
 } from '@/utils/coachStudents'
+import * as coachStudentUtils from '@/utils/coachStudents'
+import * as coachViewUtils from '@/utils/coachView'
 import { canCompleteBooking } from '@/utils/coachView'
 
 describe('coach student routes and privacy helpers', () => {
   it('builds dedicated list and detail routes', () => {
     expect(buildCoachStudentListUrl()).toBe('/pages/coach/student-list')
+    expect(buildCoachStudentListUrl({ keyword: '张 三', riskOnly: true })).toBe('/pages/coach/student-list?keyword=%E5%BC%A0%20%E4%B8%89&riskOnly=true')
     expect(buildCoachStudentDetailUrl(18)).toBe('/pages/coach/student-detail?id=18')
   })
 
   it('masks phone and reuses the single avatar placeholder', () => {
     expect(maskPhone('13812341001')).toBe('138****1001')
+    expect(maskPhone('13812341001', true)).toBe('13812341001')
     expect(maskPhone('95123456')).toBe('95123456')
     expect(maskPhone()).toBe('未填写')
     expect(DEFAULT_COACH_STUDENT_AVATAR).toBe('/static/placeholders/avatar.svg')
@@ -91,5 +95,110 @@ describe('coach student routes and privacy helpers', () => {
 
     const sessionStudents = readFileSync('pages/coach/students.vue', 'utf8')
     expect(sessionStudents).toContain('更正为完成')
+  })
+
+  it('partitions schedules using booking and attendance statuses, then sorts each group', () => {
+    const partitionCoachStudentSchedules = (coachStudentUtils as Record<string, unknown>)
+      .partitionCoachStudentSchedules as undefined | ((items: Array<Record<string, unknown>>) => {
+        upcoming: Array<{ bookingId: number }>
+        history: Array<{ bookingId: number }>
+      })
+
+    expect(partitionCoachStudentSchedules).toBeTypeOf('function')
+    if (!partitionCoachStudentSchedules) return
+
+    const base = {
+      courseId: 1,
+      courseName: '羽毛球私教课',
+      startTime: '10:00:00',
+      endTime: '11:00:00'
+    }
+    const result = partitionCoachStudentSchedules([
+      { ...base, bookingId: 1, courseDate: '2026-07-20', bookingStatus: 2, attendanceStatus: 0 },
+      { ...base, bookingId: 2, courseDate: '2026-07-15', bookingStatus: 3, attendanceStatus: 1 },
+      { ...base, bookingId: 3, courseDate: '2026-07-25', bookingStatus: 2, attendanceStatus: 2 },
+      { ...base, bookingId: 4, courseDate: '2026-07-01', bookingStatus: 4, attendanceStatus: 0 },
+      { ...base, bookingId: 5, courseDate: '2026-07-30', bookingStatus: 0, attendanceStatus: 0 },
+      { ...base, bookingId: 6, courseDate: '2026-07-02', bookingStatus: 1, attendanceStatus: 3 }
+    ])
+
+    expect(result.upcoming.map(item => item.bookingId)).toEqual([2, 1])
+    expect(result.history.map(item => item.bookingId)).toEqual([5, 3, 6, 4])
+  })
+
+  it('calculates monthly attendance rate from completed and absent records only', () => {
+    const groupCoachStudentAttendanceByMonth = (coachStudentUtils as Record<string, unknown>)
+      .groupCoachStudentAttendanceByMonth as undefined | ((items: Array<Record<string, unknown>>) => Array<{
+        monthKey: string
+        completed: number
+        absent: number
+        attendanceRate: number
+      }>)
+
+    expect(groupCoachStudentAttendanceByMonth).toBeTypeOf('function')
+    if (!groupCoachStudentAttendanceByMonth) return
+
+    const base = {
+      courseName: '羽毛球私教课',
+      startTime: '10:00:00',
+      endTime: '11:00:00',
+      bookingStatus: 4
+    }
+    const groups = groupCoachStudentAttendanceByMonth([
+      { ...base, bookingId: 1, courseDate: '2026-07-20', attendanceStatus: 2 },
+      { ...base, bookingId: 2, courseDate: '2026-07-18', attendanceStatus: 2 },
+      { ...base, bookingId: 3, courseDate: '2026-07-15', attendanceStatus: 3 },
+      { ...base, bookingId: 4, courseDate: '2026-07-10', attendanceStatus: 1 },
+      { ...base, bookingId: 5, courseDate: '2026-06-10', attendanceStatus: 0 }
+    ])
+
+    expect(groups[0]).toMatchObject({
+      monthKey: '2026-07',
+      completed: 2,
+      absent: 1,
+      attendanceRate: 67
+    })
+    expect(groups[1]).toMatchObject({
+      monthKey: '2026-06',
+      completed: 0,
+      absent: 0,
+      attendanceRate: 0
+    })
+  })
+
+  it('opens a booking detail from the id route and makes the mini timeline actionable', () => {
+    const normalizeCoachBookingId = (coachViewUtils as Record<string, unknown>)
+      .normalizeCoachBookingId as undefined | ((value?: string | number) => number | null)
+    const bookings = readFileSync('pages/coach/bookings.vue', 'utf8')
+    const detail = readFileSync('pages/coach/student-detail.vue', 'utf8')
+
+    expect(normalizeCoachBookingId).toBeTypeOf('function')
+    if (!normalizeCoachBookingId) return
+    expect(normalizeCoachBookingId('42')).toBe(42)
+    expect(normalizeCoachBookingId('0')).toBeNull()
+    expect(normalizeCoachBookingId('abc')).toBeNull()
+    expect(bookings).toContain('normalizeCoachBookingId(options?.id)')
+    expect(bookings).toContain('openDetail(bookingId)')
+    expect(detail).toContain('@tap="selectTab(\'attendance\')"')
+    expect(detail).toContain('出勤率 {{ group.attendanceRate }}%')
+  })
+
+  it('applies student list keyword and risk filters from the generated route', () => {
+    const parseCoachStudentListRoute = (coachStudentUtils as Record<string, unknown>)
+      .parseCoachStudentListRoute as undefined | ((options?: Record<string, string>) => {
+        keyword: string
+        riskOnly: boolean
+      })
+    const list = readFileSync('pages/coach/student-list.vue', 'utf8')
+
+    expect(parseCoachStudentListRoute).toBeTypeOf('function')
+    if (!parseCoachStudentListRoute) return
+    expect(parseCoachStudentListRoute({
+      keyword: '%E5%BC%A0%20%E4%B8%89',
+      riskOnly: 'true'
+    })).toEqual({ keyword: '张 三', riskOnly: true })
+    expect(parseCoachStudentListRoute({ riskOnly: 'false' })).toEqual({ keyword: '', riskOnly: false })
+    expect(list).toContain('onLoad(options =>')
+    expect(list).toContain('parseCoachStudentListRoute(options)')
   })
 })

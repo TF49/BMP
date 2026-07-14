@@ -91,13 +91,18 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import CoachTabBar from '@/components/coach/CoachTabBar.vue'
 import CoachTopBar from '@/components/coach/CoachTopBar.vue'
 import { getCoachStudents, getCurrentCoach, type CoachStudentListItem, type CoachStudentListQuery } from '@/api/coachSelf'
 import { resolveCoachAvatar } from '@/utils/coachAccess'
 import { safeReLaunch } from '@/utils/safeRoute'
-import { buildCoachStudentDetailUrl, DEFAULT_COACH_STUDENT_AVATAR, getStudentAvatarWithFallback } from '@/utils/coachStudents'
+import {
+  buildCoachStudentDetailUrl,
+  DEFAULT_COACH_STUDENT_AVATAR,
+  getStudentAvatarWithFallback,
+  parseCoachStudentListRoute
+} from '@/utils/coachStudents'
 
 const statusBarHeight = ref(uni.getSystemInfoSync().statusBarHeight || 20)
 const coachAvatar = ref(DEFAULT_COACH_STUDENT_AVATAR)
@@ -187,6 +192,11 @@ function formatDateTime(value?: string) { return value ? value.slice(0, 16) : 'æ
 function numberText(value?: number) { return Number(value || 0).toFixed(value && value % 1 ? 1 : 0) }
 function moneyText(value?: number) { return Number(value || 0).toFixed(2) }
 
+onLoad(options => {
+  const route = parseCoachStudentListRoute(options)
+  keyword.value = route.keyword
+  if (route.riskOnly) activeChip.value = 'risk'
+})
 onShow(loadStudents)
 </script>
 

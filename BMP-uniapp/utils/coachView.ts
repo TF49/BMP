@@ -99,6 +99,11 @@ export function formatAmount(value?: number) {
   return Number(value || 0).toFixed(2)
 }
 
+export function normalizeCoachBookingId(value?: string | number) {
+  const bookingId = Number(value)
+  return Number.isInteger(bookingId) && bookingId > 0 ? bookingId : null
+}
+
 export function isCoachCourseFinished(
   item: Pick<CoachCourseItem, 'courseDate' | 'endTime' | 'status'>,
   now: Date = new Date()

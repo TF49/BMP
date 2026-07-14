@@ -39,7 +39,7 @@
               <text class="info-desc">基于过去30天内已完成和缺席的课程统计</text>
             </view>
 
-            <view class="info-card">
+            <view class="info-card info-card-actionable" @tap="selectTab('attendance')">
               <text class="info-title">最近 7 次出勤趋势</text>
               <view v-if="miniTimeline.length" class="timeline-dots-row">
                 <view v-for="(item, index) in miniTimeline" :key="item.bookingId" class="timeline-dot-col">
@@ -50,6 +50,7 @@
                 </view>
               </view>
               <view v-else class="timeline-empty">暂无考勤数据</view>
+              <text class="info-link">查看出勤记录 →</text>
             </view>
 
             <view class="info-card">
@@ -99,7 +100,7 @@
               <view v-for="group in monthlyAttendanceList" :key="group.monthStr" class="month-group-container">
                 <view class="month-group-header">
                   <text class="month-group-title">{{ group.monthStr }}</text>
-                  <text class="month-group-summary">完成 {{ group.completed }} · 缺席 {{ group.absent }}</text>
+                  <text class="month-group-summary">完成 {{ group.completed }} · 缺席 {{ group.absent }} · 出勤率 {{ group.attendanceRate }}%</text>
                 </view>
                 <view class="month-items">
                   <view v-for="item in group.items" :key="item.bookingId" class="data-card">
@@ -164,7 +165,13 @@ import {
   type CoachStudentConsumeRecord
 } from '@/api/coachSelf'
 import { resolveCoachAvatar } from '@/utils/coachAccess'
-import { DEFAULT_COACH_STUDENT_AVATAR, getStudentAvatarWithFallback, maskPhone } from '@/utils/coachStudents'
+import {
+  DEFAULT_COACH_STUDENT_AVATAR,
+  getStudentAvatarWithFallback,
+  groupCoachStudentAttendanceByMonth,
+  maskPhone,
+  partitionCoachStudentSchedules
+} from '@/utils/coachStudents'
 
 type TabKey = 'overview' | 'progress' | 'schedule' | 'attendance' | 'consume'
 const statusBarHeight = ref(uni.getSystemInfoSync().statusBarHeight || 20)
@@ -223,64 +230,9 @@ const miniTimeline = computed(() => {
   return attendance.value.slice(0, 7)
 })
 
-const currentSchedules = computed(() => {
-  const now = new Date()
-  const nowStr = now.toISOString().slice(0, 10)
-  const nowTimeStr = now.toTimeString().slice(0, 8)
-  
-  if (scheduleSubTab.value === 'upcoming') {
-    return schedule.value.filter(item => {
-      if (item.courseDate > nowStr) return true
-      if (item.courseDate === nowStr) {
-        return (item.startTime || '00:00:00') >= nowTimeStr
-      }
-      return false
-    })
-  } else {
-    return schedule.value.filter(item => {
-      if (item.courseDate < nowStr) return true
-      if (item.courseDate === nowStr) {
-        return (item.startTime || '00:00:00') < nowTimeStr
-      }
-      return false
-    })
-  }
-})
-
-interface MonthlyAttendance {
-  monthStr: string
-  completed: number
-  absent: number
-  items: CoachStudentAttendanceItem[]
-}
-const monthlyAttendanceList = computed<MonthlyAttendance[]>(() => {
-  const groups: Record<string, CoachStudentAttendanceItem[]> = {}
-  attendance.value.forEach(item => {
-    const month = item.courseDate ? item.courseDate.slice(0, 7) : '其他'
-    if (!groups[month]) {
-      groups[month] = []
-    }
-    groups[month].push(item)
-  })
-
-  return Object.keys(groups).sort((a, b) => b.localeCompare(a)).map(month => {
-    const items = groups[month]
-    const completed = items.filter(item => item.attendanceStatus === 2).length
-    const absent = items.filter(item => item.attendanceStatus === 3).length
-    
-    let monthStr = month
-    if (month !== '其他') {
-      const [year, m] = month.split('-')
-      monthStr = `${year}年${m}月`
-    }
-    return {
-      monthStr,
-      completed,
-      absent,
-      items
-    }
-  })
-})
+const scheduleGroups = computed(() => partitionCoachStudentSchedules(schedule.value))
+const currentSchedules = computed(() => scheduleGroups.value[scheduleSubTab.value])
+const monthlyAttendanceList = computed(() => groupCoachStudentAttendanceByMonth(attendance.value))
 
 async function loadAll() {
   if (!memberId.value) return
@@ -329,7 +281,7 @@ function callStudent() {
   if (!phone) return
   uni.showModal({
     title: '确认拨打',
-    content: `即将拨打 ${phone}`,
+    content: `即将拨打 ${maskPhone(phone, true)}`,
     confirmText: '拨打',
     success: (result) => { if (result.confirm) uni.makePhoneCall({ phoneNumber: phone }) }
   })
@@ -503,6 +455,17 @@ onShow(loadAll)
   font-size: 24rpx;
   color: #888;
   padding: 20rpx 0;
+}
+.info-card-actionable {
+  cursor: pointer;
+}
+.info-link {
+  display: block;
+  margin-top: 18rpx;
+  text-align: right;
+  color: #a33e00;
+  font-size: 22rpx;
+  font-weight: 800;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
