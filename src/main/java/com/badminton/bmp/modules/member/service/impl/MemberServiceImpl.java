@@ -80,7 +80,12 @@ public class MemberServiceImpl implements MemberService {
         if (SecurityUtils.isPresident()) {
             return member;
         } else if (SecurityUtils.isVenueManager()) {
-            return member;
+            // 安全修复：场馆管理员仅可查看与本场馆有业务交集的会员
+            Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+            if (currentVenueId != null && isMemberVisibleForVenue(member.getId(), currentVenueId)) {
+                return member;
+            }
+            throw new org.springframework.security.access.AccessDeniedException("权限不足，该会员与当前场馆无业务交集");
         } else if (SecurityUtils.getCurrentUserRoles().stream().anyMatch(r -> "COACH".equalsIgnoreCase(r))) {
             Long coachVenueId = venueId != null ? venueId : resolveCurrentCoachVenueId();
             if (coachVenueId != null && isMemberVisibleForVenue(member.getId(), coachVenueId)) {
@@ -234,51 +239,63 @@ public class MemberServiceImpl implements MemberService {
         int s = (size <= 0 || size > 100) ? 10 : size;
         int offset = (p - 1) * s;
         
-        // 数据范围过滤：根据角色调整查询参数
-        if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
+        // 数据范围过滤：根据角色调整查询范围
+        if (SecurityUtils.isPresident()) {
+            // PRESIDENT: 全量查询
+            return memberMapper.findByConditions(memberName, phone, memberId, memberType, status, offset, s);
+        } else if (SecurityUtils.isVenueManager()) {
+            // VENUE_MANAGER: 仅查询与当前场馆有业务交集的会员
+            Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+            if (currentVenueId == null) {
+                return new ArrayList<>();
+            }
+            return memberMapper.findByConditionsForVenue(memberName, phone, memberId, memberType, status, currentVenueId, offset, s);
+        } else {
             // USER: 只能查询自己的会员记录
             User current = SecurityUtils.getCurrentUser();
             if (current != null) {
                 Member m = memberMapper.findByUserId(current.getId());
                 if (m != null) {
-                    // 强制设置为当前用户的memberId
                     memberId = m.getId();
                 } else {
-                    // 用户没有会员记录，返回空列表
                     return new ArrayList<>();
                 }
             } else {
                 return new ArrayList<>();
             }
+            return memberMapper.findByConditions(memberName, phone, memberId, memberType, status, offset, s);
         }
-        // PRESIDENT 和 VENUE_MANAGER: 使用传入参数（全量或按条件）
-        
-        return memberMapper.findByConditions(memberName, phone, memberId, memberType, status, offset, s);
     }
 
     @Override
     public int countByConditions(String memberName, String phone, Long memberId, String memberType, Integer status) {
         reconcileUserSideMemberArchives();
-        // 数据范围过滤：根据角色调整查询参数
-        if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
+        // 数据范围过滤：根据角色调整查询范围
+        if (SecurityUtils.isPresident()) {
+            // PRESIDENT: 全量统计
+            return memberMapper.countByConditions(memberName, phone, memberId, memberType, status);
+        } else if (SecurityUtils.isVenueManager()) {
+            // VENUE_MANAGER: 仅统计与当前场馆有业务交集的会员
+            Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+            if (currentVenueId == null) {
+                return 0;
+            }
+            return memberMapper.countByConditionsForVenue(memberName, phone, memberId, memberType, status, currentVenueId);
+        } else {
             // USER: 只能统计自己的会员记录
             User current = SecurityUtils.getCurrentUser();
             if (current != null) {
                 Member m = memberMapper.findByUserId(current.getId());
                 if (m != null) {
-                    // 强制设置为当前用户的memberId
                     memberId = m.getId();
                 } else {
-                    // 用户没有会员记录，返回0
                     return 0;
                 }
             } else {
                 return 0;
             }
+            return memberMapper.countByConditions(memberName, phone, memberId, memberType, status);
         }
-        // PRESIDENT 和 VENUE_MANAGER: 使用传入参数（全量或按条件）
-        
-        return memberMapper.countByConditions(memberName, phone, memberId, memberType, status);
     }
 
     @Override
@@ -541,25 +558,34 @@ public class MemberServiceImpl implements MemberService {
         int s = (size <= 0 || size > 100) ? 10 : size;
         int offset = (p - 1) * s;
 
-        if (!SecurityUtils.isPresident() && !SecurityUtils.isVenueManager()) {
-            if (SecurityUtils.getCurrentUserRoles().stream().anyMatch(r -> "COACH".equalsIgnoreCase(r))) {
-                Long coachVenueId = resolveCurrentCoachVenueId();
-                if (coachVenueId == null || !isMemberVisibleForVenue(memberId, coachVenueId)) {
-                    throw new BusinessException("权限不足，只能查看本场馆学员的消费记录");
+        if (SecurityUtils.isPresident()) {
+            // PRESIDENT: 全量查询，直接放行
+        } else if (SecurityUtils.isVenueManager()) {
+            // 安全修复：VENUE_MANAGER 先校验可见性，仅查询本场馆维度的消费记录
+            Long currentVenueId = SecurityUtils.getCurrentUserVenueId();
+            if (currentVenueId == null || !isMemberVisibleForVenue(memberId, currentVenueId)) {
+                throw new org.springframework.security.access.AccessDeniedException("权限不足，该会员与当前场馆无业务交集");
+            }
+            List<MemberConsumeRecord> list = memberConsumeRecordMapper.findByMemberIdAndVenueId(memberId, currentVenueId, offset, s);
+            int total = memberConsumeRecordMapper.countByMemberIdAndVenueId(memberId, currentVenueId);
+            return buildConsumeRecordResult(list, total);
+        } else if (SecurityUtils.getCurrentUserRoles().stream().anyMatch(r -> "COACH".equalsIgnoreCase(r))) {
+            Long coachVenueId = resolveCurrentCoachVenueId();
+            if (coachVenueId == null || !isMemberVisibleForVenue(memberId, coachVenueId)) {
+                throw new BusinessException("权限不足，只能查看本场馆学员的消费记录");
+            }
+            List<MemberConsumeRecord> list = memberConsumeRecordMapper.findByMemberIdAndVenueId(memberId, coachVenueId, offset, s);
+            int total = memberConsumeRecordMapper.countByMemberIdAndVenueId(memberId, coachVenueId);
+            return buildConsumeRecordResult(list, total);
+        } else {
+            User current = SecurityUtils.getCurrentUser();
+            if (current != null) {
+                Member m = memberMapper.findByUserId(current.getId());
+                if (m == null || !m.getId().equals(memberId)) {
+                    throw new BusinessException("权限不足，只能查看自己的消费记录");
                 }
-                List<MemberConsumeRecord> list = memberConsumeRecordMapper.findByMemberIdAndVenueId(memberId, coachVenueId, offset, s);
-                int total = memberConsumeRecordMapper.countByMemberIdAndVenueId(memberId, coachVenueId);
-                return buildConsumeRecordResult(list, total);
             } else {
-                User current = SecurityUtils.getCurrentUser();
-                if (current != null) {
-                    Member m = memberMapper.findByUserId(current.getId());
-                    if (m == null || !m.getId().equals(memberId)) {
-                        throw new BusinessException("权限不足，只能查看自己的消费记录");
-                    }
-                } else {
-                    throw new BusinessException("权限不足");
-                }
+                throw new BusinessException("权限不足");
             }
         }
 

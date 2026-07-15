@@ -293,21 +293,15 @@ public class AuthController extends BaseController {
             user.setUsername(registerBody.getUsername());
             user.setPassword(registerBody.getPassword());
             user.setIdCard(registerBody.getIdCard());
-            user.setRole(registerBody.getRole());
+            // 安全修复：公开注册仅允许创建普通用户，强制设为 USER
+            // PRESIDENT、VENUE_MANAGER、COACH 等高权限角色必须由后台受控分配
+            user.setRole("USER");
             user.setStatus(1); // 设置为启用状态
 
             // 先检查用户名是否已存在
             User existingUser = userService.findByUsername(registerBody.getUsername());
             if (existingUser != null) {
                 return error("该用户名已被注册，请选择其他用户名");
-            }
-
-            // 检查协会会长（PRESIDENT）唯一性
-            if ("PRESIDENT".equals(registerBody.getRole())) {
-                User existingPresident = userService.findByRole("PRESIDENT");
-                if (existingPresident != null) {
-                    return error("系统中已存在协会会长账户，无法创建新的协会会长");
-                }
             }
 
             // 调用认证服务进行注册

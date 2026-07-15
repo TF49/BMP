@@ -210,6 +210,57 @@ public interface MemberMapper {
                           @Param("status") Integer status);
 
     /**
+     * 条件查询（按场馆可见范围过滤）- 仅 VENUE_MANAGER 使用
+     * 仅返回与指定场馆存在课程预约或消费记录关联的会员
+     */
+    @Select("<script>" +
+            "SELECT DISTINCT m.* FROM sys_member m " + USER_ROLE_FILTER +
+            "WHERE m.del_flag = 0 " +
+            "AND (" +
+            "  EXISTS (SELECT 1 FROM biz_course_booking cb WHERE cb.member_id = m.id AND cb.venue_id = #{venueId} AND cb.del_flag = 0)" +
+            "  OR EXISTS (SELECT 1 FROM biz_member_consume_record cr WHERE cr.member_id = m.id AND cr.venue_id = #{venueId})" +
+            ") " +
+            "<if test='memberName != null and memberName.trim() != \"\"'>AND m.member_name LIKE CONCAT('%', #{memberName}, '%')</if> " +
+            "<if test='phone != null and phone.trim() != \"\"'>AND m.phone LIKE CONCAT('%', #{phone}, '%')</if> " +
+            "<if test='memberId != null'>AND m.id = #{memberId}</if> " +
+            "<if test='memberType != null and memberType.trim() != \"\"'>AND m.member_type = #{memberType}</if> " +
+            "<if test='status != null'>AND m.status = #{status}</if> " +
+            "ORDER BY m.id " +
+            "LIMIT #{offset}, #{limit}" +
+            "</script>")
+    List<Member> findByConditionsForVenue(@Param("memberName") String memberName,
+                                          @Param("phone") String phone,
+                                          @Param("memberId") Long memberId,
+                                          @Param("memberType") String memberType,
+                                          @Param("status") Integer status,
+                                          @Param("venueId") Long venueId,
+                                          @Param("offset") int offset,
+                                          @Param("limit") int limit);
+
+    /**
+     * 条件统计（按场馆可见范围过滤）- 仅 VENUE_MANAGER 使用
+     */
+    @Select("<script>" +
+            "SELECT COUNT(DISTINCT m.id) FROM sys_member m " + USER_ROLE_FILTER +
+            "WHERE m.del_flag = 0 " +
+            "AND (" +
+            "  EXISTS (SELECT 1 FROM biz_course_booking cb WHERE cb.member_id = m.id AND cb.venue_id = #{venueId} AND cb.del_flag = 0)" +
+            "  OR EXISTS (SELECT 1 FROM biz_member_consume_record cr WHERE cr.member_id = m.id AND cr.venue_id = #{venueId})" +
+            ") " +
+            "<if test='memberName != null and memberName.trim() != \"\"'>AND m.member_name LIKE CONCAT('%', #{memberName}, '%')</if> " +
+            "<if test='phone != null and phone.trim() != \"\"'>AND m.phone LIKE CONCAT('%', #{phone}, '%')</if> " +
+            "<if test='memberId != null'>AND m.id = #{memberId}</if> " +
+            "<if test='memberType != null and memberType.trim() != \"\"'>AND m.member_type = #{memberType}</if> " +
+            "<if test='status != null'>AND m.status = #{status}</if> " +
+            "</script>")
+    int countByConditionsForVenue(@Param("memberName") String memberName,
+                                  @Param("phone") String phone,
+                                  @Param("memberId") Long memberId,
+                                  @Param("memberType") String memberType,
+                                  @Param("status") Integer status,
+                                  @Param("venueId") Long venueId);
+
+    /**
      * 统计总数 - 仅用户(USER/MEMBER)，不含教练/会长等
      */
     @Select("SELECT COUNT(*) FROM sys_member m " + USER_ROLE_FILTER + "WHERE m.del_flag = 0")
