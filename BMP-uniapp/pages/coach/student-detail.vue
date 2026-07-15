@@ -165,6 +165,7 @@ import {
   type CoachStudentConsumeRecord
 } from '@/api/coachSelf'
 import { resolveCoachAvatar } from '@/utils/coachAccess'
+import { useCoachStudentRealtimeRefresh } from '@/composables/useCoachStudentRealtimeRefresh'
 import {
   DEFAULT_COACH_STUDENT_AVATAR,
   getStudentAvatarWithFallback,
@@ -313,6 +314,7 @@ onLoad(options => {
     errorMessage.value = '缺少有效的学员ID'
   }
 })
+useCoachStudentRealtimeRefresh(loadAll)
 onShow(loadAll)
 </script>
 

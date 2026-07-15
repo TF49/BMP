@@ -125,6 +125,7 @@ import { getBookingsForCoach, getCurrentCoach, updateBookingStatusForCoach, upda
 import { COACH_UNBOUND_PATH, isCoachUnboundError, resolveCoachAvatar } from '@/utils/coachAccess'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { buildCoachStudentDetailUrl } from '@/utils/coachStudents'
+import { useCoachStudentRealtimeRefresh } from '@/composables/useCoachStudentRealtimeRefresh'
 import {
   canCancelBooking,
   canCompleteBooking,
@@ -271,6 +272,7 @@ onLoad((options) => {
   courseName.value = options?.courseName ? decodeURIComponent(options.courseName) : ''
 })
 
+useCoachStudentRealtimeRefresh(loadStudents)
 onShow(() => {
   if (courseId.value) {
     loadStudents()

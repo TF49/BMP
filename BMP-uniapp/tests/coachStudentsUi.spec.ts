@@ -43,6 +43,28 @@ describe('coach student routes and privacy helpers', () => {
     expect((tabBar.match(/\{ key: '[^']+', label:/g) || [])).toHaveLength(4)
   })
 
+  it('wires coach websocket lifecycle, badge and realtime page refresh without removing onShow fallbacks', () => {
+    const app = readFileSync('App.vue', 'utf8')
+    const dashboard = readFileSync('pages/coach/index.vue', 'utf8')
+    const list = readFileSync('pages/coach/student-list.vue', 'utf8')
+    const detail = readFileSync('pages/coach/student-detail.vue', 'utf8')
+    const sessionStudents = readFileSync('pages/coach/students.vue', 'utf8')
+
+    expect(app).toContain('useCoachWebSocketStore')
+    expect(app).toContain('watch(')
+    expect(app).toContain('appVisible')
+    expect(app).toContain('syncConnection')
+    expect(app).toContain('coachWebSocketStore.disconnect()')
+
+    for (const source of [dashboard, list, detail, sessionStudents]) {
+      expect(source).toContain('useCoachStudentRealtimeRefresh')
+      expect(source).toContain('onShow')
+    }
+    expect(dashboard).toContain('newBookingCount')
+    expect(dashboard).toContain('student-realtime-badge')
+    expect(dashboard).toContain('clearNewBookingCount()')
+  })
+
   it('uses attendance actions on the booking list and keeps cancellation separate', () => {
     const bookings = readFileSync('pages/coach/bookings.vue', 'utf8')
 

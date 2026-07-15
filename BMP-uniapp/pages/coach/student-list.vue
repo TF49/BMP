@@ -97,6 +97,7 @@ import CoachTopBar from '@/components/coach/CoachTopBar.vue'
 import { getCoachStudents, getCurrentCoach, type CoachStudentListItem, type CoachStudentListQuery } from '@/api/coachSelf'
 import { resolveCoachAvatar } from '@/utils/coachAccess'
 import { safeReLaunch } from '@/utils/safeRoute'
+import { useCoachStudentRealtimeRefresh } from '@/composables/useCoachStudentRealtimeRefresh'
 import {
   buildCoachStudentDetailUrl,
   DEFAULT_COACH_STUDENT_AVATAR,
@@ -197,6 +198,7 @@ onLoad(options => {
   keyword.value = route.keyword
   if (route.riskOnly) activeChip.value = 'risk'
 })
+useCoachStudentRealtimeRefresh(loadStudents)
 onShow(loadStudents)
 </script>
 

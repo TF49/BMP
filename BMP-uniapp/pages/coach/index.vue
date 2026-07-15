@@ -94,7 +94,12 @@
 
           <view class="student-card-section" @tap="handleQuickAction('students')">
             <view class="student-card-left">
-              <text class="student-card-title">我的学员</text>
+              <view class="student-card-title-row">
+                <text class="student-card-title">我的学员</text>
+                <text v-if="newBookingCount > 0" class="student-realtime-badge">
+                  {{ newBookingCount > 99 ? '99+' : newBookingCount }}
+                </text>
+              </view>
               <text class="student-card-desc">
                 已服务 {{ metrics.totalStudents }} 人 · 风险关注 {{ metrics.riskStudents }} 人
               </text>
@@ -152,6 +157,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { onShow } from '@dcloudio/uni-app'
 import CoachTabBar from '@/components/coach/CoachTabBar.vue'
 import CoachTopBar from '@/components/coach/CoachTopBar.vue'
@@ -159,6 +165,8 @@ import { getBookingsForCoach, getCoachStudents, getCurrentCoach, getMyCourses, t
 import { COACH_UNBOUND_PATH, isCoachUnboundError, resolveCoachAvatar } from '@/utils/coachAccess'
 import { safeReLaunch } from '@/utils/safeRoute'
 import { buildCoachStudentListUrl } from '@/utils/coachStudents'
+import { useCoachWebSocketStore } from '@/store/modules/coachWebSocket'
+import { useCoachStudentRealtimeRefresh } from '@/composables/useCoachStudentRealtimeRefresh'
 import {
   buildCoachBookingsUrl,
   compareCoachCourseTime,
@@ -189,6 +197,8 @@ const metrics = ref({
   riskStudents: 0
 })
 const scheduleList = ref<ScheduleCard[]>([])
+const coachWebSocketStore = useCoachWebSocketStore()
+const { newBookingCount } = storeToRefs(coachWebSocketStore)
 
 const coachName = computed(() => coach.value?.coachName || '教练')
 const coachVenue = computed(() => coach.value?.venueName || '暂未绑定场馆')
@@ -259,6 +269,9 @@ async function loadDashboard() {
 }
 
 function handleQuickAction(type: 'courses' | 'bookings' | 'profile' | 'students') {
+  if (type === 'students') {
+    coachWebSocketStore.clearNewBookingCount()
+  }
   const urlMap: Record<typeof type, string> = {
     courses: '/pages/coach/courses',
     bookings: buildCoachBookingsUrl(undefined, undefined, 2),
@@ -267,6 +280,8 @@ function handleQuickAction(type: 'courses' | 'bookings' | 'profile' | 'students'
   }
   safeReLaunch(urlMap[type], '/pages/coach/index')
 }
+
+useCoachStudentRealtimeRefresh(loadDashboard)
 
 onShow(() => {
   loadDashboard()
@@ -278,6 +293,26 @@ onShow(() => {
   min-height: 100vh;
   background: #f9f9f9;
   color: #1a1c1c;
+}
+
+.student-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.student-realtime-badge {
+  min-width: 34rpx;
+  height: 34rpx;
+  padding: 0 9rpx;
+  border-radius: 999rpx;
+  background: #ba1a1a;
+  color: #fff;
+  font-size: 18rpx;
+  font-weight: 900;
+  line-height: 34rpx;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .page-scroll {

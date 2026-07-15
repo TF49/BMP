@@ -22,6 +22,8 @@ import com.badminton.bmp.modules.course.entity.CourseBooking;
 import com.badminton.bmp.modules.course.entity.Course;
 import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
 import com.badminton.bmp.modules.course.mapper.CourseMapper;
+import com.badminton.bmp.websocket.CoachStudentWebSocketEvent;
+import com.badminton.bmp.websocket.CoachStudentWebSocketEventPublisher;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,15 +41,18 @@ class CourseBookingAttendanceServiceTest {
     private static final LocalDate COURSE_DATE = LocalDate.of(2026, 7, 13);
     private CourseBookingMapper mapper;
     private CourseMapper courseMapper;
+    private CoachStudentWebSocketEventPublisher eventPublisher;
     private CourseBookingServiceImpl service;
 
     @BeforeEach
     void setUp() {
         mapper = mock(CourseBookingMapper.class);
         courseMapper = mock(CourseMapper.class);
+        eventPublisher = mock(CoachStudentWebSocketEventPublisher.class);
         service = new CourseBookingServiceImpl();
         ReflectionTestUtils.setField(service, "courseBookingMapper", mapper);
         ReflectionTestUtils.setField(service, "courseMapper", courseMapper);
+        ReflectionTestUtils.setField(service, "coachStudentWebSocketEventPublisher", eventPublisher);
         setNow(LocalDateTime.of(2026, 7, 13, 10, 30));
     }
 
@@ -66,6 +71,8 @@ class CourseBookingAttendanceServiceTest {
         assertEquals(1, result.getAttendanceStatus());
         assertEquals(3, result.getBookingStatus());
         assertEquals(after.getActualCheckinTime(), result.getActualCheckinTime());
+        verify(eventPublisher).publishAfterCommit(
+                CoachStudentWebSocketEvent.TYPE_ATTENDANCE_CHANGED, after, 3, 1);
     }
 
     @Test
@@ -80,6 +87,7 @@ class CourseBookingAttendanceServiceTest {
         assertEquals(checkedIn.getActualCheckinTime(), result.getActualCheckinTime());
         verify(mapper, never()).updateAttendanceWithExpectedState(
                 anyLong(), anyLong(), anyInt(), anyInt(), anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any());
+        verify(eventPublisher, never()).publishAfterCommit(any(), any(), any(), any());
     }
 
     @Test

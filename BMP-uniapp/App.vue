@@ -5,13 +5,29 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { useUserStore } from './store/modules/user'
 import { useThemeStore } from './store/modules/theme'
+import { useCoachWebSocketStore } from './store/modules/coachWebSocket'
 import { preloadPaymentAutoCancelConfig } from './composables/usePaymentAutoCancel'
 
 const userStore = useUserStore()
 const themeStore = useThemeStore()
+const coachWebSocketStore = useCoachWebSocketStore()
+const appVisible = ref(true)
+
+watch(
+  [() => userStore.token, () => userStore.userRole, () => appVisible.value],
+  ([token, role, visible]) => {
+    if (visible) {
+      void coachWebSocketStore.syncConnection(token, role)
+    } else {
+      void coachWebSocketStore.disconnect()
+    }
+  },
+  { immediate: true }
+)
 
 onLaunch(() => {
   console.log('App Launch')
@@ -109,10 +125,14 @@ function loadGlobalFonts() {
 
 onShow(() => {
   console.log('App Show')
+  appVisible.value = true
+  void coachWebSocketStore.syncConnection(userStore.token, userStore.userRole)
 })
 
 onHide(() => {
   console.log('App Hide')
+  appVisible.value = false
+  void coachWebSocketStore.disconnect()
 })
 </script>
 

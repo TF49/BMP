@@ -23,6 +23,8 @@ import com.badminton.bmp.modules.finance.entity.Finance;
 import com.badminton.bmp.modules.finance.service.FinanceService;
 import com.badminton.bmp.common.util.SecurityUtils;
 import com.badminton.bmp.websocket.WebSocketPushService;
+import com.badminton.bmp.websocket.CoachStudentWebSocketEvent;
+import com.badminton.bmp.websocket.CoachStudentWebSocketEventPublisher;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +71,8 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     private FinanceAuditService financeAuditService;
     @Autowired
     private WebSocketPushService webSocketPushService;
+    @Autowired
+    private CoachStudentWebSocketEventPublisher coachStudentWebSocketEventPublisher;
     @Autowired
     private CoachMapper coachMapper;
     @Autowired
@@ -411,6 +415,14 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         }
         evictCourseCache(booking.getCourseId());
         invalidateForBooking(booking);
+        if (updated > 0) {
+            publishCoachStudentEvent(
+                    CoachStudentWebSocketEvent.TYPE_ATTENDANCE_CHANGED,
+                    current,
+                    current.getStatus(),
+                    normalizeAttendanceStatus(current.getAttendanceStatus())
+            );
+        }
         return AttendanceCommandResult.from(current);
     }
 
@@ -531,6 +543,7 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             incrementCourseCurrentStudents(booking.getCourseId());
             evictCourseCache(booking.getCourseId());
             invalidateForBooking(booking);
+            publishCoachStudentEvent(CoachStudentWebSocketEvent.TYPE_NEW_BOOKING, booking, null, null);
         }
         
         return result;
@@ -582,6 +595,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         Long courseId = booking.getCourseId() != null ? booking.getCourseId() : existing.getCourseId();
         Integer oldStatus = existing.getStatus();
         Integer newStatus = booking.getStatus() != null ? booking.getStatus() : existing.getStatus();
+        boolean studentCancellation = isStudentSelfServiceActor()
+                && oldStatus != null && oldStatus >= 1 && oldStatus <= 3
+                && Integer.valueOf(0).equals(newStatus);
         
         // 如果修改了课程ID，需要处理报名人数的变化
         if (booking.getCourseId() != null && !booking.getCourseId().equals(existing.getCourseId())) {
@@ -624,6 +640,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             evictCourseCache(originalCourseId);
             evictCourseCache(courseId);
             invalidateForBooking(existing);
+            if (studentCancellation) {
+                publishCoachStudentEvent(CoachStudentWebSocketEvent.TYPE_CANCELLED, existing, null, null);
+            }
         }
         return result;
     }
@@ -679,6 +698,10 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (result > 0) {
             evictCourseCache(booking.getCourseId());
             invalidateForBooking(booking);
+            if (isStudentSelfServiceActor()
+                    && booking.getStatus() != null && booking.getStatus() >= 1 && booking.getStatus() <= 3) {
+                publishCoachStudentEvent(CoachStudentWebSocketEvent.TYPE_CANCELLED, booking, null, null);
+            }
         }
         return result;
     }
@@ -765,6 +788,11 @@ public class CourseBookingServiceImpl implements CourseBookingService {
         if (result > 0) {
             evictCourseCache(booking.getCourseId());
             invalidateForBooking(booking);
+            if (isStudentSelfServiceActor()
+                    && oldStatus != null && oldStatus >= 1 && oldStatus <= 3
+                    && status == 0) {
+                publishCoachStudentEvent(CoachStudentWebSocketEvent.TYPE_CANCELLED, booking, null, null);
+            }
         }
         try {
             Long userId = null;
@@ -788,6 +816,24 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             case 4: return "已完成";
             default: return "未知";
         }
+    }
+
+    private void publishCoachStudentEvent(
+            String type,
+            CourseBooking booking,
+            Integer bookingStatus,
+            Integer attendanceStatus
+    ) {
+        if (coachStudentWebSocketEventPublisher != null) {
+            coachStudentWebSocketEventPublisher.publishAfterCommit(
+                    type, booking, bookingStatus, attendanceStatus);
+        }
+    }
+
+    private boolean isStudentSelfServiceActor() {
+        return SecurityUtils.isUser()
+                && !SecurityUtils.isPresident()
+                && !SecurityUtils.isVenueManager();
     }
 
     /**
