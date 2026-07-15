@@ -140,6 +140,20 @@ public class UserController extends BaseController {
     @PreAuthorize("hasRole('PRESIDENT')")
     public Result<Object> addUser(@Validated(Create.class) @RequestBody User user) {
         try {
+            // ── 角色规范化（写入口统一大写）───────────────────────────────
+            String rawRole = user.getRole();
+            String normalizedRole = (rawRole == null || rawRole.trim().isEmpty())
+                    ? "USER"
+                    : rawRole.trim().toUpperCase();
+            // 白名单校验：只允许合法角色
+            java.util.Set<String> validRoles = java.util.Set.of(
+                    "PRESIDENT", "VENUE_MANAGER", "COACH", "USER", "MEMBER");
+            if (!validRoles.contains(normalizedRole)) {
+                return error("角色不合法，允许的角色为：PRESIDENT, VENUE_MANAGER, COACH, USER, MEMBER");
+            }
+            user.setRole(normalizedRole);
+            // ─────────────────────────────────────────────────────────────────
+
             // 检查用户名是否已存在
             User existingUser = userService.findByUsername(user.getUsername());
             if (existingUser != null) {
@@ -176,6 +190,19 @@ public class UserController extends BaseController {
             if (user.getId() == null) {
                 return error("用户ID不能为空");
             }
+
+            // ── 角色规范化（写入口统一大写）───────────────────────────────
+            if (user.getRole() != null && !user.getRole().trim().isEmpty()) {
+                String normalizedRole = user.getRole().trim().toUpperCase();
+                // 白名单校验：只允许合法角色
+                java.util.Set<String> validRoles = java.util.Set.of(
+                        "PRESIDENT", "VENUE_MANAGER", "COACH", "USER", "MEMBER");
+                if (!validRoles.contains(normalizedRole)) {
+                    return error("角色不合法，允许的角色为：PRESIDENT, VENUE_MANAGER, COACH, USER, MEMBER");
+                }
+                user.setRole(normalizedRole);
+            }
+            // ─────────────────────────────────────────────────────────────────
 
             // 检查用户是否存在
             User existingUser = userService.findById(user.getId());

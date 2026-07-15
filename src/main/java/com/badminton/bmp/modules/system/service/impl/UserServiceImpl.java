@@ -115,12 +115,16 @@ public class UserServiceImpl implements UserService {
         if (user.getUpdateTime() == null) {
             user.setUpdateTime(LocalDateTime.now());
         }
-        
-        // 设置默认角色为USER
-        if (user.getRole() == null || user.getRole().isEmpty()) {
-            user.setRole("USER");
-        }
-        
+
+        // ── 角色规范化（写入口统一大写）──────────────────────────────────────
+        // 防止历史脏数据或前端传入小写/混合大小写角色写入数据库
+        String rawRole = user.getRole();
+        String normalizedRole = (rawRole == null || rawRole.trim().isEmpty())
+                ? "USER"
+                : rawRole.trim().toUpperCase();
+        user.setRole(normalizedRole);
+        // ─────────────────────────────────────────────────────────────────
+
         // 设置默认状态为启用（1）
         if (user.getStatus() == null) {
             user.setStatus(1);
@@ -133,7 +137,7 @@ public class UserServiceImpl implements UserService {
         }
         
         // 场馆管理者以外的角色，venueId 强制置为空
-        if (!"VENUE_MANAGER".equalsIgnoreCase(user.getRole())) {
+        if (!"VENUE_MANAGER".equals(user.getRole())) {
             user.setVenueId(null);
         }
 
@@ -187,16 +191,20 @@ public class UserServiceImpl implements UserService {
         // 先查询原有用户信息
         User existingUser = userMapper.findById(user.getId());
         if (existingUser != null) {
-            // 确保角色字段不为空，使用原有角色
-            if (user.getRole() == null || user.getRole().isEmpty()) {
+            // 确保角色字段不为空，使用原有角色；并统一做 trim+toUpperCase 规范化
+            if (user.getRole() == null || user.getRole().trim().isEmpty()) {
                 user.setRole(existingUser.getRole());
+            } else {
+                // ── 角色规范化（写入口统一大写）──────────────────────────────
+                user.setRole(user.getRole().trim().toUpperCase());
+                // ─────────────────────────────────────────────────────────
             }
             // 确保状态不为空，使用原有状态
             if (user.getStatus() == null) {
                 user.setStatus(existingUser.getStatus());
             }
             // 场馆管理者以外的角色，venueId 强制置为空
-            if (!"VENUE_MANAGER".equalsIgnoreCase(user.getRole())) {
+            if (!"VENUE_MANAGER".equals(user.getRole())) {
                 user.setVenueId(null);
             }
             // 处理密码：如果提供了新密码，使用BCrypt加密；否则保持原密码
@@ -217,14 +225,18 @@ public class UserServiceImpl implements UserService {
             user.setUpdateTime(LocalDateTime.now());
         } else {
             // 如果用户不存在，设置默认值
-            if (user.getRole() == null || user.getRole().isEmpty()) {
+            if (user.getRole() == null || user.getRole().trim().isEmpty()) {
                 user.setRole("USER");
+            } else {
+                // ── 角色规范化（写入口统一大写）──────────────────────────────
+                user.setRole(user.getRole().trim().toUpperCase());
+                // ─────────────────────────────────────────────────────────
             }
             if (user.getStatus() == null) {
                 user.setStatus(1);
             }
             // 场馆管理者以外的角色，venueId 强制置为空
-            if (!"VENUE_MANAGER".equalsIgnoreCase(user.getRole())) {
+            if (!"VENUE_MANAGER".equals(user.getRole())) {
                 user.setVenueId(null);
             }
             user.setUpdateTime(LocalDateTime.now());

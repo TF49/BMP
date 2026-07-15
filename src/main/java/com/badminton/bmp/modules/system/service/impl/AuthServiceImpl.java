@@ -95,21 +95,29 @@ public class AuthServiceImpl implements AuthService {
                 return false;
             }
 
-            // 检查 PRESIDENT 唯一性（系统主管理员角色）
-            String role = user.getRole() != null ? user.getRole().trim() : "";
-            if ("PRESIDENT".equalsIgnoreCase(role) && userService.checkPresidentExists(null)) {
+            // ── 角色规范化 ──────────────────────────────────────────────────────
+            // 公开注册白名单：仅允许创建普通用户账号（USER），禁止通过公开注册
+            // 获得 PRESIDENT / VENUE_MANAGER / COACH 等高权限角色。
+            // 高权限账号必须通过后台受控入口（/api/user/add）由 PRESIDENT 分配。
+            String rawRole = user.getRole();
+            String normalizedRole = (rawRole == null || rawRole.trim().isEmpty())
+                    ? "USER"
+                    : rawRole.trim().toUpperCase();
+
+            // 白名单校验：公开注册只允许 USER
+            if (!"USER".equals(normalizedRole)) {
+                logger.warn("公开注册拒绝高权限角色：原始值={}，规范化值={}", rawRole, normalizedRole);
                 return false;
             }
-            // 兼容历史 ADMIN 角色名
-            if ("ADMIN".equalsIgnoreCase(role) && userService.findByRole("ADMIN") != null) {
-                return false;
-            }
+            user.setRole(normalizedRole);
+            // ─────────────────────────────────────────────────────────────────
 
             // 注册新用户
             int result = userService.register(user);
             return result > 0;
 
         } catch (Exception e) {
+            logger.error("注册过程中发生异常", e);
             return false;
         }
     }

@@ -10,6 +10,7 @@ import com.badminton.bmp.modules.system.entity.User;
 import com.badminton.bmp.common.util.SecurityUtils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -56,6 +57,8 @@ public class MemberController extends BaseController {
             result.put("size", size);
             result.put("pages", (total + size - 1) / size);
             return success(result);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return error("获取会员列表失败：" + e.getMessage());
         }
@@ -65,11 +68,17 @@ public class MemberController extends BaseController {
     @GetMapping("/info/{id}")
     @PreAuthorize("isAuthenticated()")
     public Result<Object> info(@PathVariable("id") Long id) {
-        Member member = memberService.findById(id, resolveCoachVenueIdForRequest());
-        if (member == null || (member.getDelFlag() != null && member.getDelFlag() == 1)) {
-            return error("会员不存在");
+        try {
+            Member member = memberService.findById(id, resolveCoachVenueIdForRequest());
+            if (member == null || (member.getDelFlag() != null && member.getDelFlag() == 1)) {
+                return error("会员不存在");
+            }
+            return success(member);
+        } catch (AccessDeniedException e) {
+            throw e;
+        } catch (Exception e) {
+            return error("获取会员详情失败：" + e.getMessage());
         }
-        return success(member);
     }
 
     @Operation(summary = "当前登录用户的会员信息", description = "普通用户获取自己的会员信息（含余额），需登录")
@@ -99,6 +108,8 @@ public class MemberController extends BaseController {
             member.setUpdateTime(LocalDateTime.now());
             Member saved = memberService.add(member);
             return success(saved);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return error("创建会员失败：" + e.getMessage());
         }
@@ -114,6 +125,8 @@ public class MemberController extends BaseController {
         try {
             memberService.update(member);
             return success(null);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return error("更新会员失败：" + e.getMessage());
         }
@@ -126,6 +139,8 @@ public class MemberController extends BaseController {
         try {
             memberService.deleteById(id);
             return success(null);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return error("删除会员失败：" + e.getMessage());
         }
@@ -314,6 +329,8 @@ public class MemberController extends BaseController {
             int total = (data.get("total") instanceof Number) ? ((Number) data.get("total")).intValue() : 0;
             result.put("pages", (total + size - 1) / size);
             return success(result);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             return error("获取消费记录失败：" + e.getMessage());
         }
