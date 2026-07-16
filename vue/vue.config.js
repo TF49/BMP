@@ -43,10 +43,12 @@ module.exports = {
     // 修复 MiniCssExtractPlugin 的 CSS chunk 排序伪警告：
     // 当同一组件被多个异步 chunk 引用时，插件无法保证 CSS 加载顺序，
     // 但只要组件本身不依赖其他 CSS 的加载顺序，该警告就是无害的。
-    config.plugin('extract-css').tap(args => {
-      args[0].ignoreOrder = true
-      return args
-    })
+    if (config.plugins.has('extract-css')) {
+      config.plugin('extract-css').tap(args => {
+        args[0].ignoreOrder = true
+        return args
+      })
+    }
 
     if (process.env.NODE_ENV === 'production') {
       config.optimization.runtimeChunk('single')
