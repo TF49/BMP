@@ -10,8 +10,8 @@
 | 场馆经营 | 场馆、场地、营业时间、状态日志、三套定价、占用与时间轴 |
 | 会员与资金 | 会员档案、充值、消费记录、财务流水、审计日志、对账 |
 | 预约与服务 | 场地预约（拼场/包场）、课程与课程预约、器材租借、赛事报名、穿线工单 |
-| 人员与权限 | 五角色 RBAC（会长 / 场馆管理者 / 用户 / 会员 / 教练）、JWT 双 Token |
-| 运营辅助 | Dashboard 统计、综合搜索、通知、天气代理、地图逆地理、WebSocket 推送 |
+| 人员与权限 | 五角色 RBAC、JWT 双 Token、教练学员视图、课程考勤状态机 |
+| 运营辅助 | Dashboard / 官网公开概览、综合搜索、通知、天气、地图、WebSocket / STOMP 推送 |
 | 支付治理 | 待支付订单超时自动取消（可配置秒级超时，前后端倒计时一致） |
 
 ## 技术栈
@@ -22,19 +22,20 @@
 | Web | Vue 3.5、Vue Router 4、Element Plus、ECharts、Axios、Vue CLI 5 |
 | 移动端 | UniApp 3、Vue 3、TypeScript、Pinia、Vite、uview-plus |
 
-## 项目规模（2026-05-23）
+## 项目规模（2026-07-16）
 
 | 范围 | 数量 |
 |------|------|
 | 后端业务模块 | `16`（含 `payment`） |
-| REST Controller | `27` |
-| Java 源文件 | `181` |
+| 模块 API Controller | `30`（共 `243` 个方法级 HTTP 映射） |
+| Java 源文件 | `212` |
+| 后端测试 | `13` 个测试类 / `54` 个用例 |
 | 数据库物理表 | `27` |
 | Web 页面（`vue/src/views`） | `51` |
-| UniApp 页面 | `107` |
+| UniApp 页面 | `107` 个 `pages.json` 注册页（`109` 个页面 `.vue` 文件） |
 | UniApp API 封装 | `36` |
 | UniApp 组件 | `23` |
-| UniApp 单元测试 | `4` 文件 / `11` 用例 |
+| UniApp 单元测试 | `7` 文件 / `35` 用例 |
 
 ## 多端角色与入口
 
@@ -55,16 +56,16 @@
 | 移动管理 | `pages/president/**` | `PRESIDENT`、`VENUE_MANAGER` |
 | 教练工作台 | `pages/coach/**` | `COACH` |
 
-## 构建验证（2026-05-23）
+## 构建验证（2026-07-16）
 
 | 范围 | 命令 | 结果 |
 |------|------|------|
-| 后端编译 | `mvn -q -DskipTests compile` | 通过 |
-| Web 生产构建 | `cd vue && npm run build` | 通过（有包体积与 Sass 弃用告警） |
+| 后端测试 | `mvn test` | 通过（54/54） |
+| Web 生产构建 | `cd vue && npm run build` | 通过（有 CSS 顺序、包体积、Browserslist 与 Sass 弃用告警） |
 | UniApp 类型检查 | `cd BMP-uniapp && npm run type-check` | 通过 |
-| UniApp 单元测试 | `cd BMP-uniapp && npm test` | 通过（11/11） |
+| UniApp 单元测试 | `cd BMP-uniapp && npm test` | 通过（35/35） |
 
-> 说明：仓库当前无 `src/test` 后端自动化测试；Web 入口合计约 `2.28 MiB`，上线前建议按需做分包与按需加载优化。
+> 说明：后端测试目前集中覆盖支付自动取消、教练学员查询/权限/降级、课程考勤与 WebSocket；其他业务域仍以编译、构建和联调回归为主。Web 入口合计约 `2.28 MiB`，上线前建议继续做分包与按需加载优化。
 
 ## 快速开始
 
@@ -74,7 +75,7 @@
 - Maven 3.8+
 - Node.js 18+（Web / UniApp）
 - MySQL 8.x
-- Redis（可选；未部署时注释 `application.properties` 中 Redis 相关配置，使用内存缓存）
+- Redis（开发环境可选并自动使用 Caffeine；`prod` 配置要求提供 Redis）
 
 ### 1. 初始化数据库
 
@@ -101,7 +102,7 @@ src/main/resources/sql/badminton.sql
 ```properties
 spring.datasource.username=你的数据库用户
 spring.datasource.password=你的数据库密码
-# 本地无 Redis 时，注释 spring.data.redis.* 四行
+# 本地无 Redis 时，保持 spring.data.redis.* 配置为注释状态
 ```
 
 启动：
@@ -143,14 +144,24 @@ npm run dev:mp-weixin
 | `bmp.payment.auto-cancel.timeout-seconds` | 超时秒数（主配置） |
 | `bmp.payment.auto-cancel.scan-interval-ms` | 扫描间隔毫秒 |
 
-开发环境默认 `timeout-seconds=5` 便于联调；**生产/提测**建议通过环境变量设置，例如：
+开发环境默认 `timeout-seconds=5` 便于联调；`application-prod.properties` 的生产默认值为 **900 秒超时 + 60000 毫秒扫描**。提测或发布时可通过环境变量覆盖，例如：
 
 ```properties
-BMP_PAYMENT_AUTO_CANCEL_TIMEOUT_SECONDS=300
+BMP_PAYMENT_AUTO_CANCEL_TIMEOUT_SECONDS=900
 BMP_PAYMENT_AUTO_CANCEL_SCAN_INTERVAL_MS=60000
 ```
 
 只读配置接口：`GET /api/payment/auto-cancel/config`（含 `timeoutSeconds`、`serverTime`）。
+
+## 教练学员与实时通信
+
+- 教练只读学员接口：`/api/coach/students`，关系由本人课程和近 180 天有效课程预约动态推导
+- 考勤命令：`PUT /api/course/booking/for-coach/attendance`，动作包括 `CHECK_IN`、`COMPLETE`、`ABSENT`
+- Web 使用 SockJS 端点 `/ws`，UniApp 使用原生 WebSocket 端点 `/ws-native`
+- STOMP `CONNECT` 通过 `token` 或 `Authorization: Bearer ...` 鉴权，客户端订阅 `/user/queue/notifications`
+- 学员风险阈值由 `coach.risk-threshold.attendance-rate`（默认 70）和 `coach.risk-threshold.inactive-days`（默认 14）控制
+
+> 当前 `SecurityConfig` 的匿名握手白名单只显式覆盖 `/ws` 与 `/ws/**`，尚未覆盖 `/ws-native`。部署小程序实时推送前，应补齐 `/ws-native` 握手放行规则并做真机联调；REST 查询与考勤接口不受此项影响。
 
 ## 仓库结构
 
@@ -174,7 +185,9 @@ BMP/
 |------|------|
 | `SPRING_PROFILES_ACTIVE` | 切换 `dev` / `prod` |
 | `DB_USERNAME` / `DB_PASSWORD` | 数据库账号 |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | 生产 Redis；`REDIS_HOST` 在 `prod` 下必填 |
 | `JWT_SECRET` | JWT 密钥（建议 ≥256 bit） |
+| `WS_ALLOWED_ORIGINS` | WebSocket 允许来源；开发环境默认 `*` |
 | `QWEATHER_API_KEY` | 和风天气 |
 | `TENCENT_MAP_KEY` | 腾讯地图逆地理编码 |
 | `BMP_PAYMENT_AUTO_CANCEL_*` | 支付超时自动取消 |
@@ -204,4 +217,4 @@ BMP/
 ---
 
 **版本**：1.0.0  
-**最后更新**：2026-05-23
+**最后更新**：2026-07-16

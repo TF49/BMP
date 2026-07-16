@@ -1,8 +1,8 @@
 # 羽擎（BMP）API 文档
 
-> **文档版本**：v2.3.0  
+> **文档版本**：v2.4.0
 > **项目版本**：1.0.0（功能开发已完成）  
-> **最后更新**：2026-05-23  
+> **最后更新**：2026-07-16
 > **文档定位**：作为 BMP 接口的离线索引与联调速查手册。  
 > **在线调试入口**：启动后端后访问 [Swagger UI](http://localhost:9090/swagger-ui.html)。
 
@@ -72,7 +72,7 @@ Authorization: Bearer {accessToken}
 
 ## 2. 当前接口地图
 
-基于 2026-05-23 的 Controller 复核（共 **27** 个 `@RestController`），当前后端存在以下基础路径：
+基于 2026-07-16 对 `modules/**/controller` 的复核，当前共有 **30** 个模块 API Controller、**243** 个方法级 HTTP 映射。`BaseController` 与 `GlobalExceptionHandler` 属于基础返回/异常组件，不计入业务接口 Controller。
 
 | 模块 | 路径 | 说明 |
 |------|------|------|
@@ -84,6 +84,7 @@ Authorization: Bearer {accessToken}
 | 天气服务 | `/api/weather` | IP 定位、天气代理 |
 | 地图服务 | `/api/map` | 逆地理编码 |
 | Dashboard | `/api/dashboard` | 汇总统计 |
+| 官网公开概览 | `/api/site` | 匿名运营展示汇总 |
 | 近期动态 | `/api/activity` | 最近会员/预约/财务动态 |
 | 综合搜索 | `/api/search` | 场馆/课程/赛事/器材搜索 |
 | 通知 | `/api/notifications` | 列表、发布、编辑、删除 |
@@ -93,6 +94,7 @@ Authorization: Bearer {accessToken}
 | 会员 | `/api/member` | 会员 CRUD、统计、消费记录 |
 | 充值 | `/api/recharge` | 自助充值、管理员代充、充值记录 |
 | 教练 | `/api/coach` | 教练 CRUD、本人档案、未绑定账号 |
+| 教练学员 | `/api/coach/students` | 本人学员、训练、课表、出勤、课程消费 |
 | 课程 | `/api/course` | 课程 CRUD、教练我的课程 |
 | 课程预约 | `/api/course/booking` | 课程预约、教练端预约处理 |
 | 场地预约 | `/api/booking` | 拼场/包场、占用、支付退款 |
@@ -214,6 +216,12 @@ Authorization: Bearer {accessToken}
 |------|------|------|
 | `/summary` | `GET` | 汇总统计 |
 
+#### 官网公开概览：`/api/site`
+
+| 接口 | 方法 | 认证 | 说明 |
+|------|------|------|------|
+| `/overview` | `GET` | 匿名 | 返回场地利用率、预约成功率/环比、器材可用数、当日收入/环比 |
+
 #### 通知：`/api/notifications`
 
 | 接口 | 方法 | 说明 |
@@ -257,8 +265,8 @@ Authorization: Bearer {accessToken}
 - 运行时主配置项为 `bmp.payment.auto-cancel.timeout-seconds`
 - 扫描频率配置项为 `bmp.payment.auto-cancel.scan-interval-ms`
 - `timeout-minutes` 仅作为旧配置兼容输入保留，不作为新配置主写法
-- 当前仓库默认值仍为开发联调基线：`5 秒超时 + 1 秒扫描`
-- 提测或发布前应通过环境变量覆盖为：`300 秒超时 + 60000 毫秒扫描`
+- `dev` 当前默认值为：`5 秒超时 + 1000 毫秒扫描`
+- `prod` 当前默认值为：`900 秒超时 + 60000 毫秒扫描`，仍可通过环境变量覆盖
 
 ## 4. 场馆经营资源类接口
 
@@ -342,7 +350,24 @@ Authorization: Bearer {accessToken}
 | `/statistics` | `GET` | 教练统计 |
 | `/venues` | `GET` | 场馆下拉 |
 
-### 4.6 课程：`/api/course`
+### 4.6 教练学员：`/api/coach/students`
+
+整组接口要求 `COACH` 角色，并且只能查看与当前教练课程存在有效关联的会员。学员关系由课程预约动态推导，保留窗口为课程结束后的 180 天。
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/` | `GET` | 本人学员列表与总数、风险数、今日数、平均出勤率汇总 |
+| `/{id}` | `GET` | 学员详情 |
+| `/{id}/progress` | `GET` | 按课程汇总训练进度 |
+| `/{id}/schedule` | `GET` | 分页查询课程安排 |
+| `/{id}/attendance` | `GET` | 分页查询出勤记录 |
+| `/{id}/consume-records` | `GET` | 分页查询该教练课程产生的会员消费记录 |
+
+列表参数：`page=1`、`size=20`、`keyword`、`memberType`、`riskOnly`、`todayOnly`、`orderBy`、`orderDirection`。`orderBy` 仅接受 `lastLessonTime`、`attendanceRate`、`totalPaidAmount`、`totalHours`。
+
+课程安排/出勤参数：`startDate`、`endDate`、`status`、`attendanceStatus`、`page=1`、`size=20`。详情类查询按教练每秒最多 10 次，列表每秒最多 5 次。
+
+### 4.7 课程：`/api/course`
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -434,6 +459,7 @@ Authorization: Bearer {accessToken}
 | `/for-coach` | `GET` | 教练端预约列表 |
 | `/for-coach/{id}` | `GET` | 教练端预约详情 |
 | `/for-coach/status` | `PUT` | 教练端更新预约状态 |
+| `/for-coach/attendance` | `PUT` | 教练端登记签到、完成或缺席 |
 | `/list` | `GET` | 课程预约列表 |
 | `/info/{id}` | `GET` | 课程预约详情 |
 | `/add` | `POST` | 新增课程预约 |
@@ -446,6 +472,21 @@ Authorization: Bearer {accessToken}
 | `/refund` | `POST` | 退款 |
 | `/courses` | `GET` | 课程下拉 |
 | `/members` | `GET` | 会员下拉 |
+
+考勤请求：
+
+```json
+{
+  "id": 123,
+  "action": "CHECK_IN",
+  "remark": "按时到场"
+}
+```
+
+- `action`：`CHECK_IN`、`COMPLETE`、`ABSENT`
+- `attendanceStatus`：`0` 未登记、`1` 已签到、`2` 已完成、`3` 缺席
+- 响应包含 `id`、`bookingStatus`、`attendanceStatus`、`actualCheckinTime`、`actualFinishTime`
+- 同一动作重复提交按幂等成功处理；每个教练每秒最多 5 条考勤命令
 
 ### 5.5 赛事：`/api/tournament`
 
@@ -583,6 +624,28 @@ Authorization: Bearer {accessToken}
 | 场馆状态 | `0` 关闭 / `1` 营业中 / `2` 暂停 |
 | 场地状态 | `0` 维护中 / `1` 空闲 / `2` 预约中 / `3` 使用中 |
 
+### 7.5 WebSocket / STOMP 约定
+
+| 项 | 当前实现 |
+|----|----------|
+| 浏览器握手 | `/ws`（SockJS） |
+| UniApp 握手 | `/ws-native`（原生 WebSocket） |
+| 应用前缀 | `/app` |
+| Broker 前缀 | `/topic`、`/queue` |
+| 用户订阅 | `/user/queue/notifications` |
+| 管理广播 | `/topic/admin/todo`、`/topic/admin/dashboard` |
+| CONNECT 鉴权 | STOMP 头 `token` 或 `Authorization: Bearer {token}` |
+
+教练学员事件类型：`COACH_STUDENT_NEW_BOOKING`、`COACH_STUDENT_CANCELLED`、`COACH_STUDENT_ATTENDANCE_CHANGED`。事件在业务事务成功提交后异步推送。
+
+> 当前安全配置只显式匿名放行 `/ws` 与 `/ws/**`，未放行 `/ws-native`。UniApp 真机使用前需要同步修正 `SecurityConfig`，否则仅在 STOMP CONNECT 头携带 token 可能无法通过 HTTP WebSocket 握手。
+
+### 7.6 查询降级与错误
+
+- 教练学员查询遇到非业务型运行时异常时，会返回 15 分钟内的最后成功结果
+- 无可用缓存时返回 `code=503`，`data` 包含 `traceId` 与 `retryable=true`
+- 触发接口限流时抛出 `RateLimitException`，由统一异常处理返回 `429`
+
 ## 8. 维护说明
 
 - 新增接口时，优先补充 Swagger 注解
@@ -593,6 +656,7 @@ Authorization: Bearer {accessToken}
 
 | 日期 | 版本 | 变更内容 |
 |------|------|----------|
+| 2026-07-16 | v2.4.0 | 按 30 个模块 Controller / 243 个 HTTP 映射复核；新增官网概览、教练学员、考勤状态机与 WebSocket 约定 |
 | 2026-05-23 | v2.3.0 | 标记 v1.0.0 交付完成；复核 27 个 Controller 与 `/api/payment/auto-cancel` 配置接口 |
 | 2026-05-17 | v2.2.0 | 同步新增与遗漏的系统类、财务审计、财务对账、天气、地图、搜索、通知编辑等接口，并校正当前基础路径清单 |
 | 2026-05-05 | v2.1.0 | 同步预约模式、三种计费方式、占用查询与拼场人数接口 |
