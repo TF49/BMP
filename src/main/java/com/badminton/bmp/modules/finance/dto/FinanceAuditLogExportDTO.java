@@ -70,6 +70,9 @@ public class FinanceAuditLogExportDTO {
             case "RECONCILE":
                 this.operationTypeDisplay = "对账";
                 break;
+            case "REFUND":
+                this.operationTypeDisplay = "退款";
+                break;
             default:
                 this.operationTypeDisplay = operationType;
         }

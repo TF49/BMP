@@ -1181,6 +1181,9 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             ? courtMapper.findById(courseForRefund.getCourtId()) : null;
         Long venueIdForRefund = courtForRefund != null ? courtForRefund.getVenueId() : null;
 
+        // 查询原始财务记录（用于审计日志关联）
+        Finance originalFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_COURSE, bookingId);
+
         // 创建财务记录（支出/退款）
         financeService.createFromBusiness(
             Finance.TYPE_COURSE,
@@ -1191,6 +1194,17 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             venueIdForRefund,
             "课程预约退款：" + booking.getBookingNo()
         );
+
+        // 获取退款财务记录并记录审计日志
+        Finance refundFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_COURSE, bookingId);
+        if (refundFinance != null && refundFinance.getIncomeExpenseType() != null 
+                && refundFinance.getIncomeExpenseType() == Finance.EXPENSE) {
+            financeAuditService.logRefund(
+                originalFinance,
+                refundFinance,
+                "课程预约退款，预约单号：" + booking.getBookingNo()
+            );
+        }
 
         // 更新预约状态
         booking.setPaymentStatus(2); // 已退款

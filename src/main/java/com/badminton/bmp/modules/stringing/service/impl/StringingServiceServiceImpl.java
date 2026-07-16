@@ -762,6 +762,9 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             );
         }
 
+        // 查询原始财务记录（用于审计日志关联）
+        Finance originalFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_STRINGING, serviceId);
+
         financeService.createFromBusiness(
             Finance.TYPE_STRINGING,
             serviceId,
@@ -771,6 +774,17 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             service.getVenueId(),
             "穿线服务退款：" + service.getServiceNo()
         );
+
+        // 获取退款财务记录并记录审计日志
+        Finance refundFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_STRINGING, serviceId);
+        if (refundFinance != null && refundFinance.getIncomeExpenseType() != null 
+                && refundFinance.getIncomeExpenseType() == Finance.EXPENSE) {
+            financeAuditService.logRefund(
+                originalFinance,
+                refundFinance,
+                "穿线服务退款，服务单号：" + service.getServiceNo()
+            );
+        }
 
         service.setPaymentStatus(2);  // 已退款
         service.setStatus(0);          // 已取消

@@ -213,4 +213,18 @@ public interface FinanceMapper {
             "INNER JOIN biz_tournament_registration tr ON tr.id = f.business_id AND tr.tournament_id = #{tournamentId} AND tr.del_flag = 0 " +
             "WHERE f.del_flag = 0 AND f.business_type = 'TOURNAMENT' AND f.income_expense_type = 1")
     BigDecimal sumTournamentIncomeByTournamentId(@Param("tournamentId") Long tournamentId);
+
+    /**
+     * 根据业务类型和业务ID查询最新的财务记录
+     * 用于退款审计日志关联原始收入记录
+     * 
+     * @param businessType 业务类型
+     * @param businessId 业务ID
+     * @return 最新的财务记录（按创建时间降序）
+     */
+    @Select("SELECT * FROM biz_finance " +
+            "WHERE business_type = #{businessType} AND business_id = #{businessId} AND del_flag = 0 " +
+            "ORDER BY create_time DESC LIMIT 1")
+    Finance findByBusinessTypeAndId(@Param("businessType") String businessType,
+                                   @Param("businessId") Long businessId);
 }

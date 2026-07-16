@@ -572,7 +572,11 @@ CREATE TABLE `biz_finance_audit_log`  (
   INDEX `idx_operation_type`(`operation_type` ASC) USING BTREE,
   INDEX `idx_operator_id`(`operator_id` ASC) USING BTREE,
   INDEX `idx_operation_time`(`operation_time` ASC) USING BTREE,
-  INDEX `idx_audit_finance_time`(`finance_id` ASC, `operation_time` DESC) USING BTREE
+  INDEX `idx_audit_finance_time`(`finance_id` ASC, `operation_time` DESC) USING BTREE,
+  INDEX `idx_audit_query_composite`(`operation_type` ASC, `operator_id` ASC, `operation_time` DESC) USING BTREE COMMENT '多维度查询优化：操作类型+操作人+时间',
+  INDEX `idx_time_range_query`(`operation_time` DESC, `operation_type` ASC) USING BTREE COMMENT '时间范围查询优化：时间+操作类型',
+  INDEX `idx_finance_no_time`(`finance_no` ASC, `operation_time` DESC) USING BTREE COMMENT '财务单号查询优化：单号+时间',
+  INDEX `idx_operator_time`(`operator` ASC, `operation_time` DESC) USING BTREE COMMENT '操作人审计查询：操作人+时间'
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '财务审计日志表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

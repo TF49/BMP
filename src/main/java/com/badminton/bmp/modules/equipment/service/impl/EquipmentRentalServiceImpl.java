@@ -881,6 +881,9 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
         Equipment equipmentForRefund = equipmentMapper.findById(rental.getEquipmentId());
         Long venueIdForRefund = equipmentForRefund != null ? equipmentForRefund.getVenueId() : null;
 
+        // 查询原始财务记录（用于审计日志关联）
+        Finance originalFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_EQUIPMENT, rentalId);
+
         // 创建财务记录（支出/退款）
         financeService.createFromBusiness(
             Finance.TYPE_EQUIPMENT,
@@ -891,6 +894,17 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
             venueIdForRefund,
             "器材租借退款：" + rental.getRentalNo()
         );
+
+        // 获取退款财务记录并记录审计日志
+        Finance refundFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_EQUIPMENT, rentalId);
+        if (refundFinance != null && refundFinance.getIncomeExpenseType() != null 
+                && refundFinance.getIncomeExpenseType() == Finance.EXPENSE) {
+            financeAuditService.logRefund(
+                originalFinance,
+                refundFinance,
+                "器材租借退款，租借单号：" + rental.getRentalNo()
+            );
+        }
 
         // 更新租借状态
         Integer oldStatus = rental.getStatus();

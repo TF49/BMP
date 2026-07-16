@@ -19,7 +19,7 @@ public class FinanceAuditLog {
     private String financeNo;
 
     @NotBlank
-    @Pattern(regexp = "CREATE|UPDATE|DELETE|RECONCILE")
+    @Pattern(regexp = "CREATE|UPDATE|DELETE|RECONCILE|REFUND")
     private String operationType;
 
     @NotBlank

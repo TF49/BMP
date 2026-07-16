@@ -27,6 +27,21 @@ public interface FinanceAuditService {
     void logDelete(Finance finance);
 
     /**
+     * 记录退款操作（重要：退款是财务逆向操作，需单独审计）
+     * @param originalFinance 原始财务记录（收入）
+     * @param refundFinance 退款财务记录（支出）
+     * @param refundReason 退款原因
+     */
+    void logRefund(Finance originalFinance, Finance refundFinance, String refundReason);
+
+    /**
+     * 记录对账操作
+     * @param reconciliationType 对账类型（FULL-全面对账，BOOKING-场地预约对账等）
+     * @param reconciliationResult 对账结果（包含是否通过、差异信息等）
+     */
+    void logReconciliation(String reconciliationType, Map<String, Object> reconciliationResult);
+
+    /**
      * 记录系统自动取消等补充审计操作。
      * 该类日志仅作为审计事件，不绑定具体财务记录ID/单号。
      */

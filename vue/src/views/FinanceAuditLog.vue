@@ -34,6 +34,7 @@
                   <el-option label="创建" value="CREATE" />
                   <el-option label="修改" value="UPDATE" />
                   <el-option label="删除" value="DELETE" />
+                  <el-option label="退款" value="REFUND" />
                   <el-option label="对账" value="RECONCILE" />
                 </el-select>
               </el-form-item>
@@ -460,6 +461,7 @@ function getOperationTypeName(type) {
     CREATE: '创建',
     UPDATE: '修改',
     DELETE: '删除',
+    REFUND: '退款',
     RECONCILE: '对账'
   }
   return map[type] || type
@@ -470,6 +472,7 @@ function getOperationTypeTagType(type) {
     CREATE: 'success',
     UPDATE: 'warning',
     DELETE: 'danger',
+    REFUND: 'info',
     RECONCILE: 'info'
   }
   return map[type] || ''

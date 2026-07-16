@@ -2,6 +2,7 @@ package com.badminton.bmp.modules.finance.service.impl;
 
 import com.badminton.bmp.modules.finance.entity.Finance;
 import com.badminton.bmp.modules.finance.mapper.FinanceMapper;
+import com.badminton.bmp.modules.finance.service.FinanceAuditService;
 import com.badminton.bmp.modules.finance.service.FinanceReconciliationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,6 +23,9 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
 
     @Autowired
     private FinanceMapper financeMapper;
+
+    @Autowired
+    private FinanceAuditService financeAuditService;
 
     @Override
     public Map<String, Object> performFullReconciliation() {
@@ -51,6 +55,15 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
 
         result.put("overallPassed", allPassed);
         result.put("issues", issues);
+
+        // 记录对账审计日志
+        try {
+            financeAuditService.logReconciliation("FULL", result);
+        } catch (Exception e) {
+            // 审计日志失败不影响对账结果返回
+            org.slf4j.LoggerFactory.getLogger(FinanceReconciliationServiceImpl.class)
+                .error("记录全面对账审计日志失败", e);
+        }
 
         return result;
     }
