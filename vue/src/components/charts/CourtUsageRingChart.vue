@@ -65,7 +65,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { Check, Close, Grid, Warning } from '@element-plus/icons-vue'
 import { getCourtDailyUtilization, getCourtStatistics } from '@/api/court'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'

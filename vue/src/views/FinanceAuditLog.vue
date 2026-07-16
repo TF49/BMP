@@ -35,6 +35,7 @@
                   <el-option label="修改" value="UPDATE" />
                   <el-option label="删除" value="DELETE" />
                   <el-option label="退款" value="REFUND" />
+                  <el-option label="系统取消" value="SYSTEM_CANCEL" />
                   <el-option label="对账" value="RECONCILE" />
                 </el-select>
               </el-form-item>
@@ -462,6 +463,7 @@ function getOperationTypeName(type) {
     UPDATE: '修改',
     DELETE: '删除',
     REFUND: '退款',
+    SYSTEM_CANCEL: '系统取消',
     RECONCILE: '对账'
   }
   return map[type] || type
@@ -473,6 +475,7 @@ function getOperationTypeTagType(type) {
     UPDATE: 'warning',
     DELETE: 'danger',
     REFUND: 'info',
+    SYSTEM_CANCEL: 'warning',
     RECONCILE: 'info'
   }
   return map[type] || ''

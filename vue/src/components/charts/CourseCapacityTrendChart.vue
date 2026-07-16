@@ -21,7 +21,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { getCourseBookingStatistics } from '@/api/courseBooking'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 

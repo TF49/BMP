@@ -28,7 +28,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { getEquipmentRentalStatistics } from '@/api/equipmentRental'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 

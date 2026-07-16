@@ -114,6 +114,14 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
             result.put("message", "对账失败，请稍后重试");
         }
 
+        // 记录分模块对账审计日志
+        try {
+            financeAuditService.logReconciliation("BOOKING", result);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(FinanceReconciliationServiceImpl.class)
+                .error("记录场地预约对账审计日志失败", e);
+        }
+
         return result;
     }
 
@@ -159,6 +167,14 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
         } catch (Exception e) {
             result.put("passed", false);
             result.put("message", "对账失败，请稍后重试");
+        }
+
+        // 记录分模块对账审计日志
+        try {
+            financeAuditService.logReconciliation("COURSE", result);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(FinanceReconciliationServiceImpl.class)
+                .error("记录课程预约对账审计日志失败", e);
         }
 
         return result;
@@ -208,6 +224,14 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
             result.put("message", "对账失败，请稍后重试");
         }
 
+        // 记录分模块对账审计日志
+        try {
+            financeAuditService.logReconciliation("EQUIPMENT", result);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(FinanceReconciliationServiceImpl.class)
+                .error("记录器材租借对账审计日志失败", e);
+        }
+
         return result;
     }
 
@@ -253,6 +277,14 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
         } catch (Exception e) {
             result.put("passed", false);
             result.put("message", "对账失败，请稍后重试");
+        }
+
+        // 记录分模块对账审计日志
+        try {
+            financeAuditService.logReconciliation("TOURNAMENT", result);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(FinanceReconciliationServiceImpl.class)
+                .error("记录赛事报名对账审计日志失败", e);
         }
 
         return result;
@@ -302,6 +334,14 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
             result.put("message", "对账失败，请稍后重试");
         }
 
+        // 记录分模块对账审计日志
+        try {
+            financeAuditService.logReconciliation("STRINGING", result);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(FinanceReconciliationServiceImpl.class)
+                .error("记录穿线服务对账审计日志失败", e);
+        }
+
         return result;
     }
 
@@ -347,6 +387,14 @@ public class FinanceReconciliationServiceImpl implements FinanceReconciliationSe
         } catch (Exception e) {
             result.put("passed", false);
             result.put("message", "对账失败，请稍后重试");
+        }
+
+        // 记录分模块对账审计日志
+        try {
+            financeAuditService.logReconciliation("RECHARGE", result);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(FinanceReconciliationServiceImpl.class)
+                .error("记录会员充值对账审计日志失败", e);
         }
 
         return result;

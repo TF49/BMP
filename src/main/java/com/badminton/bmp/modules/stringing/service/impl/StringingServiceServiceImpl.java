@@ -764,8 +764,8 @@ public class StringingServiceServiceImpl implements StringingServiceService {
             );
         }
 
-        // 查询原始财务记录（用于审计日志关联）
-        Finance originalFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_STRINGING, serviceId);
+        // 查询原始财务记录（专门查收入类型，避免与退款支出记录混淆）
+        Finance originalFinance = financeMapper.findIncomeByBusinessTypeAndId(Finance.TYPE_STRINGING, serviceId);
 
         financeService.createFromBusiness(
             Finance.TYPE_STRINGING,

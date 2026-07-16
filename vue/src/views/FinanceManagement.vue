@@ -347,7 +347,7 @@ import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { openActionConfirm } from '@/utils/confirm'
 import { Search, Refresh, Plus, Edit, Delete, Coin, View } from '@element-plus/icons-vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import {
   getFinanceList,
   addFinance,

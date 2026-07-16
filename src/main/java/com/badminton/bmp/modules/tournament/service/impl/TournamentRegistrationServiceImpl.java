@@ -1024,8 +1024,8 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
         Tournament tournamentForRefund = tournamentMapper.findById(registration.getTournamentId());
         Long venueIdForRefund = tournamentForRefund != null ? tournamentForRefund.getVenueId() : null;
 
-        // 查询原始财务记录（用于审计日志关联）
-        Finance originalFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_TOURNAMENT, registrationId);
+        // 查询原始财务记录（专门查收入类型，避免与退款支出记录混淆）
+        Finance originalFinance = financeMapper.findIncomeByBusinessTypeAndId(Finance.TYPE_TOURNAMENT, registrationId);
 
         financeService.createFromBusiness(
             Finance.TYPE_TOURNAMENT,

@@ -1183,8 +1183,8 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             ? courtMapper.findById(courseForRefund.getCourtId()) : null;
         Long venueIdForRefund = courtForRefund != null ? courtForRefund.getVenueId() : null;
 
-        // 查询原始财务记录（用于审计日志关联）
-        Finance originalFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_COURSE, bookingId);
+        // 查询原始财务记录（专门查收入类型，避免与退款支出记录混淆）
+        Finance originalFinance = financeMapper.findIncomeByBusinessTypeAndId(Finance.TYPE_COURSE, bookingId);
 
         // 创建财务记录（支出/退款）
         financeService.createFromBusiness(

@@ -3,6 +3,23 @@ const path = require('path')
 module.exports = {
   // 生产环境不生成 source map：显著减少构建体积与首屏下载
   productionSourceMap: false,
+  // 使用现代 Sass API，消除 Dart Sass 2.0 的 legacy-js-api 弃用警告
+  css: {
+    loaderOptions: {
+      sass: {
+        api: 'modern',
+        sassOptions: {
+          silenceDeprecations: ['legacy-js-api']
+        }
+      },
+      scss: {
+        api: 'modern',
+        sassOptions: {
+          silenceDeprecations: ['legacy-js-api']
+        }
+      }
+    }
+  },
   // 配置需要转译的依赖包
   transpileDependencies: [
     '@stomp/stompjs'
@@ -22,6 +39,14 @@ module.exports = {
     // 配置@别名指向src目录
     config.resolve.alias
       .set('@', path.resolve(__dirname, 'src'))
+
+    // 修复 MiniCssExtractPlugin 的 CSS chunk 排序伪警告：
+    // 当同一组件被多个异步 chunk 引用时，插件无法保证 CSS 加载顺序，
+    // 但只要组件本身不依赖其他 CSS 的加载顺序，该警告就是无害的。
+    config.plugin('extract-css').tap(args => {
+      args[0].ignoreOrder = true
+      return args
+    })
 
     if (process.env.NODE_ENV === 'production') {
       config.optimization.runtimeChunk('single')

@@ -18,7 +18,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { getBookingHeatmap } from '@/api/booking'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 

@@ -227,4 +227,19 @@ public interface FinanceMapper {
             "ORDER BY create_time DESC LIMIT 1")
     Finance findByBusinessTypeAndId(@Param("businessType") String businessType,
                                    @Param("businessId") Long businessId);
+
+    /**
+     * 根据业务类型和业务ID查询最新的【收入】财务记录
+     * 专用于退款前查询原始收入记录，避免混入退款支出记录
+     * 
+     * @param businessType 业务类型
+     * @param businessId 业务ID
+     * @return 最新的收入财务记录（income_expense_type = 1，按创建时间降序）
+     */
+    @Select("SELECT * FROM biz_finance " +
+            "WHERE business_type = #{businessType} AND business_id = #{businessId} " +
+            "AND income_expense_type = 1 AND del_flag = 0 " +
+            "ORDER BY create_time DESC LIMIT 1")
+    Finance findIncomeByBusinessTypeAndId(@Param("businessType") String businessType,
+                                         @Param("businessId") Long businessId);
 }

@@ -50,7 +50,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { getFinanceTrend } from '@/api/finance'
 import { formatLocalDate } from '@/utils/localDate'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'

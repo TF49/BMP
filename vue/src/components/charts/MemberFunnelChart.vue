@@ -26,7 +26,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { getMemberFunnel } from '@/api/member'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 

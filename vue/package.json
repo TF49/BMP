@@ -14,9 +14,10 @@
     "@vue/cli-plugin-typescript": "^5.0.9",
     "@vue/cli-service": "~5.0.0",
     "@vue/compiler-sfc": "^3.0.0",
-    "sass": "^1.97.2",
-    "sass-loader": "^10.2.0",
     "babel-plugin-transform-remove-console": "^6.9.4",
+    "sass": "^1.97.2",
+    "sass-loader": "^12.6.0",
+    "sharp": "^0.35.3",
     "typescript": "^5.9.3"
   },
   "dependencies": {

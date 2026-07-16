@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { getFinanceTrend } from '@/api/finance'
 import { getBookingTrend } from '@/api/booking'
 import { formatLocalDate } from '@/utils/localDate'

@@ -24,7 +24,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { getVenueStatistics } from '@/api/venue'
 import { useDashboardChartRefresh } from '@/composables/useDashboardChartRefresh'
 

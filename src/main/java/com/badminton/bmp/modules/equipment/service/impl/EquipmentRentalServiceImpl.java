@@ -883,8 +883,8 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
         Equipment equipmentForRefund = equipmentMapper.findById(rental.getEquipmentId());
         Long venueIdForRefund = equipmentForRefund != null ? equipmentForRefund.getVenueId() : null;
 
-        // 查询原始财务记录（用于审计日志关联）
-        Finance originalFinance = financeMapper.findByBusinessTypeAndId(Finance.TYPE_EQUIPMENT, rentalId);
+        // 查询原始财务记录（专门查收入类型，避免与退款支出记录混淆）
+        Finance originalFinance = financeMapper.findIncomeByBusinessTypeAndId(Finance.TYPE_EQUIPMENT, rentalId);
 
         // 创建财务记录（支出/退款）
         financeService.createFromBusiness(
