@@ -57,6 +57,8 @@ public class EquipmentRentalServiceImpl implements EquipmentRentalService {
     private FinanceService financeService;
     @Autowired
     private FinanceAuditService financeAuditService;
+    @Autowired
+    private com.badminton.bmp.modules.finance.mapper.FinanceMapper financeMapper;
 
     @Autowired
     private WebSocketPushService webSocketPushService;

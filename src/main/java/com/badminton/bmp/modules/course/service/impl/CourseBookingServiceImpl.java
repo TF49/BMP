@@ -70,6 +70,8 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     @Autowired
     private FinanceAuditService financeAuditService;
     @Autowired
+    private com.badminton.bmp.modules.finance.mapper.FinanceMapper financeMapper;
+    @Autowired
     private WebSocketPushService webSocketPushService;
     @Autowired
     private CoachStudentWebSocketEventPublisher coachStudentWebSocketEventPublisher;

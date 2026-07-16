@@ -53,6 +53,8 @@ public class TournamentRegistrationServiceImpl implements TournamentRegistration
     @Autowired
     private FinanceAuditService financeAuditService;
     @Autowired
+    private com.badminton.bmp.modules.finance.mapper.FinanceMapper financeMapper;
+    @Autowired
     private WebSocketPushService webSocketPushService;
     @Autowired
     private PaymentAutoCancelProperties paymentAutoCancelProperties;

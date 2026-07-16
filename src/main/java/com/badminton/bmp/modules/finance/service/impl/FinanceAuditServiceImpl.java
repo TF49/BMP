@@ -18,6 +18,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 财务审计日志服务实现
@@ -250,22 +251,6 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
         
         return summary.toString();
     }
-        try {
-            FinanceAuditLog auditLog = new FinanceAuditLog();
-            auditLog.setFinanceId(null);
-            auditLog.setFinanceNo(null);
-            auditLog.setOperationType("RECONCILE");
-            auditLog.setBeforeData(beforeData == null ? null : objectMapper.writeValueAsString(beforeData));
-            auditLog.setAfterData(null);
-            auditLog.setChangeSummary(summary);
-            auditLog.setRemark(buildSystemAutoCancelRemark(businessType, businessId, businessNo));
-            setSystemOperatorInfo(auditLog);
-            auditLog.setOperationTime(LocalDateTime.now());
-            auditLogMapper.insert(auditLog);
-        } catch (Exception e) {
-            log.error("记录系统自动取消审计日志失败: businessType={}, businessId={}, businessNo={}", businessType, businessId, businessNo, e);
-        }
-    }
 
     /**
      * 记录退款操作
@@ -356,6 +341,27 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void logSystemAutoCancel(String businessType, Long businessId, String businessNo, Object beforeData, String summary) {
+        try {
+            FinanceAuditLog auditLog = new FinanceAuditLog();
+            auditLog.setFinanceId(null);
+            auditLog.setFinanceNo(null);
+            auditLog.setOperationType("SYSTEM_CANCEL");
+            auditLog.setBeforeData(beforeData == null ? null : objectMapper.writeValueAsString(beforeData));
+            auditLog.setAfterData(null);
+            auditLog.setChangeSummary(summary);
+            auditLog.setRemark(buildSystemAutoCancelRemark(businessType, businessId, businessNo));
+            setSystemOperatorInfo(auditLog);
+            auditLog.setOperationTime(LocalDateTime.now());
+            auditLogMapper.insert(auditLog);
+        } catch (Exception e) {
+            log.error("记录系统自动取消审计日志失败: businessType={}, businessId={}, businessNo={}", businessType, businessId, businessNo, e);
+        }
+    }
+
+    /**
+     * 设置普通操作的操作人信息
+     */
+    private void setOperatorInfo(FinanceAuditLog auditLog) {
         User currentUser = SecurityUtils.getCurrentUser();
         if (currentUser != null) {
             auditLog.setOperator(currentUser.getUsername());
@@ -386,6 +392,9 @@ public class FinanceAuditServiceImpl implements FinanceAuditService {
         }
     }
 
+    /**
+     * 设置系统操作的操作人信息
+     */
     private void setSystemOperatorInfo(FinanceAuditLog auditLog) {
         User currentUser = SecurityUtils.getCurrentUser();
         if (currentUser != null) {
