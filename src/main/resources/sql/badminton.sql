@@ -1,4 +1,4 @@
-﻿/*
+/*
  新库初始化版
 
  用途：
@@ -408,6 +408,9 @@ CREATE TABLE `biz_finance`  (
   `reconcile_time` datetime NULL DEFAULT NULL COMMENT '对账时间',
   `reconcile_user_id` bigint NULL DEFAULT NULL COMMENT '对账人ID（关联sys_user）',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  `last_modifier` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '最后修改人',
+  `last_modifier_id` bigint NULL DEFAULT NULL COMMENT '最后修改人ID',
   `del_flag` tinyint(1) NULL DEFAULT 0 COMMENT '逻辑删除标记（0-正常，1-删除）',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `idx_finance_no`(`finance_no` ASC) USING BTREE,

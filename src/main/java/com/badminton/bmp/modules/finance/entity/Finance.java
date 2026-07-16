@@ -28,7 +28,7 @@ public class Finance {
     private BigDecimal amount;
 
     @NotBlank
-    @Pattern(regexp = "CASH|ALIPAY|WECHAT|BALANCE")
+    @Pattern(regexp = "CASH|ALIPAY|WECHAT|BALANCE|BANK")
     private String paymentMethod;
 
     private Long venueId;
