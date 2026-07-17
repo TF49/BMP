@@ -1,0 +1,39 @@
+# Web 框架
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# Agent 编排
+langgraph
+langchain
+langchain-openai
+
+# HTTP 客户端
+httpx
+
+# 数据库
+asyncpg
+alembic
+sqlalchemy
+
+# 缓存
+redis
+
+# 可观测性
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+
+# 测试
+pytest
+pytest-asyncio
+pytest-cov
+
+# 代码质量
+ruff
+mypy
+
+# 工具库
+python-dotenv
+python-jose[cryptography]

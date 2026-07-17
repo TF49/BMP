@@ -59,6 +59,7 @@ Thumbs.db
 
 # Env
 .env*
+!.env.example
 
 # Build outputs
 out/
@@ -66,3 +67,6 @@ dist/
 
 # Defense / presentation materials (local only)
 # docs/
+
+# Generated project inventories
+bmp-agent/project_structure.txt
