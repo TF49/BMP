@@ -35,7 +35,8 @@ addopts = [
     "-m=not live_llm",
     "--cov=app",
     "--cov-report=html",
-    "--cov-report=term"
+    "--cov-report=term",
+    "--cov-fail-under=80"
 ]
 asyncio_mode = "auto"
 markers = [
