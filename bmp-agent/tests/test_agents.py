@@ -40,3 +40,15 @@ async def test_mock_agent_isolates_checkpoints_by_thread() -> None:
 
     assert first_user.metadata.turn == 1
     assert second_user.metadata.turn == 1
+
+
+async def test_mock_agent_can_delete_expired_thread_checkpoint() -> None:
+    agent = MockAgent()
+    current_session = session("conv-expired", "user-a")
+
+    first = await agent.process(current_session, "first")
+    await agent.delete_thread(current_session.thread_id)
+    restarted = await agent.process(current_session, "after expiry")
+
+    assert first.metadata.turn == 1
+    assert restarted.metadata.turn == 1

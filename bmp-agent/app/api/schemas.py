@@ -4,8 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.agents.base import AgentType
-
-type ServiceStatus = Literal["healthy", "unhealthy", "disabled"]
+from app.core.health import ServiceStatus
 
 
 class StrictModel(BaseModel):

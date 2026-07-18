@@ -1,5 +1,5 @@
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -7,11 +7,13 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.agents.mock_agent import MockAgent
 from app.api.routes import router
 from app.core.config import AppSettings, get_settings
 from app.core.exceptions import AgentException
+from app.core.health import DependencyHealthService
 from app.core.security import build_context_verifier
 from app.memory.session import InMemorySessionStore
 from app.observability.logging import configure_logging
@@ -20,9 +22,15 @@ from app.observability.tracing import TraceIdMiddleware, get_trace_id
 logger = logging.getLogger("bmp_agent")
 
 
-def _error_response(status_code: int, message: str, data: Any = None) -> JSONResponse:
+def _error_response(
+    status_code: int,
+    message: str,
+    data: Any = None,
+    headers: Mapping[str, str] | None = None,
+) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
+        headers=headers,
         content={
             "code": status_code,
             "message": message,
@@ -53,10 +61,13 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     app = FastAPI(title=resolved_settings.app_name, lifespan=lifespan)
     app.state.settings = resolved_settings
     app.state.context_verifier = build_context_verifier(resolved_settings)
+    app.state.health_service = DependencyHealthService(resolved_settings)
+    mock_agent = MockAgent()
+    app.state.mock_agent = mock_agent
     app.state.session_store = InMemorySessionStore(
-        ttl_seconds=resolved_settings.session_ttl_seconds
+        ttl_seconds=resolved_settings.session_ttl_seconds,
+        on_expire=lambda session: mock_agent.delete_thread(session.thread_id),
     )
-    app.state.mock_agent = MockAgent()
     app.add_middleware(TraceIdMiddleware)
 
     @app.exception_handler(AgentException)
@@ -70,6 +81,15 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
             "request validation failed",
             {"errors": _validation_errors(exc)},
         )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def handle_http_exception(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+        messages = {
+            404: "resource not found",
+            405: "method not allowed",
+        }
+        message = messages.get(exc.status_code, "request failed")
+        return _error_response(exc.status_code, message, headers=exc.headers)
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(_: Request, exc: Exception) -> JSONResponse:

@@ -1,7 +1,8 @@
 # BMP 三智能体 API 规范文档
 
-> 文档版本：v1.0
+> 文档版本：v1.1
 > 创建日期：2026-07-17
+> 更新日期：2026-07-18
 > 适用项目：羽擎（Badminton Management Platform，BMP）
 > 文档状态：开发中
 
@@ -1021,6 +1022,105 @@ GET /health
   "trace_id": "trace_123"
 }
 ```
+
+### 4.3 大模型 Responses API
+
+FastAPI Agent 服务通过 OpenAI Python SDK 调用 OpenAI-compatible Responses API。业务 Agent 只依赖项目内的模型抽象，不直接拼接供应商请求。
+
+#### 4.3.1 环境变量
+
+| 环境变量 | 当前配置 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `OPENAI_BASE_URL` | `https://bobdong.cn/v1` | 是 | SDK 基础地址，不包含末尾的 `/responses` |
+| `OPENAI_API_KEY` | 不在文档中保存 | 是 | 仅写入本地或部署环境的密钥管理系统，不得提交到 Git、日志或接口响应 |
+| `OPENAI_MODEL` | `gpt-5.6-luna` | 是 | Responses API 使用的模型标识 |
+| `LLM_TIMEOUT_SECONDS` | `30` | 是 | 单次模型请求超时时间，单位为秒 |
+
+SDK 根据 `OPENAI_BASE_URL` 自动生成最终请求地址：
+
+```text
+https://bobdong.cn/v1/responses
+```
+
+#### 4.3.2 文本生成请求
+
+```http
+POST /v1/responses HTTP/1.1
+Host: bobdong.cn
+Authorization: Bearer {OPENAI_API_KEY}
+Content-Type: application/json
+```
+
+```json
+{
+  "model": "gpt-5.6-luna",
+  "input": [
+    {
+      "role": "user",
+      "content": "请回复 OK"
+    }
+  ]
+}
+```
+
+#### 4.3.3 结构化输出请求
+
+需要 Pydantic 模型校验的调用增加 `text.format` 参数：
+
+```json
+{
+  "model": "gpt-5.6-luna",
+  "input": [
+    {
+      "role": "user",
+      "content": "返回 JSON，status 必须为 OK"
+    }
+  ],
+  "text": {
+    "format": {
+      "type": "json_object"
+    }
+  }
+}
+```
+
+#### 4.3.4 响应与项目内映射
+
+```json
+{
+  "id": "resp_123",
+  "object": "response",
+  "model": "gpt-5.6-luna",
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "OK"
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 8,
+    "output_tokens": 2,
+    "total_tokens": 10
+  }
+}
+```
+
+OpenAI SDK 将 `output` 中的文本聚合为 `response.output_text`。模型适配器将其转换为项目内的 `ChatResult`：
+
+| Responses API 字段 | `ChatResult` 字段 |
+| --- | --- |
+| `response.output_text` | `content` |
+| `response.model` | `model` |
+| `response.usage.input_tokens` | `input_tokens` |
+| `response.usage.output_tokens` | `output_tokens` |
+
+模型服务超时映射为 `ModelTimeoutError`，其他供应商异常映射为不包含密钥和上游响应正文的 `ModelProviderError`，空响应或无效结构化输出映射为 `ModelResponseError`。
 
 ## 5. 错误处理
 

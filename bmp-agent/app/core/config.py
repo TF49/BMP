@@ -28,6 +28,7 @@ class AppSettings(BaseSettings):
     database_url: str | None = None
     redis_url: str | None = None
     external_health_checks: bool = False
+    health_check_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
 
     agent_context_mode: Literal["static", "signed"] = "static"
     static_agent_context_token: str | None = None

@@ -56,9 +56,9 @@ BMP 已具备 Spring Boot 3.2、Vue 3、UniApp、MySQL、Redis、JWT、RBAC、We
 
 | 层级 | 技术 |
 | --- | --- |
-| Agent API | Python 3.12、FastAPI、Pydantic 2 |
+| Agent API | Python 3.12.13、FastAPI、Pydantic 2 |
 | Agent 编排 | LangGraph |
-| 模型适配 | OpenAI-compatible 接口，模型与供应商通过环境变量配置 |
+| 模型适配 | OpenAI-compatible Responses API，模型与供应商通过环境变量配置 |
 | HTTP 客户端 | HTTPX |
 | 会话状态 | LangGraph Checkpoint；开发环境可本地运行，集成环境使用 PostgreSQL |
 | RAG | PostgreSQL + pgvector，Embedding 与 Rerank 模型可配置 |
@@ -562,9 +562,9 @@ flowchart TD
 
 ## 17. 实施前置条件
 
-- 确定至少一个支持 OpenAI-compatible Chat API 的模型服务，并通过环境变量提供密钥。
+- 确定至少一个支持 OpenAI-compatible Responses API 的模型服务，并通过环境变量提供密钥。
 - 确定 Embedding 和可选 Rerank 模型，避免将供应商写死在业务代码中。
-- 开发机具备 Python 3.12；集成阶段具备 PostgreSQL/pgvector 和 Redis。
+- 开发机具备 Python 3.12.13；集成阶段具备 PostgreSQL/pgvector 和 Redis。
 - 准备独立测试账号、测试场馆和隔离数据，禁止使用真实支付环境。
 - 明确知识文档维护人和经营指标口径确认人。
 

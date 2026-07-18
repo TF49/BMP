@@ -14,16 +14,13 @@ from app.llm.base import (
 from app.llm.schemas import ChatMessage, ChatResult
 
 
-class _Completions(Protocol):
+class _Responses(Protocol):
     async def create(self, **kwargs: Any) -> Any: ...
 
 
-class _Chat(Protocol):
-    completions: _Completions
-
-
 class OpenAIClient(Protocol):
-    chat: _Chat
+    @property
+    def responses(self) -> _Responses: ...
 
 
 class OpenAICompatibleChatModel:
@@ -66,22 +63,19 @@ class OpenAICompatibleChatModel:
     ) -> ChatResult:
         request: dict[str, Any] = {
             "model": self._settings.openai_model,
-            "messages": [message.model_dump() for message in messages],
+            "input": [message.model_dump() for message in messages],
         }
         if response_format is not None:
-            request["response_format"] = response_format
+            request["text"] = {"format": response_format}
 
         try:
-            response = await self._client.chat.completions.create(**request)
+            response = await self._client.responses.create(**request)
         except (APITimeoutError, TimeoutError) as exc:
             raise ModelTimeoutError() from exc
         except Exception as exc:
             raise ModelProviderError() from exc
 
-        choices = getattr(response, "choices", None)
-        content = None
-        if choices:
-            content = getattr(getattr(choices[0], "message", None), "content", None)
+        content = getattr(response, "output_text", None)
         if not isinstance(content, str) or not content.strip():
             raise ModelResponseError("model returned an empty response")
 
@@ -89,6 +83,6 @@ class OpenAICompatibleChatModel:
         return ChatResult(
             content=content.strip(),
             model=str(getattr(response, "model", self._settings.openai_model)),
-            input_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
-            output_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
+            input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
+            output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
         )

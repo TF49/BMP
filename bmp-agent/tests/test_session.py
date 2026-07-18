@@ -5,7 +5,12 @@ import pytest
 
 from app.agents.base import AgentType
 from app.core.security import VerifiedAgentContext
-from app.memory.session import InMemorySessionStore, SessionAccessError, SessionExpiredError
+from app.memory.session import (
+    InMemorySessionStore,
+    Session,
+    SessionAccessError,
+    SessionExpiredError,
+)
 
 
 def context(user_id: str = "user-a") -> VerifiedAgentContext:
@@ -61,11 +66,59 @@ async def test_expired_session_is_rejected() -> None:
     now = datetime(2026, 7, 18, tzinfo=UTC)
     current = now
     store = InMemorySessionStore(ttl_seconds=60, clock=lambda: current)
-    await store.get_or_create("conv-1", context(), AgentType.BOOKING)
+    original = await store.get_or_create("conv-1", context(), AgentType.BOOKING)
     current = now + timedelta(seconds=61)
 
     with pytest.raises(SessionExpiredError, match="session has expired"):
         await store.get_or_create("conv-1", context(), AgentType.BOOKING)
+
+    recreated = await store.get_or_create("conv-1", context(), AgentType.BOOKING)
+    assert recreated.thread_id != original.thread_id
+
+
+async def test_expired_session_runs_checkpoint_cleanup() -> None:
+    now = datetime(2026, 7, 18, tzinfo=UTC)
+    current = now
+    cleaned_threads: list[str] = []
+
+    async def cleanup(session: Session) -> None:
+        cleaned_threads.append(session.thread_id)
+
+    store = InMemorySessionStore(
+        ttl_seconds=60,
+        clock=lambda: current,
+        on_expire=cleanup,
+    )
+    original = await store.get_or_create("conv-1", context(), AgentType.BOOKING)
+    current = now + timedelta(seconds=61)
+
+    with pytest.raises(SessionExpiredError):
+        await store.get_or_create("conv-1", context(), AgentType.BOOKING)
+
+    assert cleaned_threads == [original.thread_id]
+
+
+async def test_new_request_purges_other_expired_sessions() -> None:
+    now = datetime(2026, 7, 18, tzinfo=UTC)
+    current = now
+    cleaned_threads: list[str] = []
+
+    async def cleanup(session: Session) -> None:
+        cleaned_threads.append(session.thread_id)
+
+    store = InMemorySessionStore(
+        ttl_seconds=60,
+        clock=lambda: current,
+        on_expire=cleanup,
+    )
+    expired = await store.get_or_create("conv-old", context(), AgentType.BOOKING)
+    current = now + timedelta(seconds=61)
+
+    await store.get_or_create("conv-new", context(), AgentType.BOOKING)
+    recreated = await store.get_or_create("conv-old", context(), AgentType.BOOKING)
+
+    assert cleaned_threads == [expired.thread_id]
+    assert recreated.thread_id != expired.thread_id
 
 
 async def test_processing_lock_serializes_same_session() -> None:

@@ -30,7 +30,7 @@ class StaticAgentContextVerifier:
     def verify(self, token: str | None, trace_id: str) -> VerifiedAgentContext:
         if not self._token:
             raise AgentException(status_code=503, message="static agent context is not configured")
-        if not token or not hmac.compare_digest(token, self._token):
+        if not token or not hmac.compare_digest(token.encode(), self._token.encode()):
             raise AgentException(status_code=401, message="invalid agent context token")
         return VerifiedAgentContext(
             user_id=self._user_id,

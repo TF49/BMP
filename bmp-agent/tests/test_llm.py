@@ -18,7 +18,7 @@ from app.llm.openai_adapter import OpenAICompatibleChatModel
 from app.llm.schemas import ChatMessage
 
 
-class FakeCompletions:
+class FakeResponses:
     def __init__(self, result: Any = None, error: Exception | None = None) -> None:
         self.result = result
         self.error = error
@@ -32,15 +32,15 @@ class FakeCompletions:
 
 
 class FakeClient:
-    def __init__(self, completions: FakeCompletions) -> None:
-        self.chat = SimpleNamespace(completions=completions)
+    def __init__(self, responses: FakeResponses) -> None:
+        self.responses = responses
 
 
-def completion(content: str | None, model: str = "test-model") -> Any:
+def response(content: str | None, model: str = "test-model") -> Any:
     return SimpleNamespace(
-        choices=[SimpleNamespace(message=SimpleNamespace(content=content))],
+        output_text=content,
         model=model,
-        usage=SimpleNamespace(prompt_tokens=4, completion_tokens=2),
+        usage=SimpleNamespace(input_tokens=4, output_tokens=2),
     )
 
 
@@ -56,8 +56,8 @@ def model_settings() -> AppSettings:
 
 
 async def test_generate_returns_normalized_chat_result() -> None:
-    completions = FakeCompletions(completion("hello"))
-    model = OpenAICompatibleChatModel(model_settings(), client=FakeClient(completions))
+    responses = FakeResponses(response("hello"))
+    model = OpenAICompatibleChatModel(model_settings(), client=FakeClient(responses))
 
     result = await model.generate([ChatMessage(role="user", content="hi")])
 
@@ -65,10 +65,10 @@ async def test_generate_returns_normalized_chat_result() -> None:
     assert result.model == "test-model"
     assert result.input_tokens == 4
     assert result.output_tokens == 2
-    assert completions.calls == [
+    assert responses.calls == [
         {
             "model": "test-model",
-            "messages": [{"role": "user", "content": "hi"}],
+            "input": [{"role": "user", "content": "hi"}],
         }
     ]
 
@@ -78,21 +78,21 @@ async def test_generate_structured_validates_pydantic_model() -> None:
         venue: str
         hour: int
 
-    completions = FakeCompletions(completion('{"venue":"north","hour":15}'))
-    model = OpenAICompatibleChatModel(model_settings(), client=FakeClient(completions))
+    responses = FakeResponses(response('{"venue":"north","hour":15}'))
+    model = OpenAICompatibleChatModel(model_settings(), client=FakeClient(responses))
 
     result = await model.generate_structured(
         [ChatMessage(role="user", content="book north at 3pm")], Intent
     )
 
     assert result == Intent(venue="north", hour=15)
-    assert completions.calls[0]["response_format"] == {"type": "json_object"}
+    assert responses.calls[0]["text"] == {"format": {"type": "json_object"}}
 
 
 @pytest.mark.parametrize("content", [None, "", "   "])
 async def test_generate_rejects_empty_content(content: str | None) -> None:
     model = OpenAICompatibleChatModel(
-        model_settings(), client=FakeClient(FakeCompletions(completion(content)))
+        model_settings(), client=FakeClient(FakeResponses(response(content)))
     )
 
     with pytest.raises(ModelResponseError, match="empty response"):
@@ -101,7 +101,7 @@ async def test_generate_rejects_empty_content(content: str | None) -> None:
 
 async def test_generate_structured_rejects_invalid_json() -> None:
     model = OpenAICompatibleChatModel(
-        model_settings(), client=FakeClient(FakeCompletions(completion("not-json")))
+        model_settings(), client=FakeClient(FakeResponses(response("not-json")))
     )
 
     with pytest.raises(ModelResponseError, match="structured response validation failed"):
@@ -113,7 +113,7 @@ async def test_generate_structured_rejects_invalid_json() -> None:
 async def test_timeout_is_converted_without_provider_details() -> None:
     timeout = APITimeoutError(request=httpx.Request("POST", "https://model.example/v1"))
     model = OpenAICompatibleChatModel(
-        model_settings(), client=FakeClient(FakeCompletions(error=timeout))
+        model_settings(), client=FakeClient(FakeResponses(error=timeout))
     )
 
     with pytest.raises(ModelTimeoutError, match="model request timed out"):
@@ -123,7 +123,7 @@ async def test_timeout_is_converted_without_provider_details() -> None:
 async def test_provider_error_is_sanitized() -> None:
     model = OpenAICompatibleChatModel(
         model_settings(),
-        client=FakeClient(FakeCompletions(error=RuntimeError("secret provider detail"))),
+        client=FakeClient(FakeResponses(error=RuntimeError("secret provider detail"))),
     )
 
     with pytest.raises(ModelProviderError) as exc_info:
@@ -141,11 +141,11 @@ def test_missing_api_key_fails_before_network_client_is_created() -> None:
 
 
 async def test_health_check_uses_small_text_request() -> None:
-    completions = FakeCompletions(completion("OK"))
-    model = OpenAICompatibleChatModel(model_settings(), client=FakeClient(completions))
+    responses = FakeResponses(response("OK"))
+    model = OpenAICompatibleChatModel(model_settings(), client=FakeClient(responses))
 
     assert await model.health_check() is True
-    assert completions.calls[0]["messages"] == [{"role": "user", "content": "Reply with OK."}]
+    assert responses.calls[0]["input"] == [{"role": "user", "content": "Reply with OK."}]
 
 
 class SimpleSchema(BaseModel):
@@ -153,6 +153,7 @@ class SimpleSchema(BaseModel):
 
 
 @pytest.mark.live_llm
+@pytest.mark.enable_socket
 async def test_live_model_connection() -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     model_name = os.getenv("OPENAI_MODEL")

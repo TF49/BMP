@@ -1,11 +1,12 @@
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Header, Request
 
 from app.agents.base import AgentResult
 from app.agents.mock_agent import MockAgent
-from app.api.schemas import ApiResponse, HealthData, ProcessRequest, ServiceStatus
+from app.api.schemas import ApiResponse, HealthData, ProcessRequest
+from app.core.health import HealthService
 from app.core.security import AgentContextVerifier
 from app.memory.session import InMemorySessionStore
 from app.observability.tracing import get_trace_id
@@ -14,14 +15,13 @@ router = APIRouter()
 
 
 @router.get("/health", response_model=ApiResponse[HealthData])
-async def health(_: Request) -> ApiResponse[HealthData]:
-    services: dict[str, ServiceStatus] = {
-        "app": "healthy",
-        "llm": "disabled",
-        "database": "disabled",
-        "redis": "disabled",
-    }
-    data = HealthData(status="healthy", timestamp=datetime.now(UTC), services=services)
+async def health(request: Request) -> ApiResponse[HealthData]:
+    health_service: HealthService = request.app.state.health_service
+    services = await health_service.check()
+    status: Literal["healthy", "degraded"] = (
+        "degraded" if "unhealthy" in services.values() else "healthy"
+    )
+    data = HealthData(status=status, timestamp=datetime.now(UTC), services=services)
     return ApiResponse(code=200, message="success", data=data, trace_id=get_trace_id())
 
 

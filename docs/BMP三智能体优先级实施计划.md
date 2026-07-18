@@ -1,7 +1,8 @@
 # BMP 三智能体优先级实施计划
 
-> 文档版本：v1.0
+> 文档版本：v1.1
 > 创建日期：2026-07-17
+> 更新日期：2026-07-18
 > 文档状态：实施中（P0 已完成，P1 待开始）
 > 适用项目：羽擎（Badminton Management Platform，BMP）
 > 使用方式：严格按照 `P0 -> P1 -> P2 -> P3` 顺序实施；前一优先级验收未通过，不进入下一优先级。
@@ -22,7 +23,7 @@
 
 | 优先级 | 含义 | 进入条件 | 退出条件 |
 | --- | --- | --- | --- |
-| P0 | 阻断项与工程底座 | 当前即可开始 | FastAPI + Mock Agent 最小闭环可运行 |
+| P0 | 阻断项与工程底座 | 已完成（2026-07-18） | M1 已通过 |
 | P1 | Java/Python 安全集成 | P0 全部通过 | 鉴权后的只读 Tool 调用可端到端运行 |
 | P2 | 三智能体业务 MVP | P1 全部通过 | 三只 Agent 和对应前端主流程可验收 |
 | P3 | 生产化与 LLMOps | P2 全部通过 | 监控、安全、评估、灰度和回滚达标 |
@@ -31,7 +32,7 @@
 
 ## 3. 全局约束
 
-- Python 统一使用 3.12，Java 保持项目现有的 Java 17 和 Spring Boot 3.2。
+- Python 统一使用 3.12.13，Java 保持项目现有的 Java 17 和 Spring Boot 3.2。
 - Python Agent 不直接连接 BMP MySQL，只能通过 Java Tool API 读取或修改业务数据。
 - Java 继续负责用户认证、资源权限、事务、价格、库存、预约冲突和资金规则。
 - Agent 类型由客户端显式指定为 `booking`、`analytics` 或 `support`，第一版不让模型自动猜测。
@@ -62,6 +63,10 @@ P0 开始前的四项阻断问题均已解决：
 ---
 
 ## 5. P0：契约统一与 Agent 工程底座
+
+**阶段状态：已完成（2026-07-18）**
+
+**验收结论**：P0-01 至 P0-06 全部完成；默认离线测试 41 项通过，覆盖率 91.09%，Ruff、格式检查、mypy、干净环境依赖安装和实际 Uvicorn smoke 均通过。Responses API 为当前确认采用的模型请求格式。
 
 目标：建立一个可启动、可测试、具备统一错误和追踪能力的 FastAPI 服务，并跑通不调用 Java Tool 的 Mock Agent。
 
@@ -104,12 +109,13 @@ rg -n "3\.11|/api/v1/health|REFERENCES users" bmp-agent docs -g '*.md' -g '*.tom
 **涉及文件**
 
 - 修改：`bmp-agent/requirements.txt`
+- 修改：`bmp-agent/pyproject.toml`
 - 修改：`bmp-agent/.env.example`
 - 修改：`bmp-agent/README.md`
 
 **任务清单**
 
-- [x] 安装 Python 3.12.13；标准安装使用 `py -3.12 -m venv venv`，uv 管理环境使用 `uv venv --python 3.12.13 --seed venv`。
+- [x] 安装并机械约束 Python 3.12.13；标准安装前校验 `py -3.12 --version`，uv 管理环境使用 `uv venv --python 3.12.13 --seed venv`。
 - [x] 在干净虚拟环境中安装依赖，解决 FastAPI、Pydantic、LangGraph 和 LangChain 的版本兼容问题。
 - [x] 固定所有直接依赖版本，记录 Python 和核心依赖版本。
 - [x] 检查 `.env.example` 只包含占位符，不包含真实密钥、内网地址或生产数据库凭证。
@@ -123,7 +129,7 @@ python --version
 python -m pip check
 ```
 
-预期：Python 为 3.12.x，`pip check` 返回 `No broken requirements found`。
+预期：Python 为 3.12.13，`pip check` 返回 `No broken requirements found`。
 
 ### P0-03 实现 FastAPI 基础设施
 
@@ -150,7 +156,7 @@ python -m pip check
 - [x] 建立统一异常类型和 `{code, message, data, trace_id}` 响应结构。
 - [x] 使用 `ContextVar` 管理 `trace_id`，优先复用请求头中的合法 TraceId，否则生成新值。
 - [x] 实现结构化日志，禁止记录 JWT、API Key、签名、完整 Prompt 和未脱敏用户信息。
-- [x] 实现 `GET /health`，分别报告应用、模型、数据库和 Redis 状态；非必要依赖未配置时标记 `disabled`。
+- [x] 实现 `GET /health`，分别报告应用、模型、数据库和 Redis 状态；外部检查未启用或依赖未配置时标记 `disabled`，检查失败时标记 `unhealthy`。
 - [x] 实现 FastAPI 生命周期管理，避免使用已弃用的启动事件写法。
 
 **验收**
@@ -238,6 +244,8 @@ pytest tests/test_session.py tests/test_agents.py tests/test_api.py -v
 - [x] README 中的安装、启动、健康检查和测试命令均经过实际验证。
 - [x] 提交中不包含 `.env`、`venv/`、`__pycache__/`、`htmlcov/` 或 `project_structure.txt`。
 
+2026-07-18 收尾审查补强后，默认离线测试为 41 项，当前总覆盖率为 91.09%；原始 P0 完成提交记录的覆盖率为 93.73%。
+
 **完整验收命令**
 
 ```powershell
@@ -248,7 +256,7 @@ ruff format --check app tests
 mypy app
 ```
 
-**M1 完成定义**：FastAPI + LangGraph Mock Agent 可以从干净环境启动和测试，失败时返回统一错误并可通过 `trace_id` 定位。
+**M1 完成定义（已达成）**：FastAPI + LangGraph Mock Agent 可以从干净环境启动和测试，失败时返回统一错误并可通过 `trace_id` 定位。
 
 ---
 
@@ -581,7 +589,7 @@ npm run build:mp-weixin
 下一次开始开发时，只执行以下顺序，不跳到三只业务 Agent：
 
 1. `P0-01`：统一 Python 版本、API 路径和数据库外键设计。
-2. `P0-02`：重建 Python 3.12 环境并锁定兼容依赖。
+2. `P0-02`：重建 Python 3.12.13 环境并锁定兼容依赖。
 3. `P0-03`：用测试驱动实现 FastAPI 配置、异常、TraceId 和健康检查。
 4. `P0-04`：实现可替换、可离线测试的 LLM 适配层。
 5. `P0-05`：跑通内存会话和 Mock Agent 状态图。

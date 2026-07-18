@@ -24,11 +24,15 @@ def _respond(state: MockState) -> MockState:
 
 class MockAgent:
     def __init__(self) -> None:
+        self._checkpointer = create_memory_checkpointer()
         builder = StateGraph(MockState)
         builder.add_node("respond", _respond)
         builder.add_edge(START, "respond")
         builder.add_edge("respond", END)
-        self._graph = builder.compile(checkpointer=create_memory_checkpointer())
+        self._graph = builder.compile(checkpointer=self._checkpointer)
+
+    async def delete_thread(self, thread_id: str) -> None:
+        await self._checkpointer.adelete_thread(thread_id)
 
     async def process(self, session: Session, message: str) -> AgentResult:
         config = RunnableConfig(configurable={"thread_id": session.thread_id})

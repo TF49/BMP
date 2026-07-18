@@ -21,6 +21,16 @@ class MappingContextVerifier:
         return context.model_copy(update={"trace_id": trace_id})
 
 
+class FakeHealthService:
+    async def check(self) -> dict[str, str]:
+        return {
+            "app": "healthy",
+            "llm": "healthy",
+            "database": "unhealthy",
+            "redis": "healthy",
+        }
+
+
 def verified_context(user_id: str) -> VerifiedAgentContext:
     return VerifiedAgentContext(
         user_id=user_id,
@@ -78,6 +88,43 @@ async def test_health_replaces_invalid_trace_id(test_settings: AppSettings) -> N
     assert generated != "invalid trace!"
     assert re.fullmatch(r"[0-9a-f]{32}", generated)
     assert response.headers["X-Agent-Trace-Id"] == generated
+
+
+async def test_health_reports_dependency_results_and_degraded_status(
+    test_settings: AppSettings,
+) -> None:
+    app = create_app(test_settings)
+    app.state.health_service = FakeHealthService()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["data"]["status"] == "degraded"
+    assert response.json()["data"]["services"] == {
+        "app": "healthy",
+        "llm": "healthy",
+        "database": "unhealthy",
+        "redis": "healthy",
+    }
+
+
+async def test_http_errors_use_standard_envelope(test_settings: AppSettings) -> None:
+    app = create_app(test_settings)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        missing = await client.get("/missing")
+        wrong_method = await client.get("/api/v1/agent/process")
+
+    assert missing.status_code == 404
+    assert missing.json()["code"] == 404
+    assert missing.json()["message"] == "resource not found"
+    assert missing.json()["data"] is None
+    assert missing.json()["trace_id"]
+    assert wrong_method.status_code == 405
+    assert wrong_method.json()["code"] == 405
+    assert wrong_method.json()["message"] == "method not allowed"
+    assert wrong_method.headers["allow"] == "POST"
 
 
 async def test_domain_exception_uses_sanitized_envelope(test_settings: AppSettings) -> None:
@@ -169,10 +216,17 @@ async def test_process_rejects_missing_and_invalid_token(test_settings: AppSetti
             headers={"X-Agent-Context-Token": "wrong-token"},
             json=process_payload(),
         )
+        non_ascii = await client.post(
+            "/api/v1/agent/process",
+            headers=[(b"X-Agent-Context-Token", b"\xe9")],
+            json=process_payload(),
+        )
 
     assert missing.status_code == 401
     assert invalid.status_code == 401
+    assert non_ascii.status_code == 401
     assert invalid.json()["message"] == "invalid agent context token"
+    assert non_ascii.json()["message"] == "invalid agent context token"
 
 
 async def test_process_rejects_body_identity_and_invalid_fields(
