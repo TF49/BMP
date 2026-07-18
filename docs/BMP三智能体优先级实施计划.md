@@ -2,13 +2,13 @@
 
 > 文档版本：v1.0
 > 创建日期：2026-07-17
-> 文档状态：待实施
+> 文档状态：实施中（P0 已完成，P1 待开始）
 > 适用项目：羽擎（Badminton Management Platform，BMP）
 > 使用方式：严格按照 `P0 -> P1 -> P2 -> P3` 顺序实施；前一优先级验收未通过，不进入下一优先级。
 
 ## 1. 计划定位
 
-本文档是项目根目录 `BMP三智能体开发计划.md` 的执行清单，负责回答“先做什么、后做什么、做到什么程度才算完成”。总体架构、业务边界和验收指标仍以现有设计文档为依据：
+本文档是 `docs/BMP三智能体开发计划.md` 的执行清单，负责回答“先做什么、后做什么、做到什么程度才算完成”。总体架构、业务边界和验收指标仍以现有设计文档为依据：
 
 - `BMP三智能体开发计划.md`：总体目标、范围和里程碑。
 - `docs/技术架构文档.md`：系统架构、数据流和三智能体边界。
@@ -43,21 +43,21 @@
 
 ## 4. 当前基线
 
-截至 2026-07-17，项目状态如下：
+截至 2026-07-18，项目状态如下：
 
 - [x] 已完成总体开发计划和 4 份专项设计文档。
-- [x] 已创建 `bmp-agent` 基础目录、依赖清单和环境变量模板。
+- [x] 已完成 P0 Agent 工程底座、固定依赖、环境变量模板和 M1 验收。
 - [x] 已配置根目录与 Python 子项目的 `.gitignore`。
-- [ ] Python 服务入口、核心模块、Agent、API 和有效测试尚未实现。
+- [x] FastAPI 服务入口、LLM 抽象、内存会话、Checkpoint、Mock Agent 和离线测试已实现。
 - [ ] Java Agent 网关和 `/api/agent-tools/**` 尚未实现。
 - [ ] 三只 Agent、RAG、前端入口和生产监控尚未实现。
 
-当前存在的阻断问题：
+P0 开始前的四项阻断问题均已解决：
 
-1. `bmp-agent/README.md` 和 `pyproject.toml` 曾使用旧版 Python，与设计文档要求不一致。
-2. README 和 API 规范中的接口路径不一致。
-3. `docs/数据库架构文档.md` 在 PostgreSQL 中声明了指向 MySQL `users` 表的外键，该约束无法成立。
-4. README 提供了 `python -m app.main`，但当前不存在 `app/main.py`。
+1. Python 版本已统一为 3.12.13。
+2. README 和 API 规范中的接口路径已统一。
+3. PostgreSQL 指向 MySQL `users` 表的无效外键已删除。
+4. `app/main.py` 已实现并通过实际启动验证。
 
 ---
 
@@ -66,6 +66,8 @@
 目标：建立一个可启动、可测试、具备统一错误和追踪能力的 FastAPI 服务，并跑通不调用 Java Tool 的 Mock Agent。
 
 ### P0-01 统一文档与代码契约
+
+**完成记录：2026-07-18 / `19402b0`**
 
 **涉及文件**
 
@@ -78,14 +80,14 @@
 
 **任务清单**
 
-- [ ] 将 Python 最低版本统一为 3.12，将 Ruff 和 mypy 目标版本统一为 `py312`。
-- [ ] 明确 Java 公共接口为 `/api/agent/**`，FastAPI 内部处理接口为 `/api/v1/agent/process`，健康检查为 `/health`。
-- [ ] 明确 FastAPI 响应为 `{code, message, data, trace_id}`，`code` 与现有 Java `Result<T>` 的 HTTP 状态码语义一致。
-- [ ] 明确内部处理接口只信任 `X-Agent-Context-Token` 验证后的身份，不接收请求体 `user_context` 作为身份来源。
-- [ ] 删除 PostgreSQL `agent_conversations.user_id -> users.id` 外键，只保留普通 `user_id` 字段和索引。
-- [ ] 明确会话归属和用户有效性由 Java 网关与 Tool 层校验，PostgreSQL 不复制 MySQL 用户表。
-- [ ] 将 README 标记为“工程骨架”，在入口实现前不宣称服务已经可运行。
-- [ ] 确定依赖管理规则：`pyproject.toml` 保存工具配置，`requirements.txt` 保存经过兼容性验证的固定版本。
+- [x] 将 Python 最低版本统一为 3.12，将 Ruff 和 mypy 目标版本统一为 `py312`。
+- [x] 明确 Java 公共接口为 `/api/agent/**`，FastAPI 内部处理接口为 `/api/v1/agent/process`，健康检查为 `/health`。
+- [x] 明确 FastAPI 响应为 `{code, message, data, trace_id}`，`code` 与现有 Java `Result<T>` 的 HTTP 状态码语义一致。
+- [x] 明确内部处理接口只信任 `X-Agent-Context-Token` 验证后的身份，不接收请求体 `user_context` 作为身份来源。
+- [x] 删除 PostgreSQL `agent_conversations.user_id -> users.id` 外键，只保留普通 `user_id` 字段和索引。
+- [x] 明确会话归属和用户有效性由 Java 网关与 Tool 层校验，PostgreSQL 不复制 MySQL 用户表。
+- [x] 将 README 标记为“工程骨架”，在入口实现前不宣称服务已经可运行。
+- [x] 确定依赖管理规则：`pyproject.toml` 保存工具配置，`requirements.txt` 保存经过兼容性验证的固定版本。
 
 **验收**
 
@@ -97,6 +99,8 @@ rg -n "3\.11|/api/v1/health|REFERENCES users" bmp-agent docs -g '*.md' -g '*.tom
 
 ### P0-02 固化 Python 开发环境
 
+**完成记录：2026-07-18 / `9e01f8e`**
+
 **涉及文件**
 
 - 修改：`bmp-agent/requirements.txt`
@@ -105,11 +109,11 @@ rg -n "3\.11|/api/v1/health|REFERENCES users" bmp-agent docs -g '*.md' -g '*.tom
 
 **任务清单**
 
-- [ ] 安装 Python 3.12，并使用 `py -3.12 -m venv venv` 重建本地虚拟环境。
-- [ ] 在干净虚拟环境中安装依赖，解决 FastAPI、Pydantic、LangGraph 和 LangChain 的版本兼容问题。
-- [ ] 固定所有直接依赖版本，记录 Python 和核心依赖版本。
-- [ ] 检查 `.env.example` 只包含占位符，不包含真实密钥、内网地址或生产数据库凭证。
-- [ ] 在 README 中记录 Windows PowerShell 下的安装、启动、测试和质量检查命令。
+- [x] 安装 Python 3.12.13；标准安装使用 `py -3.12 -m venv venv`，uv 管理环境使用 `uv venv --python 3.12.13 --seed venv`。
+- [x] 在干净虚拟环境中安装依赖，解决 FastAPI、Pydantic、LangGraph 和 LangChain 的版本兼容问题。
+- [x] 固定所有直接依赖版本，记录 Python 和核心依赖版本。
+- [x] 检查 `.env.example` 只包含占位符，不包含真实密钥、内网地址或生产数据库凭证。
+- [x] 在 README 中记录 Windows PowerShell 下的安装、启动、测试和质量检查命令。
 
 **验收**
 
@@ -122,6 +126,8 @@ python -m pip check
 预期：Python 为 3.12.x，`pip check` 返回 `No broken requirements found`。
 
 ### P0-03 实现 FastAPI 基础设施
+
+**完成记录：2026-07-18 / `c061964`**
 
 **创建文件**
 
@@ -138,14 +144,14 @@ python -m pip check
 
 **任务清单**
 
-- [ ] 先编写配置缺失、健康检查和统一异常的失败测试。
-- [ ] 使用 Pydantic Settings 加载应用、模型、数据库、Redis、日志和服务认证配置。
-- [ ] 区分开发与生产校验：生产环境禁止占位密钥，开发环境允许关闭非必要外部依赖。
-- [ ] 建立统一异常类型和 `{code, message, data, trace_id}` 响应结构。
-- [ ] 使用 `ContextVar` 管理 `trace_id`，优先复用请求头中的合法 TraceId，否则生成新值。
-- [ ] 实现结构化日志，禁止记录 JWT、API Key、签名、完整 Prompt 和未脱敏用户信息。
-- [ ] 实现 `GET /health`，分别报告应用、模型、数据库和 Redis 状态；非必要依赖未配置时标记 `disabled`。
-- [ ] 实现 FastAPI 生命周期管理，避免使用已弃用的启动事件写法。
+- [x] 先编写配置缺失、健康检查和统一异常的失败测试。
+- [x] 使用 Pydantic Settings 加载应用、模型、数据库、Redis、日志和服务认证配置。
+- [x] 区分开发与生产校验：生产环境禁止占位密钥，开发环境允许关闭非必要外部依赖。
+- [x] 建立统一异常类型和 `{code, message, data, trace_id}` 响应结构。
+- [x] 使用 `ContextVar` 管理 `trace_id`，优先复用请求头中的合法 TraceId，否则生成新值。
+- [x] 实现结构化日志，禁止记录 JWT、API Key、签名、完整 Prompt 和未脱敏用户信息。
+- [x] 实现 `GET /health`，分别报告应用、模型、数据库和 Redis 状态；非必要依赖未配置时标记 `disabled`。
+- [x] 实现 FastAPI 生命周期管理，避免使用已弃用的启动事件写法。
 
 **验收**
 
@@ -159,6 +165,8 @@ pytest tests/test_config.py tests/test_api.py -v
 
 ### P0-04 建立 LLM 抽象与结构化输出
 
+**完成记录：2026-07-18 / `504ec9e`**
+
 **创建文件**
 
 - `bmp-agent/app/llm/base.py`
@@ -168,11 +176,11 @@ pytest tests/test_config.py tests/test_api.py -v
 
 **任务清单**
 
-- [ ] 先编写模型配置、超时、无效 JSON 和供应商异常的失败测试。
-- [ ] 定义与供应商无关的聊天模型接口，业务 Agent 不直接导入 OpenAI 客户端。
-- [ ] 使用 OpenAI-compatible 配置实现适配器，统一超时和错误转换。
-- [ ] 所有需要进入状态图的模型结果使用 Pydantic 结构化模型校验。
-- [ ] 测试默认使用 Fake/Stub 模型，不消耗真实 Token；真实模型连接测试使用显式标记单独运行。
+- [x] 先编写模型配置、超时、无效 JSON 和供应商异常的失败测试。
+- [x] 定义与供应商无关的聊天模型接口，业务 Agent 不直接导入 OpenAI 客户端。
+- [x] 使用 OpenAI-compatible 配置实现适配器，统一超时和错误转换。
+- [x] 所有需要进入状态图的模型结果使用 Pydantic 结构化模型校验。
+- [x] 测试默认使用 Fake/Stub 模型，不消耗真实 Token；真实模型连接测试使用显式标记单独运行。
 
 **验收**
 
@@ -184,6 +192,8 @@ pytest tests/test_llm.py -v
 预期：离线测试全部通过；未配置真实 API Key 时不会误发外部请求。
 
 ### P0-05 实现会话、Checkpoint 和 Mock Agent
+
+**完成记录：2026-07-18 / `e2fdfa6`**
 
 **创建文件**
 
@@ -201,12 +211,12 @@ pytest tests/test_llm.py -v
 
 **任务清单**
 
-- [ ] 定义包含 `conversation_id`、`user_id`、`agent_type`、`thread_id`、创建时间和过期时间的会话模型。
-- [ ] 先使用内存实现会话与 Checkpoint，并通过接口隔离存储实现，便于后续替换 PostgreSQL。
-- [ ] 编写 LangGraph Mock 状态图，实现接收消息、更新状态和返回固定结构响应。
-- [ ] 实现 `POST /api/v1/agent/process`，要求 Java 签名上下文中的用户与会话归属一致。
-- [ ] 验证不同用户、不同会话和不同 Agent 类型之间状态互不串用。
-- [ ] 验证过期会话、未知 Agent 类型、空消息和超长消息返回明确错误。
+- [x] 定义包含 `conversation_id`、`user_id`、`agent_type`、`thread_id`、创建时间和过期时间的会话模型。
+- [x] 先使用内存实现会话与 Checkpoint，并通过接口隔离存储实现，便于后续替换 PostgreSQL。
+- [x] 编写 LangGraph Mock 状态图，实现接收消息、更新状态和返回固定结构响应。
+- [x] 实现 `POST /api/v1/agent/process`，要求验证后的 Agent 上下文用户与会话归属一致；真实签名格式留到 P1。
+- [x] 验证不同用户、不同会话和不同 Agent 类型之间状态互不串用。
+- [x] 验证过期会话、未知 Agent 类型、空消息和超长消息返回明确错误。
 
 **验收**
 
@@ -219,18 +229,20 @@ pytest tests/test_session.py tests/test_agents.py tests/test_api.py -v
 
 ### P0-06 通过 M1 质量门槛
 
-- [ ] `pytest` 全部通过，并生成覆盖率报告。
-- [ ] `ruff check app tests` 无错误。
-- [ ] `ruff format --check app tests` 无格式差异。
-- [ ] `mypy app` 无阻断错误。
-- [ ] README 中的安装、启动、健康检查和测试命令均经过实际验证。
-- [ ] 提交中不包含 `.env`、`venv/`、`__pycache__/`、`htmlcov/` 或 `project_structure.txt`。
+**完成记录：2026-07-18 / `cdfa46e`**
+
+- [x] `pytest` 全部通过，并生成覆盖率报告；总覆盖率 93.73%，高于 80% 门槛。
+- [x] `ruff check app tests` 无错误。
+- [x] `ruff format --check app tests` 无格式差异。
+- [x] `mypy app` 无阻断错误。
+- [x] README 中的安装、启动、健康检查和测试命令均经过实际验证。
+- [x] 提交中不包含 `.env`、`venv/`、`__pycache__/`、`htmlcov/` 或 `project_structure.txt`。
 
 **完整验收命令**
 
 ```powershell
 cd bmp-agent
-pytest
+python -m pytest
 ruff check app tests
 ruff format --check app tests
 mypy app
