@@ -32,11 +32,15 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
     "-v",
+    "-m=not live_llm",
     "--cov=app",
     "--cov-report=html",
     "--cov-report=term"
 ]
 asyncio_mode = "auto"
+markers = [
+    "live_llm: calls a configured external OpenAI-compatible model",
+]
 
 [tool.mypy]
 python_version = "3.12"
