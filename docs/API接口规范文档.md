@@ -27,7 +27,7 @@ BMP 三智能体系统包含两类 API：
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {},
   "trace_id": "abc123def456"
@@ -38,17 +38,16 @@ BMP 三智能体系统包含两类 API：
 
 | 错误码 | 说明 | HTTP 状态码 |
 | --- | --- | --- |
-| 0 | 成功 | 200 |
-| 1001 | 参数校验失败 | 400 |
-| 1002 | 业务规则违反 | 400 |
-| 1003 | 资源不存在 | 404 |
-| 2001 | 未授权 | 401 |
-| 2002 | 权限不足 | 403 |
-| 2003 | 会话过期 | 401 |
-| 3001 | 请求过于频繁 | 429 |
-| 3002 | 服务不可用 | 503 |
-| 5001 | 内部服务错误 | 500 |
-| 5002 | 第三方服务错误 | 502 |
+| 200 | 成功 | 200 |
+| 400 | 参数校验或业务规则违反 | 400 |
+| 401 | 未授权或会话过期 | 401 |
+| 403 | 权限不足 | 403 |
+| 404 | 资源不存在 | 404 |
+| 429 | 请求过于频繁 | 429 |
+| 500 | 内部服务错误 | 500 |
+| 502 | 第三方服务错误 | 502 |
+| 503 | 服务不可用 | 503 |
+| 504 | 第三方服务超时 | 504 |
 
 ## 2. Agent 网关 API
 
@@ -84,7 +83,7 @@ Content-Type: application/json
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "conversation_id": "conv_abc123",
@@ -129,7 +128,7 @@ Content-Type: application/json
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "message_id": "msg_123",
@@ -187,7 +186,7 @@ Content-Type: application/json
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "action_id": "action_123",
@@ -219,7 +218,7 @@ Content-Type: application/json
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "action_id": "action_123",
@@ -244,7 +243,7 @@ Authorization: Bearer {jwt_token}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "conversation_id": "conv_abc123",
@@ -273,7 +272,7 @@ Authorization: Bearer {jwt_token}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": null,
   "trace_id": "trace_012"
@@ -321,7 +320,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "venues": [
@@ -370,7 +369,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "available_courts": [
@@ -427,7 +426,7 @@ Content-Type: application/json
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "quote_id": "quote_123",
@@ -486,7 +485,7 @@ Content-Type: application/json
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "booking_id": "booking_789",
@@ -518,7 +517,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "booking_id": "booking_789",
@@ -571,7 +570,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "period": {
@@ -626,7 +625,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "trend": [
@@ -665,7 +664,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "date": "2026-07-17",
@@ -704,7 +703,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "trend": [
@@ -739,7 +738,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "composition": [
@@ -783,7 +782,7 @@ X-Agent-User-Role: PRESIDENT
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "comparison": [
@@ -828,7 +827,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "venue_id": "venue_123",
@@ -865,7 +864,7 @@ X-Agent-User-Role: {role}
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "venue_id": "venue_123",
@@ -927,7 +926,7 @@ Content-Type: application/json
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "message": "success",
   "data": {
     "handoff_id": "handoff_123",
@@ -952,6 +951,7 @@ Spring Boot Agent 网关调用 FastAPI Agent 服务的内部接口。
 ```http
 POST /api/v1/agent/process
 X-Agent-Context-Token: {context_token}
+X-Agent-Trace-Id: {trace_id}
 Content-Type: application/json
 ```
 
@@ -964,30 +964,33 @@ Content-Type: application/json
   "message": {
     "content": "我想明天下午3点预订一个场地",
     "message_id": "msg_123"
-  },
-  "user_context": {
-    "user_id": "user_456",
-    "role": "MEMBER",
-    "venue_id": "venue_123"
   }
 }
 ```
+
+用户 ID、角色和场馆范围只能来自 `X-Agent-Context-Token` 的验证结果。请求体不得携带或覆盖用户身份。
 
 ##### 响应
 
 ```json
 {
-  "response": "好的，我来帮您查询明天下午3点的可用场地。请问您希望在哪个场馆预订？",
-  "type": "text",
-  "requires_action": false,
-  "actions": [],
-  "references": [],
-  "metadata": {
-    "model": "gpt-4",
-    "tokens_used": 150,
-    "duration_ms": 1200,
-    "tool_calls": []
-  }
+  "code": 200,
+  "message": "success",
+  "data": {
+    "response": "Mock Agent 已接收消息。",
+    "type": "text",
+    "requires_action": false,
+    "actions": [],
+    "references": [],
+    "metadata": {
+      "model": "mock",
+      "tokens_used": 0,
+      "duration_ms": 1,
+      "tool_calls": [],
+      "turn": 1
+    }
+  },
+  "trace_id": "trace_123"
 }
 ```
 
@@ -1003,14 +1006,19 @@ GET /health
 
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2026-07-17T10:30:00Z",
-  "services": {
-    "llm": "healthy",
-    "database": "healthy",
-    "redis": "healthy",
-    "java_tools": "healthy"
-  }
+  "code": 200,
+  "message": "success",
+  "data": {
+    "status": "healthy",
+    "timestamp": "2026-07-17T10:30:00Z",
+    "services": {
+      "app": "healthy",
+      "llm": "disabled",
+      "database": "disabled",
+      "redis": "disabled"
+    }
+  },
+  "trace_id": "trace_123"
 }
 ```
 
@@ -1020,7 +1028,7 @@ GET /health
 
 ```json
 {
-  "code": 1001,
+  "code": 400,
   "message": "参数校验失败",
   "data": {
     "errors": [
@@ -1042,7 +1050,7 @@ GET /health
 
 ```json
 {
-  "code": 2002,
+  "code": 403,
   "message": "权限不足",
   "data": {
     "required_role": "VENUE_MANAGER",
@@ -1056,7 +1064,7 @@ GET /health
 
 ```json
 {
-  "code": 1002,
+  "code": 400,
   "message": "业务规则违反",
   "data": {
     "rule": "场地已被预订",
@@ -1070,7 +1078,7 @@ GET /health
 
 ```json
 {
-  "code": 3002,
+  "code": 503,
   "message": "服务暂时不可用",
   "data": {
     "retry_after": 60,
@@ -1097,7 +1105,7 @@ GET /health
 
 ```json
 {
-  "code": 3001,
+  "code": 429,
   "message": "请求过于频繁",
   "data": {
     "limit": 10,
@@ -1185,15 +1193,16 @@ curl -X GET "http://localhost:8080/api/agent-tools/courts/availability?venue_id=
 
 | HTTP 状态码 | 错误码 | 说明 |
 | --- | --- | --- |
-| 200 | 0 | 成功 |
-| 400 | 1001, 1002 | 参数或业务错误 |
-| 401 | 2001, 2003 | 认证失败 |
-| 403 | 2002 | 权限不足 |
-| 404 | 1003 | 资源不存在 |
-| 429 | 3001 | 请求过于频繁 |
-| 500 | 5001 | 内部服务错误 |
-| 502 | 5002 | 第三方服务错误 |
-| 503 | 3002 | 服务不可用 |
+| 200 | 200 | 成功 |
+| 400 | 400 | 参数或业务错误 |
+| 401 | 401 | 认证失败或会话过期 |
+| 403 | 403 | 权限不足 |
+| 404 | 404 | 资源不存在 |
+| 429 | 429 | 请求过于频繁 |
+| 500 | 500 | 内部服务错误 |
+| 502 | 502 | 第三方服务错误 |
+| 503 | 503 | 服务不可用 |
+| 504 | 504 | 第三方服务超时 |
 
 ### 9.2 数据类型规范
 

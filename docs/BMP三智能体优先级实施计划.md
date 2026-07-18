@@ -54,7 +54,7 @@
 
 当前存在的阻断问题：
 
-1. `bmp-agent/README.md` 和 `pyproject.toml` 使用 Python 3.11，设计文档要求 Python 3.12。
+1. `bmp-agent/README.md` 和 `pyproject.toml` 曾使用旧版 Python，与设计文档要求不一致。
 2. README 和 API 规范中的接口路径不一致。
 3. `docs/数据库架构文档.md` 在 PostgreSQL 中声明了指向 MySQL `users` 表的外键，该约束无法成立。
 4. README 提供了 `python -m app.main`，但当前不存在 `app/main.py`。
@@ -80,6 +80,8 @@
 
 - [ ] 将 Python 最低版本统一为 3.12，将 Ruff 和 mypy 目标版本统一为 `py312`。
 - [ ] 明确 Java 公共接口为 `/api/agent/**`，FastAPI 内部处理接口为 `/api/v1/agent/process`，健康检查为 `/health`。
+- [ ] 明确 FastAPI 响应为 `{code, message, data, trace_id}`，`code` 与现有 Java `Result<T>` 的 HTTP 状态码语义一致。
+- [ ] 明确内部处理接口只信任 `X-Agent-Context-Token` 验证后的身份，不接收请求体 `user_context` 作为身份来源。
 - [ ] 删除 PostgreSQL `agent_conversations.user_id -> users.id` 外键，只保留普通 `user_id` 字段和索引。
 - [ ] 明确会话归属和用户有效性由 Java 网关与 Tool 层校验，PostgreSQL 不复制 MySQL 用户表。
 - [ ] 将 README 标记为“工程骨架”，在入口实现前不宣称服务已经可运行。
