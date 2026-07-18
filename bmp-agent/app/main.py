@@ -8,9 +8,12 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.agents.mock_agent import MockAgent
 from app.api.routes import router
 from app.core.config import AppSettings, get_settings
 from app.core.exceptions import AgentException
+from app.core.security import build_context_verifier
+from app.memory.session import InMemorySessionStore
 from app.observability.logging import configure_logging
 from app.observability.tracing import TraceIdMiddleware, get_trace_id
 
@@ -49,6 +52,11 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
 
     app = FastAPI(title=resolved_settings.app_name, lifespan=lifespan)
     app.state.settings = resolved_settings
+    app.state.context_verifier = build_context_verifier(resolved_settings)
+    app.state.session_store = InMemorySessionStore(
+        ttl_seconds=resolved_settings.session_ttl_seconds
+    )
+    app.state.mock_agent = MockAgent()
     app.add_middleware(TraceIdMiddleware)
 
     @app.exception_handler(AgentException)
