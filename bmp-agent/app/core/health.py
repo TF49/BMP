@@ -59,6 +59,10 @@ class DependencyHealthService:
         return await model.health_check()
 
     async def _check_database(self) -> bool:
+        # TODO(P1-06): Replace bare connection with application-level
+        # connection pool.  This P0 placeholder creates a new connection
+        # on every health check, which is acceptable only while
+        # external_health_checks is rarely enabled during development.
         database_url = self._settings.database_url
         if database_url is None:
             return False
@@ -72,6 +76,7 @@ class DependencyHealthService:
             await connection.close()
 
     async def _check_redis(self) -> bool:
+        # TODO(P1-06): Replace with shared Redis client from app state.
         redis_url = self._settings.redis_url
         if redis_url is None:
             return False

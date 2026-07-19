@@ -3,6 +3,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from datetime import UTC, datetime, timedelta
+from typing import Protocol
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict
@@ -85,7 +86,9 @@ class InMemorySessionStore:
                 self._processing_locks[conversation_id] = asyncio.Lock()
                 return session
 
-            if session.user_id != context.user_id or session.agent_type is not agent_type:
+            # Use != (not `is not`) — StrEnum identity is not guaranteed
+            # when values are constructed via AgentType(str) deserialization.
+            if session.user_id != context.user_id or session.agent_type != agent_type:
                 raise SessionAccessError()
             return session
 
@@ -104,3 +107,20 @@ class InMemorySessionStore:
 
     def processing_lock(self, session: Session) -> AbstractAsyncContextManager[None]:
         return self._processing_locks[session.conversation_id]
+
+
+class SessionStore(Protocol):
+    """Interface for session storage — use this type in routes and tests.
+
+    Concrete implementations (InMemorySessionStore, PostgresSessionStore)
+    must satisfy this protocol without inheriting from it.
+    """
+
+    async def get_or_create(
+        self,
+        conversation_id: str,
+        context: VerifiedAgentContext,
+        agent_type: AgentType,
+    ) -> Session: ...
+
+    def processing_lock(self, session: Session) -> AbstractAsyncContextManager[None]: ...

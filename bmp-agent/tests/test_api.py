@@ -293,3 +293,47 @@ async def test_process_rejects_cross_user_and_agent_type(test_settings: AppSetti
     assert cross_user.status_code == 403
     assert changed_agent.status_code == 403
     assert cross_user.json()["message"] == "session does not belong to current context"
+
+
+async def test_process_rejects_expired_session(test_settings: AppSettings) -> None:
+    """Expired sessions must return 401 through the route layer, not just in unit tests."""
+    from datetime import UTC, datetime, timedelta
+
+    from app.memory.session import InMemorySessionStore
+
+    now = datetime(2026, 7, 18, tzinfo=UTC)
+    current = now
+
+    app = create_app(test_settings)
+    # Inject a session store with a controllable clock
+    app.state.session_store = InMemorySessionStore(
+        ttl_seconds=60,
+        clock=lambda: current,
+        on_expire=lambda s: app.state.mock_agent.delete_thread(s.thread_id),
+    )
+
+    headers = {"X-Agent-Context-Token": "test-context-token"}
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # First request creates the session while it is still valid
+        first = await client.post(
+            "/api/v1/agent/process",
+            headers=headers,
+            json=process_payload(conversation_id="conv-expire-test"),
+        )
+        assert first.status_code == 200
+
+        # Advance the clock past the TTL
+        current = now + timedelta(seconds=61)
+
+        # Second request must be rejected with 401
+        expired = await client.post(
+            "/api/v1/agent/process",
+            headers=headers,
+            json=process_payload(conversation_id="conv-expire-test"),
+        )
+
+    assert expired.status_code == 401
+    assert expired.json()["message"] == "session has expired"
+    assert expired.json()["trace_id"]
+

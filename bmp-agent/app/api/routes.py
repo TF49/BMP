@@ -3,12 +3,11 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Header, Request
 
-from app.agents.base import AgentResult
-from app.agents.mock_agent import MockAgent
+from app.agents.base import Agent, AgentResult
 from app.api.schemas import ApiResponse, HealthData, ProcessRequest
 from app.core.health import HealthService
 from app.core.security import AgentContextVerifier
-from app.memory.session import InMemorySessionStore
+from app.memory.session import SessionStore
 from app.observability.tracing import get_trace_id
 
 router = APIRouter()
@@ -32,8 +31,8 @@ async def process_message(
     context_token: Annotated[str | None, Header(alias="X-Agent-Context-Token")] = None,
 ) -> ApiResponse[AgentResult]:
     verifier: AgentContextVerifier = request.app.state.context_verifier
-    store: InMemorySessionStore = request.app.state.session_store
-    agent: MockAgent = request.app.state.mock_agent
+    store: SessionStore = request.app.state.session_store
+    agent: Agent = request.app.state.mock_agent
     trace_id = get_trace_id()
     context = verifier.verify(context_token, trace_id)
     session = await store.get_or_create(payload.conversation_id, context, payload.agent_type)

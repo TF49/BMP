@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
@@ -29,3 +29,15 @@ class AgentResult(BaseModel):
     actions: list[dict[str, Any]]
     references: list[dict[str, Any]]
     metadata: AgentMetadata
+
+
+class Agent(Protocol):
+    """Interface for all business agents — use this type in routes and tests.
+
+    Concrete implementations (MockAgent, BookingAgent …) must satisfy
+    this protocol without inheriting from it.
+    """
+
+    async def process(self, session: "Any", message: str) -> AgentResult: ...
+
+    async def delete_thread(self, thread_id: str) -> None: ...

@@ -86,7 +86,14 @@ async def test_generate_structured_validates_pydantic_model() -> None:
     )
 
     assert result == Intent(venue="north", hour=15)
-    assert responses.calls[0]["text"] == {"format": {"type": "json_object"}}
+    # Verify the request uses json_schema (not the weaker json_object) so
+    # the model receives the exact Pydantic schema and strict mode applies.
+    sent_format = responses.calls[0]["text"]["format"]
+    assert sent_format["type"] == "json_schema"
+    assert sent_format["name"] == "Intent"
+    assert sent_format["strict"] is True
+    assert sent_format["schema"]["properties"]["venue"]["type"] == "string"
+    assert sent_format["schema"]["properties"]["hour"]["type"] == "integer"
 
 
 @pytest.mark.parametrize("content", [None, "", "   "])

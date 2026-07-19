@@ -45,7 +45,15 @@ class OpenAICompatibleChatModel:
         messages: Sequence[ChatMessage],
         response_model: type[T],
     ) -> T:
-        result = await self._complete(messages, response_format={"type": "json_object"})
+        # Use json_schema (not json_object) so the model sees the exact
+        # Pydantic schema and strict mode rejects unknown / missing fields.
+        schema_format: dict[str, object] = {
+            "type": "json_schema",
+            "name": response_model.__name__,
+            "schema": response_model.model_json_schema(),
+            "strict": True,
+        }
+        result = await self._complete(messages, response_format=schema_format)
         try:
             return response_model.model_validate_json(result.content)
         except (ValidationError, ValueError) as exc:
