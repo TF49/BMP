@@ -1,13 +1,18 @@
 import re
+import time
 from collections.abc import Mapping
+from pathlib import Path
 
+import httpx
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import AppSettings
 from app.core.exceptions import AgentException
+from app.core.ratelimit import InMemoryRateLimiter, RateLimitDecision
 from app.core.security import VerifiedAgentContext
 from app.main import create_app
+from app.tools.client import JavaToolClient
 
 
 class MappingContextVerifier:
@@ -31,13 +36,24 @@ class FakeHealthService:
         }
 
 
-def verified_context(user_id: str) -> VerifiedAgentContext:
+def verified_context(user_id: str, *, nonce: str = "", expires_at: int = 0) -> VerifiedAgentContext:
     return VerifiedAgentContext(
         user_id=user_id,
         role="MEMBER",
         venue_id=None,
         trace_id="replaced-by-request",
+        nonce=nonce,
+        expires_at=expires_at,
     )
+
+
+class RecordingRateLimiter:
+    def __init__(self) -> None:
+        self.keys: list[str] = []
+
+    def try_acquire(self, key: str) -> RateLimitDecision:
+        self.keys.append(key)
+        return RateLimitDecision(allowed=True, retry_after_seconds=0)
 
 
 def process_payload(
@@ -336,4 +352,160 @@ async def test_process_rejects_expired_session(test_settings: AppSettings) -> No
     assert expired.status_code == 401
     assert expired.json()["message"] == "session has expired"
     assert expired.json()["trace_id"]
+
+
+async def test_process_enforces_rate_limit(test_settings: AppSettings) -> None:
+    app = create_app(test_settings)
+    app.state.rate_limiter = InMemoryRateLimiter(max_requests=1, window_seconds=60)
+
+    headers = {"X-Agent-Context-Token": "test-context-token"}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        first = await client.post(
+            "/api/v1/agent/process", headers=headers, json=process_payload()
+        )
+        second = await client.post(
+            "/api/v1/agent/process", headers=headers, json=process_payload()
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.json()["code"] == 429
+    assert second.json()["message"] == "rate limit exceeded"
+    assert second.json()["data"]["retryable"] is True
+    assert second.json()["data"]["retry_after_seconds"] >= 1
+
+
+async def test_process_rejects_replayed_signed_context(test_settings: AppSettings) -> None:
+    app = create_app(test_settings)
+    app.state.context_verifier = MappingContextVerifier(
+        {
+            "signed-token": verified_context(
+                "user-a",
+                nonce="nonce-a",
+                expires_at=int(time.time() * 1000) + 60_000,
+            )
+        }
+    )
+
+    headers = {"X-Agent-Context-Token": "signed-token"}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        first = await client.post(
+            "/api/v1/agent/process",
+            headers=headers,
+            json=process_payload(conversation_id="conv-replay-1"),
+        )
+        replay = await client.post(
+            "/api/v1/agent/process",
+            headers=headers,
+            json=process_payload(conversation_id="conv-replay-2"),
+        )
+
+    assert first.status_code == 200
+    assert replay.status_code == 401
+    assert replay.json()["message"] == "agent context token has already been used"
+
+
+async def test_process_consumes_layered_rate_limit_keys(test_settings: AppSettings) -> None:
+    app = create_app(test_settings)
+    recorder = RecordingRateLimiter()
+    app.state.rate_limiter = recorder
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/agent/process",
+            headers={"X-Agent-Context-Token": "test-context-token"},
+            json=process_payload(conversation_id="conv-layered-limit"),
+        )
+
+    assert response.status_code == 200
+    assert recorder.keys == [
+        "ip:127.0.0.1",
+        "user:test-user",
+        "route:POST:/api/v1/agent/process",
+        "operation:agent-process",
+    ]
+
+
+async def test_postgres_app_recreation_restores_agent_turn(
+    test_settings: AppSettings, tmp_path: Path
+) -> None:
+    from app.memory.postgres import create_all, create_engine
+
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'agent-state.db').as_posix()}"
+    bootstrap_engine = create_engine(database_url)
+    await create_all(bootstrap_engine)
+    await bootstrap_engine.dispose()
+    settings = test_settings.model_copy(
+        update={"agent_storage_backend": "postgres", "database_url": database_url}
+    )
+    headers = {"X-Agent-Context-Token": "test-context-token"}
+    payload = process_payload(conversation_id="conv-app-restart")
+
+    first_app = create_app(settings)
+    async with AsyncClient(
+        transport=ASGITransport(app=first_app), base_url="http://test"
+    ) as client:
+        first = await client.post("/api/v1/agent/process", headers=headers, json=payload)
+    await first_app.state.db_engine.dispose()
+
+    restarted_app = create_app(settings)
+    async with AsyncClient(
+        transport=ASGITransport(app=restarted_app), base_url="http://test"
+    ) as client:
+        second = await client.post("/api/v1/agent/process", headers=headers, json=payload)
+    await restarted_app.state.db_engine.dispose()
+
+    assert first.json()["data"]["metadata"]["turn"] == 1
+    assert second.json()["data"]["metadata"]["turn"] == 2
+
+
+async def test_process_tool_command_uses_shared_java_client(
+    test_settings: AppSettings,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["path"] = request.url.path
+        captured["headers"] = request.headers
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "message": "success",
+                "data": [
+                    {
+                        "venueId": 3,
+                        "venueName": "测试场馆",
+                        "address": "测试地址",
+                        "businessHours": "08:00-22:00",
+                        "status": 1,
+                        "statusText": "营业中",
+                    }
+                ],
+            },
+        )
+
+    settings = test_settings.model_copy(update={"java_service_token": "service-token"})
+    http_client = AsyncClient(
+        transport=httpx.MockTransport(handler), base_url=settings.java_tool_base_url
+    )
+    tool_client = JavaToolClient(settings, client=http_client)
+    app = create_app(settings, tool_client=tool_client)
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/agent/process",
+                headers={"X-Agent-Context-Token": "test-context-token"},
+                json=process_payload(
+                    conversation_id="conv-tool-runtime", content="tool:list_venues"
+                ),
+            )
+    finally:
+        await tool_client.aclose()
+
+    assert response.status_code == 200
+    assert captured["path"] == "/api/agent-tools/venues"
+    assert captured["headers"]["X-Agent-Service-Token"] == "service-token"
+    assert response.json()["data"]["metadata"]["tool_calls"] == ["list_venues"]
+    assert response.json()["data"]["references"][0]["venue_id"] == 3
 

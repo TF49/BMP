@@ -13,6 +13,7 @@ import com.badminton.bmp.modules.course.mapper.CourseBookingMapper;
 import com.badminton.bmp.modules.course.mapper.CourseMapper;
 import com.badminton.bmp.modules.course.service.CourseBookingService;
 import com.badminton.bmp.modules.coach.mapper.CoachMapper;
+import com.badminton.bmp.modules.coach.mapper.CoachStudentRelationMapper;
 import com.badminton.bmp.modules.member.entity.Member;
 import com.badminton.bmp.modules.member.mapper.MemberMapper;
 import com.badminton.bmp.modules.member.service.MemberConsumeRecordService;
@@ -87,6 +88,8 @@ public class CourseBookingServiceImpl implements CourseBookingService {
     private PlatformTransactionManager transactionManager;
     @Autowired(required = false)
     private CoachStudentRelationCacheInvalidator coachStudentRelationCacheInvalidator;
+    @Autowired
+    private CoachStudentRelationMapper relationMapper;
     private Clock clock = Clock.systemDefaultZone();
 
     /**
@@ -1096,6 +1099,10 @@ public class CourseBookingServiceImpl implements CourseBookingService {
             );
             throw new RuntimeException("支付成功后课程预约状态异常，请稍后重试");
         }
+        if (courseForFinance == null || courseForFinance.getCoachId() == null) {
+            throw new RuntimeException("课程未绑定教练，无法建立学员关系");
+        }
+        relationMapper.activate(courseForFinance.getCoachId(), booking.getMemberId(), "AUTO");
         if (updated > 0) {
             evictCourseCache(booking.getCourseId());
             try {

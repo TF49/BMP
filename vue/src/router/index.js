@@ -352,6 +352,12 @@ const routes = [
         name: 'CourseBookingManagement',
         component: () => import('@/views/CourseBookingManagement.vue'),
         meta: { title: '课程预约', icon: 'Document', roles: ['PRESIDENT','VENUE_MANAGER'] }
+      },
+      {
+        path: 'student',
+        name: 'AdminCoachStudentManagement',
+        component: () => import('@/views/CoachStudentManagement.vue'),
+        meta: { title: '学员管理', icon: 'User', roles: ['PRESIDENT','VENUE_MANAGER'] }
       }
     ]
   },

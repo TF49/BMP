@@ -26,15 +26,40 @@ def test_development_allows_static_context_without_external_services() -> None:
 @pytest.mark.parametrize(
     ("overrides", "error_text"),
     [
-        ({"app_debug": True, "agent_context_mode": "signed"}, "debug mode"),
+        (
+            {
+                "app_debug": True,
+                "agent_context_mode": "signed",
+                "agent_context_secret": "valid-secret-1234567890",
+            },
+            "debug mode",
+        ),
         ({"app_debug": False, "agent_context_mode": "static"}, "static context"),
         (
             {
                 "app_debug": False,
                 "agent_context_mode": "signed",
+                "agent_context_secret": "valid-secret-1234567890",
                 "openai_api_key": "your_api_key_here",
             },
             "placeholder",
+        ),
+        (
+            {
+                "app_debug": False,
+                "agent_context_mode": "signed",
+                "agent_context_secret": None,
+            },
+            "agent_context_secret",
+        ),
+        (
+            {
+                "app_debug": False,
+                "agent_context_mode": "signed",
+                "agent_context_secret": "valid-secret-1234567890",
+                "java_service_token": None,
+            },
+            "java_service_token",
         ),
     ],
 )

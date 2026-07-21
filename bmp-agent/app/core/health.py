@@ -1,9 +1,10 @@
 import asyncio
 from collections.abc import Awaitable, Callable
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 import asyncpg
 import redis.asyncio as redis_async
+from sqlalchemy import text
 
 from app.core.config import AppSettings
 from app.llm.openai_adapter import OpenAICompatibleChatModel
@@ -16,8 +17,16 @@ class HealthService(Protocol):
 
 
 class DependencyHealthService:
-    def __init__(self, settings: AppSettings) -> None:
+    def __init__(
+        self,
+        settings: AppSettings,
+        *,
+        db_engine: Any | None = None,
+        redis_client: Any | None = None,
+    ) -> None:
         self._settings = settings
+        self._db_engine = db_engine
+        self._redis_client = redis_client
 
     async def check(self) -> dict[str, ServiceStatus]:
         statuses: dict[str, ServiceStatus] = {
@@ -59,10 +68,13 @@ class DependencyHealthService:
         return await model.health_check()
 
     async def _check_database(self) -> bool:
-        # TODO(P1-06): Replace bare connection with application-level
-        # connection pool.  This P0 placeholder creates a new connection
-        # on every health check, which is acceptable only while
-        # external_health_checks is rarely enabled during development.
+        # D-3: 复用应用级连接池
+        if self._db_engine is not None:
+            async with self._db_engine.connect() as conn:
+                res = await conn.execute(text("SELECT 1"))
+                return bool(res.scalar() == 1)
+
+        # 兜底旧逻辑
         database_url = self._settings.database_url
         if database_url is None:
             return False
@@ -76,7 +88,11 @@ class DependencyHealthService:
             await connection.close()
 
     async def _check_redis(self) -> bool:
-        # TODO(P1-06): Replace with shared Redis client from app state.
+        # D-3: 复用共享 Redis 客户端
+        if self._redis_client is not None:
+            return bool(await self._redis_client.ping())
+
+        # 兜底旧逻辑
         redis_url = self._settings.redis_url
         if redis_url is None:
             return False

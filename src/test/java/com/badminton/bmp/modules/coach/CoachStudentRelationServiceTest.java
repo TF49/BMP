@@ -4,22 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.badminton.bmp.modules.coach.mapper.CoachStudentMapper;
+import com.badminton.bmp.modules.coach.mapper.CoachStudentRelationMapper;
 import com.badminton.bmp.modules.coach.service.CoachStudentRelationService;
 import com.badminton.bmp.modules.coach.service.impl.CoachStudentRelationServiceImpl;
 import com.badminton.bmp.modules.coach.service.impl.CoachStudentServiceImpl;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
-import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 class CoachStudentRelationServiceTest {
 
@@ -38,53 +35,24 @@ class CoachStudentRelationServiceTest {
     }
 
     @Test
-    void relationRequiresMapperConfirmedBookingWithinFrozenBoundary() {
-        CoachStudentMapper mapper = mock(CoachStudentMapper.class);
-        CoachStudentRelationServiceImpl service = new CoachStudentRelationServiceImpl();
-        ReflectionTestUtils.setField(service, "coachStudentMapper", mapper);
-        ReflectionTestUtils.setField(service, "cacheManager",
-                new ConcurrentMapCacheManager("coachStudentRelation"));
-        when(mapper.findCoachStudentRelationValidUntil(9L, 100L, 180))
-                .thenReturn(LocalDateTime.now().plusDays(1));
+    void activeRelationshipAuthorizesStudentAccess() {
+        CoachStudentRelationMapper mapper = mock(CoachStudentRelationMapper.class);
+        CoachStudentRelationServiceImpl service = relationService(mapper);
+        when(mapper.existsActive(9L, 100L)).thenReturn(1);
 
         assertTrue(service.canCoachViewStudent(9L, 100L));
-        assertFalse(service.canCoachViewStudent(null, 100L));
+
+        verify(mapper).existsActive(9L, 100L);
     }
 
     @Test
-    void cachedPositiveRelationStopsAuthorizingAtItsExactDatabaseBoundary() {
-        ZoneId zone = ZoneId.of("Asia/Shanghai");
-        LocalDateTime now = LocalDateTime.of(2026, 7, 13, 10, 0);
-        CoachStudentMapper mapper = mock(CoachStudentMapper.class);
-        CoachStudentRelationServiceImpl service = new CoachStudentRelationServiceImpl();
-        ReflectionTestUtils.setField(service, "coachStudentMapper", mapper);
-        ReflectionTestUtils.setField(service, "cacheManager",
-                new ConcurrentMapCacheManager("coachStudentRelation"));
-        ReflectionTestUtils.setField(service, "clock", Clock.fixed(now.atZone(zone).toInstant(), zone));
-        when(mapper.findCoachStudentRelationValidUntil(9L, 100L, 180))
-                .thenReturn(now.plusMinutes(1));
+    void deletedRelationshipDoesNotAuthorizeStudentAccess() {
+        CoachStudentRelationMapper mapper = mock(CoachStudentRelationMapper.class);
+        CoachStudentRelationServiceImpl service = relationService(mapper);
+        when(mapper.existsActive(9L, 100L)).thenReturn(0);
 
-        assertTrue(service.canCoachViewStudent(9L, 100L));
-        ReflectionTestUtils.setField(service, "clock", Clock.fixed(
-                now.plusMinutes(1).plusNanos(1_000_000).atZone(zone).toInstant(), zone));
         assertFalse(service.canCoachViewStudent(9L, 100L));
-        verify(mapper).findCoachStudentRelationValidUntil(9L, 100L, 180);
-    }
-
-    @Test
-    void legacyBooleanRelationCacheEntryIsReplacedWithoutBreakingDeployment() {
-        ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager("coachStudentRelation");
-        cacheManager.getCache("coachStudentRelation")
-                .put("coachStudentRelation::9:100", Boolean.TRUE);
-        CoachStudentMapper mapper = mock(CoachStudentMapper.class);
-        CoachStudentRelationServiceImpl service = new CoachStudentRelationServiceImpl();
-        ReflectionTestUtils.setField(service, "coachStudentMapper", mapper);
-        ReflectionTestUtils.setField(service, "cacheManager", cacheManager);
-        when(mapper.findCoachStudentRelationValidUntil(9L, 100L, 180))
-                .thenReturn(LocalDateTime.now().plusDays(1));
-
-        assertTrue(service.canCoachViewStudent(9L, 100L));
-        verify(mapper).findCoachStudentRelationValidUntil(9L, 100L, 180);
+        assertFalse(service.canCoachViewStudent(null, 100L));
     }
 
     @Test
@@ -105,5 +73,11 @@ class CoachStudentRelationServiceTest {
         assertThrows(AccessDeniedException.class,
                 () -> service.getStudentConsumeRecords(9L, 100L, 1, 20));
         verifyNoInteractions(mapper);
+    }
+
+    private CoachStudentRelationServiceImpl relationService(CoachStudentRelationMapper mapper) {
+        CoachStudentRelationServiceImpl service = new CoachStudentRelationServiceImpl();
+        ReflectionTestUtils.setField(service, "relationMapper", mapper);
+        return service;
     }
 }

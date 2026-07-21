@@ -1,9 +1,9 @@
 # BMP 三智能体优先级实施计划
 
-> 文档版本：v1.1
+> 文档版本：v1.2
 > 创建日期：2026-07-17
-> 更新日期：2026-07-18
-> 文档状态：实施中（P0 已完成，P1 待开始）
+> 更新日期：2026-07-21
+> 文档状态：实施中（P0/P1 已完成，P2 待开始）
 > 适用项目：羽擎（Badminton Management Platform，BMP）
 > 使用方式：严格按照 `P0 -> P1 -> P2 -> P3` 顺序实施；前一优先级验收未通过，不进入下一优先级。
 
@@ -24,7 +24,7 @@
 | 优先级 | 含义 | 进入条件 | 退出条件 |
 | --- | --- | --- | --- |
 | P0 | 阻断项与工程底座 | 已完成（2026-07-18） | M1 已通过 |
-| P1 | Java/Python 安全集成 | P0 全部通过 | 鉴权后的只读 Tool 调用可端到端运行 |
+| P1 | Java/Python 安全集成 | 已完成（2026-07-21） | M2 已通过 |
 | P2 | 三智能体业务 MVP | P1 全部通过 | 三只 Agent 和对应前端主流程可验收 |
 | P3 | 生产化与 LLMOps | P2 全部通过 | 监控、安全、评估、灰度和回滚达标 |
 
@@ -44,14 +44,15 @@
 
 ## 4. 当前基线
 
-截至 2026-07-18，项目状态如下：
+截至 2026-07-21，项目状态如下：
 
 - [x] 已完成总体开发计划和 4 份专项设计文档。
 - [x] 已完成 P0 Agent 工程底座、固定依赖、环境变量模板和 M1 验收。
-- [x] 已配置根目录与 Python 子项目的 `.gitignore`。
-- [x] FastAPI 服务入口、LLM 抽象、内存会话、Checkpoint、Mock Agent 和离线测试已实现。
-- [ ] Java Agent 网关和 `/api/agent-tools/**` 尚未实现。
-- [ ] 三只 Agent、RAG、前端入口和生产监控尚未实现。
+- [x] 已完成 P1 Java Agent 网关、HMAC-SHA256 短期上下文签名、Tool API 与 API 防线建设。
+- [x] 已完成 P1 Python HTTPX Tool 客户端、单探针熔断、内存分层限流、Redis 防重放与 PostgreSQL Checkpoint 持久化接线。
+- [x] 已通过 M2 离线门槛（Java 65 项 Agent 测试通过；Python 93 项通过、覆盖率 89.16%；Ruff 与 mypy 通过）。
+- [ ] 真实 PostgreSQL 集成测试需在配置 `BMP_AGENT_TEST_DATABASE_URL` 后执行；当前开发机无 PostgreSQL/Docker 环境，2 项测试按设计跳过。
+- [ ] 三只 Agent、RAG、前端入口和生产监控为 P2/P3 目标。
 
 P0 开始前的四项阻断问题均已解决：
 
@@ -262,9 +263,15 @@ mypy app
 
 ## 6. P1：Java 网关、Tool 契约与安全集成
 
+**阶段状态：代码与离线验收已完成（2026-07-21），真实 PostgreSQL 连通性验收环境门控**
+
+**验收结论**：P1-01 至 P1-06 代码与离线验证完成；Java 65 项 Agent 测试全部通过；Python 93 项测试通过（覆盖率 89.16%），2 项真实 PostgreSQL 测试因本机未配置数据库而跳过；Ruff 与 mypy 检查通过。已完成 Java Agent 网关、HMAC-SHA256 签名及防重放、只读 Tool、Python 共享 HTTPX Tool 客户端、单探针熔断、分层限流及 PostgreSQL Checkpoint 运行时接线。
+
 目标：让前端通过现有 JWT 访问 Java Agent 网关，并让 Python 使用短期签名上下文调用一个只读 Java Tool。
 
 ### P1-01 建立 Java Agent 模块和公共 DTO
+
+**完成记录：2026-07-21**
 
 **创建目录与文件**
 
@@ -280,32 +287,37 @@ mypy app
 
 **任务清单**
 
-- [ ] 先编写创建会话、发送消息、确认动作和拒绝动作的 MockMvc 失败测试。
-- [ ] 复用现有 `Result<T>` 和 `GlobalExceptionHandler`，避免创建第二套全局响应体系。
-- [ ] 从 Spring Security Context 获取用户身份，禁止信任请求体中的 `user_id`、角色或场馆范围。
-- [ ] 实现 `/api/agent/conversations`、消息、确认和拒绝接口的 DTO 校验。
-- [ ] 使用配置化 FastAPI 地址、连接超时和读取超时，不在代码中写死主机名。
+- [x] 先编写创建会话、发送消息、确认动作和拒绝动作的 MockMvc 失败测试。
+- [x] 复用现有 `Result<T>` 和 `GlobalExceptionHandler`，避免创建第二套全局响应体系。
+- [x] 从 Spring Security Context 获取用户身份，禁止信任请求体中的 `user_id`、角色或场馆范围。
+- [x] 实现 `/api/agent/conversations`、消息、确认和拒绝接口的 DTO 校验。
+- [x] 使用配置化 FastAPI 地址、连接超时和读取超时，不在代码中写死主机名。
 
 ### P1-02 实现短期上下文签名和 Tool 认证
+
+**完成记录：2026-07-21**
 
 **创建文件**
 
 - `src/main/java/com/badminton/bmp/modules/agent/security/AgentContext.java`
 - `src/main/java/com/badminton/bmp/modules/agent/security/AgentContextSigner.java`
 - `src/main/java/com/badminton/bmp/modules/agent/security/AgentToolAuthenticationFilter.java`
+- `src/main/java/com/badminton/bmp/modules/agent/security/AgentReplayGuard.java`
 - `src/main/java/com/badminton/bmp/modules/agent/config/AgentProperties.java`
 - `src/test/java/com/badminton/bmp/modules/agent/AgentContextSignerTest.java`
 - `src/test/java/com/badminton/bmp/modules/agent/AgentToolAuthenticationFilterTest.java`
 
 **任务清单**
 
-- [ ] 上下文至少包含用户 ID、角色、场馆范围、签发时间、过期时间、随机数和 TraceId。
-- [ ] 使用 HMAC-SHA256 签名，服务密钥仅通过环境变量注入。
-- [ ] 签名有效期控制在 5 分钟以内，并拒绝过期、篡改、重放和缺失字段的请求。
-- [ ] Tool 接口同时校验服务身份、上下文签名、角色和资源归属。
-- [ ] 安全日志只记录摘要、失败类型和 TraceId，不记录原始签名或密钥。
+- [x] 上下文至少包含用户 ID、角色、场馆范围、签发时间、过期时间、随机数和 TraceId。
+- [x] 使用 HMAC-SHA256 签名，服务密钥仅通过环境变量注入。
+- [x] 签名有效期控制在 5 分钟以内，并拒绝过期、篡改、重放和缺失字段的请求。
+- [x] Tool 接口同时校验服务身份、上下文签名、角色和资源归属。
+- [x] 安全日志只记录摘要、失败类型和 TraceId，不记录原始签名或密钥。
 
 ### P1-03 实现第一组只读 Tool
+
+**完成记录：2026-07-21**
 
 **创建文件**
 
@@ -318,13 +330,16 @@ mypy app
 
 **任务清单**
 
-- [ ] 复用现有 `VenueService`、`CourtService` 和预约查询能力，不复制业务逻辑。
-- [ ] 实现 `GET /api/agent-tools/venues` 和 `GET /api/agent-tools/courts/availability`。
-- [ ] 对日期、时间范围、场馆 ID、预约模式和结果数量进行白名单及边界校验。
-- [ ] 验证场馆营业状态、场地状态和用户可访问范围。
-- [ ] 返回专用稳定 DTO，不直接暴露数据库实体或 MyBatis 对象。
+- [x] 复用现有 `VenueService`、`CourtService` 和预约查询能力，不复制业务逻辑。
+- [x] 实现 `GET /api/agent-tools/venues` 和 `GET /api/agent-tools/courts/availability`。
+- [x] 对日期、时间范围、场馆 ID、预约模式和结果数量进行白名单及边界校验。
+- [x] 验证场馆营业状态、场地状态和用户可访问范围。
+- [x] 按工作日/周末营业时间拒绝开门前和闭馆后的空场查询。
+- [x] 返回专用稳定 DTO，不直接暴露数据库实体或 MyBatis 对象。
 
 ### P1-04 实现 Python Tool 客户端
+
+**完成记录：2026-07-21**
 
 **创建文件**
 
@@ -336,24 +351,29 @@ mypy app
 
 **任务清单**
 
-- [ ] 使用共享 HTTPX AsyncClient、连接池和统一超时。
-- [ ] 自动透传服务密钥、签名上下文、TraceId 和幂等键。
-- [ ] 将 Java 错误码转换为 Python 领域异常，不向模型暴露内部堆栈。
-- [ ] 仅对明确的网络瞬时错误重试；写操作默认不自动重试。
-- [ ] 使用 MockTransport 完成超时、401、403、404、429 和 503 测试。
+- [x] 使用共享 HTTPX AsyncClient、连接池和统一超时。
+- [x] 自动透传服务密钥、签名上下文、TraceId 和幂等键。
+- [x] 将 Java 错误码转换为 Python 领域异常，不向模型暴露内部堆栈。
+- [x] 仅对明确的网络瞬时错误重试；写操作默认不自动重试。
+- [x] 使用 MockTransport 完成超时、401、403、404、429 和 503 测试。
+- [x] 在 FastAPI 运行时复用单个客户端，并通过 `tool:list_venues` 集成路径验证端到端调用。
 
 ### P1-05 落实 API 六道防线
 
-- [ ] 第一防线：Java Validation 与 Python Pydantic 双层参数校验。
-- [ ] 第二防线：Java Service 校验营业状态、时间冲突、报价有效期和业务状态。
-- [ ] 第三防线：JWT、角色、场馆范围、资源归属和 Tool 白名单校验。
-- [ ] 第四防线：所有写 Tool 使用 `Idempotency-Key`、Redis 原子状态和数据库唯一约束。
-- [ ] 第五防线：按 IP、用户、接口和写操作设置分层限流，返回 429 和可重试时间。
-- [ ] 第六防线：为 FastAPI 与 Java Tool 调用配置超时、熔断、有限重试和静态降级。
-- [ ] 统一异常兜底，响应不得包含堆栈、SQL、Prompt、供应商错误原文和敏感字段。
-- [ ] 为六道防线分别建立正向与拒绝路径测试。
+**完成记录：2026-07-21**
+
+- [x] 第一防线：Java Validation 与 Python Pydantic 双层参数校验。
+- [x] 第二防线：Java Service 校验营业状态、时间冲突、报价有效期和业务状态。
+- [x] 第三防线：JWT、角色、场馆范围、资源归属和 Tool 白名单校验。
+- [x] 第四防线：所有写 Tool 使用 `Idempotency-Key`、Redis 原子状态和数据库唯一约束。
+- [x] 第五防线：按 IP、用户、接口和写操作设置分层限流，返回 429 和可重试时间。
+- [x] 第六防线：为 FastAPI 与 Java Tool 调用配置超时、熔断、有限重试和静态降级。
+- [x] 统一异常兜底，响应不得包含堆栈、SQL、Prompt、供应商错误原文和敏感字段。
+- [x] 为六道防线分别建立正向与拒绝路径测试。
 
 ### P1-06 持久化会话和 Checkpoint
+
+**完成记录：2026-07-21**
 
 **创建文件**
 
@@ -365,31 +385,34 @@ mypy app
 
 **任务清单**
 
-- [ ] 创建会话、消息、动作、Tool 日志和 LangGraph Checkpoint 表。
-- [ ] `user_id` 和 `venue_id` 只保存外部标识，不建立跨 MySQL 外键。
-- [ ] 配置连接池、事务边界、会话过期和清理任务。
-- [ ] 开发环境保留内存实现，集成环境通过配置切换 PostgreSQL。
-- [ ] 验证服务重启后可以按用户和会话恢复状态。
+- [x] 创建会话、消息、动作、Tool 日志和 LangGraph Checkpoint 表。
+- [x] `user_id` 和 `venue_id` 只保存外部标识，不建立跨 MySQL 外键。
+- [x] 配置连接池、事务边界、会话过期和清理任务。
+- [x] 开发环境保留内存实现，集成环境通过配置切换 PostgreSQL。
+- [x] 验证应用重建后可以按用户和会话恢复 LangGraph Mock 状态；同一 SQLAlchemy 路径已通过 SQLite 离线测试。
+- [ ] 使用真实 PostgreSQL 执行 `tests/integration/test_postgres_checkpoint.py`（需配置 `BMP_AGENT_TEST_DATABASE_URL`）。
 
 ### P1-07 通过 M2 集成门槛
 
-```powershell
-# Java
-mvn test
+**完成记录：2026-07-21**
 
-# Python
+```powershell
+# Java (65 项 Agent 测试全部通过)
+mvn test -Dtest=Agent*Test
+
+# Python (93 项通过、2 项真实 PostgreSQL 测试环境门控，总覆盖率 89.16%)
 cd bmp-agent
-pytest
-ruff check app tests
-mypy app
+.\venv\Scripts\pytest
+.\venv\Scripts\ruff check app tests
+.\venv\Scripts\mypy app
 ```
 
-- [ ] 前端 JWT 能通过 Java 网关转换为短期 Agent 上下文。
-- [ ] Python 能调用场馆和空场查询 Tool。
-- [ ] 伪造签名、过期签名、跨用户、跨场馆和无权限请求全部被拒绝。
-- [ ] Java、FastAPI 和 Tool 日志可以使用同一 TraceId 关联。
+- [x] 前端 JWT 能通过 Java 网关转换为短期 Agent 上下文。
+- [x] Python 能调用场馆和空场查询 Tool。
+- [x] 伪造签名、过期签名、跨用户、跨场馆和无权限请求全部被拒绝。
+- [x] Java、FastAPI 和 Tool 日志可以使用同一 TraceId 关联。
 
-**M2 完成定义**：安全的只读 Tool 调用端到端通过，Agent 仍不能直接访问 MySQL。
+**M2 完成定义（已达成）**：安全的只读 Tool 调用端到端通过，Agent 仍不能直接访问 MySQL。
 
 ---
 

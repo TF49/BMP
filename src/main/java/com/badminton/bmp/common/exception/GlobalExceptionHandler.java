@@ -8,7 +8,9 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -32,10 +34,21 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ServiceUnavailableException.class)
-    public Result<Object> handleServiceUnavailableException(ServiceUnavailableException e) {
+    public ResponseEntity<Result<Object>> handleServiceUnavailableException(ServiceUnavailableException e) {
         log.error("查询服务暂时不可用, traceId={}: {}", e.getTraceId(), e.getMessage(), e);
-        return new Result<>(503, ErrorMessageSanitizer.sanitize(e.getMessage()),
+        Result<Object> body = new Result<>(503, ErrorMessageSanitizer.sanitize(e.getMessage()),
                 Map.of("traceId", e.getTraceId(), "retryable", true));
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+    }
+
+    @ExceptionHandler(AgentRateLimitException.class)
+    public ResponseEntity<Result<Object>> handleAgentRateLimitException(AgentRateLimitException e) {
+        log.warn("触发智能助手限流: {}", e.getMessage());
+        Result<Object> body = new Result<>(429, ErrorMessageSanitizer.sanitize(e.getMessage()),
+                Map.of("retryAfterSeconds", e.getRetryAfterSeconds(), "retryable", true));
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(e.getRetryAfterSeconds()))
+                .body(body);
     }
 
     @ExceptionHandler(BusinessException.class)

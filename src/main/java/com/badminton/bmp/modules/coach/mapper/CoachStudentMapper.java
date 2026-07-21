@@ -17,29 +17,6 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface CoachStudentMapper {
 
-    @Select("SELECT COUNT(*) FROM biz_course_booking cb " +
-            "INNER JOIN biz_course c ON cb.course_id = c.id " +
-            "INNER JOIN sys_member m ON cb.member_id = m.id " +
-            "WHERE cb.del_flag = 0 AND c.del_flag = 0 AND m.del_flag = 0 " +
-            "AND c.status != 0 AND c.coach_id = #{coachId} AND m.id = #{memberId} " +
-            "AND (cb.status IN (2, 3, 4) OR COALESCE(cb.attendance_status, 0) IN (1, 2, 3)) " +
-            "AND TIMESTAMP(c.course_date, c.end_time) >= DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)")
-    int existsValidCoachStudentRelation(@Param("coachId") Long coachId,
-                                        @Param("memberId") Long memberId,
-                                        @Param("retentionDays") int retentionDays);
-
-    @Select("SELECT MAX(DATE_ADD(TIMESTAMP(c.course_date, c.end_time), " +
-            "INTERVAL #{retentionDays} DAY)) " +
-            "FROM biz_course_booking cb " +
-            "INNER JOIN biz_course c ON cb.course_id = c.id " +
-            "INNER JOIN sys_member m ON cb.member_id = m.id " +
-            "WHERE cb.del_flag = 0 AND c.del_flag = 0 AND m.del_flag = 0 " +
-            "AND c.status != 0 AND c.coach_id = #{coachId} AND m.id = #{memberId} " +
-            "AND (cb.status IN (2, 3, 4) OR COALESCE(cb.attendance_status, 0) IN (1, 2, 3))")
-    java.time.LocalDateTime findCoachStudentRelationValidUntil(@Param("coachId") Long coachId,
-                                                               @Param("memberId") Long memberId,
-                                                               @Param("retentionDays") int retentionDays);
-
     @Select("""
             <script>
             SELECT m.id, m.member_name, m.gender,
@@ -76,15 +53,10 @@ public interface CoachStudentMapper {
                        WHERE r.business_type = 'COURSE' AND r.member_id = m.id
                          AND rc.coach_id = #{coachId}), 0) AS total_paid_amount
             FROM sys_member m
-            INNER JOIN (
-                SELECT DISTINCT vb.member_id
-                FROM biz_course_booking vb
-                INNER JOIN biz_course vc ON vb.course_id = vc.id
-                WHERE vb.del_flag = 0 AND vc.del_flag = 0 AND vc.status != 0
-                  AND vc.coach_id = #{coachId}
-                  AND (vb.status IN (2, 3, 4) OR COALESCE(vb.attendance_status, 0) IN (1, 2, 3))
-                  AND TIMESTAMP(vc.course_date, vc.end_time) >= DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)
-            ) relation ON relation.member_id = m.id
+            INNER JOIN biz_coach_student relation
+                ON relation.member_id = m.id
+               AND relation.coach_id = #{coachId}
+               AND relation.del_flag = 0
             LEFT JOIN sys_user u ON m.user_id = u.id
             LEFT JOIN (biz_course_booking cb
                 INNER JOIN biz_course c ON cb.course_id = c.id AND c.del_flag = 0
@@ -146,15 +118,10 @@ public interface CoachStudentMapper {
                    MAX(CASE WHEN COALESCE(cb.attendance_status, 0) = 2
                             THEN TIMESTAMP(c.course_date, c.end_time) END) AS last_lesson_time
             FROM sys_member m
-            INNER JOIN (
-                SELECT DISTINCT vb.member_id
-                FROM biz_course_booking vb
-                INNER JOIN biz_course vc ON vb.course_id = vc.id
-                WHERE vb.del_flag = 0 AND vc.del_flag = 0 AND vc.status != 0
-                  AND vc.coach_id = #{coachId}
-                  AND (vb.status IN (2, 3, 4) OR COALESCE(vb.attendance_status, 0) IN (1, 2, 3))
-                  AND TIMESTAMP(vc.course_date, vc.end_time) >= DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)
-            ) relation ON relation.member_id = m.id
+            INNER JOIN biz_coach_student relation
+                ON relation.member_id = m.id
+               AND relation.coach_id = #{coachId}
+               AND relation.del_flag = 0
             LEFT JOIN (biz_course_booking cb
                 INNER JOIN biz_course c ON cb.course_id = c.id AND c.del_flag = 0
                     AND c.status != 0 AND c.coach_id = #{coachId})
@@ -196,27 +163,28 @@ public interface CoachStudentMapper {
                        SUM(CASE WHEN COALESCE(cb.attendance_status, 0) = 2 THEN 1 ELSE 0 END) * 100.0 /
                        NULLIF(SUM(CASE WHEN COALESCE(cb.attendance_status, 0) IN (2, 3) THEN 1 ELSE 0 END), 0), 2
                    ), 0) AS averageAttendanceRate
-            FROM sys_member m
-            INNER JOIN biz_course_booking cb ON cb.member_id = m.id AND cb.del_flag = 0
-            INNER JOIN biz_course c ON cb.course_id = c.id AND c.del_flag = 0
-            WHERE m.del_flag = 0 AND c.status != 0 AND c.coach_id = #{coachId}
-              AND (cb.status IN (2, 3, 4) OR COALESCE(cb.attendance_status, 0) IN (1, 2, 3))
-              AND TIMESTAMP(c.course_date, c.end_time) >= DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)
+            FROM biz_coach_student relation
+            INNER JOIN sys_member m ON relation.member_id = m.id AND m.del_flag = 0
+            LEFT JOIN (biz_course_booking cb
+                INNER JOIN biz_course c ON cb.course_id = c.id AND c.del_flag = 0
+                    AND c.status != 0 AND c.coach_id = #{coachId})
+                ON cb.member_id = m.id AND cb.del_flag = 0
+            WHERE relation.coach_id = #{coachId} AND relation.del_flag = 0
             """)
     Map<String, Object> summarizeStudents(@Param("coachId") Long coachId,
                                           @Param("retentionDays") int retentionDays);
 
     @Select("""
             SELECT COUNT(*) FROM (
-                SELECT cb.member_id
-                FROM biz_course_booking cb
-                INNER JOIN biz_course c ON cb.course_id = c.id
-                INNER JOIN sys_member m ON cb.member_id = m.id
-                WHERE cb.del_flag = 0 AND c.del_flag = 0 AND m.del_flag = 0
-                  AND c.status != 0 AND c.coach_id = #{coachId}
-                  AND (cb.status IN (2, 3, 4) OR COALESCE(cb.attendance_status, 0) IN (1, 2, 3))
-                  AND TIMESTAMP(c.course_date, c.end_time) >= DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)
-                GROUP BY cb.member_id
+                SELECT relation.member_id
+                FROM biz_coach_student relation
+                INNER JOIN sys_member m ON relation.member_id = m.id AND m.del_flag = 0
+                LEFT JOIN (biz_course_booking cb
+                    INNER JOIN biz_course c ON cb.course_id = c.id AND c.del_flag = 0
+                        AND c.status != 0 AND c.coach_id = #{coachId})
+                    ON cb.member_id = m.id AND cb.del_flag = 0
+                WHERE relation.coach_id = #{coachId} AND relation.del_flag = 0
+                GROUP BY relation.member_id
                 HAVING ((SUM(CASE WHEN COALESCE(cb.attendance_status, 0) IN (2, 3) THEN 1 ELSE 0 END) > 0
                          AND COALESCE(ROUND(SUM(CASE WHEN COALESCE(cb.attendance_status, 0) = 2 THEN 1 ELSE 0 END) * 100.0 /
                              NULLIF(SUM(CASE WHEN COALESCE(cb.attendance_status, 0) IN (2, 3) THEN 1 ELSE 0 END), 0), 2), 0)

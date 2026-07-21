@@ -67,7 +67,7 @@ class OpenAICompatibleChatModel:
         self,
         messages: Sequence[ChatMessage],
         *,
-        response_format: dict[str, str] | None = None,
+        response_format: dict[str, object] | None = None,
     ) -> ChatResult:
         request: dict[str, Any] = {
             "model": self._settings.openai_model,

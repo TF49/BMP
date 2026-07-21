@@ -23,6 +23,9 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private com.badminton.bmp.modules.agent.security.AgentToolAuthenticationFilter agentToolAuthenticationFilter;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -36,10 +39,15 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             // 添加JWT认证过滤器
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // Agent Tool 认证过滤器：先于 JWT 过滤器处理 /api/agent-tools/**，
+            // 用服务凭证 + 短期签名上下文替代前端 JWT。
+            .addFilterBefore(agentToolAuthenticationFilter, JwtAuthenticationFilter.class)
             // 配置权限控制规则
             .authorizeHttpRequests(authz -> authz
                 // WebSocket 握手放行，鉴权在 STOMP CONNECT 阶段由 WebSocketAuthInterceptor 完成
                 .requestMatchers("/ws", "/ws/**").permitAll()
+                // Agent Tool 接口不走前端 JWT，鉴权由 AgentToolAuthenticationFilter 完成
+                .requestMatchers("/api/agent-tools/**").permitAll()
                 // 允许匿名：登录、注册、刷新Token
                 .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/auth/check-lock/**", "/api/auth/forgot-password").permitAll()
                 // 反馈可匿名提交（可选带 token 关联用户）

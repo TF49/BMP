@@ -1,10 +1,10 @@
 # BMP 三智能体 API 规范文档
 
-> 文档版本：v1.1
+> 文档版本：v1.2
 > 创建日期：2026-07-17
-> 更新日期：2026-07-18
+> 更新日期：2026-07-21
 > 适用项目：羽擎（Badminton Management Platform，BMP）
-> 文档状态：开发中
+> 文档状态：P1 已完成，P2 实施中
 
 ## 1. API 概览
 
@@ -286,19 +286,18 @@ Authorization: Bearer {jwt_token}
 
 Tool API 使用双重认证机制：
 
-1. **服务认证**：通过 `X-Agent-Service-Key` 头部验证服务身份
-2. **上下文签名**：通过 `X-Agent-Context-Signature` 头部验证用户上下文
+1. **服务认证**：通过 `X-Agent-Service-Token` 头部验证服务身份
+2. **上下文签名**：通过 `X-Agent-Context-Token` 头部验证短期签名用户上下文
 
 #### 请求头示例
 
 ```http
-X-Agent-Service-Key: service_key_abc123
-X-Agent-Context-Signature: signature_xyz789
+X-Agent-Service-Token: service_token_abc123
+X-Agent-Context-Token: {base64url_payload}.{base64url_hmac}
 X-Agent-Trace-Id: trace_123
-X-Agent-User-Id: user_456
-X-Agent-User-Role: MEMBER
-X-Agent-Venue-Id: venue_789
 ```
+
+用户 ID、角色、场馆范围、过期时间和 nonce 只能来自签名上下文，禁止使用独立请求头覆盖。
 
 ### 3.2 智能预订 Tool
 
@@ -309,12 +308,10 @@ X-Agent-Venue-Id: venue_789
 ##### 请求
 
 ```http
-GET /api/agent-tools/venues
-X-Agent-Service-Key: {service_key}
-X-Agent-Context-Signature: {signature}
+GET /api/agent-tools/venues?status=1&limit=20
+X-Agent-Service-Token: {service_token}
+X-Agent-Context-Token: {context_token}
 X-Agent-Trace-Id: {trace_id}
-X-Agent-User-Id: {user_id}
-X-Agent-User-Role: {role}
 ```
 
 ##### 响应
@@ -323,21 +320,16 @@ X-Agent-User-Role: {role}
 {
   "code": 200,
   "message": "success",
-  "data": {
-    "venues": [
-      {
-        "id": "venue_123",
-        "name": "羽球中心",
-        "address": "北京市朝阳区",
-        "business_hours": {
-          "open": "09:00",
-          "close": "22:00"
-        },
-        "status": "open"
-      }
-    ]
-  },
-  "trace_id": "trace_123"
+  "data": [
+    {
+      "venueId": 123,
+      "venueName": "羽球中心",
+      "address": "北京市朝阳区",
+      "businessHours": "09:00-22:00",
+      "status": 1,
+      "statusText": "营业中"
+    }
+  ]
 }
 ```
 
@@ -348,23 +340,21 @@ X-Agent-User-Role: {role}
 ##### 请求
 
 ```http
-GET /api/agent-tools/courts/availability?venue_id=venue_123&date=2026-07-18&start_time=15:00&end_time=16:00&mode=single
-X-Agent-Service-Key: {service_key}
-X-Agent-Context-Signature: {signature}
+GET /api/agent-tools/courts/availability?venueId=123&date=2026-07-22&startTime=15:00&endTime=16:00&limit=20
+X-Agent-Service-Token: {service_token}
+X-Agent-Context-Token: {context_token}
 X-Agent-Trace-Id: {trace_id}
-X-Agent-User-Id: {user_id}
-X-Agent-User-Role: {role}
 ```
 
 ##### 查询参数
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| venue_id | string | 是 | 场馆 ID |
+| venueId | integer | 是 | 场馆 ID，必须大于 0 |
 | date | string | 是 | 日期，格式：YYYY-MM-DD |
-| start_time | string | 是 | 开始时间，格式：HH:mm |
-| end_time | string | 是 | 结束时间，格式：HH:mm |
-| mode | string | 否 | 预约模式：single, double, training |
+| startTime | string | 是 | 开始时间，格式：HH:mm |
+| endTime | string | 是 | 结束时间，格式：HH:mm |
+| limit | integer | 否 | 返回数量，1 至 50，默认 20 |
 
 ##### 响应
 
@@ -372,25 +362,20 @@ X-Agent-User-Role: {role}
 {
   "code": 200,
   "message": "success",
-  "data": {
-    "available_courts": [
-      {
-        "court_id": "court_1",
-        "court_name": "1号场地",
-        "court_type": "塑胶",
-        "price": 50.00
-      }
-    ],
-    "alternatives": [
-      {
-        "suggestion": "15:00-16:00 已满，建议 14:00-15:00",
-        "date": "2026-07-18",
-        "start_time": "14:00",
-        "end_time": "15:00"
-      }
-    ]
-  },
-  "trace_id": "trace_456"
+  "data": [
+    {
+      "courtId": 1,
+      "courtCode": "C-01",
+      "courtName": "1号场地",
+      "venueId": 123,
+      "billingType": "HOUR",
+      "pricePerHour": 50.00,
+      "available": true,
+      "date": "2026-07-22",
+      "startTime": "15:00",
+      "endTime": "16:00"
+    }
+  ]
 }
 ```
 
@@ -1265,26 +1250,21 @@ curl -X POST http://localhost:8080/api/agent/conversations \
 
 ```bash
 # 正常查询
-curl -X GET "http://localhost:8080/api/agent-tools/courts/availability?venue_id=venue_123&date=2026-07-18&start_time=15:00&end_time=16:00" \
-  -H "X-Agent-Service-Key: $SERVICE_KEY" \
-  -H "X-Agent-Context-Signature: $SIGNATURE" \
-  -H "X-Agent-Trace-Id: trace_123" \
-  -H "X-Agent-User-Id: user_456" \
-  -H "X-Agent-User-Role: MEMBER"
+curl -X GET "http://localhost:9090/api/agent-tools/courts/availability?venueId=123&date=2026-07-22&startTime=15:00&endTime=16:00" \
+  -H "X-Agent-Service-Token: $SERVICE_TOKEN" \
+  -H "X-Agent-Context-Token: $CONTEXT_TOKEN" \
+  -H "X-Agent-Trace-Id: trace_123"
 
 # 缺少服务认证
-curl -X GET "http://localhost:8080/api/agent-tools/courts/availability?venue_id=venue_123&date=2026-07-18&start_time=15:00&end_time=16:00" \
-  -H "X-Agent-Trace-Id: trace_123" \
-  -H "X-Agent-User-Id: user_456" \
-  -H "X-Agent-User-Role: MEMBER"
+curl -X GET "http://localhost:9090/api/agent-tools/courts/availability?venueId=123&date=2026-07-22&startTime=15:00&endTime=16:00" \
+  -H "X-Agent-Context-Token: $CONTEXT_TOKEN" \
+  -H "X-Agent-Trace-Id: trace_123"
 
 # 无效的签名
-curl -X GET "http://localhost:8080/api/agent-tools/courts/availability?venue_id=venue_123&date=2026-07-18&start_time=15:00&end_time=16:00" \
-  -H "X-Agent-Service-Key: $SERVICE_KEY" \
-  -H "X-Agent-Context-Signature: invalid_signature" \
-  -H "X-Agent-Trace-Id: trace_123" \
-  -H "X-Agent-User-Id: user_456" \
-  -H "X-Agent-User-Role: MEMBER"
+curl -X GET "http://localhost:9090/api/agent-tools/courts/availability?venueId=123&date=2026-07-22&startTime=15:00&endTime=16:00" \
+  -H "X-Agent-Service-Token: $SERVICE_TOKEN" \
+  -H "X-Agent-Context-Token: invalid-token" \
+  -H "X-Agent-Trace-Id: trace_123"
 ```
 
 ## 9. 附录

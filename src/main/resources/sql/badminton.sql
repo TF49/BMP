@@ -169,6 +169,24 @@ INSERT INTO `biz_cancel_policy` VALUES (7, '提前6小时取消', NULL, 'COURSE'
 INSERT INTO `biz_cancel_policy` VALUES (8, '6小时内取消', NULL, 'COURSE', 0, 0.00, 1, '2026-02-17 13:31:19', '2026-02-17 13:31:19');
 
 -- ----------------------------
+-- Table structure for biz_coach_student
+-- ----------------------------
+DROP TABLE IF EXISTS `biz_coach_student`;
+CREATE TABLE `biz_coach_student`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `coach_id` bigint NOT NULL COMMENT '教练ID (sys_coach.id)',
+  `member_id` bigint NOT NULL COMMENT '学员ID (sys_member.id)',
+  `bind_type` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'AUTO' COMMENT '绑定类型: AUTO-自动(支付触发), MANUAL-手动绑定',
+  `del_flag` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-有效, 1-已解绑',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_coach_member`(`coach_id` ASC, `member_id` ASC) USING BTREE,
+  INDEX `idx_coach_id`(`coach_id` ASC) USING BTREE,
+  INDEX `idx_member_id`(`member_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '教练-学员关系表(含自动与手动绑定)' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for biz_course
 -- ----------------------------
 DROP TABLE IF EXISTS `biz_course`;
@@ -197,7 +215,8 @@ CREATE TABLE `biz_course`  (
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_course_version`(`id` ASC, `version` ASC) USING BTREE,
   INDEX `idx_course_date_status`(`course_date` ASC, `status` ASC) USING BTREE,
-  INDEX `idx_coach_date`(`coach_id` ASC, `course_date` ASC) USING BTREE
+  INDEX `idx_coach_date`(`coach_id` ASC, `course_date` ASC) USING BTREE,
+  INDEX `idx_c_coach_date_range`(`coach_id` ASC, `course_date` ASC, `start_time` ASC, `end_time` ASC, `status` ASC, `del_flag` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '课程表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -237,6 +256,9 @@ CREATE TABLE `biz_course_booking`  (
   `payment_method` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '支付方式',
   `payment_status` tinyint(1) NULL DEFAULT 0 COMMENT '支付状态（0-未支付，1-已支付，2-已退款）',
   `status` tinyint(1) NULL DEFAULT 1 COMMENT '预约状态（0-已取消，1-待支付，2-已支付，3-进行中，4-已完成）',
+  `attendance_status` tinyint NOT NULL DEFAULT 0 COMMENT '考勤状态：0-未登记、1-已签到、2-已完成、3-缺席',
+  `actual_checkin_time` datetime NULL DEFAULT NULL COMMENT '实际签到时间',
+  `actual_finish_time` datetime NULL DEFAULT NULL COMMENT '实际完成时间',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
@@ -250,59 +272,66 @@ CREATE TABLE `biz_course_booking`  (
   INDEX `idx_member_id`(`member_id` ASC) USING BTREE,
   INDEX `idx_course_id`(`course_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
-  INDEX `idx_course_booking_unpaid_scan`(`del_flag` ASC, `status` ASC, `payment_status` ASC, `create_time` ASC) USING BTREE
+  INDEX `idx_course_booking_unpaid_scan`(`del_flag` ASC, `status` ASC, `payment_status` ASC, `create_time` ASC) USING BTREE,
+  INDEX `idx_cb_course_member_status`(`course_id` ASC, `member_id` ASC, `status` ASC, `attendance_status` ASC, `del_flag` ASC) USING BTREE,
+  INDEX `idx_cb_member_attendance`(`member_id` ASC, `attendance_status` ASC, `status` ASC, `del_flag` ASC, `course_id` ASC) USING BTREE,
+  INDEX `idx_cb_course_attendance`(`course_id` ASC, `attendance_status` ASC, `status` ASC, `del_flag` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 29 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '课程预约表' ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Records of biz_course_booking
--- ----------------------------
-INSERT INTO `biz_course_booking` VALUES (1, 'CB20250115001', 1, 1, 200.00, 'ALIPAY', 1, 4, NULL, '2025-01-10 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (2, 'CB20250115002', 2, 1, 200.00, 'WECHAT', 1, 4, NULL, '2025-01-10 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (3, 'CB20250115003', 3, 2, 200.00, 'BALANCE', 1, 4, NULL, '2025-01-10 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (4, 'CB20250116001', 4, 3, 150.00, 'ALIPAY', 1, 4, NULL, '2025-01-11 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (5, 'CB20250116002', 5, 3, 150.00, 'WECHAT', 1, 4, NULL, '2025-01-11 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (6, 'CB20250117001', 6, 4, 180.00, 'BALANCE', 1, 4, NULL, '2025-01-12 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (7, 'CB20250118001', 7, 5, 120.00, 'ALIPAY', 1, 4, NULL, '2025-01-13 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (8, 'CB20250119001', 8, 6, 250.00, 'WECHAT', 1, 4, NULL, '2025-01-14 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (9, 'CB20250120001', 9, 7, 160.00, 'BALANCE', 1, 4, NULL, '2025-01-15 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (10, 'CB20250121001', 10, 8, 140.00, 'ALIPAY', 1, 4, NULL, '2025-01-16 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (11, 'CB20250122001', 11, 9, 170.00, 'WECHAT', 1, 4, NULL, '2025-01-17 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (12, 'CB20250123001', 12, 10, 165.00, 'BALANCE', 1, 4, NULL, '2025-01-18 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (13, 'CB20250124001', 13, 11, 110.00, 'ALIPAY', 1, 4, NULL, '2025-01-19 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (14, 'CB20250125001', 14, 1, 200.00, 'WECHAT', 1, 4, NULL, '2025-01-20 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (15, 'CB20250126001', 15, 2, 200.00, 'BALANCE', 1, 4, NULL, '2025-01-21 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (16, 'CB20241215001', 1, 12, 200.00, 'ALIPAY', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (17, 'CB20241215002', 2, 12, 200.00, 'WECHAT', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (18, 'CB20241216001', 3, 13, 150.00, 'BALANCE', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (19, 'CB20241218001', 4, 14, 120.00, 'ALIPAY', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (20, 'CB20241220001', 5, 15, 160.00, 'WECHAT', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (21, 'CB20260216001', 45, 20, 500.00, NULL, 0, 1, NULL, '2026-02-16 19:35:50', '2026-02-16 19:37:59', NULL, NULL, 0.00, 0.00, 1);
-INSERT INTO `biz_course_booking` VALUES (25, 'CB20260216002', 45, 20, 500.00, 'BALANCE', 2, 0, NULL, '2026-02-16 19:43:42', '2026-02-16 22:03:10', NULL, NULL, 0.00, 0.00, 1);
-INSERT INTO `biz_course_booking` VALUES (26, 'CB20260216003', 1, 20, 500.00, 'BALANCE', 1, 4, NULL, '2026-02-16 21:46:48', '2026-02-16 21:49:01', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (27, 'CB20260216004', 3, 20, 500.00, 'BALANCE', 1, 4, NULL, '2026-02-16 21:49:22', '2026-02-16 21:50:01', NULL, NULL, 0.00, 0.00, 0);
-INSERT INTO `biz_course_booking` VALUES (28, 'CB20260216005', 45, 20, 500.00, 'BALANCE', 1, 4, NULL, '2026-02-16 22:03:20', '2026-02-16 22:04:01', NULL, NULL, 0.00, 0.00, 0);
+INSERT INTO `biz_course_booking` (`id`, `booking_no`, `member_id`, `course_id`, `order_amount`, `payment_method`, `payment_status`, `status`, `remark`, `create_time`, `update_time`, `cancel_time`, `cancel_policy_id`, `cancel_fee`, `refund_amount`, `del_flag`) VALUES
+(1, 'CB20250115001', 1, 1, 200.00, 'ALIPAY', 1, 4, NULL, '2025-01-10 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(2, 'CB20250115002', 2, 1, 200.00, 'WECHAT', 1, 4, NULL, '2025-01-10 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(3, 'CB20250115003', 3, 2, 200.00, 'BALANCE', 1, 4, NULL, '2025-01-10 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(4, 'CB20250116001', 4, 3, 150.00, 'ALIPAY', 1, 4, NULL, '2025-01-11 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(5, 'CB20250116002', 5, 3, 150.00, 'WECHAT', 1, 4, NULL, '2025-01-11 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(6, 'CB20250117001', 6, 4, 180.00, 'BALANCE', 1, 4, NULL, '2025-01-12 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(7, 'CB20250118001', 7, 5, 120.00, 'ALIPAY', 1, 4, NULL, '2025-01-13 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(8, 'CB20250119001', 8, 6, 250.00, 'WECHAT', 1, 4, NULL, '2025-01-14 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(9, 'CB20250120001', 9, 7, 160.00, 'BALANCE', 1, 4, NULL, '2025-01-15 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(10, 'CB20250121001', 10, 8, 140.00, 'ALIPAY', 1, 4, NULL, '2025-01-16 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(11, 'CB20250122001', 11, 9, 170.00, 'WECHAT', 1, 4, NULL, '2025-01-17 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(12, 'CB20250123001', 12, 10, 165.00, 'BALANCE', 1, 4, NULL, '2025-01-18 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(13, 'CB20250124001', 13, 11, 110.00, 'ALIPAY', 1, 4, NULL, '2025-01-19 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(14, 'CB20250125001', 14, 1, 200.00, 'WECHAT', 1, 4, NULL, '2025-01-20 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(15, 'CB20250126001', 15, 2, 200.00, 'BALANCE', 1, 4, NULL, '2025-01-21 10:00:00', '2026-02-16 19:22:34', NULL, NULL, 0.00, 0.00, 0),
+(16, 'CB20241215001', 1, 12, 200.00, 'ALIPAY', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0),
+(17, 'CB20241215002', 2, 12, 200.00, 'WECHAT', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0),
+(18, 'CB20241216001', 3, 13, 150.00, 'BALANCE', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0),
+(19, 'CB20241218001', 4, 14, 120.00, 'ALIPAY', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0),
+(20, 'CB20241220001', 5, 15, 160.00, 'WECHAT', 1, 4, NULL, '2024-11-01 10:00:00', NULL, NULL, NULL, 0.00, 0.00, 0),
+(21, 'CB20260216001', 45, 20, 500.00, NULL, 0, 1, NULL, '2026-02-16 19:35:50', '2026-02-16 19:37:59', NULL, NULL, 0.00, 0.00, 1),
+(25, 'CB20260216002', 45, 20, 500.00, 'BALANCE', 2, 0, NULL, '2026-02-16 19:43:42', '2026-02-16 22:03:10', NULL, NULL, 0.00, 0.00, 1),
+(26, 'CB20260216003', 1, 20, 500.00, 'BALANCE', 1, 4, NULL, '2026-02-16 21:46:48', '2026-02-16 21:49:01', NULL, NULL, 0.00, 0.00, 0),
+(27, 'CB20260216004', 3, 20, 500.00, 'BALANCE', 1, 4, NULL, '2026-02-16 21:49:22', '2026-02-16 21:50:01', NULL, NULL, 0.00, 0.00, 0),
+(28, 'CB20260216005', 45, 20, 500.00, 'BALANCE', 1, 4, NULL, '2026-02-16 22:03:20', '2026-02-16 22:04:01', NULL, NULL, 0.00, 0.00, 0);
 
 -- ----------------------------
--- 教练学员考勤字段、查询索引与历史数据初始化
--- 说明：老库迁移所需的幂等判断和断点表不属于新库最终结构，因此不在初始化脚本中保留
+-- 初始化考勤数据和教练-学员关系
 -- ----------------------------
-ALTER TABLE `biz_course_booking`
-  ADD COLUMN `attendance_status` tinyint NOT NULL DEFAULT 0 COMMENT '考勤状态：0未登记、1已签到、2已完成、3缺席' AFTER `status`,
-  ADD COLUMN `actual_checkin_time` datetime NULL DEFAULT NULL COMMENT '实际签到时间' AFTER `attendance_status`,
-  ADD COLUMN `actual_finish_time` datetime NULL DEFAULT NULL COMMENT '实际完成时间' AFTER `actual_checkin_time`,
-  ADD INDEX `idx_cb_course_member_status`(`course_id` ASC, `member_id` ASC, `status` ASC, `attendance_status` ASC, `del_flag` ASC) USING BTREE,
-  ADD INDEX `idx_cb_member_attendance`(`member_id` ASC, `attendance_status` ASC, `status` ASC, `del_flag` ASC, `course_id` ASC) USING BTREE,
-  ADD INDEX `idx_cb_course_attendance`(`course_id` ASC, `attendance_status` ASC, `status` ASC, `del_flag` ASC) USING BTREE;
-
-ALTER TABLE `biz_course`
-  ADD INDEX `idx_c_coach_date_range`(`coach_id` ASC, `course_date` ASC, `start_time` ASC, `end_time` ASC, `status` ASC, `del_flag` ASC) USING BTREE;
-
 UPDATE `biz_course_booking`
 SET `attendance_status` = 2,
     `actual_finish_time` = COALESCE(`actual_finish_time`, `update_time`)
 WHERE `del_flag` = 0
   AND `status` = 4
   AND COALESCE(`attendance_status`, 0) = 0;
+
+INSERT IGNORE INTO `biz_coach_student` (`coach_id`, `member_id`, `bind_type`, `del_flag`, `create_time`, `update_time`)
+SELECT DISTINCT
+    c.coach_id,
+    cb.member_id,
+    'AUTO'  AS bind_type,
+    0       AS del_flag,
+    MIN(cb.create_time) AS create_time,
+    NOW()               AS update_time
+FROM `biz_course_booking` cb
+INNER JOIN `biz_course` c ON cb.course_id = c.id
+WHERE cb.del_flag = 0
+  AND c.del_flag  = 0
+  AND c.coach_id  IS NOT NULL
+  AND cb.member_id IS NOT NULL
+  AND cb.payment_status IN (1, 2)
+GROUP BY c.coach_id, cb.member_id;
+
 
 -- ----------------------------
 -- Table structure for biz_equipment_rental
@@ -1622,6 +1651,10 @@ ALTER TABLE `biz_booking_court`
 
 ALTER TABLE `biz_cancel_policy`
   ADD CONSTRAINT `biz_cancel_policy_ibfk_1` FOREIGN KEY (`venue_id`) REFERENCES `sys_venue` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
+
+ALTER TABLE `biz_coach_student`
+  ADD CONSTRAINT `biz_coach_student_ibfk_1` FOREIGN KEY (`coach_id`) REFERENCES `sys_coach` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+  ADD CONSTRAINT `biz_coach_student_ibfk_2` FOREIGN KEY (`member_id`) REFERENCES `sys_member` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 
 ALTER TABLE `biz_course`
   ADD CONSTRAINT `biz_course_ibfk_1` FOREIGN KEY (`coach_id`) REFERENCES `sys_coach` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
