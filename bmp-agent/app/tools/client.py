@@ -85,6 +85,30 @@ class JavaToolClient:
             retry=True,
         )
 
+    async def post(
+        self,
+        path: str,
+        *,
+        json: dict[str, Any],
+        context_token: str,
+        trace_id: str,
+        idempotency_key: str | None = None,
+    ) -> Any:
+        """执行写 POST 请求，返回响应信封中的 ``data`` 字段。
+
+        写操作默认不重试（``retry=False``），避免网络瞬时错误导致重复创建；
+        创建预约的幂等由 ``Idempotency-Key`` 头在 Java 侧保证。
+        """
+        return await self._request(
+            "POST",
+            path,
+            context_token=context_token,
+            trace_id=trace_id,
+            json_body=json,
+            idempotency_key=idempotency_key,
+            retry=False,
+        )
+
     async def _request(
         self,
         method: str,
@@ -93,6 +117,7 @@ class JavaToolClient:
         context_token: str,
         trace_id: str,
         params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
         retry: bool,
     ) -> Any:
@@ -113,6 +138,7 @@ class JavaToolClient:
                     method,
                     path,
                     params=self._clean_params(params),
+                    json=json_body,
                     headers=headers,
                 )
             except _TRANSIENT_ERRORS as exc:

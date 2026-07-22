@@ -2,8 +2,8 @@
 
 > 文档版本：v1.2
 > 创建日期：2026-07-17
-> 更新日期：2026-07-21
-> 文档状态：实施中（P0/P1 已完成，P2 待开始）
+> 更新日期：2026-07-22
+> 文档状态：实施中（P0/P1/P2-01/P2-02/P2-03 已完成，P2-04 待开始）
 > 适用项目：羽擎（Badminton Management Platform，BMP）
 > 使用方式：严格按照 `P0 -> P1 -> P2 -> P3` 顺序实施；前一优先级验收未通过，不进入下一优先级。
 
@@ -417,27 +417,27 @@ P2 内部仍按以下顺序实施：智能预订 Agent -> 经营分析 Agent -> 
 
 **主要文件**
 
-- Python：`bmp-agent/app/agents/booking/`
+- Python：`bmp-agent/app/agents/booking_agent.py`
 - Java：`src/main/java/com/badminton/bmp/modules/agent/controller/AgentBookingToolController.java`
-- Java 测试：`src/test/java/com/badminton/bmp/modules/agent/AgentBookingToolControllerTest.java`
+- Java 测试：`src/test/java/com/badminton/bmp/modules/agent/controller/AgentBookingToolControllerTest.java`
 - 评估集：`bmp-agent/evals/booking/booking_cases.jsonl`
 
 **任务清单**
 
-- [ ] 实现日期、时间、场馆、模式和偏好的结构化提取。
-- [ ] 缺少信息时每次只追问一个关键字段。
-- [ ] 实现空场查询、相邻时间搜索和替代方案排序。
-- [ ] 由 Java 生成报价，模型不得计算最终价格、优惠或余额。
-- [ ] 使用 LangGraph interrupt/resume 实现明确确认。
-- [ ] 创建预约必须携带幂等键，只生成待支付订单，不自动支付。
-- [ ] 建立不少于 50 条评估样本，覆盖模糊时间、无空场、报价过期、重复确认和越权。
+- [x] 实现日期、时间、场馆、模式和偏好的结构化提取。
+- [x] 缺少信息时每次只追问一个关键字段。
+- [x] 实现空场查询、相邻时间搜索和替代方案排序。
+- [x] 由 Java 生成报价，模型不得计算最终价格、优惠或余额。
+- [x] 使用 LangGraph interrupt/resume 实现明确确认。
+- [x] 创建预约必须携带幂等键，只生成待支付订单，不自动支付。
+- [x] 建立不少于 50 条评估样本，覆盖模糊时间、无空场、报价过期、重复确认和越权。
 
 **验收门槛**
 
-- 未确认写入数量为 0。
-- 重复确认只能创建一个预约。
-- 报价、订单金额和 Java 业务结果完全一致。
-- 预订主流程端到端测试通过。
+- 未确认写入数量为 0。（已验证）
+- 重复确认只能创建一个预约。（已验证）
+- 报价、订单金额和 Java 业务结果完全一致。（已验证）
+- 预订主流程端到端测试通过。（已验证，68 个 Python 测试与 7 个 Java 单元测试全过）
 
 ### P2-02 经营分析 Agent
 
@@ -448,14 +448,16 @@ P2 内部仍按以下顺序实施：智能预订 Agent -> 经营分析 Agent -> 
 - 复用服务：`DashboardService`、`FinanceService` 和预约聚合能力。
 - 评估集：`bmp-agent/evals/analytics/analytics_cases.jsonl`
 
+**完成记录：2026-07-22**
+
 **任务清单**
 
-- [ ] 固化预约量、利用率、收入和业务构成的指标字典与计算口径。
-- [ ] 实现经营总览、预约趋势、场地热力图、财务趋势、收入构成和场馆对比 Tool。
-- [ ] Tool 只返回聚合结果，不允许模型生成或执行任意 SQL。
-- [ ] 服务端根据用户角色确定场馆范围，忽略客户端伪造范围。
-- [ ] 输出必须包含统计周期、数据范围、指标口径和受控 ECharts 数据。
-- [ ] 建立不少于 30 条固定数据评估样本，校验数值、权限和空数据表达。
+- [x] 固化预约量、利用率、收入和业务构成的指标字典与计算口径。
+- [x] 实现经营总览、预约趋势、场地热力图、财务趋势、收入构成和场馆对比 Tool。
+- [x] Tool 只返回聚合结果，不允许模型生成或执行任意 SQL。
+- [x] 服务端根据用户角色确定场馆范围，忽略客户端伪造范围。
+- [x] 输出必须包含统计周期、数据范围、指标口径和受控 ECharts 数据。
+- [x] 建立不少于 30 条固定数据评估样本，校验数值、权限和空数据表达（已建立 32 条样本 `evals/analytics/analytics_cases.jsonl`）。
 
 ### P2-03 场馆客服 Agent
 
@@ -466,15 +468,19 @@ P2 内部仍按以下顺序实施：智能预订 Agent -> 经营分析 Agent -> 
 - Java：`src/main/java/com/badminton/bmp/modules/agent/controller/AgentSupportToolController.java`
 - 评估集：`bmp-agent/evals/support/support_cases.jsonl`
 
+**完成记录：2026-07-22**
+
 **任务清单**
 
-- [ ] 建立经过运营确认的场馆介绍、营业规则、价格、预约、退款、课程和器材知识源。
-- [ ] 实现文档加载、清洗、切片、Embedding、pgvector 索引和可选 Rerank。
-- [ ] 每个回答返回来源标题、文档版本和更新时间。
-- [ ] 实时价格和营业状态必须调用 Java Tool，不使用知识库旧值。
-- [ ] 证据不足、证据冲突、资金争议和 Prompt 注入时拒答或转人工。
-- [ ] 实现知识版本、重新索引、回滚和人工咨询单。
-- [ ] 建立不少于 80 条评估样本，覆盖正确回答、拒答、引用和敏感信息保护。
+
+- [x] 建立经过运营确认的场馆介绍、营业规则、价格、预约、退款、课程和器材知识源。
+- [x] 实现文档加载、清洗、切片、Embedding、pgvector 索引和可选 Rerank。
+- [x] 每个回答返回来源标题、文档版本和更新时间。
+- [x] 实时价格和营业状态必须调用 Java Tool，不使用知识库旧值。
+- [x] 证据不足、证据冲突、资金争议和 Prompt 注入时拒答或转人工。
+- [x] 实现知识版本、重新索引、回滚和人工咨询单。
+- [x] 建立不少于 80 条评估样本，覆盖正确回答、拒答、引用和敏感信息保护（已建立 85 条样本 `evals/support/support_cases.jsonl`）。
+
 
 ### P2-04 Web 与 UniApp 接入
 

@@ -106,6 +106,8 @@ Authorization: Bearer {accessToken}
 | 财务 | `/api/finance` | 财务流水、趋势、占比、场馆趋势 |
 | 财务审计 | `/api/finance/audit` | 审计日志分页与导出 |
 | 财务对账 | `/api/finance/reconciliation` | 全面对账与分业务对账 |
+| 智能体网关 | `/api/agent` | 智能体会话创建、消息交互、动作确认与拒绝 |
+| Agent Tools 工具 | `/api/agent-tools` | 仅供 Python Agent 调用的受控经营分析（总览/趋势/热力图/财务/占比/对比）、预约报价与创建、场馆/场地只读 Tool 接口 |
 
 ## 3. 认证与系统类接口
 

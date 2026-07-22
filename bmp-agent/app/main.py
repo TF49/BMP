@@ -10,7 +10,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.agents.analytics import AnalyticsAgent
+from app.agents.booking_agent import BookingAgent
 from app.agents.mock_agent import MockAgent
+from app.agents.support import SupportAgent
 from app.api.routes import router
 from app.core.config import AppSettings, get_settings
 from app.core.exceptions import AgentException
@@ -18,12 +21,18 @@ from app.core.health import DependencyHealthService
 from app.core.ratelimit import InMemoryRateLimiter
 from app.core.replay import InMemoryReplayGuard, RedisReplayGuard
 from app.core.security import build_context_verifier
+from app.knowledge import KnowledgeRetriever, KnowledgeStore
+from app.llm.openai_adapter import OpenAICompatibleChatModel
 from app.memory.session import InMemorySessionStore, Session, SessionStore
 from app.observability.logging import configure_logging
 from app.observability.tracing import TraceIdMiddleware, get_trace_id
+from app.tools.analytics import AnalyticsTool
+from app.tools.booking import BookingTool
 from app.tools.client import JavaToolClient
 from app.tools.court import CourtTool
+from app.tools.support import SupportTool
 from app.tools.venue import VenueTool
+
 
 logger = logging.getLogger("bmp_agent")
 
@@ -57,8 +66,8 @@ def _validation_errors(exc: RequestValidationError) -> list[dict[str, str]]:
 def _build_agent_runtime(
     settings: AppSettings,
     tool_client: JavaToolClient | None = None,
-) -> tuple[MockAgent, SessionStore, Any | None, JavaToolClient | None]:
-    """Build the agent and its session/checkpoint stores as one runtime unit."""
+) -> tuple[MockAgent, SessionStore, Any | None, JavaToolClient | None, dict[str, Any]]:
+    """Build the agent registry and its session/checkpoint stores as one runtime unit."""
 
     engine = None
     session_factory = None
@@ -87,13 +96,55 @@ def _build_agent_runtime(
         court_tool=CourtTool(runtime_tool_client) if runtime_tool_client is not None else None,
     )
 
+    # 仅当 Java Tool 客户端与 LLM 均就绪时装配真实 BookingAgent 与 AnalyticsAgent；否则回退 mock，保证现有测试不破。
+    booking_agent: Any = mock_agent
+    analytics_agent: Any = mock_agent
+    if runtime_tool_client is not None and settings.openai_api_key:
+        try:
+            chat_model = OpenAICompatibleChatModel(settings)
+            booking_agent = BookingAgent(
+                model=chat_model,
+                booking_tool=BookingTool(runtime_tool_client),
+                court_tool=CourtTool(runtime_tool_client),
+                checkpoint_store=checkpoint_store,
+            )
+            analytics_agent = AnalyticsAgent(
+                analytics_tool=AnalyticsTool(runtime_tool_client),
+                model=chat_model,
+                checkpoint_store=checkpoint_store,
+            )
+        except Exception as exc:  # LLM 配置异常时不阻断服务启动。
+            logger.warning(
+                "agents unavailable, falling back to mock",
+                extra={"exception_type": type(exc).__name__},
+            )
+    support_agent: Any = mock_agent
+    if runtime_tool_client is not None:
+        knowledge_store = KnowledgeStore()
+        knowledge_retriever = KnowledgeRetriever(knowledge_store)
+        support_tool = SupportTool(runtime_tool_client)
+        chat_model_inst = None
+        if settings.openai_api_key:
+            try:
+                chat_model_inst = OpenAICompatibleChatModel(settings)
+            except Exception:
+                pass
+        support_agent = SupportAgent(
+            support_tool=support_tool,
+            knowledge_retriever=knowledge_retriever,
+            model=chat_model_inst,
+            checkpoint_store=checkpoint_store,
+        )
+
+    agent_registry: dict[str, Any] = {
+        "booking": booking_agent,
+        "analytics": analytics_agent,
+        "support": support_agent,
+    }
+
+
     async def on_expire(session: Session) -> None:
-        # D-4: 基于注册表路由不同 agent 类型的清除逻辑，为真实 Agent 预留扩展点。
-        agent_registry = {
-            "booking": mock_agent,
-            "analytics": mock_agent,
-            "support": mock_agent,
-        }
+        # D-4: 基于注册表路由不同 agent 类型的清除逻辑。
         target_agent = agent_registry.get(session.agent_type)
         if target_agent is not None:
             await target_agent.delete_thread(session.thread_id)
@@ -108,13 +159,13 @@ def _build_agent_runtime(
             ttl_seconds=settings.session_ttl_seconds,
             on_expire=on_expire,
         )
-        return mock_agent, store, engine, runtime_tool_client
+        return mock_agent, store, engine, runtime_tool_client, agent_registry
 
     store = InMemorySessionStore(
         ttl_seconds=settings.session_ttl_seconds,
         on_expire=on_expire,
     )
-    return mock_agent, store, None, runtime_tool_client
+    return mock_agent, store, None, runtime_tool_client, agent_registry
 
 
 def create_app(
@@ -178,10 +229,11 @@ def create_app(
     app.state.settings = resolved_settings
     app.state.context_verifier = build_context_verifier(resolved_settings)
 
-    mock_agent, store, engine, runtime_tool_client = _build_agent_runtime(
+    mock_agent, store, engine, runtime_tool_client, agent_registry = _build_agent_runtime(
         resolved_settings, tool_client
     )
     app.state.mock_agent = mock_agent
+    app.state.agent_registry = agent_registry
     app.state.session_store = store
     app.state.db_engine = engine
     app.state.java_tool_client = runtime_tool_client

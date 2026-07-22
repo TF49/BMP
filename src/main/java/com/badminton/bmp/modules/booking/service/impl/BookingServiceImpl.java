@@ -154,36 +154,8 @@ public class BookingServiceImpl implements BookingService {
     public int add(Booking booking) {
         Long effectiveMemberId = resolveAndValidateMemberId(booking.getMemberId());
         booking.setMemberId(effectiveMemberId);
-        booking.setBookingMode(normalizeBookingMode(booking.getBookingMode(), booking.getCourtIds(), booking.getCourtId()));
-        booking.setPricingMode(normalizePricingMode(booking.getBookingMode(), booking.getPricingMode()));
-        validateBookingTime(booking.getBookingDate(), booking.getStartTime(), booking.getEndTime());
-
-        List<Long> selectedCourtIds = normalizeCourtIds(booking.getCourtIds(), booking.getCourtId(), booking.getBookingMode());
-        List<Court> selectedCourts = loadAndValidateCourts(selectedCourtIds);
-        ensureSingleVenue(selectedCourts);
-        validatePackageScopeAndLeadTime(booking, selectedCourts);
-        validateModeAndConflicts(booking, selectedCourts, null);
-
-        int duration = calculateDuration(booking.getStartTime(), booking.getEndTime());
         LocalDateTime now = LocalDateTime.now();
-
-        if (booking.getBookingNo() == null || booking.getBookingNo().trim().isEmpty()) {
-            booking.setBookingNo(generateBookingNo());
-        }
-        if (bookingMapper.existsByBookingNo(booking.getBookingNo(), null)) {
-            throw new BusinessException("预约单号已存在");
-        }
-
-        booking.setCourtId(selectedCourtIds.get(0));
-        booking.setDuration(duration);
-        booking.setOrderAmount(BigDecimal.ZERO);
-        booking.setCreateTime(now);
-        booking.setUpdateTime(now);
-        booking.setStatus(1);
-        booking.setPaymentStatus(0);
-
-        List<BookingCourt> details = buildDetailsForBooking(booking, selectedCourts, duration, now);
-        booking.setOrderAmount(sumLineAmount(details));
+        List<BookingCourt> details = prepareAndPrice(booking, now, true);
 
         int inserted = bookingMapper.insert(booking);
         if (inserted <= 0) {
@@ -196,6 +168,80 @@ public class BookingServiceImpl implements BookingService {
         recomputeCourtStatuses(extractCourtIds(details));
         pushBookingUpdates();
         return inserted;
+    }
+
+    /**
+     * 归一化模式与定价、校验时间/场地/冲突并计算金额，最终写入待支付订单字段。
+     *
+     * <p>由 {@link #add} 与 Agent 报价/创建路径共用，确保金额与校验规则完全一致，不复制业务逻辑。
+     * 调用方须在调用前完成会员解析并设置 {@code booking.memberId}。</p>
+     *
+     * @param assignBookingNo 是否分配并校验预约单号（创建时为 true，报价时为 false）
+     */
+    private List<BookingCourt> prepareAndPrice(Booking booking, LocalDateTime now, boolean assignBookingNo) {
+        booking.setBookingMode(normalizeBookingMode(booking.getBookingMode(), booking.getCourtIds(), booking.getCourtId()));
+        booking.setPricingMode(normalizePricingMode(booking.getBookingMode(), booking.getPricingMode()));
+        validateBookingTime(booking.getBookingDate(), booking.getStartTime(), booking.getEndTime());
+
+        List<Long> selectedCourtIds = normalizeCourtIds(booking.getCourtIds(), booking.getCourtId(), booking.getBookingMode());
+        List<Court> selectedCourts = loadAndValidateCourts(selectedCourtIds);
+        ensureSingleVenue(selectedCourts);
+        validatePackageScopeAndLeadTime(booking, selectedCourts);
+        validateModeAndConflicts(booking, selectedCourts, null);
+
+        int duration = calculateDuration(booking.getStartTime(), booking.getEndTime());
+
+        if (assignBookingNo) {
+            if (booking.getBookingNo() == null || booking.getBookingNo().trim().isEmpty()) {
+                booking.setBookingNo(generateBookingNo());
+            }
+            if (bookingMapper.existsByBookingNo(booking.getBookingNo(), null)) {
+                throw new BusinessException("预约单号已存在");
+            }
+        }
+
+        booking.setCourtId(selectedCourtIds.get(0));
+        booking.setCourtIds(selectedCourtIds);
+        booking.setDuration(duration);
+        booking.setOrderAmount(BigDecimal.ZERO);
+        booking.setCreateTime(now);
+        booking.setUpdateTime(now);
+        booking.setStatus(1);
+        booking.setPaymentStatus(0);
+
+        List<BookingCourt> details = buildDetailsForBooking(booking, selectedCourts, duration, now);
+        booking.setOrderAmount(sumLineAmount(details));
+        return details;
+    }
+
+    @Override
+    public BookingQuotation quoteForAgent(Long loginUserId, Booking booking) {
+        Long effectiveMemberId = resolveAgentMemberId(loginUserId, booking.getMemberId());
+        booking.setMemberId(effectiveMemberId);
+        LocalDateTime now = LocalDateTime.now();
+        List<BookingCourt> details = prepareAndPrice(booking, now, false);
+        return new BookingQuotation(booking, details);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public BookingQuotation createPendingForAgent(Long loginUserId, Booking booking) {
+        Long effectiveMemberId = resolveAgentMemberId(loginUserId, booking.getMemberId());
+        booking.setMemberId(effectiveMemberId);
+        LocalDateTime now = LocalDateTime.now();
+        List<BookingCourt> details = prepareAndPrice(booking, now, true);
+
+        int inserted = bookingMapper.insert(booking);
+        if (inserted <= 0) {
+            throw new BusinessException("创建预约失败，请稍后重试");
+        }
+        for (BookingCourt detail : details) {
+            detail.setBookingId(booking.getId());
+        }
+        bookingCourtMapper.insertBatch(details);
+        recomputeCourtStatuses(extractCourtIds(details));
+        pushBookingUpdates();
+        return new BookingQuotation(booking, details);
     }
 
     @Override
@@ -791,6 +837,37 @@ public class BookingServiceImpl implements BookingService {
         }
         Member member = memberMapper.findByUserId(current.getId());
         return member != null ? member.getId() : null;
+    }
+
+    /**
+     * Agent 专用会员解析：直接按登录用户 ID（来自 AgentContext）解析会员，
+     * 不依赖 {@link SecurityUtils#getCurrentUser()} 的 username 查询链路。
+     *
+     * <p>普通会员只能为自己预约；会长/场馆管理员可代会员预约（需指定合法 memberId）。
+     * 权限规则与 {@link #resolveAndValidateMemberId} 保持一致。</p>
+     */
+    private Long resolveAgentMemberId(Long loginUserId, Long requestedMemberId) {
+        if (loginUserId == null) {
+            throw new BusinessException("缺少登录用户身份，无法创建预约");
+        }
+        Member self = memberMapper.findByUserId(loginUserId);
+        if (SecurityUtils.isPresident() || SecurityUtils.isVenueManager()) {
+            Long target = requestedMemberId != null ? requestedMemberId : (self != null ? self.getId() : null);
+            if (target == null) {
+                throw new BusinessException("请指定预约会员");
+            }
+            if (memberMapper.findById(target) == null) {
+                throw new ResourceNotFoundException("会员不存在");
+            }
+            return target;
+        }
+        if (self == null) {
+            throw new BusinessException("当前用户未绑定会员信息，无法创建预约");
+        }
+        if (requestedMemberId != null && !requestedMemberId.equals(self.getId())) {
+            throw new BusinessException("权限不足，只能为自己创建预约");
+        }
+        return self.getId();
     }
 
     private String normalizeBookingMode(String bookingMode, List<Long> courtIds, Long courtId) {

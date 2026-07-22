@@ -1,6 +1,7 @@
 package com.badminton.bmp.modules.booking.service;
 
 import com.badminton.bmp.modules.booking.entity.Booking;
+import com.badminton.bmp.modules.booking.entity.BookingCourt;
 import com.badminton.bmp.modules.court.dto.CourtBookingUserDTO;
 
 import java.time.LocalDate;
@@ -47,6 +48,35 @@ public interface BookingService {
      * 添加预约记录（含冲突检测、金额计算、场地状态更新）
      */
     int add(Booking booking);
+
+    /**
+     * Agent 报价：按登录用户 ID 显式解析会员，复用既有校验与定价逻辑计算金额，
+     * 但不落库。模型不得自行计算金额，金额一律以本方法返回值为准。
+     *
+     * @param loginUserId 登录用户 ID（来自 AgentContext，而非 username）
+     * @param booking     预约请求（日期、时间、场地、模式等）
+     * @return 已计算金额但未持久化的预约与明细
+     */
+    BookingQuotation quoteForAgent(Long loginUserId, Booking booking);
+
+    /**
+     * Agent 创建待支付预约：按登录用户 ID 显式解析会员，复用 {@link #add} 的校验与定价逻辑，
+     * 仅生成待支付订单（status=1 / paymentStatus=0），不自动支付。
+     *
+     * @param loginUserId 登录用户 ID（来自 AgentContext，而非 username）
+     * @param booking     预约请求
+     * @return 已持久化的预约与明细（含预约 ID 与单号）
+     */
+    BookingQuotation createPendingForAgent(Long loginUserId, Booking booking);
+
+    /**
+     * Agent 报价/创建结果载体：已计算金额的预约及其逐场地明细。
+     *
+     * @param booking 预约（报价时未持久化；创建时已持久化，含 ID 与单号）
+     * @param details 逐场地明细（含单价、行金额、时长）
+     */
+    record BookingQuotation(Booking booking, List<BookingCourt> details) {
+    }
 
     /**
      * 更新预约记录（含冲突检测、场地状态更新）

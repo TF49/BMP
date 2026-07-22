@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 
 from fastapi import APIRouter, Header, Request
 
@@ -35,7 +35,7 @@ async def process_message(
 ) -> ApiResponse[AgentResult]:
     verifier: AgentContextVerifier = request.app.state.context_verifier
     store: SessionStore = request.app.state.session_store
-    agent: Agent = request.app.state.mock_agent
+    agent: Agent = _resolve_agent(request, payload.agent_type)
     limiter: InMemoryRateLimiter = request.app.state.rate_limiter
     replay_guard: ReplayGuard = request.app.state.replay_guard
     trace_id = get_trace_id()
@@ -70,3 +70,13 @@ async def process_message(
     async with store.processing_lock(session):
         result = await agent.process(session, payload.message.content, context_token=context_token)
     return ApiResponse(code=200, message="success", data=result, trace_id=trace_id)
+
+
+def _resolve_agent(request: Request, agent_type: str) -> Agent:
+    """按 ``agent_type`` 从注册表选择 Agent；未命中时回退到 mock_agent。"""
+    registry: dict[str, Agent] | None = getattr(request.app.state, "agent_registry", None)
+    if registry:
+        agent = registry.get(agent_type)
+        if agent is not None:
+            return agent
+    return cast(Agent, request.app.state.mock_agent)

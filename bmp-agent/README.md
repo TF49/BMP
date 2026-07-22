@@ -2,15 +2,22 @@
 
 BMP 三智能体服务 - 基于 Python + LangGraph 的智能 Agent 服务。
 
-> 当前状态：P1 Java/Python 安全集成与 Tool 契约已于 2026-07-21 完成并通过 M2 验收。已实现 Java 网关代理、HMAC-SHA256 短期上下文签名验证、只读 Java Tool 客户端（HTTPX）、API 熔断降级（Circuit Breaker）、限流控制（Rate Limiter）及 PostgreSQL Checkpoint 会话持久化与 Alembic 数据库迁移；下一阶段为 P2 三智能体业务 MVP。
+> 当前状态：P1 Java/Python 安全集成与 Tool 契约已于 2026-07-21 完成并通过 M2 验收。
+>
+> P2-01 智能预订 Agent MVP 已于 2026-07-22 完整完成：端到端跑通「结构化提取 (含相对时间转换) → CourtTool 空场与相邻替代推荐 → Java 报价 → 用户明确确认（LangGraph interrupt/resume）→ Java 创建待支付预约」。金额一律由 Java 计算（模型不算价/优惠/余额），创建仅生成待支付订单（status=1 / paymentStatus=0），并通过 `Idempotency-Key` 保证重复确认只创建一个预约。建立了 50 条覆盖模糊时间、满场、报价过期、重复确认和越权的评估集（`evals/booking/booking_cases.jsonl`）。
+>
+> P2-02 经营分析 Agent 核心功能已于 2026-07-22 完整完成：实现经营总览、预约趋势、场地利用率热力图、财务趋势、业务收入构成及场馆横向对比 6 个只读分析 Tool。固化指标字典与计算口径，由 Java 服务端强约束角色与场馆范围（绝对禁止模型生成/执行任意 SQL），输出统一包含统计周期、数据范围、指标口径及受控 ECharts 图表数据。建立了 32 条覆盖数值、权限与空数据的固化评估样本（`evals/analytics/analytics_cases.jsonl`）。Python 测试套件全部通过 (73/73 PASSED)。
+>
+> P2-03 场馆客服 Agent MVP 已于 2026-07-22 完整完成：基于知识库（RAG 检索）与经过运营确认的场馆介绍、规则、价格退款政策、课程器材及 FAQ，回答中强约束返回来源标题、文档版本和更新时间。实时价格与营业状态强约束调用 Java 网关只读 Tool。实现了证据不足/冲突/资金争议转人工（创建转接单）及提示词注入安全拦截防护。完成了知识版本控制与回滚，并建立了 85 条覆盖引用、实时 Tool、争议转人工与安全拦截的评估集（`evals/support/support_cases.jsonl`）。Python 全量测试套件全部通过 (81/81 PASSED)。
 
 ## 📋 项目简介
 
 BMP Agent 是羽擎（Badminton Management Platform）项目的智能体服务，采用 FastAPI + LangGraph 架构，提供三个专用智能体：
 
-- **智能预订 Agent** - 自然语言完成场地预订
-- **经营分析 Agent** - 数据分析和业务洞察
-- **场馆客服 Agent** - 基于知识库的智能客服
+- **智能预订 Agent** - 自然语言完成场地预订（第一阶段已打通报价 → 确认 → 创建待支付闭环）
+- **经营分析 Agent** - 数据分析和业务洞察（已完成核心功能与受控 ECharts 输出）
+- **场馆客服 Agent** - 基于 RAG 知识库与实时 Tool 的智能客服（带来源引用、版本回滚与争议转人工）
+
 
 ## 🚀 快速开始
 
@@ -113,8 +120,8 @@ Invoke-RestMethod http://localhost:8000/api/v1/agent/process `
 bmp-agent/
 ├── app/                        # 应用主目录
 │   ├── api/                    # API 路由与 DTO
-│   ├── agents/                 # Agent 契约与 LangGraph Mock Agent
-│   ├── tools/                 # Java Tool 客户端
+│   ├── agents/                 # Agent 契约、Mock Agent 与预订 Agent（booking_agent）
+│   ├── tools/                 # Java Tool 客户端（venue/court/booking）
 │   ├── llm/                   # LLM 模型适配
 │   ├── memory/                # 会话与 Checkpoint
 │   ├── observability/         # 日志与追踪
