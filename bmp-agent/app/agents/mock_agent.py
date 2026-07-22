@@ -48,7 +48,9 @@ class MockAgent:
         if self._persistent_checkpoint_store is not None:
             await self._persistent_checkpoint_store.delete_thread(thread_id)
 
-    async def process(self, session: Session, message: str, context_token: str | None = None) -> AgentResult:
+    async def process(
+        self, session: Session, message: str, context_token: str | None = None
+    ) -> AgentResult:
         config = RunnableConfig(configurable={"thread_id": session.thread_id})
         input_state: MockState = {"message": message}
         if self._persistent_checkpoint_store is not None:

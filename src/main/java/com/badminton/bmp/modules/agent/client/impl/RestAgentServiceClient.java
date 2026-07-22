@@ -152,4 +152,25 @@ public class RestAgentServiceClient implements AgentServiceClient {
         }
         return result;
     }
+
+    @Override
+    public void deleteConversation(String conversationId, AgentContext context) {
+        if (!circuitBreaker.allowRequest()) {
+            log.warn("Agent 熔断已打开，快速失败, traceId={}", context.traceId());
+            throw new ServiceUnavailableException("智能助手繁忙，请稍后重试");
+        }
+        String token = signer.sign(context);
+        try {
+            restClient.delete()
+                    .uri("/api/v1/agent/conversations/{id}", conversationId)
+                    .header(CONTEXT_TOKEN_HEADER, token)
+                    .header(TRACE_HEADER, context.traceId())
+                    .retrieve()
+                    .toBodilessEntity();
+            circuitBreaker.recordSuccess();
+        } catch (RestClientException e) {
+            circuitBreaker.recordFailure();
+            log.warn("删除 FastAPI 会话失败, conversationId={}, traceId={}: {}", conversationId, context.traceId(), e.getMessage());
+        }
+    }
 }

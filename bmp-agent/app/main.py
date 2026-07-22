@@ -133,11 +133,15 @@ def create_app(
         purge_task = None
         store = app_inst.state.session_store
         if hasattr(store, "purge_expired_sessions"):
+
             async def purge_loop() -> None:
                 try:
                     while True:
                         await asyncio.sleep(60)
-                        await store.purge_expired_sessions()
+                        try:
+                            await store.purge_expired_sessions()
+                        except Exception as e:
+                            logger.error("session purge iteration failed", exc_info=e)
                 except asyncio.CancelledError:
                     pass
                 except Exception as e:
@@ -186,6 +190,7 @@ def create_app(
     redis_client = None
     if resolved_settings.redis_url:
         import redis.asyncio as redis_async
+
         redis_client = redis_async.from_url(
             resolved_settings.redis_url,
             socket_connect_timeout=resolved_settings.health_check_timeout_seconds,
@@ -196,22 +201,38 @@ def create_app(
         RedisReplayGuard(redis_client) if redis_client is not None else InMemoryReplayGuard()
     )
 
-    # D-3: 将共享连接池和 Redis 客户端注入健康检查服务
+    # D-3: 将共享连接池和 Redis 客户端注入健康检查服务与限流器
     app.state.health_service = DependencyHealthService(
         resolved_settings,
         db_engine=engine,
         redis_client=redis_client,
     )
 
-    app.state.rate_limiter = InMemoryRateLimiter(
-        max_requests=resolved_settings.agent_rate_limit_max_requests,
-        window_seconds=resolved_settings.agent_rate_limit_window_seconds,
-    )
+    if redis_client is not None:
+        from app.core.ratelimit import RedisRateLimiter
+
+        app.state.rate_limiter = RedisRateLimiter(
+            redis_client,
+            max_requests=resolved_settings.agent_rate_limit_max_requests,
+            window_seconds=resolved_settings.agent_rate_limit_window_seconds,
+        )
+    else:
+        app.state.rate_limiter = InMemoryRateLimiter(
+            max_requests=resolved_settings.agent_rate_limit_max_requests,
+            window_seconds=resolved_settings.agent_rate_limit_window_seconds,
+        )
     app.add_middleware(TraceIdMiddleware)
 
     @app.exception_handler(AgentException)
     async def handle_agent_exception(_: Request, exc: AgentException) -> JSONResponse:
-        return _error_response(exc.status_code, exc.message, exc.data)
+        headers = {}
+        if (
+            exc.status_code == 429
+            and isinstance(exc.data, dict)
+            and "retry_after_seconds" in exc.data
+        ):
+            headers["Retry-After"] = str(exc.data["retry_after_seconds"])
+        return _error_response(exc.status_code, exc.message, exc.data, headers=headers)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:

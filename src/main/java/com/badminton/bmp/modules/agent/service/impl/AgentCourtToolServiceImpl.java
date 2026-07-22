@@ -124,11 +124,15 @@ public class AgentCourtToolServiceImpl implements AgentCourtToolService {
 
     private void validateBusinessHours(Venue venue, LocalDate date,
                                        LocalTime startTime, LocalTime endTime) {
-        String scheduleType = switch (date.getDayOfWeek()) {
-            case SATURDAY, SUNDAY -> "WEEKEND";
-            default -> "WORKDAY";
-        };
-        VenueSchedule schedule = venueScheduleService.findByVenueIdAndType(venue.getId(), scheduleType);
+        VenueSchedule schedule = venueScheduleService.findByVenueIdAndType(venue.getId(), "HOLIDAY");
+        if (schedule == null || schedule.getStartTime() == null || schedule.getEndTime() == null
+                || (schedule.getIsActive() != null && schedule.getIsActive() != 1)) {
+            String scheduleType = switch (date.getDayOfWeek()) {
+                case SATURDAY, SUNDAY -> "WEEKEND";
+                default -> "WORKDAY";
+            };
+            schedule = venueScheduleService.findByVenueIdAndType(venue.getId(), scheduleType);
+        }
         LocalTime opensAt;
         LocalTime closesAt;
         if (schedule != null && schedule.getStartTime() != null && schedule.getEndTime() != null

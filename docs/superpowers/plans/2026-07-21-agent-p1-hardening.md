@@ -28,11 +28,11 @@
 **Interfaces:**
 - Produces real HTTP 429/503 responses and no default Agent credential values.
 
-- [ ] Write MockMvc tests whose controllers throw `AgentRateLimitException` and `ServiceUnavailableException`, asserting HTTP 429/503 and `Retry-After`.
-- [ ] Run the new test and verify it fails with HTTP 200.
-- [ ] Return `ResponseEntity<Result<Object>>` from the two handlers and attach `Retry-After` for 429.
-- [ ] Remove credential fallback literals from `application.properties`.
-- [ ] Run the new test and `Agent*Test` suite.
+- [x] Write MockMvc tests whose controllers throw `AgentRateLimitException` and `ServiceUnavailableException`, asserting HTTP 429/503 and `Retry-After`.
+- [x] Run the new test and verify it fails with HTTP 200.
+- [x] Return `ResponseEntity<Result<Object>>` from the two handlers and attach `Retry-After` for 429.
+- [x] Remove credential fallback literals from `application.properties`.
+- [x] Run the new test and `Agent*Test` suite.
 
 ### Task 2: Java replay, layered limits, schedules, and circuit breaker
 
@@ -48,13 +48,13 @@
 - `AgentReplayGuard.tryClaim(AgentContext, HttpServletRequest): boolean`
 - `AgentConversationRateLimiter.tryAcquire(String dimension, String key, int limit, long windowSeconds): Decision`
 
-- [ ] Add tests proving an identical signed Tool request is rejected while a different query is allowed.
-- [ ] Add tests for independent IP/user/endpoint/read-write limit keys.
-- [ ] Add a test proving only one half-open request is allowed before success/failure feedback.
-- [ ] Add schedule tests for before-open, after-close, weekend, and valid time ranges.
-- [ ] Run each focused test and verify the expected failure.
-- [ ] Implement bounded replay claims, keyed limiter dimensions, half-open probe serialization, and schedule validation.
-- [ ] Run all Java Agent tests.
+- [x] Add tests proving an identical signed Tool request is rejected while a different query is allowed.
+- [x] Add tests for independent IP/user/endpoint/read-write limit keys.
+- [x] Add a test proving only one half-open request is allowed before success/failure feedback.
+- [x] Add schedule tests for before-open, after-close, weekend, and valid time ranges.
+- [x] Run each focused test and verify the expected failure.
+- [x] Implement bounded replay claims, keyed limiter dimensions, half-open probe serialization, and schedule validation.
+- [x] Run all Java Agent tests.
 
 ### Task 3: Python replay and layered limiting
 
@@ -71,11 +71,11 @@
 - `ReplayGuard.claim(nonce: str, expires_at_ms: int, scope: str) -> Awaitable[bool]`
 - `RateLimiter.try_acquire(key: str, max_requests: int | None = None, window_seconds: int | None = None) -> RateLimitDecision`
 
-- [ ] Add API tests proving the same signed process token is rejected on reuse.
-- [ ] Add tests for distinct IP, user, route, and operation limit keys.
-- [ ] Run focused tests and verify failures.
-- [ ] Implement injectable memory guards and Redis-backed atomic variants, then apply them in the process route.
-- [ ] Run focused tests to green.
+- [x] Add API tests proving the same signed process token is rejected on reuse.
+- [x] Add tests for distinct IP, user, route, and operation limit keys.
+- [x] Run focused tests and verify failures.
+- [x] Implement injectable memory guards and Redis-backed atomic variants, then apply them in the process route.
+- [x] Run focused tests to green.
 
 ### Task 4: Python Tool runtime and persisted agent state
 
@@ -93,12 +93,12 @@
 - `PostgresCheckpointStore.load_state(thread_id: str) -> dict[str, Any] | None`
 - `PostgresCheckpointStore.save_state(thread_id: str, state: dict[str, Any]) -> None`
 
-- [ ] Add a test recreating the agent/store and asserting the next turn continues after restart.
-- [ ] Add a process-route test proving a deterministic Tool command reaches HTTPX and returns Tool references.
-- [ ] Run focused tests and verify failures.
-- [ ] Wire the checkpoint store and one shared Tool client into app startup and shutdown.
-- [ ] Persist/restore MockAgent graph state and implement deterministic read-only Tool commands.
-- [ ] Run focused and full Python tests.
+- [x] Add a test recreating the agent/store and asserting the next turn continues after restart.
+- [x] Add a process-route test proving a deterministic Tool command reaches HTTPX and returns Tool references.
+- [x] Run focused tests and verify failures.
+- [x] Wire the checkpoint store and one shared Tool client into app startup and shutdown.
+- [x] Persist/restore MockAgent graph state and implement deterministic read-only Tool commands.
+- [x] Run focused and full Python tests.
 
 ### Task 5: Python breaker and quality gate
 
@@ -113,10 +113,10 @@
 **Interfaces:**
 - Half-open state permits exactly one in-flight request until `record_success` or `record_failure`.
 
-- [ ] Add a failing second-half-open-probe test.
-- [ ] Implement a half-open probe flag under the existing lock.
-- [ ] Fix Ruff import and exception chaining errors and the trailing blank line.
-- [ ] Run pytest, Ruff, and mypy.
+- [x] Add a failing second-half-open-probe test.
+- [x] Implement a half-open probe flag under the existing lock.
+- [x] Fix Ruff import and exception chaining errors and the trailing blank line.
+- [x] Run pytest, Ruff, and mypy.
 
 ### Task 6: Documentation and final verification
 
@@ -127,8 +127,8 @@
 **Interfaces:**
 - Documents match the implemented headers, parameter names, statuses, test counts, and integration-test conditions.
 
-- [ ] Update stale Tool header/query/response examples to the implemented contract.
-- [ ] Record actual test counts and distinguish environment-gated PostgreSQL verification.
-- [ ] Run `mvn test -Dtest=Agent*Test`.
-- [ ] Run Python pytest, Ruff, and mypy.
-- [ ] Run `git diff --check` and inspect the final scoped diff.
+- [x] Update stale Tool header/query/response examples to the implemented contract.
+- [x] Record actual test counts and distinguish environment-gated PostgreSQL verification.
+- [x] Run `mvn test -Dtest=Agent*Test`.
+- [x] Run Python pytest, Ruff, and mypy.
+- [x] Run `git diff --check` and inspect the final scoped diff.

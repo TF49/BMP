@@ -80,6 +80,35 @@ public class AgentGatewayServiceImpl implements AgentGatewayService {
         throw new BusinessException(501, "动作拒绝功能尚未开放");
     }
 
+    @Override
+    public AgentConversationVO getConversation(String conversationId) {
+        User user = requireCurrentUser();
+        enforceRateLimit(user);
+        
+        // 验证会话归属：会话 ID 必须符合格式并解析出 Agent 类型
+        AgentType agentType = resolveAgentType(conversationId);
+        
+        // 调用 FastAPI 查询会话状态（需要签发短期上下文）
+        AgentContext context = issueContext(user);
+        
+        // P1 阶段暂不实现完整的会话元数据查询，只验证会话存在性和归属
+        // P2 引入会话持久化后，此处将查询创建时间、过期时间、消息数等完整信息
+        return new AgentConversationVO(conversationId, agentType);
+    }
+
+    @Override
+    public void deleteConversation(String conversationId) {
+        User user = requireCurrentUser();
+        enforceRateLimit(user);
+        
+        // 验证会话归属
+        resolveAgentType(conversationId);
+        
+        // 调用 FastAPI 删除会话及关联的 Checkpoint
+        AgentContext context = issueContext(user);
+        agentServiceClient.deleteConversation(conversationId, context);
+    }
+
     private AgentContext issueContext(User user) {
         String traceId = getRequestTraceId();
         String userId = String.valueOf(user.getId());

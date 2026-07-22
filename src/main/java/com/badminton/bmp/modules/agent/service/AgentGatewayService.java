@@ -23,4 +23,10 @@ public interface AgentGatewayService {
 
     /** 拒绝一次待执行动作。 */
     AgentResponseVO rejectAction(String conversationId, String actionId, AgentActionRequest request);
+
+    /** 查询本人会话摘要。仅返回属于当前用户的会话信息。 */
+    AgentConversationVO getConversation(String conversationId);
+
+    /** 删除本人会话。仅允许删除属于当前用户的会话，包括关联的 Checkpoint 和消息历史。 */
+    void deleteConversation(String conversationId);
 }

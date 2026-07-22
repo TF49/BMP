@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
 from typing import Any, Protocol, cast
 
 from openai import APITimeoutError, AsyncOpenAI
@@ -62,6 +62,10 @@ class OpenAICompatibleChatModel:
     async def health_check(self) -> bool:
         result = await self.generate([ChatMessage(role="user", content="Reply with OK.")])
         return bool(result.content)
+
+    async def generate_stream(self, messages: Sequence[ChatMessage]) -> AsyncIterator[str]:
+        result = await self._complete(messages)
+        yield result.content
 
     async def _complete(
         self,

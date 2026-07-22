@@ -13,6 +13,8 @@ import jakarta.validation.constraints.NotBlank;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -61,5 +63,18 @@ public class AgentController extends BaseController {
             @PathVariable("actionId") @NotBlank String actionId,
             @Valid @RequestBody(required = false) AgentActionRequest request) {
         return success(agentGatewayService.rejectAction(conversationId, actionId, request));
+    }
+
+    /** 查询本人会话摘要。 */
+    @GetMapping("/conversations/{id}")
+    public Result<AgentConversationVO> getConversation(@PathVariable("id") @NotBlank String conversationId) {
+        return success(agentGatewayService.getConversation(conversationId));
+    }
+
+    /** 删除本人会话。 */
+    @DeleteMapping("/conversations/{id}")
+    public Result<Void> deleteConversation(@PathVariable("id") @NotBlank String conversationId) {
+        agentGatewayService.deleteConversation(conversationId);
+        return success(null);
     }
 }

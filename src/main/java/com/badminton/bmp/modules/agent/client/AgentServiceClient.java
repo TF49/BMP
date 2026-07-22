@@ -21,4 +21,12 @@ public interface AgentServiceClient {
      */
     AgentResponseVO process(String conversationId, AgentType agentType, String content,
                             String messageId, AgentContext context);
+
+    /**
+     * 删除指定会话及关联的 Checkpoint 和消息历史。
+     *
+     * @param conversationId 会话 ID
+     * @param context        已签发的短期用户上下文
+     */
+    void deleteConversation(String conversationId, AgentContext context);
 }

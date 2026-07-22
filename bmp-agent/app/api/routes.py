@@ -56,7 +56,10 @@ async def process_message(
         "operation:agent-process",
     )
     for key in rate_limit_keys:
-        decision = limiter.try_acquire(key)
+        if hasattr(limiter, "atry_acquire"):
+            decision = await limiter.atry_acquire(key)
+        else:
+            decision = limiter.try_acquire(key)
         if not decision.allowed:
             raise AgentException(
                 status_code=429,

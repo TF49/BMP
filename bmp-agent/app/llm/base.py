@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
 from typing import Protocol
 
 from pydantic import BaseModel
@@ -35,5 +35,7 @@ class ChatModel(Protocol):
         messages: Sequence[ChatMessage],
         response_model: type[T],
     ) -> T: ...
+
+    def generate_stream(self, messages: Sequence[ChatMessage]) -> AsyncIterator[str]: ...
 
     async def health_check(self) -> bool: ...

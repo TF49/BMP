@@ -41,6 +41,7 @@ class AgentContextVerifier(Protocol):
 # Static verifier（开发/测试环境）
 # ---------------------------------------------------------------------------
 
+
 class StaticAgentContextVerifier:
     """用于开发环境的静态 Token 比较校验器。"""
 
@@ -66,6 +67,7 @@ class StaticAgentContextVerifier:
 # ---------------------------------------------------------------------------
 # HMAC-SHA256 verifier（生产环境，S-1）
 # ---------------------------------------------------------------------------
+
 
 def _b64decode(data: str) -> bytes:
     """URL-safe base64 解码，自动补齐 padding。"""
@@ -101,11 +103,9 @@ class HmacAgentContextVerifier:
 
         try:
             payload_bytes = _b64decode(token[:dot])
-            sig_bytes = _b64decode(token[dot + 1:])
+            sig_bytes = _b64decode(token[dot + 1 :])
         except Exception:
-            raise AgentException(
-                status_code=401, message="malformed agent context token"
-            ) from None
+            raise AgentException(status_code=401, message="malformed agent context token") from None
 
         # 常量时间比较，防止时序攻击
         expected = hmac.new(self._secret, payload_bytes, hashlib.sha256).digest()
@@ -116,11 +116,11 @@ class HmacAgentContextVerifier:
         try:
             payload: dict = json.loads(payload_bytes.decode("utf-8"))
         except Exception:
-            raise AgentException(
-                status_code=401, message="malformed agent context token"
-            ) from None
+            raise AgentException(status_code=401, message="malformed agent context token") from None
 
-        self._require_fields(payload, ("user_id", "role", "issued_at", "expires_at", "nonce", "trace_id"))
+        self._require_fields(
+            payload, ("user_id", "role", "issued_at", "expires_at", "nonce", "trace_id")
+        )
 
         expires_at_ms: int = int(payload["expires_at"])
         if expires_at_ms <= int(time.time() * 1000):
@@ -150,6 +150,7 @@ class HmacAgentContextVerifier:
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
+
 
 def build_context_verifier(settings: AppSettings) -> AgentContextVerifier:
     if settings.agent_context_mode == "static":

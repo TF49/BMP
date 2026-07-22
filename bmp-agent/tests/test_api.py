@@ -360,12 +360,8 @@ async def test_process_enforces_rate_limit(test_settings: AppSettings) -> None:
 
     headers = {"X-Agent-Context-Token": "test-context-token"}
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        first = await client.post(
-            "/api/v1/agent/process", headers=headers, json=process_payload()
-        )
-        second = await client.post(
-            "/api/v1/agent/process", headers=headers, json=process_payload()
-        )
+        first = await client.post("/api/v1/agent/process", headers=headers, json=process_payload())
+        second = await client.post("/api/v1/agent/process", headers=headers, json=process_payload())
 
     assert first.status_code == 200
     assert second.status_code == 429
@@ -508,4 +504,3 @@ async def test_process_tool_command_uses_shared_java_client(
     assert captured["headers"]["X-Agent-Service-Token"] == "service-token"
     assert response.json()["data"]["metadata"]["tool_calls"] == ["list_venues"]
     assert response.json()["data"]["references"][0]["venue_id"] == 3
-

@@ -38,6 +38,8 @@ class Agent(Protocol):
     this protocol without inheriting from it.
     """
 
-    async def process(self, session: "Any", message: str, context_token: str | None = None) -> AgentResult: ...
+    async def process(
+        self, session: "Any", message: str, context_token: str | None = None
+    ) -> AgentResult: ...
 
     async def delete_thread(self, thread_id: str) -> None: ...

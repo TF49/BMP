@@ -39,3 +39,6 @@ dmypy.json
 
 # Ruff
 .ruff_cache/
+
+# 项目生成物
+project_structure.txt

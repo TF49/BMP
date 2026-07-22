@@ -130,9 +130,7 @@ class PostgresSessionStore:
 
     async def _find(self, db: AsyncSession, conversation_id: str) -> AgentConversation | None:
         result = await db.execute(
-            select(AgentConversation).where(
-                AgentConversation.conversation_id == conversation_id
-            )
+            select(AgentConversation).where(AgentConversation.conversation_id == conversation_id)
         )
         return result.scalar_one_or_none()
 
@@ -258,9 +256,7 @@ class PostgresCheckpointStore:
                 existing.checkpoint_metadata = metadata or {}
             await db.commit()
 
-    async def get_latest(
-        self, thread_id: str, checkpoint_ns: str = ""
-    ) -> CheckpointRecord | None:
+    async def get_latest(self, thread_id: str, checkpoint_ns: str = "") -> CheckpointRecord | None:
         async with self._session_factory() as db:
             result = await db.execute(
                 select(Checkpoint)
