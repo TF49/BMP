@@ -467,6 +467,13 @@
       }
     },
     {
+      "path": "pages/agent/index",
+      "style": {
+        "navigationBarTitleText": "智能助手",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/profile/info",
       "style": {
         "navigationBarTitleText": "个人信息",

@@ -1,10 +1,10 @@
 # BMP 三智能体 API 规范文档
 
-> 文档版本：v1.2
+> 文档版本：v1.4
 > 创建日期：2026-07-17
-> 更新日期：2026-07-21
+> 更新日期：2026-07-23
 > 适用项目：羽擎（Badminton Management Platform，BMP）
-> 文档状态：P1 已完成，P2 实施中
+> 文档状态：P1/P2-01~P2-05 已完成（P2-05 框架与测试优化已完成，P3 准备中）
 
 ## 1. API 概览
 
@@ -21,6 +21,7 @@ BMP 三智能体系统包含两类 API：
 - **数据格式**：JSON
 - **字符编码**：UTF-8
 - **时区**：UTC，所有时间字段使用 ISO 8601 格式
+- **全链路追踪**：HTTP 请求头 `X-Agent-Trace-Id` 用于在 Web / UniApp / Java API 网关 / FastAPI Agent / Tool 间透传统一 Trace ID
 
 ### 1.3 通用响应格式
 

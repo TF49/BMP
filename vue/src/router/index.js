@@ -404,6 +404,22 @@ const routes = [
     ]
   },
 
+  // 智能助手（AI Agent）
+  {
+    path: '/agent',
+    component: AdminLayout,
+    redirect: '/agent/analytics',
+    meta: { title: '智能助手', icon: 'MagicStick', roles: ['PRESIDENT', 'VENUE_MANAGER'] },
+    children: [
+      {
+        path: 'analytics',
+        name: 'AgentAnalytics',
+        component: () => import('@/views/AgentWorkspace.vue'),
+        meta: { title: '经营分析助手', icon: 'MagicStick', roles: ['PRESIDENT', 'VENUE_MANAGER'] }
+      }
+    ]
+  },
+
   // 用户管理
   {
     path: '/admin/user',
